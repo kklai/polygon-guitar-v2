@@ -22,7 +22,7 @@ export default function PlaylistDetail() {
       setIsLoading(true)
       
       // 獲取歌單資料
-      const playlistData = await getPlaylist(id)
+      let playlistData = await getPlaylist(id)
       
       // 如果是自動歌單類型，使用預設資訊
       if (!playlistData && AUTO_PLAYLIST_TYPES[id]) {
