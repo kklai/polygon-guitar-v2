@@ -1,0 +1,74 @@
+import Link from 'next/link'
+
+export default function TabCard({ tab }) {
+  // 計算歌手的 normalizedName 用于链接
+  const artistNormalizedName = tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')
+
+  return (
+    <div className="bg-[#121212] rounded-lg shadow-md hover:shadow-xl transition-shadow p-5 border border-gray-800 hover:border-[#FFD700]">
+      {/* 歌名 */}
+      <Link href={`/tabs/${tab.id}`}>
+        <h3 className="text-lg font-bold text-white mb-2 line-clamp-1 cursor-pointer hover:text-[#FFD700] transition">
+          {tab.title}
+        </h3>
+      </Link>
+      
+      {/* 歌手 Badge */}
+      <p className="mb-3">
+        <Link href={`/songs/${artistNormalizedName}`}>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFD700] text-black hover:opacity-80 cursor-pointer transition">
+            {tab.artist}
+          </span>
+        </Link>
+      </p>
+      
+      {/* 分隔線 */}
+      <div className="border-t border-gray-800 my-3"></div>
+      
+      {/* 譜資料 - 瀏覽次數 & Key */}
+      <div className="flex items-center gap-3 mb-3 text-sm">
+        {/* 瀏覽次數 */}
+        <span className="flex items-center gap-1 text-[#B3B3B3]">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <span>{(tab.viewCount || 0).toLocaleString()}</span>
+        </span>
+        
+        <span className="text-gray-600">|</span>
+        
+        {/* Key */}
+        <span className="flex items-center gap-1 text-[#B3B3B3]">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+          </svg>
+          <span className="text-[#FFD700] font-medium">{tab.originalKey || 'C'}</span>
+        </span>
+        
+        {/* 讚數 (如果有的話) */}
+        {tab.likes > 0 && (
+          <>
+            <span className="text-gray-600">|</span>
+            <span className="flex items-center gap-1 text-[#B3B3B3]">
+              <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+              </svg>
+              <span>{tab.likes}</span>
+            </span>
+          </>
+        )}
+      </div>
+      
+      {/* 底部 - 日期 */}
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span className="flex items-center gap-1">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          {new Date(tab.createdAt).toLocaleDateString('zh-HK')}
+        </span>
+      </div>
+    </div>
+  )
+}
