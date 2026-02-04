@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { getArtistBySlug, getTopSongsByArtist, getAllSongsByArtistGrouped } from '@/lib/tabs'
@@ -19,13 +19,33 @@ export default function ArtistPage() {
   const [uploaderNames, setUploaderNames] = useState({})
   const [isLoading, setIsLoading] = useState(true)
   const [debugInfo, setDebugInfo] = useState(null)
-  const [showBioModal, setShowBioModal] = useState(false)
+  const [showBioPopover, setShowBioPopover] = useState(false)
+  const popoverRef = useRef(null)
+  const infoButtonRef = useRef(null)
 
   useEffect(() => {
     if (id) {
       loadArtistData()
     }
   }, [id])
+
+  // 點擊外部關閉 popover
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showBioPopover &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target) &&
+        infoButtonRef.current &&
+        !infoButtonRef.current.contains(event.target)
+      ) {
+        setShowBioPopover(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showBioPopover])
 
   // Load uploader names for all songs
   useEffect(() => {
@@ -173,55 +193,52 @@ export default function ArtistPage() {
 
   const totalSongs = Object.values(groupedSongs).flat().length
 
-  // 歌手資料 Modal
-  const BioModal = () => {
-    if (!showBioModal) return null
+  // 歌手資料 Popover
+  const BioPopover = () => {
+    if (!showBioPopover) return null
     
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-        <div className="bg-[#121212] rounded-2xl max-w-sm w-full overflow-hidden">
-          {/* Header Image */}
-          <div className="relative h-48">
+      <div 
+        ref={popoverRef}
+        className="absolute z-50 animate-popover-in"
+        style={{
+          top: '100%',
+          left: '0',
+          marginTop: '8px'
+        }}
+      >
+        <div className="w-[280px] bg-[#1a1a1a] border border-[#FFD700] rounded-xl overflow-hidden shadow-2xl">
+          {/* 歌手相 */}
+          <div className="h-32 bg-gradient-to-b from-gray-800 to-[#1a1a1a] flex items-center justify-center">
             {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
               <img
                 src={artist.photoURL || artist.wikiPhotoURL || artist.photo}
                 alt={artist.name}
-                className="w-full h-full object-cover"
+                className="w-20 h-20 rounded-full object-cover border-2 border-[#FFD700]"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#FFD700] to-orange-500 flex items-center justify-center">
-                <span className="text-6xl">🎤</span>
-              </div>
+              <span className="text-5xl">🎤</span>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#121212] to-transparent"></div>
           </div>
           
-          {/* Content */}
-          <div className="px-5 pb-5 -mt-12 relative">
-            <h2 className="text-2xl font-bold text-white mb-1">{artist.name}</h2>
-            <p className="text-[#FFD700] text-sm mb-4">{totalSongs} 首結他譜</p>
+          {/* 內容 */}
+          <div className="px-4 pb-4 text-center">
+            <h3 className="text-lg font-bold text-white mb-1">{artist.name}</h3>
+            <p className="text-[#FFD700] text-xs mb-3">{totalSongs} 首結他譜</p>
             
             {artist.bio ? (
-              <p className="text-gray-300 text-sm leading-relaxed mb-4">
+              <p className="text-gray-300 text-xs leading-relaxed line-clamp-4">
                 {artist.bio}
               </p>
             ) : (
-              <p className="text-gray-500 text-sm italic mb-4">暫無簡介</p>
+              <p className="text-gray-500 text-xs italic">暫無簡介</p>
             )}
             
             {artist.year && (
-              <p className="text-gray-400 text-xs">
+              <p className="text-gray-400 text-[10px] mt-3">
                 🎵 {artist.year}年出道
               </p>
             )}
-            
-            {/* Close Button */}
-            <button
-              onClick={() => setShowBioModal(false)}
-              className="mt-5 w-full py-3 bg-[#FFD700] text-black rounded-xl font-bold hover:opacity-90 transition"
-            >
-              關閉
-            </button>
           </div>
         </div>
       </div>
@@ -275,18 +292,29 @@ export default function ArtistPage() {
               {/* 漸變遮罩 */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               
-              {/* 歌手名稱 - 左下角 + 資料圖標 */}
+              {/* 歌手名稱 - 左下角 + Popover */}
               <div className="absolute bottom-0 left-0 right-0 p-5">
-                <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-3xl font-bold text-white">{artist.name}</h1>
-                  {/* 資料圖標 ⓘ */}
-                  <button
-                    onClick={() => setShowBioModal(true)}
-                    className="w-5 h-5 rounded-full bg-gray-600 text-white text-xs flex items-center justify-center hover:bg-[#FFD700] hover:text-black transition"
-                  >
-                    ⓘ
-                  </button>
+                <div className="relative inline-block">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-3xl font-bold text-white">{artist.name}</h1>
+                    {/* 資料圖標 ⓘ */}
+                    <button
+                      ref={infoButtonRef}
+                      onClick={() => setShowBioPopover(!showBioPopover)}
+                      className={`w-6 h-6 rounded-full text-xs flex items-center justify-center transition ${
+                        showBioPopover 
+                          ? 'bg-[#FFD700] text-black' 
+                          : 'bg-gray-600 text-white hover:bg-[#FFD700] hover:text-black'
+                      }`}
+                    >
+                      ⓘ
+                    </button>
+                  </div>
+                  
+                  {/* Bio Popover */}
+                  <BioPopover />
                 </div>
+                
                 <p className="text-gray-300 text-sm">
                   {totalSongs} 首結他譜
                 </p>
@@ -338,9 +366,6 @@ export default function ArtistPage() {
           </div>
         </div>
 
-        {/* Bio Modal */}
-        <BioModal />
-
         {/* Hot Songs Section */}
         {topSongs.length > 0 && (
           <div className="px-3 md:px-6 pt-6">
@@ -351,80 +376,78 @@ export default function ArtistPage() {
                 <div
                   key={song.id}
                   onClick={() => handleSongClick(song.id)}
-                  className="group flex items-center gap-2 py-2 px-2 rounded-md hover:bg-white/10 transition cursor-pointer h-14"
+                  className="group py-2 px-2 rounded-md hover:bg-white/10 transition cursor-pointer"
                 >
-                  {/* Rank - 再縮細版 w-5 */}
-                  <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                    <span className={`
-                      text-xs font-bold
-                      ${index === 0 ? 'text-[#FFD700]' : 
-                        index === 1 ? 'text-gray-300' : 
-                        index === 2 ? 'text-amber-600' : 'text-gray-500'}
-                    `}>
-                      {index + 1}
-                    </span>
-                  </div>
-                  
-                  {/* Thumbnail - 縮細 w-10 h-10 */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-800">
-                    {getThumbnail(song) ? (
-                      <img
-                        src={getThumbnail(song)}
-                        alt={song.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg">
-                        🎸
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-semibold text-sm truncate group-hover:text-[#FFD700] transition">
+                  {/* 第一行：歌名 + 瀏覽 + 讚好 */}
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-white font-semibold text-sm truncate flex-1 pr-3 group-hover:text-[#FFD700] transition">
                       {song.title}
                     </h3>
-                    
-                    {/* 瀏覽次數 & 讚好 - 更細 */}
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-0.5">
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-shrink-0">
                       <span className="flex items-center gap-0.5">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        {(song.viewCount || 0).toLocaleString()}
+                        {song.viewCount || 0}
                       </span>
                       {song.likes > 0 && (
-                        <>
-                          <span>•</span>
-                          <span className="flex items-center gap-0.5">
-                            <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                            </svg>
-                            {song.likes}
-                          </span>
-                        </>
+                        <span className="flex items-center gap-0.5">
+                          <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                          </svg>
+                          {song.likes}
+                        </span>
                       )}
                     </div>
                   </div>
                   
-                  {/* Key Selection - 單行顯示，縮細 w-6 h-6 */}
-                  <div className="flex-shrink-0 flex flex-nowrap gap-0.5 overflow-hidden">
-                    {KEYS.map((key) => (
-                      <button
-                        key={key}
-                        onClick={(e) => handleKeyClick(e, song.id, key)}
-                        className={`flex-shrink-0 w-6 h-6 rounded-full text-[10px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
-                          key === song.originalKey
-                            ? 'bg-gray-900 text-[#FFD700] ring-1.5 ring-white'
-                            : 'bg-[#FFD700] text-black'
-                        }`}
-                        title={`以 ${key} Key 演奏`}
-                      >
-                        {key}
-                      </button>
-                    ))}
+                  {/* 第二行：排名 + 縮圖 + Key 圓圈 */}
+                  <div className="flex items-center gap-2">
+                    {/* 排名 - 縮細 w-4 h-4 */}
+                    <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+                      <span className={`
+                        text-[10px] font-bold
+                        ${index === 0 ? 'text-[#FFD700]' : 
+                          index === 1 ? 'text-gray-300' : 
+                          index === 2 ? 'text-amber-600' : 'text-gray-500'}
+                      `}>
+                        {index + 1}
+                      </span>
+                    </div>
+                    
+                    {/* 縮圖 - 縮細 w-8 h-8 */}
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-gray-800">
+                      {getThumbnail(song) ? (
+                        <img
+                          src={getThumbnail(song)}
+                          alt={song.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-sm">
+                          🎸
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Key Selection - 單行顯示，縮細 w-5 h-5，加黃框 */}
+                    <div className="flex-1 flex flex-nowrap gap-0.5 overflow-hidden">
+                      {KEYS.map((key) => (
+                        <button
+                          key={key}
+                          onClick={(e) => handleKeyClick(e, song.id, key)}
+                          className={`flex-shrink-0 w-5 h-5 rounded-full text-[9px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
+                            key === song.originalKey
+                              ? 'bg-black text-[#FFD700] border-2 border-[#FFD700]'
+                              : 'bg-[#FFD700] text-black'
+                          }`}
+                          title={`以 ${key} Key 演奏`}
+                        >
+                          {key}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
