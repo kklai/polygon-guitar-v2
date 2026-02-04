@@ -210,18 +210,34 @@ function AnalyzePage() {
                               <div className="text-xs text-gray-400">獨特和弦</div>
                             </div>
                             <div className="bg-gray-800 p-2 rounded text-center">
-                              <div className="text-lg font-bold text-[#FFD700]">{item.analysis.barreCount}</div>
-                              <div className="text-xs text-gray-400">Barre和弦</div>
-                            </div>
-                            <div className="bg-gray-800 p-2 rounded text-center">
                               <div className="text-lg font-bold text-[#FFD700]">{item.analysis.lineCount}</div>
                               <div className="text-xs text-gray-400">行數</div>
+                            </div>
+                            <div className="bg-gray-800 p-2 rounded text-center">
+                              <div className="text-lg font-bold text-[#FFD700]">{item.analysis.charCount}</div>
+                              <div className="text-xs text-gray-400">字符數</div>
                             </div>
                             <div className="bg-gray-800 p-2 rounded text-center">
                               <div className="text-lg font-bold text-[#FFD700]">{item.analysis.estimatedTime}</div>
                               <div className="text-xs text-gray-400">預計練習</div>
                             </div>
                           </div>
+                          
+                          {/* Barre 和弦提示 */}
+                          {item.analysis.barreChordsDetected?.length > 0 && (
+                            <div className="mb-4 p-3 bg-orange-900/20 border border-orange-700/50 rounded">
+                              <div className="text-sm text-orange-400 mb-1">
+                                ⚠️ 檢測到可能需要 Barre 技巧的和弦（用戶可轉 Key 避開）：
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {item.analysis.barreChordsDetected.map((chord, idx) => (
+                                  <span key={idx} className="text-xs px-2 py-1 bg-orange-600/30 text-orange-300 rounded">
+                                    {chord}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           
                           {/* 和弦詳情 */}
                           <div className="space-y-3">
@@ -231,19 +247,11 @@ function AnalyzePage() {
                                 {item.analysis.uniqueChords.map((chord, idx) => (
                                   <span 
                                     key={idx}
-                                    className={`text-xs px-2 py-1 rounded ${
-                                      item.analysis.barreChords?.includes(chord) 
-                                        ? 'bg-orange-600 text-white' 
-                                        : 'bg-gray-700 text-gray-300'
-                                    }`}
-                                    title={item.analysis.barreChords?.includes(chord) ? 'Barre和弦' : ''}
+                                    className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-300"
                                   >
                                     {chord}
                                   </span>
                                 ))}
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                🟠 橙色 = Barre和弦
                               </div>
                             </div>
                             
@@ -319,10 +327,10 @@ function AnalyzePage() {
         <div className="mt-6 p-4 bg-gray-900 rounded-lg text-sm text-gray-400">
           <h3 className="font-bold text-white mb-2">💡 使用說明</h3>
           <ul className="list-disc list-inside space-y-1">
-            <li>點擊結果可以展開查看詳細分析（所有和弦、Barre和弦標記、內容預覽）</li>
-            <li>🟠 橙色標籤 = 被識別為 Barre 和弦</li>
+            <li>點擊結果展開查看詳細分析（所有和弦、內容預覽）</li>
+            <li>難度主要基於和弦數量判斷：≤5個=初階，6-9個=中級，≥10個=進階</li>
+            <li>Barre 和弦僅作提示，因為用戶可以轉 Key 避開</li>
             <li>如果分析不準確，可以點「重新分析此譜」或調整和弦識別規則</li>
-            <li>測試模式不會寫入資料庫，可以放心測試</li>
           </ul>
         </div>
       </div>

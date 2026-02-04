@@ -1,7 +1,12 @@
 import { getAllTabs, updateTab } from '@/lib/tabs'
 
-// 分析函數 - 增強版，返回詳細資訊
-const BARRE_CHORDS_PATTERN = /^(Fmaj7|Bm|Bbm|Cm|C#m|C#|F#m|F#|G#m|G#|Abm|Ab|Bbm|Bb|Bm7|C#7|F#7|B7|Cm7|C#m7|F#m7|G#m7)$/;
+// Barre 和弦定義（這些和弦通常需要用 Barre 技巧，但用戶可以轉 Key 避開）
+const BARRE_CHORDS = ['B', 'Bm', 'Bb', 'Bbm', 'B7', 'Bm7', 'Bb7',
+  'C#', 'C#m', 'C#7', 'C#m7', 'Db', 'Dbm',
+  'F', 'Fm', 'F7', 'Fm7',
+  'F#', 'F#m', 'F#7', 'F#m7', 'Gb', 'Gbm',
+  'G#', 'G#m', 'G#7', 'G#m7', 'Ab', 'Abm'];
+const BARRE_CHORDS_PATTERN = new RegExp('^(' + BARRE_CHORDS.join('|') + ')$');
 
 function analyzeDifficulty(content) {
   if (!content) return null;
@@ -42,12 +47,12 @@ function analyzeDifficulty(content) {
     levelName = '中級';
   }
   
-  // 生成標籤
+  // 生成標籤（專注於和弦數量而非 Barre）
   const autoTags = [];
-  if (barreCount === 0) autoTags.push('無Barre和弦');
-  if (barreCount > 5) autoTags.push('大量橫按');
-  if (uniqueChords.length <= 6) autoTags.push('和弦簡單');
-  if (uniqueChords.length >= 12) autoTags.push('和弦豐富');
+  if (uniqueChords.length <= 5) autoTags.push('和弦簡單');
+  else if (uniqueChords.length <= 9) autoTags.push('和弦適中');
+  else autoTags.push('和弦豐富');
+  
   if (hasFingerstyle) autoTags.push('指彈技巧');
   if (hasStrummingPattern) autoTags.push('掃弦節奏');
   if (lineCount > 100) autoTags.push('內容詳盡');
@@ -55,8 +60,8 @@ function analyzeDifficulty(content) {
   return {
     level: difficulty,
     levelName: levelName,
-    barreCount: barreCount,
-    barreChords: barreChords,
+    // 列出檢測到的 Barre 和弦供參考（但難度判斷主要基於和弦數量）
+    barreChordsDetected: barreChords,
     chordCount: uniqueChords.length,
     allChords: allChords.slice(0, 50), // 只取前50個用於顯示
     uniqueChords: uniqueChords,

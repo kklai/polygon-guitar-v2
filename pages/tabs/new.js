@@ -32,7 +32,10 @@ export default function NewTab() {
     bpm: '',
     // YouTube
     youtubeUrl: '',
-    youtubeVideoId: ''
+    youtubeVideoId: '',
+    // 演奏技巧
+    strummingPattern: '',
+    fingeringTips: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
@@ -524,6 +527,44 @@ E|----------------------------------------------------------------|
               <p className="mt-1 text-sm text-[#B3B3B3]">
                 用戶可以之後在譜面轉調
               </p>
+            </div>
+
+            {/* 演奏技巧 */}
+            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+              <h3 className="text-sm font-medium text-[#FFD700] mb-3">演奏技巧（可選）</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="strummingPattern" className="block text-sm font-medium text-white mb-1">
+                    掃弦節奏 (Strumming Pattern)
+                  </label>
+                  <textarea
+                    id="strummingPattern"
+                    name="strummingPattern"
+                    value={formData.strummingPattern}
+                    onChange={handleChange}
+                    placeholder="例如：↓ ↓↑ ↓↑ ↓↑&#10;或：D DU DU DU"
+                    rows={3}
+                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent font-mono text-sm"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">可以用箭頭 ↓↑ 或 D/U 表示</p>
+                </div>
+                
+                <div>
+                  <label htmlFor="fingeringTips" className="block text-sm font-medium text-white mb-1">
+                    指法提示 (Fingering Tips)
+                  </label>
+                  <textarea
+                    id="fingeringTips"
+                    name="fingeringTips"
+                    value={formData.fingeringTips}
+                    onChange={handleChange}
+                    placeholder="例如：副歌可以用Power Chord加強節奏感&#10;間奏Solo建議用食指橫按..."
+                    rows={3}
+                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Content */}
