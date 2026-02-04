@@ -273,6 +273,7 @@ const TabContent = ({
   const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
   const [fontSize, setFontSize] = useState(16);
   const [isAutoScroll, setIsAutoScroll] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(3); // 1-5 levels
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
   
@@ -295,12 +296,13 @@ const TabContent = ({
     }
   }, [initialKey]);
 
-  // 自動滾動
+  // 自動滾動 - 可調速度
   useEffect(() => {
     if (isAutoScroll && scrollRef.current) {
+      const speeds = [0, 80, 50, 30, 20, 15]; // 對應 0-5 級
       autoScrollRef.current = setInterval(() => {
         scrollRef.current.scrollTop += 1;
-      }, 50);
+      }, speeds[scrollSpeed] || 50);
     } else {
       if (autoScrollRef.current) {
         clearInterval(autoScrollRef.current);
@@ -310,7 +312,7 @@ const TabContent = ({
     return () => {
       if (autoScrollRef.current) clearInterval(autoScrollRef.current);
     };
-  }, [isAutoScroll]);
+  }, [isAutoScroll, scrollSpeed]);
 
   // 處理字體大小
   const handleFontSize = (delta) => {
@@ -415,46 +417,46 @@ const TabContent = ({
 
   // ============ 控制器 UI ============
   const ControlBar = () => (
-    <div className="flex flex-col gap-4 p-4 bg-black border-b border-gray-800">
+    <div className="flex flex-col gap-2 sm:gap-4 p-2 sm:p-4 bg-black border-b border-gray-800">
       {/* 轉調控制區 */}
       <div>
-        {/* 頂部顯示：原調 → PLAY + Capo 建議 */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="text-sm text-gray-400">原調:</span>
-          <span className="text-sm font-medium text-white">{originalKey}</span>
+        {/* 頂部顯示：原調 → PLAY + Capo 建議 - 手機版更緊湊 */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+          <span className="text-xs sm:text-sm text-gray-400">原調:</span>
+          <span className="text-xs sm:text-sm font-medium text-white">{originalKey}</span>
           <span className="text-gray-600">→</span>
-          <span className="text-sm text-gray-400">PLAY:</span>
-          <span className={`text-sm font-bold ${currentKey !== originalKey ? 'text-[#FFD700]' : 'text-white'}`}>
+          <span className="text-xs sm:text-sm text-gray-400">PLAY:</span>
+          <span className={`text-xs sm:text-sm font-bold ${currentKey !== originalKey ? 'text-[#FFD700]' : 'text-white'}`}>
             {currentKey}
           </span>
           
-          {/* Capo 建議標籤 */}
+          {/* Capo 建議標籤 - 手機版隱藏文字 */}
           {currentKey !== originalKey && (
             <>
               {capoSuggestion.status === 'none' && (
-                <span className="text-xs px-2 py-0.5 bg-gray-800 text-gray-400 rounded">
-                  {capoSuggestion.message}
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-800 text-gray-400 rounded">
+                  免Capo
                 </span>
               )}
               {capoSuggestion.status === 'ok' && (
-                <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-400 rounded">
-                  {capoSuggestion.message}
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-900/50 text-green-400 rounded">
+                  Capo {capo}
                 </span>
               )}
               {capoSuggestion.status === 'high' && (
-                <span className="text-xs px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">
-                  {capoSuggestion.message}
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">
+                  Capo {capo}太高
                 </span>
               )}
             </>
           )}
         </div>
         
-        {/* Drop Tuning 建議（當 capo >= 9）- 簡化版 */}
+        {/* Drop Tuning 建議 - 手機版簡化 */}
         {currentKey !== originalKey && capoSuggestion.alternative && (
-          <div className="mb-3 text-xs text-gray-500">
+          <div className="mb-2 text-[10px] sm:text-xs text-gray-500">
             <span className="text-orange-400">提示：</span>
-            位置過高，建議 Drop Tuning 後夾 {capoSuggestion.alternative.capo} 格
+            建議 Drop Tuning
             <button
               onClick={() => {
                 setCurrentKey('C')
@@ -467,12 +469,10 @@ const TabContent = ({
           </div>
         )}
         
-        {/* 12 Key 單行排列 - 新規格 w-7 h-7 */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
+        {/* 12 Key 單行排列 - 手機版更小 */}
+        <div className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
           {KEYS.map((key) => {
             const isCurrent = key === currentKey;
-            const isOriginal = key === originalKey;
-            
             return (
               <button
                 key={key}
@@ -482,17 +482,16 @@ const TabContent = ({
                 }}
                 className={`
                   flex-shrink-0
-                  w-7 h-7
+                  w-6 h-6 sm:w-7 sm:h-7
                   rounded-full 
                   flex items-center justify-center 
-                  text-[11px] font-bold
+                  text-[10px] sm:text-[11px] font-bold
                   transition hover:scale-105
                   ${isCurrent
                     ? 'bg-black text-[#FFD700] border border-[#FFD700]'
                     : 'bg-[#FFD700] text-black'
                   }
                 `}
-                title={isOriginal ? '原調' : ''}
               >
                 {key}
               </button>
@@ -504,66 +503,77 @@ const TabContent = ({
       {/* 分隔線 */}
       <div className="h-px bg-gray-700" />
 
-      {/* 其他控制 */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* 字體大小控制 */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">字體:</span>
-          <button
-            onClick={() => handleFontSize(-1)}
-            className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded hover:bg-gray-700 transition text-xs"
-          >
-            A-
-          </button>
-          <span className="w-8 text-center text-sm text-gray-400">{fontSize}px</span>
-          <button
-            onClick={() => handleFontSize(1)}
-            className="w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded hover:bg-gray-700 transition text-sm"
-          >
-            A+
-          </button>
+      {/* 其他控制 - 手機版更緊湊 */}
+      <div className="flex items-center justify-between gap-2">
+        {/* 左側：字體大小 + 自動滾動 */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* 字體大小控制 - 更小 */}
+          <div className="flex items-center gap-0.5 sm:gap-2">
+            <button
+              onClick={() => handleFontSize(-1)}
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-800 text-white rounded hover:bg-gray-700 transition text-[10px] sm:text-xs"
+            >
+              A-
+            </button>
+            <span className="w-6 sm:w-8 text-center text-xs text-gray-400">{fontSize}</span>
+            <button
+              onClick={() => handleFontSize(1)}
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-800 text-white rounded hover:bg-gray-700 transition text-xs sm:text-sm"
+            >
+              A+
+            </button>
+          </div>
+
+          <div className="w-px h-4 sm:h-6 bg-gray-700" />
+
+          {/* 自動滾動 + 速度控制 */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsAutoScroll(!isAutoScroll)}
+              className={`flex items-center gap-0.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded transition text-xs ${
+                isAutoScroll 
+                  ? 'bg-[#FFD700] text-black' 
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
+            >
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              <span className="hidden sm:inline text-sm">{isAutoScroll ? '停止' : '自動滾動'}</span>
+            </button>
+            
+            {/* 速度調整 */}
+            {isAutoScroll && (
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))}
+                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
+                  disabled={scrollSpeed <= 1}
+                >
+                  −
+                </button>
+                <span className="w-4 sm:w-5 text-center text-[10px] sm:text-xs text-gray-400">{scrollSpeed}</span>
+                <button
+                  onClick={() => setScrollSpeed(Math.min(5, scrollSpeed + 1))}
+                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
+                  disabled={scrollSpeed >= 5}
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="w-px h-6 bg-gray-700" />
-
-        {/* 自動滾動 */}
-        <button
-          onClick={() => setIsAutoScroll(!isAutoScroll)}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded transition ${
-            isAutoScroll 
-              ? 'bg-[#FFD700] text-black' 
-              : 'bg-gray-800 text-white hover:bg-gray-700'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
-          <span className="text-sm">{isAutoScroll ? '停止' : '自動滾動'}</span>
-        </button>
-
-        <div className="flex-1" />
-
-        {/* 編輯/複製按鈕 */}
-        {editable && (
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-gray-700 transition"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            <span className="text-sm">{isEditing ? '預覽' : '編輯'}</span>
-          </button>
-        )}
-
+        {/* 右側：複製 */}
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-3 py-1.5 text-[#FFD700] hover:opacity-80 transition"
+          className="p-1.5 sm:px-3 sm:py-1.5 text-[#FFD700] hover:opacity-80 transition"
+          title="複製譜內容"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          <span className="text-sm">複製</span>
         </button>
       </div>
     </div>
@@ -606,7 +616,7 @@ const TabContent = ({
       {showControls && <ControlBar />}
       <div 
         ref={scrollRef}
-        className="p-6 overflow-x-auto max-h-[70vh] overflow-y-auto"
+        className="p-3 sm:p-6 overflow-x-auto max-h-[60vh] sm:max-h-[70vh] overflow-y-auto"
         style={{ scrollBehavior: isAutoScroll ? 'auto' : 'smooth' }}
       >
         <div style={{
