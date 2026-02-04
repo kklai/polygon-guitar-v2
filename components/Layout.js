@@ -1,8 +1,10 @@
 import { useRouter } from 'next/router'
+import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
 
 export default function Layout({ children, fullWidth = false }) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const currentPath = router.pathname
 
   // 檢查當前頁面是否激活
@@ -12,7 +14,7 @@ export default function Layout({ children, fullWidth = false }) {
     return false
   }
 
-  // 底部導航項目 - 手機版
+  // 底部導航項目 - 手機版（只有普通用戶項目）
   const mobileNavItems = [
     { path: '/', label: '首頁', icon: 'home' },
     { path: '/search', label: '搜尋', icon: 'search' },
@@ -21,15 +23,25 @@ export default function Layout({ children, fullWidth = false }) {
     { path: '/library', label: '收藏', icon: 'library' },
   ]
 
-  // 底部導航項目 - 桌面版
-  const desktopNavItems = [
-    { path: '/', label: '首頁', icon: 'home' },
-    { path: '/artists', label: '歌手', icon: 'artists' },
-    { path: '/tabs/new', label: '上傳', icon: 'upload' },
-    { path: '/admin/artists', label: '管理', icon: 'admin' },
-    { path: '/admin/hero-photos', label: 'Hero', icon: 'hero' },
-    { path: '/admin/playlists', label: '歌單', icon: 'playlist' },
-  ]
+  // 底部導航項目 - 桌面版（根據是否 Admin 動態生成）
+  const getDesktopNavItems = () => {
+    const items = [
+      { path: '/', label: '首頁', icon: 'home' },
+      { path: '/artists', label: '歌手', icon: 'artists' },
+      { path: '/tabs/new', label: '上傳', icon: 'upload' },
+    ]
+    
+    // 只有 Admin 先顯示管理項目
+    if (isAdmin) {
+      items.push(
+        { path: '/admin/artists', label: '管理', icon: 'admin' },
+        { path: '/admin/hero-photos', label: 'Hero', icon: 'hero' },
+        { path: '/admin/playlists', label: '歌單', icon: 'playlist' }
+      )
+    }
+    
+    return items
+  }
 
   // Icon 組件
   const Icon = ({ name, className }) => {
@@ -78,6 +90,8 @@ export default function Layout({ children, fullWidth = false }) {
     }
     return icons[name] || null
   }
+
+  const desktopNavItems = getDesktopNavItems()
 
   return (
     <div className="min-h-screen bg-black text-white">
