@@ -169,7 +169,7 @@ export default function ArtistDetail() {
         {tabs.length > 0 ? (
           <ArtistSongsList 
             songs={tabs} 
-            artistPhoto={heroImage}
+            artistPhoto={artist?.photoURL || artist?.wikiPhotoURL || artist?.photo}
           />
         ) : (
           <div className="text-center py-12 bg-[#121212] rounded-xl shadow-md border border-gray-800">
