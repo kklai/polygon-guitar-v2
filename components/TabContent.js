@@ -497,7 +497,7 @@ const TabContent = ({
                 {key}
               </button>
             );
-          })}        </div>
+          })}
         </div>
       </div>
 
