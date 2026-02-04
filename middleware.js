@@ -1,10 +1,23 @@
 import { NextResponse } from 'next/server'
 
 // 簡單密碼保護 - 朋友專用
-const ACCESS_PASSWORD = 'polygon2024'  // 你可以改呢個密碼，例如 '你的新密碼123'
+const ACCESS_PASSWORD = 'polygon2024'
 const COOKIE_NAME = 'polygon_access'
 
 export function middleware(request) {
+  const { pathname } = request.nextUrl
+  
+  // 排除登入頁面和 Firebase 認證路徑
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/__/auth') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/') ||
+    pathname.includes('.') // 靜態文件
+  ) {
+    return NextResponse.next()
+  }
+  
   // 檢查是否已登入（有 cookie）
   const cookie = request.cookies.get(COOKIE_NAME)
   
@@ -169,11 +182,4 @@ export function middleware(request) {
       },
     }
   )
-}
-
-// 匹配所有路徑，但排除 API 和靜態文件
-export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)',
-  ],
 }
