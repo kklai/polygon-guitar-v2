@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
+import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { getAllTabs } from '@/lib/tabs'
 import { createPlaylist } from '@/lib/playlists'
@@ -9,6 +10,7 @@ import { uploadToCloudinary } from '@/lib/cloudinary'
 
 function NewPlaylist() {
   const router = useRouter()
+  const { isAdmin, user } = useAuth()
   
   const [formData, setFormData] = useState({
     title: '',

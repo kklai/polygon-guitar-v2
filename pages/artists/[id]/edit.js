@@ -10,6 +10,7 @@ import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 function EditArtist() {
   const router = useRouter()
   const { id } = router.query
+
   
   const [formData, setFormData] = useState({
     name: '',
@@ -32,19 +33,12 @@ function EditArtist() {
   const [fixMessage, setFixMessage] = useState(null)
   const [relatedSongsCount, setRelatedSongsCount] = useState(0)
 
-  // 檢查權限
+  // 載入歌手資料
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      alert('你無權編輯歌手資料')
-      router.push(`/artists/${id}`)
-    }
-  }, [isLoading, isAdmin, router, id])
-
-  useEffect(() => {
-    if (id && isAuthenticated) {
+    if (id) {
       loadArtist()
     }
-  }, [id, isAuthenticated])
+  }, [id])
 
   const loadArtist = async () => {
     try {
@@ -76,14 +70,6 @@ function EditArtist() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  // Redirect if not logged in
-  if (!isAuthenticated && !isLoading) {
-    if (typeof window !== 'undefined') {
-      router.push('/login')
-    }
-    return null
   }
 
   const validate = () => {
@@ -316,8 +302,6 @@ function EditArtist() {
       </Layout>
     )
   }
-
-  if (!isAdmin) return null
 
   return (
     <Layout>
