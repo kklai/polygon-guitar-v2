@@ -7,6 +7,7 @@ export default function Login() {
   const router = useRouter()
   const { signInWithGoogle, isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
 
   // Redirect if already logged in
   if (isAuthenticated) {
@@ -21,7 +22,11 @@ export default function Login() {
       router.push('/')
     } catch (error) {
       console.error('Google sign in error:', error)
-      alert('Google 登入失敗，請重試')
+      if (error.code === 'auth/unauthorized-domain') {
+        alert('Firebase 未授權此域名，請聯繫管理員添加：polygon-guitar-v2.vercel.app')
+      } else {
+        alert('Google 登入失敗：' + error.message)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -70,9 +75,27 @@ export default function Login() {
             </button>
           </div>
 
-          <p className="text-center text-sm text-[#B3B3B3] mt-6">
-            登入即表示你同意我們的服務條款
-          </p>
+          {/* Debug Info */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-xs text-gray-600 hover:text-gray-400"
+            >
+              遇到登入問題？
+            </button>
+            
+            {showDebug && (
+              <div className="mt-4 p-4 bg-gray-900 rounded-lg text-left text-xs">
+                <p className="text-gray-400 mb-2">請確保 Firebase 已授權以下域名：</p>
+                <code className="block bg-black p-2 rounded text-[#FFD700] mb-2">
+                  polygon-guitar-v2.vercel.app
+                </code>
+                <p className="text-gray-500">
+                  Firebase Console → Authentication → Settings → Authorized domains
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
