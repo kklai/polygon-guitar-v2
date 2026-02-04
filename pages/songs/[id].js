@@ -200,73 +200,31 @@ export default function ArtistPage() {
             />
           </div>
 
-          {/* 手機版：正方形/圓形頭像設計 */}
-          <div className="md:hidden bg-gradient-to-b from-gray-800 to-black pt-8 pb-4 px-6">
-            <div className="flex items-end gap-4">
-              {/* 圓形/正方形歌手頭像 */}
-              <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0 shadow-2xl border-2 border-[#FFD700]">
-                {artist.photo ? (
-                  <img
-                    src={artist.photo}
-                    alt={artist.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-5xl">
-                    🎤
-                  </div>
-                )}
-              </div>
-              
-              {/* 歌手資訊 */}
-              <div className="flex-1 pb-2">
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">歌手</p>
-                
-                {/* 歌手名 + Hover Tooltip */}
-                <div className="relative group/tooltip">
-                  <h1 className="text-3xl font-bold text-white mb-1 cursor-help">
-                    {artist.name}
-                    {artist.bio && (
-                      <span className="ml-2 text-gray-500 text-lg">
-                        <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </span>
-                    )}
-                  </h1>
-                  
-                  {/* Tooltip - 顯示歌手簡介 */}
-                  {artist.bio && (
-                    <div className="absolute left-0 bottom-full mb-2 w-72 p-4 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50">
-                      {/* 小三角 */}
-                      <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-3 h-3 bg-gray-900 border-r border-b border-gray-700"></div>
-                      
-                      <div className="flex items-start gap-3">
-                        {/* 歌手小頭像 */}
-                        {artist.photo && (
-                          <img 
-                            src={artist.photo} 
-                            alt={artist.name}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-[#FFD700] flex-shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium text-sm mb-1">{artist.name}</p>
-                          <p className="text-gray-400 text-xs line-clamp-4 leading-relaxed">
-                            {artist.bio}
-                          </p>
-                          {artist.year && (
-                            <p className="text-[#FFD700] text-xs mt-2">
-                              {artist.year}年出道
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+          {/* 手機版：16:9 Hero 設計 */}
+          <div className="md:hidden relative">
+            {/* Hero Image - 16:9 */}
+            <div className="relative w-full aspect-[16/9]">
+              {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
+                <img
+                  src={artist.photoURL || artist.wikiPhotoURL || artist.photo}
+                  alt={artist.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#FFD700] to-orange-500 flex items-center justify-center">
+                  <span className="text-6xl">🎤</span>
                 </div>
-                
-                <p className="text-sm text-gray-400">
+              )}
+              
+              {/* 漸變遮罩 */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+              
+              {/* 歌手名稱 - 左下角 */}
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h1 className="text-4xl font-bold text-white mb-2">
+                  {artist.name}
+                </h1>
+                <p className="text-gray-300 text-base">
                   {totalSongs} 首結他譜
                 </p>
               </div>
@@ -360,62 +318,80 @@ export default function ArtistPage() {
                 <div
                   key={song.id}
                   onClick={() => handleSongClick(song.id)}
-                  className="group flex items-center h-20 px-4 rounded-md hover:bg-white/10 transition cursor-pointer"
+                  className="group flex items-center gap-3 py-3 px-3 rounded-md hover:bg-white/10 transition cursor-pointer"
                 >
-                  {/* Rank */}
-                  <span className="text-gray-500 text-lg w-10 text-center font-medium">
-                    {index + 1}
-                  </span>
+                  {/* Rank - 縮細版 */}
+                  <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                    <span className={`
+                      text-xs font-bold
+                      ${index === 0 ? 'text-[#FFD700]' : 
+                        index === 1 ? 'text-gray-300' : 
+                        index === 2 ? 'text-amber-600' : 'text-gray-500'}
+                    `}>
+                      {index + 1}
+                    </span>
+                  </div>
                   
-                  {/* Thumbnail - 響應式：手機 48px，網頁 56px */}
-                  <div className="ml-2 w-12 h-12 md:w-14 md:h-14 rounded-md overflow-hidden bg-gray-800 flex-shrink-0">
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0 w-12 h-12 rounded-md overflow-hidden bg-gray-800">
                     {getThumbnail(song) ? (
                       <img
                         src={getThumbnail(song)}
                         alt={song.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl md:text-2xl">
+                      <div className="w-full h-full flex items-center justify-center text-xl">
                         🎸
                       </div>
                     )}
                   </div>
                   
                   {/* Content */}
-                  <div className="flex-1 ml-3 md:ml-4 flex flex-col justify-center min-w-0">
-                    <h3 className="text-white font-semibold text-sm md:text-base truncate group-hover:text-[#FFD700] transition">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-semibold text-sm truncate group-hover:text-[#FFD700] transition">
                       {song.title}
                     </h3>
                     
-                    {/* Key Selection - 響應式：手機 20px，網頁 22px */}
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {KEYS.map((key) => (
-                        <button
-                          key={key}
-                          onClick={(e) => handleKeyClick(e, song.id, key)}
-                          className={`w-5 h-5 md:w-[22px] md:h-[22px] rounded-full text-[9px] md:text-[10px] font-bold inline-flex items-center justify-center transition transform hover:scale-110 ${
-                            key === song.originalKey
-                              ? 'bg-[#FFD700] text-black ring-2 ring-white'
-                              : 'bg-[#FFD700] text-black hover:bg-[#FFE44D]'
-                          }`}
-                          title={`以 ${key} Key 演奏`}
-                        >
-                          {key}
-                        </button>
-                      ))}
+                    {/* 瀏覽次數 */}
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        {(song.viewCount || 0).toLocaleString()}
+                      </span>
+                      {song.likes > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-0.5">
+                            <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            </svg>
+                            {song.likes}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   
-                  {/* View Count */}
-                  <div className="ml-4 text-gray-400 text-sm hidden sm:block">
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      {(song.viewCount || 0).toLocaleString()}
-                    </span>
+                  {/* Key Selection - 單行滾動 */}
+                  <div className="flex-shrink-0 flex gap-1 overflow-x-auto scrollbar-hide max-w-[100px]">
+                    {KEYS.map((key) => (
+                      <button
+                        key={key}
+                        onClick={(e) => handleKeyClick(e, song.id, key)}
+                        className={`flex-shrink-0 w-8 h-8 rounded-full text-xs font-bold inline-flex items-center justify-center transition transform hover:scale-110 ${
+                          key === song.originalKey
+                            ? 'bg-[#FFD700] text-black ring-2 ring-white'
+                            : 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700'
+                        }`}
+                        title={`以 ${key} Key 演奏`}
+                      >
+                        {key}
+                      </button>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -455,9 +431,9 @@ export default function ArtistPage() {
                           </p>
                         </div>
                         
-                        {/* Key Badge - Simple display */}
-                        <div className="ml-4 flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-[#FFD700] text-black text-xs font-bold rounded">
+                        {/* Key Badge - 圓形徽章 */}
+                        <div className="ml-4 flex-shrink-0">
+                          <span className="w-8 h-8 rounded-full bg-[#FFD700] text-black text-xs font-bold inline-flex items-center justify-center">
                             {song.originalKey || 'C'}
                           </span>
                         </div>
