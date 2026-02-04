@@ -89,6 +89,10 @@ export default function ArtistImage({
 
 /**
  * ArtistHeroImage - Hero 區域專用（16:9 比例）
+ * 優先順序：
+ * 1. heroPhoto（用戶上傳的 Hero 圖片）
+ * 2. photoURL（歌手相）
+ * 3. wikiPhotoURL（維基備份）
  */
 export function ArtistHeroImage({ artist, className = '' }) {
   const [error, setError] = useState(false)
@@ -96,8 +100,16 @@ export function ArtistHeroImage({ artist, className = '' }) {
   const getImageUrl = () => {
     if (!artist) return null
     
+    // 1. 優先使用 heroPhoto（用戶上傳的 Hero 圖片）
+    if (artist.heroPhoto && !error) return artist.heroPhoto
+    
+    // 2. 其次使用 photoURL
     if (artist.photoURL && !error) return artist.photoURL
+    
+    // 3. 再其次使用維基百科相片
     if (artist.wikiPhotoURL && !error) return artist.wikiPhotoURL
+    
+    // 4. 兼容舊資料
     if (artist.photo && !error) return artist.photo
     
     return null

@@ -105,6 +105,27 @@ export default function ArtistDetail() {
     router.push(`/tabs/${songId}`)
   }
 
+  // 獲取 YouTube 縮圖
+  const getYouTubeThumbnail = (song) => {
+    // 1. 優先使用歌曲自己的縮圖
+    if (song.thumbnail) return song.thumbnail
+    if (song.coverImage) return song.coverImage
+    
+    // 2. 其次使用 YouTube 縮圖
+    if (song.youtubeVideoId) {
+      return `https://img.youtube.com/vi/${song.youtubeVideoId}/mqdefault.jpg`
+    }
+    if (song.youtubeUrl) {
+      const match = song.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
+      if (match) {
+        return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
+      }
+    }
+    
+    // 3. 預設 fallback
+    return null
+  }
+
   if (isLoading) {
     return (
       <Layout>
@@ -324,11 +345,11 @@ export default function ArtistDetail() {
                       </span>
                     </div>
                     
-                    {/* 縮圖 - 縮細 w-8 h-8 */}
+                    {/* 縮圖 - 縮細 w-8 h-8，使用 YouTube 縮圖 */}
                     <div className="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-gray-800">
-                      {song.thumbnail || song.coverImage ? (
+                      {getYouTubeThumbnail(song) ? (
                         <img
-                          src={song.thumbnail || song.coverImage}
+                          src={getYouTubeThumbnail(song)}
                           alt={song.title}
                           className="w-full h-full object-cover"
                         />
