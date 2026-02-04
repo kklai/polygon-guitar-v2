@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
+import AdminGuard from '@/components/AdminGuard'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
 
-export default function ArtistManagement() {
+function ArtistManagement() {
   const [artists, setArtists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [uploadingId, setUploadingId] = useState(null)
@@ -293,5 +294,13 @@ export default function ArtistManagement() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function ArtistManagementPage() {
+  return (
+    <AdminGuard>
+      <ArtistManagement />
+    </AdminGuard>
   )
 }

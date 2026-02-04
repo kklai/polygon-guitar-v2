@@ -5,6 +5,7 @@ import { getTabsByArtist, getAllArtists } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistSongsList from '@/components/ArtistSongsList'
+import { ArtistHeroImage } from '@/components/ArtistImage'
 
 export default function ArtistDetail() {
   const router = useRouter()
@@ -84,9 +85,6 @@ export default function ArtistDetail() {
     )
   }
 
-  // 取得 Hero 圖片：優先使用 photoURL，其次 wikiPhotoURL
-  const heroImage = artist?.photoURL || artist?.wikiPhotoURL || artist?.photo
-
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -104,19 +102,9 @@ export default function ArtistDetail() {
         {/* Artist Hero Section - 16:9 大圖設計 */}
         {artist && (
           <div className="relative rounded-xl overflow-hidden border border-gray-800">
-            {/* Hero Image - 16:9 比例 */}
+            {/* Hero Image - 16:9 比例，使用 ArtistHeroImage 組件 */}
             <div className="relative w-full aspect-[16/9] md:h-[45vh] md:aspect-auto">
-              {heroImage ? (
-                <img 
-                  src={heroImage} 
-                  alt={artist.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#FFD700] to-orange-500 flex items-center justify-center">
-                  <span className="text-8xl">🎤</span>
-                </div>
-              )}
+              <ArtistHeroImage artist={artist} size="hero" />
               
               {/* 漸變遮罩 */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>

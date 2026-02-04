@@ -178,7 +178,7 @@ export default function Artists() {
                     .map(artist => (
                       <Link
                         key={artist.id}
-                        href={`/songs/${artist.normalizedName}`}
+                        href={`/artists/${artist.normalizedName}`}
                         className="bg-[#121212] rounded-lg shadow hover:shadow-lg transition-all p-4 flex items-center space-x-3 group border border-gray-800 hover:border-[#FFD700]"
                       >
                         {artist.photo ? (

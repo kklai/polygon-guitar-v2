@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
+import AdminGuard from '@/components/AdminGuard'
 import Link from 'next/link'
 import { getAllTabs } from '@/lib/tabs'
 import { createPlaylist } from '@/lib/playlists'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
-export default function NewPlaylist() {
+function NewPlaylist() {
   const router = useRouter()
-  const { user, isAdmin } = useAuth()
   
   const [formData, setFormData] = useState({
     title: '',
@@ -488,5 +487,13 @@ export default function NewPlaylist() {
         </form>
       </div>
     </Layout>
+  )
+}
+
+export default function NewPlaylistPage() {
+  return (
+    <AdminGuard>
+      <NewPlaylist />
+    </AdminGuard>
   )
 }

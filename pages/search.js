@@ -60,7 +60,7 @@ export default function Search() {
 
   const handleArtistClick = (artist) => {
     const slug = artist.normalizedName || artist.id
-    router.push(`/songs/${slug}`)
+    router.push(`/artists/${slug}`)
   }
 
   // 熱門搜尋建議

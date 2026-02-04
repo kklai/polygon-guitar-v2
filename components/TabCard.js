@@ -15,7 +15,7 @@ export default function TabCard({ tab }) {
       
       {/* 歌手 Badge */}
       <p className="mb-3">
-        <Link href={`/songs/${artistNormalizedName}`}>
+        <Link href={`/artists/${artistNormalizedName}`}>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFD700] text-black hover:opacity-80 cursor-pointer transition">
             {tab.artist}
           </span>

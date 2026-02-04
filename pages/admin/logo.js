@@ -4,8 +4,9 @@ import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/clo
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
+import AdminGuard from '@/components/AdminGuard'
 
-export default function LogoSettings() {
+function LogoSettings() {
   const { user, isAdmin } = useAuth()
   const [settings, setSettings] = useState({
     logoUrl: null,
@@ -242,5 +243,13 @@ export default function LogoSettings() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function LogoPage() {
+  return (
+    <AdminGuard>
+      <LogoSettings />
+    </AdminGuard>
   )
 }

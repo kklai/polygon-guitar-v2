@@ -3,6 +3,7 @@ import { collection, doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
+import AdminGuard from '@/components/AdminGuard'
 
 // 歌手分類預設資料
 const DEFAULT_CATEGORIES = [
@@ -29,7 +30,7 @@ const DEFAULT_CATEGORIES = [
 const COLLECTION_NAME = 'settings'
 const DOC_ID = 'categoryImages'
 
-export default function CategoryImagesManagement() {
+function CategoryImagesManagement() {
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
   const [uploadingId, setUploadingId] = useState(null)
   const [message, setMessage] = useState(null)
@@ -333,5 +334,13 @@ export default function CategoryImagesManagement() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function CategoryImagesPage() {
+  return (
+    <AdminGuard>
+      <CategoryImagesManagement />
+    </AdminGuard>
   )
 }

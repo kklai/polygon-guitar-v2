@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import { getAllArtists } from '@/lib/tabs'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
+import AdminGuard from '@/components/AdminGuard'
 
-export default function HeroPhotosAdmin() {
-  const { isAdmin } = useAuth()
+function HeroPhotosAdmin() {
   const [artists, setArtists] = useState([])
   const [filteredArtists, setFilteredArtists] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -116,17 +115,6 @@ export default function HeroPhotosAdmin() {
       console.error('Delete error:', error)
       alert('刪除失敗：' + error.message)
     }
-  }
-
-  if (!isAdmin) {
-    return (
-      <Layout>
-        <div className="max-w-4xl mx-auto text-center py-16">
-          <h1 className="text-2xl font-bold text-white mb-4">無權訪問</h1>
-          <p className="text-gray-500">只有管理員可以訪問此頁面</p>
-        </div>
-      </Layout>
-    )
   }
 
   return (
@@ -332,5 +320,13 @@ export default function HeroPhotosAdmin() {
         )}
       </div>
     </Layout>
+  )
+}
+
+export default function HeroPhotosPage() {
+  return (
+    <AdminGuard>
+      <HeroPhotosAdmin />
+    </AdminGuard>
   )
 }

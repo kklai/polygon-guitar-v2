@@ -3,14 +3,13 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
+import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 
-export default function EditArtist() {
+function EditArtist() {
   const router = useRouter()
   const { id } = router.query
-  const { user, isAuthenticated, isAdmin } = useAuth()
   
   const [formData, setFormData] = useState({
     name: '',
@@ -123,7 +122,7 @@ export default function EditArtist() {
         updatedAt: new Date().toISOString()
       })
       
-      router.push(`/songs/${newNormalizedName}`)
+      router.push(`/artists/${newNormalizedName}`)
     } catch (error) {
       console.error('Update artist error:', error)
       alert('更新失敗：' + error.message)
@@ -327,7 +326,7 @@ export default function EditArtist() {
         <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6 flex items-center justify-between">
           <div className="flex items-center">
             <Link 
-              href={`/songs/${id}`}
+              href={`/artists/${id}`}
               className="inline-flex items-center text-[#B3B3B3] hover:text-white mr-4 transition"
             >
               <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -673,7 +672,7 @@ export default function EditArtist() {
                 {isSubmitting ? '保存中...' : '保存更改'}
               </button>
               <Link
-                href={`/songs/${id}`}
+                href={`/artists/${id}`}
                 className="px-6 py-3 border border-gray-800 rounded-lg font-medium text-[#B3B3B3] hover:text-white hover:border-[#FFD700] transition"
               >
                 取消
@@ -683,5 +682,13 @@ export default function EditArtist() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function EditArtistPage() {
+  return (
+    <AdminGuard>
+      <EditArtist />
+    </AdminGuard>
   )
 }

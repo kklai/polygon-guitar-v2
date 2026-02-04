@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import Layout from '@/components/Layout'
+import AdminGuard from '@/components/AdminGuard'
 
-export default function MigratePage() {
+function MigratePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -117,5 +118,13 @@ export default function MigratePage() {
         )}
       </div>
     </Layout>
+  )
+}
+
+export default function MigratePageWrapper() {
+  return (
+    <AdminGuard>
+      <MigratePage />
+    </AdminGuard>
   )
 }

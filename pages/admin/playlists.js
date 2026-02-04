@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
+import AdminGuard from '@/components/AdminGuard'
 import { 
   getAllPlaylists, 
   getAutoPlaylists,
@@ -12,9 +12,8 @@ import {
   AUTO_PLAYLIST_TYPES
 } from '@/lib/playlists'
 
-export default function PlaylistAdmin() {
+function PlaylistAdmin() {
   const router = useRouter()
-  const { isAdmin } = useAuth()
   const [activeTab, setActiveTab] = useState('auto') // 'auto' | 'manual'
   const [autoPlaylists, setAutoPlaylists] = useState([])
   const [manualPlaylists, setManualPlaylists] = useState([])
@@ -23,10 +22,8 @@ export default function PlaylistAdmin() {
   const [message, setMessage] = useState(null)
 
   useEffect(() => {
-    if (isAdmin) {
-      loadPlaylists()
-    }
-  }, [isAdmin])
+    loadPlaylists()
+  }, [])
 
   const loadPlaylists = async () => {
     try {
@@ -166,17 +163,6 @@ export default function PlaylistAdmin() {
     if (diff < 86400) return `${Math.floor(diff / 3600)} 小時前`
     if (diff < 604800) return `${Math.floor(diff / 86400)} 天前`
     return date.toLocaleDateString('zh-HK')
-  }
-
-  if (!isAdmin) {
-    return (
-      <Layout>
-        <div className="max-w-4xl mx-auto text-center py-16">
-          <h1 className="text-2xl font-bold text-white mb-4">無權訪問</h1>
-          <p className="text-gray-500">只有管理員可以管理歌單</p>
-        </div>
-      </Layout>
-    )
   }
 
   return (
@@ -526,5 +512,13 @@ export default function PlaylistAdmin() {
         )}
       </div>
     </Layout>
+  )
+}
+
+export default function PlaylistAdminPage() {
+  return (
+    <AdminGuard>
+      <PlaylistAdmin />
+    </AdminGuard>
   )
 }

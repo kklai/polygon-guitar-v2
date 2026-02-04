@@ -221,7 +221,7 @@ export default function Home() {
   // 處理歌手點擊
   const handleArtistClick = (artist) => {
     const slug = artist.normalizedName || artist.id
-    router.push(`/songs/${slug}`)
+    router.push(`/artists/${slug}`)
   }
 
   // 處理歌曲點擊
