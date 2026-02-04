@@ -5,7 +5,7 @@ import Layout from '@/components/Layout'
 
 export default function Login() {
   const router = useRouter()
-  const { signInWithGoogle, signInWithFacebook, isAuthenticated } = useAuth()
+  const { signInWithGoogle, isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   // Redirect if already logged in
@@ -22,23 +22,6 @@ export default function Login() {
     } catch (error) {
       console.error('Google sign in error:', error)
       alert('Google 登入失敗，請重試')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleFacebookSignIn = async () => {
-    setIsLoading(true)
-    try {
-      await signInWithFacebook()
-      router.push('/')
-    } catch (error) {
-      console.error('Facebook sign in error:', error)
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        alert('此電郵已用其他方式登入，請使用相同方式')
-      } else {
-        alert('Facebook 登入失敗，請重試')
-      }
     } finally {
       setIsLoading(false)
     }
@@ -84,18 +67,6 @@ export default function Login() {
                 />
               </svg>
               <span>使用 Google 登入</span>
-            </button>
-
-            {/* Facebook Sign In */}
-            <button
-              onClick={handleFacebookSignIn}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-3 bg-[#1877F2] text-white py-3 px-4 rounded-lg font-medium hover:bg-[#166fe5] transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              <span>使用 Facebook 登入</span>
             </button>
           </div>
 

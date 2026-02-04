@@ -6,7 +6,7 @@ import {
   signInWithRedirect,
   getRedirectResult
 } from 'firebase/auth'
-import { auth, googleProvider, facebookProvider, db } from '@/lib/firebase'
+import { auth, googleProvider, db } from '@/lib/firebase'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 
 const AuthContext = createContext()
@@ -89,20 +89,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const signInWithFacebook = async () => {
-    try {
-      const result = await signInWithPopup(auth, facebookProvider)
-      await createOrUpdateUser(result.user)
-      return result.user
-    } catch (error) {
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        await signInWithRedirect(auth, facebookProvider)
-      } else {
-        throw error
-      }
-    }
-  }
-
   const logout = async () => {
     await signOut(auth)
     setUser(null)
@@ -115,7 +101,6 @@ export function AuthProvider({ children }) {
     user,
     loading,
     signInWithGoogle,
-    signInWithFacebook,
     logout,
     isAuthenticated: !!user,
     isAdmin
