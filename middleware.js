@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 // 簡單密碼保護 - 朋友專用
-const ACCESS_PASSWORD = 'polygon2024'  // 你可以改呢個密碼
+const ACCESS_PASSWORD = 'polygon2024'  // 你可以改呢個密碼，例如 '你的新密碼123'
 const COOKIE_NAME = 'polygon_access'
 
 export function middleware(request) {

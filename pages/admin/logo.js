@@ -1,0 +1,246 @@
+import { useState, useEffect } from 'react'
+import { getGlobalSettings, updateGlobalSettings } from '@/lib/tabs'
+import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
+import { useAuth } from '@/contexts/AuthContext'
+import Layout from '@/components/Layout'
+import Link from 'next/link'
+
+export default function LogoSettings() {
+  const { user, isAdmin } = useAuth()
+  const [settings, setSettings] = useState({
+    logoUrl: null,
+    siteName: 'Polygon 結他譜'
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
+  const [message, setMessage] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const loadSettings = async () => {
+    try {
+      const data = await getGlobalSettings()
+      setSettings({
+        logoUrl: data.logoUrl || null,
+        siteName: data.siteName || 'Polygon 結他譜'
+      })
+      if (data.logoUrl) {
+        setPreviewUrl(data.logoUrl)
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+      showMessage('載入設定失敗：' + error.message, 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const showMessage = (text, type = 'success') => {
+    setMessage({ text, type })
+    setTimeout(() => setMessage(null), 5000)
+  }
+
+  const handleFileSelect = async (file) => {
+    if (!file) return
+
+    // 驗證檔案
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      showMessage(validation.error, 'error')
+      return
+    }
+
+    // 顯示預覽
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result)
+    }
+    reader.readAsDataURL(file)
+
+    setIsUploading(true)
+
+    try {
+      // 上傳到 Cloudinary
+      const result = await uploadToCloudinary(file, 'site-logo')
+
+      // 更新 Firestore
+      await updateGlobalSettings({
+        logoUrl: result.url
+      }, user?.uid)
+
+      setSettings(prev => ({
+        ...prev,
+        logoUrl: result.url
+      }))
+
+      showMessage(
+        `Logo 上傳成功！${result.width}×${result.height} · ${formatFileSize(result.bytes)}`,
+        'success'
+      )
+    } catch (error) {
+      console.error('Upload error:', error)
+      showMessage('上傳失敗：' + error.message, 'error')
+      // 還原預覽
+      setPreviewUrl(settings.logoUrl)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleRemoveLogo = async () => {
+    if (!confirm('確定要移除 Logo 嗎？')) return
+
+    try {
+      await updateGlobalSettings({
+        logoUrl: null
+      }, user?.uid)
+
+      setSettings(prev => ({
+        ...prev,
+        logoUrl: null
+      }))
+      setPreviewUrl(null)
+
+      showMessage('Logo 已移除', 'success')
+    } catch (error) {
+      console.error('Remove error:', error)
+      showMessage('移除失敗：' + error.message, 'error')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-800 rounded w-1/4"></div>
+            <div className="bg-[#121212] rounded-xl h-64"></div>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">網站 Logo 設定</h1>
+            <p className="text-[#B3B3B3] mt-1">上傳網站 Logo 圖片</p>
+          </div>
+          <Link
+            href="/admin"
+            className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+          >
+            返回管理
+          </Link>
+        </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`p-4 rounded-lg ${
+            message.type === 'success' 
+              ? 'bg-green-900/30 border border-green-700 text-green-400' 
+              : 'bg-red-900/30 border border-red-700 text-red-400'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        {/* Logo Settings Card */}
+        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-white mb-6">Logo 圖片</h2>
+
+          {/* Preview Area */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-400 mb-3">
+              目前 Logo
+            </label>
+            <div className="bg-black rounded-lg p-8 flex items-center justify-center border border-gray-800">
+              {previewUrl ? (
+                <img 
+                  src={previewUrl} 
+                  alt="Site Logo"
+                  className="max-h-32 max-w-full object-contain"
+                />
+              ) : (
+                <div className="text-center">
+                  <span className="text-6xl">🎸</span>
+                  <p className="text-gray-500 mt-2">尚未設定 Logo</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Upload Area */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-400 mb-3">
+              上傳新 Logo
+            </label>
+            <div 
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition ${
+                isUploading 
+                  ? 'border-[#FFD700] bg-[#FFD700]/5' 
+                  : 'border-gray-700 hover:border-gray-500'
+              }`}
+            >
+              {isUploading ? (
+                <div className="space-y-3">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full mx-auto"></div>
+                  <p className="text-[#FFD700]">上傳中...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">☁️</div>
+                  <p className="text-white mb-2">拖曳圖片到這裡，或點擊選擇檔案</p>
+                  <p className="text-gray-500 text-sm mb-4">
+                    支援 JPG、PNG、WEBP · 最大 5MB · 建議尺寸 200×50px
+                  </p>
+                  <label className="inline-block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e.target.files[0])}
+                      className="hidden"
+                    />
+                    <span className="px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
+                      選擇檔案
+                    </span>
+                  </label>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Remove Button */}
+          {settings.logoUrl && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleRemoveLogo}
+                className="px-4 py-2 text-red-400 border border-red-700 rounded-lg hover:bg-red-900/20 transition"
+              >
+                移除 Logo
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Usage Info */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <h3 className="text-lg font-bold text-white mb-4">使用說明</h3>
+          <ul className="space-y-2 text-gray-400 text-sm">
+            <li>• Logo 會顯示在網站導航欄左上角</li>
+            <li>• 建議使用透明背景的 PNG 格式</li>
+            <li>• 建議高度 40-50px，寬度不超過 200px</li>
+            <li>• 上傳後會自動同步到所有頁面</li>
+          </ul>
+        </div>
+      </div>
+    </Layout>
+  )
+}

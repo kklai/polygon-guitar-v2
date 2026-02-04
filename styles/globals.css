@@ -55,6 +55,16 @@ body {
   background: #FFD700;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom scrollbar for the whole page */
 ::-webkit-scrollbar {
   width: 10px;

@@ -1,10 +1,32 @@
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getGlobalSettings } from '@/lib/tabs'
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [logoUrl, setLogoUrl] = useState(null)
+  const [siteName, setSiteName] = useState('Polygon Guitar')
+
+  // 載入 Logo 設定
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const loadSettings = async () => {
+    try {
+      const settings = await getGlobalSettings()
+      if (settings.logoUrl) {
+        setLogoUrl(settings.logoUrl)
+      }
+      if (settings.siteName) {
+        setSiteName(settings.siteName)
+      }
+    } catch (error) {
+      console.error('Error loading logo settings:', error)
+    }
+  }
 
   const handleLogout = async () => {
     try {
@@ -21,10 +43,20 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl">🎸</span>
-              <span className="font-bold text-xl text-white hidden sm:block">
-                Polygon Guitar
-              </span>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt={siteName}
+                  className="h-10 max-w-[160px] object-contain"
+                />
+              ) : (
+                <>
+                  <span className="text-2xl">🎸</span>
+                  <span className="font-bold text-xl text-white hidden sm:block">
+                    Polygon Guitar
+                  </span>
+                </>
+              )}
             </Link>
           </div>
 
