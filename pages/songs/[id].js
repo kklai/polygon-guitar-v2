@@ -431,15 +431,15 @@ export default function ArtistPage() {
                       )}
                     </div>
                     
-                    {/* Key Selection - 單行顯示，縮細 w-5 h-5，加黃框 */}
-                    <div className="flex-1 flex flex-nowrap gap-0.5 overflow-hidden">
+                    {/* Key Selection - 新規格 w-7 h-7，gap-1.5 */}
+                    <div className="flex-1 flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-hide">
                       {KEYS.map((key) => (
                         <button
                           key={key}
                           onClick={(e) => handleKeyClick(e, song.id, key)}
-                          className={`flex-shrink-0 w-5 h-5 rounded-full text-[9px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
+                          className={`flex-shrink-0 w-7 h-7 rounded-full text-[11px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
                             key === song.originalKey
-                              ? 'bg-black text-[#FFD700] border-2 border-[#FFD700]'
+                              ? 'bg-black text-[#FFD700] border border-[#FFD700]'
                               : 'bg-[#FFD700] text-black'
                           }`}
                           title={`以 ${key} Key 演奏`}
@@ -487,9 +487,9 @@ export default function ArtistPage() {
                           </p>
                         </div>
                         
-                        {/* Key Badge - 縮細圓形 */}
+                        {/* Key Badge - 顯示用，統一規格 */}
                         <div className="flex-shrink-0">
-                          <span className="w-7 h-7 rounded-full bg-[#FFD700] text-black text-xs font-bold inline-flex items-center justify-center">
+                          <span className="w-7 h-7 rounded-full bg-[#FFD700] text-black text-[11px] font-bold inline-flex items-center justify-center">
                             {song.originalKey || 'C'}
                           </span>
                         </div>

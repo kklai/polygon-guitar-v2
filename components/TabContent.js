@@ -467,8 +467,8 @@ const TabContent = ({
           </div>
         )}
         
-        {/* 12 Key 單行排列 - 圓形按鈕 */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {/* 12 Key 單行排列 - 新規格 w-7 h-7 */}
+        <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
           {KEYS.map((key) => {
             const isCurrent = key === currentKey;
             const isOriginal = key === originalKey;
@@ -482,16 +482,14 @@ const TabContent = ({
                 }}
                 className={`
                   flex-shrink-0
-                  w-10 h-10 sm:w-11 sm:h-11
+                  w-7 h-7
                   rounded-full 
                   flex items-center justify-center 
-                  text-xs sm:text-sm font-bold
-                  transition-all duration-200
+                  text-[11px] font-bold
+                  transition hover:scale-105
                   ${isCurrent
-                    ? 'bg-[#FFD700] text-black ring-2 ring-white shadow-lg scale-105'
-                    : isOriginal
-                    ? 'bg-[#3a3a3a] text-gray-500 border border-gray-600 hover:bg-[#4a4a4a]'
-                    : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#2a2a2a] hover:text-[#FFD700]'
+                    ? 'bg-black text-[#FFD700] border border-[#FFD700]'
+                    : 'bg-[#FFD700] text-black'
                   }
                 `}
                 title={isOriginal ? '原調' : ''}
@@ -499,7 +497,7 @@ const TabContent = ({
                 {key}
               </button>
             );
-          })}
+          })}        </div>
         </div>
       </div>
 
