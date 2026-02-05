@@ -523,21 +523,10 @@ const TabContent = ({
   return (
     <div 
       className={`bg-[#121212] ${fullWidth ? '' : 'rounded-xl border border-gray-800'} ${className}`}
-      style={{ height: 'auto', maxHeight: 'none', overflow: 'visible' }}
     >
       {showControls && <ControlBar />}
-      <div 
-        className={fullWidth ? 'p-3' : 'p-3 sm:p-6'} 
-        style={{ overflowX: 'hidden', height: 'auto', maxHeight: 'none' }}
-      >
-        <div style={{
-          fontFamily: "'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace",
-          lineHeight: '1.6',
-          fontSize: `${fontSize}px`,
-          maxWidth: '100%',
-          overflowX: 'hidden',
-          height: 'auto'
-        }}>
+      <div className={fullWidth ? 'p-3' : 'p-3 sm:p-6'}>
+        <div className="tab-content-wrapper">
           {renderContent()}
         </div>
       </div>
