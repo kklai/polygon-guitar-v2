@@ -31,7 +31,6 @@ function transposeChord(chord, semitones) {
   return CHORDS[newIndex] + suffix;
 }
 
-// 轉調純和弦行（前奏/間奏用）
 function transposeChordLine(line, semitones) {
   if (!semitones || semitones === 0) return line;
   
@@ -87,13 +86,8 @@ function extractSectionMarkers(line) {
   return { prefix, suffix, cleanLine: cleanLine.trim() };
 }
 
-// ============ Key 轉換工具 ============
 function getSemitoneFromKey(key) {
   return KEY_TO_SEMITONE[key] ?? 0;
-}
-
-function getKeyFromSemitone(semitone) {
-  return SEMITONE_TO_KEY[(semitone + 12) % 12];
 }
 
 function calculateCapo(originalKey, selectedKey) {
@@ -110,23 +104,12 @@ function calculateTransposeSemitones(originalKey, selectedKey) {
   return (selectedSemitone - originalSemitone + 12) % 12;
 }
 
-// ============ Capo 建議 ============
 function getCapoSuggestion(capo) {
   if (capo === 0) {
-    return { 
-      capo: 0, 
-      status: 'none',
-      message: '無需變調夾',
-      alternative: null 
-    };
+    return { capo: 0, status: 'none', message: '無需變調夾', alternative: null };
   }
   if (capo >= 1 && capo <= 8) {
-    return { 
-      capo: capo, 
-      status: 'ok',
-      message: `建議 Capo: ${capo}`,
-      alternative: null 
-    };
+    return { capo: capo, status: 'ok', message: `建議 Capo: ${capo}`, alternative: null };
   }
   if (capo >= 9 && capo <= 11) {
     const dropTuningCapo = capo - 2;
@@ -134,17 +117,12 @@ function getCapoSuggestion(capo) {
       capo: capo, 
       status: 'high',
       message: `Capo ${capo} 位置過高`,
-      alternative: {
-        type: 'dropTuning',
-        capo: dropTuningCapo,
-        message: `改用 Drop Tuning（降全音調弦），只需夾第 ${dropTuningCapo} 格`
-      }
+      alternative: { type: 'dropTuning', capo: dropTuningCapo }
     };
   }
   return { capo: null, status: 'invalid', message: '', alternative: null };
 }
 
-// ============ 核心處理函數 ============
 function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   const normalizedChord = normalizeInput(chordLine);
   const normalizedLyric = normalizeInput(lyricLine);
@@ -233,11 +211,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   }
   if (buffer) parts.push({ text: buffer, isInside: inBracket });
 
-  return {
-    chordLine: newChordLine,
-    lyricParts: parts,
-    error: false
-  };
+  return { chordLine: newChordLine, lyricParts: parts, error: false };
 }
 
 // ============ 主組件 ============
@@ -255,7 +229,7 @@ const TabContent = ({
   const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
   const [fontSize, setFontSize] = useState(16);
   const [isAutoScroll, setIsAutoScroll] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(3); // 1-5 levels
+  const [scrollSpeed, setScrollSpeed] = useState(3);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
   
@@ -274,7 +248,7 @@ const TabContent = ({
   // 自動滾動 - 成個頁面一齊滾動
   useEffect(() => {
     if (isAutoScroll) {
-      const speeds = [0, 1, 2, 3, 4, 5]; // 對應 0-5 級，每級 1px
+      const speeds = [0, 1, 2, 3, 4, 5];
       autoScrollRef.current = setInterval(() => {
         window.scrollBy({ top: speeds[scrollSpeed] || 2, behavior: 'auto' });
       }, 50);
@@ -475,6 +449,44 @@ const TabContent = ({
               A+
             </button>
           </div>
+
+          <div className="w-px h-4 sm:h-6 bg-gray-700" />
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsAutoScroll(!isAutoScroll)}
+              className={`flex items-center gap-0.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded transition text-xs ${
+                isAutoScroll 
+                  ? 'bg-[#FFD700] text-black' 
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
+            >
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              <span className="hidden sm:inline">{isAutoScroll ? '停止' : '自動滾動'}</span>
+            </button>
+            
+            {isAutoScroll && (
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))}
+                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
+                  disabled={scrollSpeed <= 1}
+                >
+                  −
+                </button>
+                <span className="w-4 sm:w-5 text-center text-[10px] sm:text-xs text-gray-400">{scrollSpeed}</span>
+                <button
+                  onClick={() => setScrollSpeed(Math.min(5, scrollSpeed + 1))}
+                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
+                  disabled={scrollSpeed >= 5}
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <button
@@ -520,16 +532,38 @@ const TabContent = ({
     );
   }
 
+  // 顯示模式 - 確保高度自適應內容
   return (
-    <div className={`${fullWidth ? '' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
+    <div 
+      className={`${fullWidth ? '' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}
+      style={{ 
+        height: 'auto',
+        minHeight: 'auto',
+        maxHeight: 'none'
+      }}
+    >
       {showControls && <ControlBar />}
-      <div className={fullWidth ? 'p-3' : 'p-3 sm:p-6 bg-[#121212]'}>
-        <div className="tab-content-wrapper">
+      <div 
+        className={fullWidth ? 'p-3' : 'p-3 sm:p-6 bg-[#121212]'}
+        style={{
+          height: 'auto',
+          minHeight: 'auto',
+          maxHeight: 'none'
+        }}
+      >
+        <div 
+          className="tab-content-wrapper"
+          style={{
+            height: 'auto',
+            minHeight: 'auto',
+            maxHeight: 'none'
+          }}
+        >
           {renderContent()}
         </div>
-        {/* 版本號 - 每次更新時會改變 */}
+        {/* 版本號 */}
         <div style={{ textAlign: 'right', fontSize: '10px', color: '#666', marginTop: '20px' }}>
-          v16 - 2025-02-04 13:45
+          v17 - 2025-02-04 14:00 - Height: auto
         </div>
       </div>
     </div>
