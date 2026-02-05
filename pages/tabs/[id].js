@@ -15,7 +15,7 @@ const BARRE_CHORDS = ['B', 'Bm', 'Bb', 'Bbm', 'B7', 'Bm7', 'Bb7', 'C#', 'C#m', '
 export default function TabDetail() {
   const router = useRouter()
   const { id, key: queryKey } = router.query
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isAdmin } = useAuth()
   const [tab, setTab] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -82,7 +82,7 @@ export default function TabDetail() {
     if (!confirm('確定要刪除這個譜嗎？')) return
     setIsDeleting(true)
     try {
-      await deleteTab(id, user.uid)
+      await deleteTab(id, user.uid, isAdmin)
       router.push('/')
     } catch (error) {
       alert('刪除失敗：' + error.message)
@@ -92,6 +92,7 @@ export default function TabDetail() {
   }
 
   const isOwner = tab && user && tab.createdBy === user.uid
+  const canEdit = isOwner || isAdmin
 
   if (isLoading) {
     return (
@@ -171,7 +172,7 @@ export default function TabDetail() {
                   {showInfo ? '收起' : '更多'}
                 </button>
               )}
-              {isOwner && (
+              {canEdit && (
                 <Link
                   href={`/tabs/${tab.id}/edit`}
                   className="p-1.5 sm:px-3 sm:py-1.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"

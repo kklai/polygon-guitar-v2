@@ -12,7 +12,7 @@ import { extractYouTubeVideoId } from '@/lib/wikipedia'
 export default function EditTab() {
   const router = useRouter()
   const { id } = router.query
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isAdmin } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -64,8 +64,9 @@ export default function EditTab() {
         return
       }
 
-      // Check ownership
-      if (data.createdBy !== user?.uid) {
+      // Check ownership (owner or admin can edit)
+      const isOwner = data.createdBy === user?.uid
+      if (!isOwner && !isAdmin) {
         alert('你無權編輯這個譜')
         router.push(`/tabs/${id}`)
         return
@@ -132,7 +133,7 @@ export default function EditTab() {
 
     setIsSubmitting(true)
     try {
-      await updateTab(id, formData, user.uid)
+      await updateTab(id, formData, user.uid, isAdmin)
       router.push(`/tabs/${id}`)
     } catch (error) {
       console.error('Update tab error:', error)
