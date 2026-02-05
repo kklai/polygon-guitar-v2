@@ -132,46 +132,79 @@ function isMixedLine(line) {
   return hasChord;
 }
 
-// 處理混合行 - 將和弦和歌詞分開對齊
+// 處理混合行 - 將交替出現的和弦與歌詞分開
 function processMixedLine(line, transposeSemitones = 0) {
   const normalizedLine = normalizeInput(line);
   
-  // 找到第一個 '(' 的位置
-  const firstBracket = normalizedLine.indexOf('(');
-  if (firstBracket === -1) return { chordPart: line, lyricPart: line, error: true };
+  // 使用正則表達式找出所有「和弦段落」和「歌詞段落」
+  // 和弦段落: 以 | 開頭，或 Verse/Chorus 等標記後面跟隨的和弦
+  // 歌詞段落: 以 ( 開頭
   
-  // 提取和弦部分（括號前的部分）
-  let chordPart = normalizedLine.substring(0, firstBracket).trimEnd();
-  // 提取歌詞部分（包含括號）
-  let lyricPart = normalizedLine.substring(firstBracket);
+  // 先找出段落標記 (Verse, Chorus, Prechorus 等)
+  const sectionMatch = normalizedLine.match(/^(\s*(?:Verse|Chorus|Prechorus|Bridge|Intro|Outro)\s*)/i);
+  const sectionPrefix = sectionMatch ? sectionMatch[1] : '';
+  let remaining = sectionMatch ? normalizedLine.substring(sectionMatch[0].length) : normalizedLine;
   
-  // 處理和弦部分的轉調
+  // 模式：和弦 |...| 後面跟著歌詞 (...)，可能重複多次
+  // 用正則找出所有交替的部分
+  const segments = [];
+  const pattern = /(\|[^|(]*)(\([^)]*\)[^|]*)/g;
+  let match;
+  
+  while ((match = pattern.exec(remaining)) !== null) {
+    const chordSeg = match[1].trim();
+    const lyricSeg = match[2].trim();
+    segments.push({ chord: chordSeg, lyric: lyricSeg });
+  }
+  
+  if (segments.length === 0) {
+    // 沒有找到交替模式，可能是純和弦行或格式不對
+    return { chordPart: line, lyricParts: [{ text: line, isInside: false }], error: true };
+  }
+  
+  // 組合所有和弦段落
+  let chordLine = sectionPrefix;
+  segments.forEach((seg, idx) => {
+    if (idx > 0) chordLine += ' ';
+    chordLine += seg.chord;
+  });
+  
+  // 處理轉調
   if (transposeSemitones !== 0) {
-    chordPart = transposeChordLine(chordPart, transposeSemitones);
+    chordLine = transposeChordLine(chordLine, transposeSemitones);
   }
   
-  // 解析歌詞部分（括號內外）
-  const parts = [];
-  let buffer = '';
-  let inBracket = false;
-  
-  for (let char of lyricPart) {
-    if (char === '(') {
-      if (buffer) parts.push({ text: buffer, isInside: false });
-      buffer = '(';
-      inBracket = true;
-    } else if (char === ')') {
-      buffer += ')';
-      parts.push({ text: buffer, isInside: true });
-      buffer = '';
-      inBracket = false;
-    } else {
-      buffer += char;
+  // 解析所有歌詞段落
+  const lyricParts = [];
+  segments.forEach(seg => {
+    // 解析這一段歌詞的括號
+    let buffer = '';
+    let inBracket = false;
+    for (let char of seg.lyric) {
+      if (char === '(') {
+        if (buffer) lyricParts.push({ text: buffer, isInside: false });
+        buffer = '(';
+        inBracket = true;
+      } else if (char === ')') {
+        buffer += ')';
+        lyricParts.push({ text: buffer, isInside: true });
+        buffer = '';
+        inBracket = false;
+      } else {
+        buffer += char;
+      }
     }
-  }
-  if (buffer) parts.push({ text: buffer, isInside: inBracket });
+    if (buffer) lyricParts.push({ text: buffer, isInside: inBracket });
+    // 段落之間加空格
+    lyricParts.push({ text: '  ', isInside: false });
+  });
   
-  return { chordPart, lyricParts: parts, error: false };
+  // 移除最後多餘的空格
+  if (lyricParts.length > 0 && lyricParts[lyricParts.length - 1].text === '  ') {
+    lyricParts.pop();
+  }
+  
+  return { chordPart: chordLine, lyricParts, error: false };
 }
 
 function processPair(chordLine, lyricLine, transposeSemitones = 0) {
