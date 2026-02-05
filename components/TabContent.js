@@ -527,6 +527,10 @@ const TabContent = ({
         <div className="tab-content-wrapper">
           {renderContent()}
         </div>
+        {/* 版本號 - 每次更新時會改變 */}
+        <div style={{ textAlign: 'right', fontSize: '10px', color: '#666', marginTop: '20px' }}>
+          v16 - 2025-02-04 13:45
+        </div>
       </div>
     </div>
   );
