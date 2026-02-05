@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/category/update-auto-images",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
