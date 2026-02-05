@@ -113,7 +113,7 @@ export default function TabDetail() {
 
   return (
     <Layout fullWidth>
-      <div className="w-full pb-20 overflow-x-hidden">
+      <div className="w-full pb-20 overflow-x-hidden" style={{ height: 'auto', minHeight: 'auto' }}>
         {/* Header - 全寬 */}
         <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
           {/* 頂部：標題 + 歌手 */}

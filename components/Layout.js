@@ -96,7 +96,10 @@ export default function Layout({ children, fullWidth = false }) {
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <main className={fullWidth ? 'overflow-x-hidden' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24'}>
+      <main 
+        className={fullWidth ? 'overflow-x-hidden' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24'}
+        style={fullWidth ? { height: 'auto', minHeight: 'auto' } : {}}
+      >
         {children}
       </main>
       
