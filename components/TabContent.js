@@ -75,6 +75,34 @@ function normalizeInput(text) {
   return text.replace(/｜/g, '|').replace(/　/g, ' ');
 }
 
+// Section marker 列表
+const SECTION_MARKERS = ['Verse', 'Chorus', 'Prechorus', 'Pre-chorus', 'Bridge', 'Intro', 'Outro', 'Interlude', 'Solo', 'Break'];
+
+// 檢查是否為 Section Marker 行
+function isSectionMarkerLine(line) {
+  const trimmed = line.trim();
+  return SECTION_MARKERS.some(marker => 
+    trimmed.toLowerCase().startsWith(marker.toLowerCase())
+  );
+}
+
+// 提取 Section Marker 和其後的內容
+function extractSectionMarker(line) {
+  const trimmed = line.trim();
+  for (const marker of SECTION_MARKERS) {
+    if (trimmed.toLowerCase().startsWith(marker.toLowerCase())) {
+      // 找到 marker 後的內容
+      const afterMarker = trimmed.substring(marker.length).trim();
+      return { 
+        hasMarker: true, 
+        marker: marker,
+        rest: afterMarker 
+      };
+    }
+  }
+  return { hasMarker: false, marker: '', rest: line };
+}
+
 function extractSectionMarkers(line) {
   const prefixMatch = line.match(/^(\s*[#*]\s*)/);
   const suffixMatch = line.match(/(\s*[#*]\s*)$/);
@@ -136,14 +164,10 @@ function isMixedLine(line) {
 function processMixedLine(line, transposeSemitones = 0) {
   const normalizedLine = normalizeInput(line);
   
-  // 使用正則表達式找出所有「和弦段落」和「歌詞段落」
-  // 和弦段落: 以 | 開頭，或 Verse/Chorus 等標記後面跟隨的和弦
-  // 歌詞段落: 以 ( 開頭
-  
-  // 先找出段落標記 (Verse, Chorus, Prechorus 等)
-  const sectionMatch = normalizedLine.match(/^(\s*(?:Verse|Chorus|Prechorus|Bridge|Intro|Outro)\s*)/i);
-  const sectionPrefix = sectionMatch ? sectionMatch[1] : '';
-  let remaining = sectionMatch ? normalizedLine.substring(sectionMatch[0].length) : normalizedLine;
+  // 先檢查是否有 Section Marker
+  const sectionInfo = extractSectionMarker(normalizedLine);
+  const sectionPrefix = sectionInfo.hasMarker ? sectionInfo.marker : '';
+  let remaining = sectionInfo.rest;
   
   // 模式：和弦 |...| 後面跟著歌詞 (...)，可能重複多次
   // 用正則找出所有交替的部分
@@ -159,11 +183,16 @@ function processMixedLine(line, transposeSemitones = 0) {
   
   if (segments.length === 0) {
     // 沒有找到交替模式，可能是純和弦行或格式不對
-    return { chordPart: line, lyricParts: [{ text: line, isInside: false }], error: true };
+    return { 
+      sectionMarker: sectionPrefix,
+      chordPart: remaining, 
+      lyricParts: [{ text: remaining, isInside: false }], 
+      error: true 
+    };
   }
   
   // 組合所有和弦段落
-  let chordLine = sectionPrefix;
+  let chordLine = '';
   segments.forEach((seg, idx) => {
     if (idx > 0) chordLine += ' ';
     chordLine += seg.chord;
@@ -204,7 +233,12 @@ function processMixedLine(line, transposeSemitones = 0) {
     lyricParts.pop();
   }
   
-  return { chordPart: chordLine, lyricParts, error: false };
+  return { 
+    sectionMarker: sectionPrefix,
+    chordPart: chordLine, 
+    lyricParts, 
+    error: false 
+  };
 }
 
 function processPair(chordLine, lyricLine, transposeSemitones = 0) {
@@ -401,24 +435,50 @@ const TabContent = ({
             </div>
           );
         } else {
-          elements.push(
-            <div key={i} style={{ marginBottom: '0.8em' }}>
-              {/* 和弦行 */}
-              <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
-                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
-                {result.chordPart}
-                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+          // 有 Section Marker 時，分三行顯示
+          if (result.sectionMarker) {
+            elements.push(
+              <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
+                {/* Section Marker 單獨一行 */}
+                <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.9em', fontWeight: 'bold' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+                  {result.sectionMarker}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+                </span>
+                {/* 和弦行 */}
+                <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                  {result.chordPart}
+                </div>
+                {/* 歌詞行 */}
+                <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                  {result.lyricParts.map((part, idx) => (
+                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
               </div>
-              {/* 歌詞行 */}
-              <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
-                {result.lyricParts.map((part, idx) => (
-                  <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
-                    {part.text}
-                  </span>
-                ))}
+            );
+          } else {
+            elements.push(
+              <div key={i} style={{ marginBottom: '0.8em' }}>
+                {/* 和弦行 */}
+                <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+                  {result.chordPart}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+                </div>
+                {/* 歌詞行 */}
+                <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                  {result.lyricParts.map((part, idx) => (
+                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
+            );
+          }
         }
         i++;
       } else if (isChord && !nextIsChord && nextLine.trim() && nextLine.includes('(')) {
@@ -456,16 +516,39 @@ const TabContent = ({
         }
         i += 2;
       } else if (isChord) {
-        const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-        const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+        // 檢查是否有 Section Marker
+        const sectionInfo = extractSectionMarker(line);
         
-        elements.push(
-          <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
-            {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
-            {transposedChordLine}
-            {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
-          </div>
-        );
+        if (sectionInfo.hasMarker) {
+          // Section Marker 單獨一行
+          elements.push(
+            <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
+              <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.9em', fontWeight: 'bold' }}>
+                {sectionInfo.marker}
+              </span>
+            </div>
+          );
+          // 和弦部分
+          const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
+          if (transposedChordLine.trim()) {
+            elements.push(
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+                {transposedChordLine}
+              </div>
+            );
+          }
+        } else {
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+          
+          elements.push(
+            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+              {transposedChordLine}
+              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+            </div>
+          );
+        }
         i++;
       } else {
         elements.push(
