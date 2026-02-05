@@ -248,9 +248,10 @@ const TabContent = ({
   // 自動滾動 - 成個頁面一齊滾動
   useEffect(() => {
     if (isAutoScroll) {
-      const speeds = [0, 1, 2, 3, 4, 5];
+      // 調慢速度：原來 1-5 變成 0.5-2.5（慢一半）
+      const speeds = [0, 0.5, 1, 1.5, 2, 2.5];
       autoScrollRef.current = setInterval(() => {
-        window.scrollBy({ top: speeds[scrollSpeed] || 2, behavior: 'auto' });
+        window.scrollBy({ top: speeds[scrollSpeed] || 1, behavior: 'auto' });
       }, 50);
     } else {
       if (autoScrollRef.current) {
