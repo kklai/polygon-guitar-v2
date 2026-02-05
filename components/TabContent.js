@@ -1,5 +1,40 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 
+// ============ 智能字體大小計算 ============
+// 根據內容長度計算合適的字體大小
+function calculateFontSize(text, containerWidth = 800) {
+  if (!text) return 16;
+  
+  const length = text.length;
+  
+  // 計算基礎字體大小
+  let baseSize = 16;
+  
+  // 窄屏幕（手機）
+  if (containerWidth < 400) {
+    if (length > 50) baseSize = 11;
+    else if (length > 35) baseSize = 12;
+    else if (length > 20) baseSize = 13;
+    else baseSize = 14;
+  }
+  // 中等屏幕（平板）
+  else if (containerWidth < 768) {
+    if (length > 60) baseSize = 12;
+    else if (length > 40) baseSize = 13;
+    else if (length > 25) baseSize = 14;
+    else baseSize = 15;
+  }
+  // 寬屏幕（桌面）
+  else {
+    if (length > 80) baseSize = 13;
+    else if (length > 50) baseSize = 14;
+    else if (length > 30) baseSize = 15;
+    else baseSize = 16;
+  }
+  
+  return baseSize;
+}
+
 // ============ 常數定義 ============
 const KEYS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
 
@@ -442,6 +477,8 @@ const TabContent = ({
   const [editContent, setEditContent] = useState(content || '');
   
   const autoScrollRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(800);
 
   const capo = calculateCapo(originalKey, currentKey);
   const transposeSemitones = calculateTransposeSemitones(originalKey, currentKey);
@@ -452,6 +489,29 @@ const TabContent = ({
       setCurrentKey(initialKey);
     }
   }, [initialKey]);
+
+  // 監聽容器寬度變化
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    
+    updateWidth();
+    
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(containerRef.current);
+    
+    window.addEventListener('resize', updateWidth);
+    
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   // 自動滾動 - 成個頁面一齊滾動
   useEffect(() => {
@@ -489,11 +549,21 @@ const TabContent = ({
     setIsEditing(false);
   };
 
+  // 計算單行字體大小
+  const getLineFontSize = (lineText, isChordLine = false) => {
+    if (!lineText) return fontSize;
+    
+    const adjustedBase = calculateFontSize(lineText, containerWidth);
+    
+    // 如果用戶手動調整了字體大小，按比例調整
+    const ratio = fontSize / 16; // 16 是預設值
+    return Math.max(10, Math.min(20, Math.round(adjustedBase * ratio)));
+  };
+
   const renderContent = () => {
     if (!content) return null;
 
     const lines = content.split('\n');
-    const totalLines = lines.length;
     const elements = [];
     let i = 0;
 
@@ -506,6 +576,9 @@ const TabContent = ({
         i++;
         continue;
       }
+      
+      // 計算當前行的字體大小
+      const lineFontSize = getLineFontSize(line);
       
       // 更精確的和弦行檢測：必須包含和弦模式，且不能主要是中文字
       const chordPattern = /(\|[\s]*[A-G][#b]?|[\s/]*[A-G][#b]?)(m|maj|min|sus|dim|aug|add|[0-9])*/g;
@@ -530,10 +603,10 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.5em', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
-              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+            <div key={i} style={{ marginBottom: '0.5em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
-              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
             </div>
           );
         } else {
@@ -542,17 +615,17 @@ const TabContent = ({
             elements.push(
               <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
                 {/* Section Marker 單獨一行 */}
-                <span style={{ color: '#FFFFFF', fontSize: '1em', fontWeight: 'bold' }}>
-                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.sectionMarker}
-                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </span>
                 {/* 和弦行 */}
-                <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                   {result.chordPart}
                 </div>
                 {/* 歌詞行 */}
-                <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                   {result.lyricParts.map((part, idx) => (
                     <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                       {part.text}
@@ -565,13 +638,13 @@ const TabContent = ({
             elements.push(
               <div key={i} style={{ marginBottom: '0.8em' }}>
                 {/* 和弦行 */}
-                <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
-                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordPart}
-                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </div>
                 {/* 歌詞行 */}
-                <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                   {result.lyricParts.map((part, idx) => (
                     <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                       {part.text}
@@ -590,23 +663,23 @@ const TabContent = ({
         if (result.error) {
           elements.push(
             <div key={i} style={{ marginBottom: '0.8em' }}>
-              <div style={{ color: '#FFD700', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
-                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+              <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
-                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
-              <div style={{ color: '#A0A0A0', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{result.lyricLine}</div>
+              <div style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{result.lyricLine}</div>
             </div>
           );
         } else {
           elements.push(
             <div key={i} style={{ marginBottom: '0.8em' }}>
-              <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
-                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+              <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
-                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
-              <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                 {result.lyricParts.map((part, idx) => (
                   <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                     {part.text}
@@ -625,7 +698,7 @@ const TabContent = ({
           // Section Marker 單獨一行
           elements.push(
             <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
-              <span style={{ color: '#FFFFFF', fontSize: '1em', fontWeight: 'bold' }}>
+              <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
                 {sectionInfo.marker}
               </span>
             </div>
@@ -634,7 +707,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
           if (transposedChordLine.trim()) {
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
                 {transposedChordLine}
               </div>
             );
@@ -644,17 +717,17 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
           
           elements.push(
-            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
-              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
-              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
             </div>
           );
         }
         i++;
       } else {
         elements.push(
-          <div key={i} style={{ color: '#A0A0A0', marginBottom: '0.5em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
+          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: '0.5em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
         );
         i++;
       }
@@ -850,6 +923,7 @@ const TabContent = ({
     >
       {showControls && <ControlBar />}
       <div 
+        ref={containerRef}
         className={fullWidth ? 'p-3' : 'p-3 sm:p-6 bg-[#121212]'}
         style={{
           height: 'auto',
