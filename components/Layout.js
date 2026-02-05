@@ -94,11 +94,10 @@ export default function Layout({ children, fullWidth = false }) {
   const desktopNavItems = getDesktopNavItems()
 
   return (
-    <div className="bg-black text-white" style={{ minHeight: '100vh', height: 'auto' }}>
+    <div className="bg-black text-white">
       <Navbar />
       <main 
-        className={fullWidth ? 'overflow-x-hidden' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24'}
-        style={fullWidth ? { height: 'auto', minHeight: 'auto' } : {}}
+        className={fullWidth ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24'}
       >
         {children}
       </main>

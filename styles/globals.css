@@ -23,13 +23,9 @@
   font-display: swap;
 }
 
-html, body {
+body {
   @apply bg-black text-white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  height: auto;
-  min-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
 }
 
 .tab-content {
@@ -44,14 +40,13 @@ html, body {
 .tab-content-wrapper {
   font-family: 'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace;
   line-height: 1.6;
-  max-width: 100%;
-  overflow: visible;
-  height: auto;
 }
 
-.tab-content-wrapper * {
-  max-width: 100%;
-  overflow-x: hidden;
+/* Prevent any element from having its own scroll */
+.no-scroll {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 /* Custom scrollbar for tab content */
