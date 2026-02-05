@@ -115,8 +115,15 @@ export default function TabDetail() {
     <Layout>
       <div className="w-full">
         {/* 版本號 - 最頂顯示 */}
-        <div className="bg-black text-[#FFD700] text-[10px] px-3 py-1 text-right">
-          v18 - 2025-02-04 14:15
+        <div style={{ 
+          backgroundColor: '#FFD700', 
+          color: '#000', 
+          fontSize: '12px', 
+          padding: '4px 12px',
+          textAlign: 'center',
+          fontWeight: 'bold'
+        }}>
+          🔧 v19 - 2025-02-04 14:30 - 強制更新測試
         </div>
         
         {/* Header - 全寬 */}
