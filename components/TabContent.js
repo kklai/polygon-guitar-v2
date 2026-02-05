@@ -458,7 +458,7 @@ const TabContent = ({
             elements.push(
               <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
                 {/* Section Marker 單獨一行 */}
-                <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.9em', fontWeight: 'bold' }}>
+                <span style={{ color: '#FFFFFF', fontSize: '1em', fontWeight: 'bold' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
                   {result.sectionMarker}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
@@ -541,7 +541,7 @@ const TabContent = ({
           // Section Marker 單獨一行
           elements.push(
             <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
-              <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.9em', fontWeight: 'bold' }}>
+              <span style={{ color: '#FFFFFF', fontSize: '1em', fontWeight: 'bold' }}>
                 {sectionInfo.marker}
               </span>
             </div>
