@@ -123,6 +123,57 @@ function getCapoSuggestion(capo) {
   return { capo: null, status: 'invalid', message: '', alternative: null };
 }
 
+// 檢查是否為混合行（同時包含和弦和歌詞）
+function isMixedLine(line) {
+  // 必須包含括號（歌詞標記）
+  if (!line.includes('(')) return false;
+  // 必須包含和弦模式
+  const hasChord = /\|[\s]*[A-G][#b]?/.test(line) || /^[\s]*[A-G][#b]?/.test(line);
+  return hasChord;
+}
+
+// 處理混合行 - 將和弦和歌詞分開對齊
+function processMixedLine(line, transposeSemitones = 0) {
+  const normalizedLine = normalizeInput(line);
+  
+  // 找到第一個 '(' 的位置
+  const firstBracket = normalizedLine.indexOf('(');
+  if (firstBracket === -1) return { chordPart: line, lyricPart: line, error: true };
+  
+  // 提取和弦部分（括號前的部分）
+  let chordPart = normalizedLine.substring(0, firstBracket).trimEnd();
+  // 提取歌詞部分（包含括號）
+  let lyricPart = normalizedLine.substring(firstBracket);
+  
+  // 處理和弦部分的轉調
+  if (transposeSemitones !== 0) {
+    chordPart = transposeChordLine(chordPart, transposeSemitones);
+  }
+  
+  // 解析歌詞部分（括號內外）
+  const parts = [];
+  let buffer = '';
+  let inBracket = false;
+  
+  for (let char of lyricPart) {
+    if (char === '(') {
+      if (buffer) parts.push({ text: buffer, isInside: false });
+      buffer = '(';
+      inBracket = true;
+    } else if (char === ')') {
+      buffer += ')';
+      parts.push({ text: buffer, isInside: true });
+      buffer = '';
+      inBracket = false;
+    } else {
+      buffer += char;
+    }
+  }
+  if (buffer) parts.push({ text: buffer, isInside: inBracket });
+  
+  return { chordPart, lyricParts: parts, error: false };
+}
+
 function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   const normalizedChord = normalizeInput(chordLine);
   const normalizedLyric = normalizeInput(lyricLine);
@@ -249,7 +300,7 @@ const TabContent = ({
   useEffect(() => {
     if (isAutoScroll) {
       // 速度：0.2 - 1.0（更慢更舒服）
-      const speeds = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+      const speeds = [0, 0.5, 0.75, 1.0, 1.25, 1.5];
       autoScrollRef.current = setInterval(() => {
         window.scrollBy({ top: speeds[scrollSpeed] || 0.4, behavior: 'auto' });
       }, 50);
@@ -301,8 +352,43 @@ const TabContent = ({
       
       const isChord = /[A-G][#b]?/.test(line) || line.includes('|') || line.includes('｜');
       const nextIsChord = /[A-G][#b]?/.test(nextLine) || nextLine.includes('|') || nextLine.includes('｜');
+      const isMixed = isMixedLine(line);
       
-      if (isChord && !nextIsChord && nextLine.trim() && nextLine.includes('(')) {
+      // 處理混合行（chord + lyric 在同一行）
+      if (isMixed) {
+        const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+        const result = processMixedLine(cleanLine, transposeSemitones);
+        
+        if (result.error) {
+          elements.push(
+            <div key={i} style={{ marginBottom: '0.5em', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+              <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
+              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+            </div>
+          );
+        } else {
+          elements.push(
+            <div key={i} style={{ marginBottom: '0.8em' }}>
+              {/* 和弦行 */}
+              <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
+                {result.chordPart}
+                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
+              </div>
+              {/* 歌詞行 */}
+              <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                {result.lyricParts.map((part, idx) => (
+                  <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                    {part.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        i++;
+      } else if (isChord && !nextIsChord && nextLine.trim() && nextLine.includes('(')) {
         const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
         const result = processPair(cleanLine, nextLine, transposeSemitones);
         

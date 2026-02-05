@@ -25,3 +25,4 @@ npm-debug.log*
 .cache
 .vercel
 .env*.local
+scripts/firebase-service-account.json
