@@ -521,9 +521,15 @@ const TabContent = ({
   }
 
   return (
-    <div className={`${fullWidth ? '' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
+    <div 
+      className={`${fullWidth ? '' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}
+      style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', overflow: 'visible' }}
+    >
       {showControls && <ControlBar />}
-      <div className={fullWidth ? 'p-3' : 'p-3 sm:p-6 bg-[#121212]'}>
+      <div 
+        className={fullWidth ? 'p-3' : 'p-3 sm:p-6 bg-[#121212]'}
+        style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', overflow: 'visible' }}
+      >
         <div className="tab-content-wrapper">
           {renderContent()}
         </div>

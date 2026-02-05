@@ -238,13 +238,15 @@ export default function TabDetail() {
         </div>
 
         {/* 主要內容：譜 - 全寬無邊距 */}
-        <TabContent 
-          content={tab.content} 
-          originalKey={tab.originalKey || 'C'}
-          initialKey={queryKey}
-          onKeyChange={setCurrentKey}
-          fullWidth
-        />
+        <div style={{ height: 'auto', minHeight: 'auto', overflow: 'visible' }}>
+          <TabContent 
+            content={tab.content} 
+            originalKey={tab.originalKey || 'C'}
+            initialKey={queryKey}
+            onKeyChange={setCurrentKey}
+            fullWidth
+          />
+        </div>
       </div>
     </Layout>
   )
