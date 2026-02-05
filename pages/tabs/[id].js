@@ -96,7 +96,7 @@ export default function TabDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-800 rounded w-1/2"></div>
             <div className="h-6 bg-gray-800 rounded w-1/4"></div>
@@ -112,10 +112,10 @@ export default function TabDetail() {
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto pb-20">
-        {/* 手機版簡化 Header */}
-        <div className="bg-[#121212] rounded-xl shadow-md p-3 sm:p-6 mb-2 sm:mb-6 border border-gray-800">
+    <Layout fullWidth>
+      <div className="w-full pb-20">
+        {/* Header - 全寬 */}
+        <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
           {/* 頂部：標題 + 歌手 */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -187,17 +187,11 @@ export default function TabDetail() {
         </div>
 
         {/* 可折疊資訊區 (手機版) */}
-        <div className={`space-y-2 sm:space-y-6 mb-2 sm:mb-6 ${showInfo ? '' : 'hidden sm:block'}`}>
+        <div className={`${showInfo ? '' : 'hidden sm:block'}`}>
           {/* YouTube - 手機版縮小 */}
           {tab.youtubeVideoId && (
-            <div className="bg-[#121212] rounded-xl shadow-md p-3 sm:p-6 border border-gray-800">
-              <h2 className="text-sm sm:text-lg font-semibold text-white mb-2 sm:mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-                </svg>
-                歌曲影片
-              </h2>
-              <div className="aspect-video max-w-lg mx-auto">
+            <div className="bg-[#121212] border-b border-gray-800">
+              <div className="aspect-video max-w-2xl mx-auto">
                 <iframe
                   width="100%"
                   height="100%"
@@ -206,69 +200,50 @@ export default function TabDetail() {
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  className="rounded-lg"
                 ></iframe>
               </div>
             </div>
           )}
 
-          {/* 歌曲資訊 - 手機版簡化 */}
+          {/* 歌曲資訊 - 簡化 */}
           {hasSongInfo && (
-            <div className="bg-[#121212] rounded-xl shadow-md p-3 sm:p-6 border border-gray-800">
-              <h2 className="text-sm sm:text-lg font-semibold text-white mb-2 sm:mb-4">歌曲資訊</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
-                {tab.songYear && (
-                  <div><span className="text-gray-500">年份：</span><span className="text-white">{tab.songYear}</span></div>
-                )}
-                {tab.album && (
-                  <div><span className="text-gray-500">專輯：</span><span className="text-white">{tab.album}</span></div>
-                )}
-                {tab.composer && (
-                  <div><span className="text-gray-500">作曲：</span><span className="text-white">{tab.composer}</span></div>
-                )}
-                {tab.lyricist && (
-                  <div><span className="text-gray-500">填詞：</span><span className="text-white">{tab.lyricist}</span></div>
-                )}
-                {tab.arranger && (
-                  <div><span className="text-gray-500">編曲：</span><span className="text-white">{tab.arranger}</span></div>
-                )}
-                {tab.producer && (
-                  <div><span className="text-gray-500">監製：</span><span className="text-white">{tab.producer}</span></div>
-                )}
+            <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-[#B3B3B3]">
+                {tab.songYear && <span>年份：{tab.songYear}</span>}
+                {tab.composer && <span>作曲：{tab.composer}</span>}
+                {tab.lyricist && <span>填詞：{tab.lyricist}</span>}
+                {tab.arranger && <span>編曲：{tab.arranger}</span>}
+                {tab.producer && <span>監製：{tab.producer}</span>}
               </div>
             </div>
           )}
 
           {/* 演奏技巧 */}
           {(tab.strummingPattern || tab.fingeringTips) && (
-            <div className="bg-[#121212] rounded-xl shadow-md p-3 sm:p-6 border border-gray-800">
-              <h2 className="text-sm sm:text-lg font-semibold text-[#FFD700] mb-2 sm:mb-4">演奏技巧</h2>
+            <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
               {tab.strummingPattern && (
-                <div className="mb-2 sm:mb-4">
-                  <h3 className="text-xs text-gray-400 mb-1">掃弦節奏</h3>
-                  <div className="bg-black p-2 sm:p-3 rounded font-mono text-sm sm:text-lg text-white whitespace-pre-wrap">
-                    {tab.strummingPattern}
-                  </div>
+                <div className="mb-2">
+                  <span className="text-xs text-[#FFD700]">掃弦：</span>
+                  <span className="text-sm text-white font-mono">{tab.strummingPattern}</span>
                 </div>
               )}
               {tab.fingeringTips && (
                 <div>
-                  <h3 className="text-xs text-gray-400 mb-1">指法提示</h3>
-                  <div className="bg-black p-2 sm:p-3 rounded text-xs sm:text-sm text-gray-300 whitespace-pre-wrap">
-                    {tab.fingeringTips}
-                  </div>
+                  <span className="text-xs text-[#FFD700]">指法：</span>
+                  <span className="text-sm text-gray-300">{tab.fingeringTips}</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* 主要內容：譜 */}
+        {/* 主要內容：譜 - 全寬無邊距 */}
         <TabContent 
           content={tab.content} 
           originalKey={tab.originalKey || 'C'}
           initialKey={queryKey}
           onKeyChange={setCurrentKey}
+          fullWidth
         />
       </div>
     </Layout>

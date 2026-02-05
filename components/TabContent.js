@@ -249,7 +249,8 @@ const TabContent = ({
   onKeyChange,
   showControls = true,
   className = '',
-  initialKey
+  initialKey,
+  fullWidth = false
 }) => {
   const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
   const [fontSize, setFontSize] = useState(16);
@@ -332,23 +333,23 @@ const TabContent = ({
         if (result.error) {
           elements.push(
             <div key={i} style={{ marginBottom: '0.8em' }}>
-              <div style={{ color: '#FFD700', whiteSpace: 'pre' }}>
+              <div style={{ color: '#FFD700', whiteSpace: 'pre', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
                 {result.chordLine}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
               </div>
-              <div style={{ color: '#A0A0A0' }}>{result.lyricLine}</div>
+              <div style={{ color: '#A0A0A0', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{result.lyricLine}</div>
             </div>
           );
         } else {
           elements.push(
             <div key={i} style={{ marginBottom: '0.8em' }}>
-              <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre' }}>
+              <div style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
                 {result.chordLine}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
               </div>
-              <div style={{ whiteSpace: 'pre' }}>
+              <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                 {result.lyricParts.map((part, idx) => (
                   <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                     {part.text}
@@ -364,7 +365,7 @@ const TabContent = ({
         const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
         
         elements.push(
-          <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre', marginBottom: '0.5em' }}>
+          <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', whiteSpace: 'pre', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
             {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{prefix}</span>}
             {transposedChordLine}
             {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: '0.85em' }}>{suffix}</span>}
@@ -373,7 +374,7 @@ const TabContent = ({
         i++;
       } else {
         elements.push(
-          <div key={i} style={{ color: '#A0A0A0', marginBottom: '0.5em', whiteSpace: 'pre' }}>{line}</div>
+          <div key={i} style={{ color: '#A0A0A0', marginBottom: '0.5em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
         );
         i++;
       }
@@ -520,14 +521,14 @@ const TabContent = ({
   }
 
   return (
-    <div className={`bg-[#121212] rounded-xl border border-gray-800 ${className}`}>
+    <div className={`bg-[#121212] ${fullWidth ? '' : 'rounded-xl border border-gray-800'} ${className}`}>
       {showControls && <ControlBar />}
-      <div className="p-3 sm:p-6">
+      <div className={fullWidth ? 'p-3' : 'p-3 sm:p-6'}>
         <div style={{
           fontFamily: "'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace",
-          whiteSpace: 'pre',
-          lineHeight: '1.4',
-          fontSize: `${fontSize}px`
+          lineHeight: '1.6',
+          fontSize: `${fontSize}px`,
+          maxWidth: '100%'
         }}>
           {renderContent()}
         </div>
