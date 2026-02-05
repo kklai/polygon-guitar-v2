@@ -522,7 +522,7 @@ const TabContent = ({
   return (
     <div className={`bg-[#121212] rounded-xl border border-gray-800 ${className}`}>
       {showControls && <ControlBar />}
-      <div className="p-3 sm:p-6 overflow-x-auto">
+      <div className="p-3 sm:p-6">
         <div style={{
           fontFamily: "'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace",
           whiteSpace: 'pre',
