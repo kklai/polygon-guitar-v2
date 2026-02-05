@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // ============ 常數定義 ============
 const KEYS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
@@ -35,9 +35,7 @@ function transposeChord(chord, semitones) {
 function transposeChordLine(line, semitones) {
   if (!semitones || semitones === 0) return line;
   
-  // 匹配所有和弦（包括 | 前綴）
   return line.replace(/\|?\s*([A-G][#b]?[^\s|]*)/g, (match, chord) => {
-    // 處理可能有 | 前綴的情況
     const hasBar = match.includes('|');
     const transposed = transposeChord(chord, semitones);
     return hasBar ? '| ' + transposed : transposed;
@@ -98,25 +96,14 @@ function getKeyFromSemitone(semitone) {
   return SEMITONE_TO_KEY[(semitone + 12) % 12];
 }
 
-/**
- * 計算 Capo 位置
- * 正確公式：由原調去現調要夾幾多格
- * 例如：原調 F (5)，揀 C (0) → 夾第 5 格（C 夾 5 格變 F）
- * 例如：原調 F (5)，揀 G (7) → 夾第 10 格（太高）
- */
 function calculateCapo(originalKey, selectedKey) {
   const originalSemitone = getSemitoneFromKey(originalKey);
   const selectedSemitone = getSemitoneFromKey(selectedKey);
-  // 關鍵：original - selected（不是 selected - original）
   let capo = (originalSemitone - selectedSemitone) % 12;
   if (capo < 0) capo += 12;
-  return capo; // 0 表示唔使夾
+  return capo;
 }
 
-/**
- * 計算轉調 semitones（用於和弦轉換）
- * 這是音樂上的轉調，由 originalKey 轉到 selectedKey
- */
 function calculateTransposeSemitones(originalKey, selectedKey) {
   const originalSemitone = getSemitoneFromKey(originalKey);
   const selectedSemitone = getSemitoneFromKey(selectedKey);
@@ -125,7 +112,6 @@ function calculateTransposeSemitones(originalKey, selectedKey) {
 
 // ============ Capo 建議 ============
 function getCapoSuggestion(capo) {
-  // Capo 0：唔使夾
   if (capo === 0) {
     return { 
       capo: 0, 
@@ -134,7 +120,6 @@ function getCapoSuggestion(capo) {
       alternative: null 
     };
   }
-  // Capo 1-8：建議範圍
   if (capo >= 1 && capo <= 8) {
     return { 
       capo: capo, 
@@ -143,9 +128,8 @@ function getCapoSuggestion(capo) {
       alternative: null 
     };
   }
-  // Capo 9-11：位置過高，建議 Drop Tuning
   if (capo >= 9 && capo <= 11) {
-    const dropTuningCapo = capo - 2; // Drop Tuning 後只需夾 (capo-2) 格
+    const dropTuningCapo = capo - 2;
     return { 
       capo: capo, 
       status: 'high',
@@ -166,7 +150,6 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   const normalizedLyric = normalizeInput(lyricLine);
   const bracketPositions = findBracketPositions(normalizedLyric);
   
-  // 解析和弦
   const chords = [];
   let i = 0;
   const chars = Array.from(normalizedChord);
@@ -207,7 +190,6 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
     return { chordLine, lyricLine, error: true };
   }
 
-  // 對齊計算
   let newChordLine = '';
   let currentCol = 0;
 
@@ -231,7 +213,6 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
     currentCol = startCol + chord.width;
   }
 
-  // 處理歌詞顏色
   const parts = [];
   let buffer = '';
   let inBracket = false;
@@ -272,61 +253,29 @@ const TabContent = ({
 }) => {
   const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
   const [fontSize, setFontSize] = useState(16);
-  const [isAutoScroll, setIsAutoScroll] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(3); // 1-5 levels
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
-  
-  const scrollRef = useRef(null);
-  const autoScrollRef = useRef(null);
 
-  // 計算 Capo 位置（正確公式）
   const capo = calculateCapo(originalKey, currentKey);
-  
-  // 計算和弦轉調 semitones（音樂轉調用）
   const transposeSemitones = calculateTransposeSemitones(originalKey, currentKey);
-  
-  // 計算 Capo 建議
   const capoSuggestion = getCapoSuggestion(capo);
 
-  // 處理 initialKey 變化（從 URL query parameter）
   useEffect(() => {
     if (initialKey && initialKey !== currentKey) {
       setCurrentKey(initialKey);
     }
   }, [initialKey]);
 
-  // 自動滾動 - 可調速度
-  useEffect(() => {
-    if (isAutoScroll && scrollRef.current) {
-      const speeds = [0, 80, 50, 30, 20, 15]; // 對應 0-5 級
-      autoScrollRef.current = setInterval(() => {
-        scrollRef.current.scrollTop += 1;
-      }, speeds[scrollSpeed] || 50);
-    } else {
-      if (autoScrollRef.current) {
-        clearInterval(autoScrollRef.current);
-        autoScrollRef.current = null;
-      }
-    }
-    return () => {
-      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
-    };
-  }, [isAutoScroll, scrollSpeed]);
-
-  // 處理字體大小
   const handleFontSize = (delta) => {
     setFontSize(prev => Math.max(12, Math.min(24, prev + delta)));
   };
 
-  // 複製到剪貼板
   const handleCopy = useCallback(() => {
     if (content) {
       navigator.clipboard.writeText(content);
     }
   }, [content]);
 
-  // 處理編輯保存
   const handleSave = () => {
     if (onContentChange) {
       onContentChange(editContent);
@@ -334,7 +283,6 @@ const TabContent = ({
     setIsEditing(false);
   };
 
-  // 渲染譜內容
   const renderContent = () => {
     if (!content) return null;
 
@@ -346,14 +294,12 @@ const TabContent = ({
       const line = lines[i];
       const nextLine = lines[i + 1] || '';
       
-      // 空行
       if (!line.trim()) {
         elements.push(<div key={i} style={{ height: '1.5em' }} />);
         i++;
         continue;
       }
       
-      // 檢查是否和弦行
       const isChord = /[A-G][#b]?/.test(line) || line.includes('|') || line.includes('｜');
       const nextIsChord = /[A-G][#b]?/.test(nextLine) || nextLine.includes('|') || nextLine.includes('｜');
       
@@ -392,7 +338,6 @@ const TabContent = ({
         }
         i += 2;
       } else if (isChord) {
-        // 純和弦行（前奏/間奏/尾奏）- 需要轉調
         const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
         const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
         
@@ -415,12 +360,9 @@ const TabContent = ({
     return elements;
   };
 
-  // ============ 控制器 UI ============
   const ControlBar = () => (
     <div className="flex flex-col gap-2 sm:gap-4 p-2 sm:p-4 bg-black border-b border-gray-800">
-      {/* 轉調控制區 */}
       <div>
-        {/* 頂部顯示：原調 → PLAY + Capo 建議 - 手機版更緊湊 */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
           <span className="text-xs sm:text-sm text-gray-400">原調:</span>
           <span className="text-xs sm:text-sm font-medium text-white">{originalKey}</span>
@@ -430,29 +372,21 @@ const TabContent = ({
             {currentKey}
           </span>
           
-          {/* Capo 建議標籤 - 手機版隱藏文字 */}
           {currentKey !== originalKey && (
             <>
               {capoSuggestion.status === 'none' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-800 text-gray-400 rounded">
-                  免Capo
-                </span>
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-800 text-gray-400 rounded">免Capo</span>
               )}
               {capoSuggestion.status === 'ok' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-900/50 text-green-400 rounded">
-                  Capo {capo}
-                </span>
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-900/50 text-green-400 rounded">Capo {capo}</span>
               )}
               {capoSuggestion.status === 'high' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">
-                  Capo {capo}太高
-                </span>
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">Capo {capo}太高</span>
               )}
             </>
           )}
         </div>
         
-        {/* Drop Tuning 建議 - 手機版簡化 */}
         {currentKey !== originalKey && capoSuggestion.alternative && (
           <div className="mb-2 text-[10px] sm:text-xs text-gray-500">
             <span className="text-orange-400">提示：</span>
@@ -469,7 +403,6 @@ const TabContent = ({
           </div>
         )}
         
-        {/* 12 Key 單行排列 - 手機版更小 */}
         <div className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
           {KEYS.map((key) => {
             const isCurrent = key === currentKey;
@@ -500,14 +433,10 @@ const TabContent = ({
         </div>
       </div>
 
-      {/* 分隔線 */}
       <div className="h-px bg-gray-700" />
 
-      {/* 其他控制 - 手機版更緊湊 */}
       <div className="flex items-center justify-between gap-2">
-        {/* 左側：字體大小 + 自動滾動 */}
         <div className="flex items-center gap-1.5 sm:gap-3">
-          {/* 字體大小控制 - 更小 */}
           <div className="flex items-center gap-0.5 sm:gap-2">
             <button
               onClick={() => handleFontSize(-1)}
@@ -523,49 +452,8 @@ const TabContent = ({
               A+
             </button>
           </div>
-
-          <div className="w-px h-4 sm:h-6 bg-gray-700" />
-
-          {/* 自動滾動 + 速度控制 */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setIsAutoScroll(!isAutoScroll)}
-              className={`flex items-center gap-0.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded transition text-xs ${
-                isAutoScroll 
-                  ? 'bg-[#FFD700] text-black' 
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
-            >
-              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-              <span className="hidden sm:inline text-sm">{isAutoScroll ? '停止' : '自動滾動'}</span>
-            </button>
-            
-            {/* 速度調整 */}
-            {isAutoScroll && (
-              <div className="flex items-center gap-0.5">
-                <button
-                  onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))}
-                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
-                  disabled={scrollSpeed <= 1}
-                >
-                  −
-                </button>
-                <span className="w-4 sm:w-5 text-center text-[10px] sm:text-xs text-gray-400">{scrollSpeed}</span>
-                <button
-                  onClick={() => setScrollSpeed(Math.min(5, scrollSpeed + 1))}
-                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
-                  disabled={scrollSpeed >= 5}
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* 右側：複製 */}
         <button
           onClick={handleCopy}
           className="p-1.5 sm:px-3 sm:py-1.5 text-[#FFD700] hover:opacity-80 transition"
@@ -579,10 +467,9 @@ const TabContent = ({
     </div>
   );
 
-  // ============ 編輯模式 ============
   if (isEditing && editable) {
     return (
-      <div className={`bg-[#121212] rounded-xl border border-gray-800 overflow-hidden ${className}`}>
+      <div className={`bg-[#121212] rounded-xl border border-gray-800 ${className}`}>
         {showControls && <ControlBar />}
         <div className="p-4">
           <textarea
@@ -610,15 +497,10 @@ const TabContent = ({
     );
   }
 
-  // ============ 顯示模式 ============
   return (
     <div className={`bg-[#121212] rounded-xl border border-gray-800 ${className}`}>
       {showControls && <ControlBar />}
-      <div 
-        ref={scrollRef}
-        className="p-3 sm:p-6 overflow-x-auto"
-        style={{ scrollBehavior: isAutoScroll ? 'auto' : 'smooth' }}
-      >
+      <div className="p-3 sm:p-6 overflow-x-auto">
         <div style={{
           fontFamily: "'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace",
           whiteSpace: 'pre',
