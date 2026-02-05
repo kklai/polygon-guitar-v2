@@ -212,6 +212,46 @@ function isMixedLine(line) {
   return hasChordBar && hasLyricBracket;
 }
 
+// 嚴格檢查字符串是否只包含和弦相關字符（不包含中文字）
+function isChordOnly(str) {
+  // 移除空格後檢查
+  const trimmed = str.trim();
+  if (!trimmed) return true;
+  // 只允許：A-G, #, b, m, a, j, s, u, d, i, M, n, 0-9, /, -, +, *, (, ), |
+  return /^[A-Ga-g#b0-9mMsSjJuUaAdDiInN\/\+\-\*\(\)\|\s]+$/.test(trimmed);
+}
+
+// 從 segment 提取和弦（到第一個中文字或 ( 為止）
+function extractChordPart(segment) {
+  let chordPart = '';
+  let lyricPart = '';
+  let foundLyric = false;
+  
+  for (let i = 0; i < segment.length; i++) {
+    const char = segment[i];
+    const charCode = char.charCodeAt(0);
+    
+    // 檢查是否為中文字或已經開始歌詞部分
+    if (!foundLyric) {
+      // 如果是中文字，開始歌詞部分
+      if (charCode >= 0x4E00 && charCode <= 0x9FFF) {
+        foundLyric = true;
+        lyricPart += char;
+      } else if (char === '(') {
+        // 遇到 ( 也開始歌詞部分
+        foundLyric = true;
+        lyricPart += char;
+      } else {
+        chordPart += char;
+      }
+    } else {
+      lyricPart += char;
+    }
+  }
+  
+  return { chord: chordPart.trim(), lyric: lyricPart.trim() };
+}
+
 // 處理混合行 - 將交替出現的和弦與歌詞分開
 function processMixedLine(line, transposeSemitones = 0) {
   const normalizedLine = normalizeInput(line);
@@ -221,23 +261,19 @@ function processMixedLine(line, transposeSemitones = 0) {
   const sectionPrefix = sectionInfo.hasMarker ? sectionInfo.marker : '';
   let remaining = sectionInfo.rest;
   
-  // 模式：和弦 |...| 後面跟著歌詞 (...)，可能重複多次
-  // 和弦部分只包含：|、空格、A-G、#、b、數字、m、maj、min、sus、dim、aug、add、7、9、/ 等
+  // 用 | 分割行
   const segments = [];
-  // 改進的正則：和弦部分只允許特定字符（不包含中文字）
-  const pattern = /(\|[\sA-Ga-g#b0-9mMsSdDaAjuU79\/+-]*)(\([^)]*\)[^|]*)/g;
-  let match;
+  const parts = remaining.split('|').filter(p => p.trim());
   
-  while ((match = pattern.exec(remaining)) !== null) {
-    const chordSeg = match[1].trim();
-    const lyricSeg = match[2].trim();
-    // 清理和弦部分的任何中文字符（以防萬一）
-    const cleanChordSeg = chordSeg.replace(/[^\|\sA-Ga-g#b0-9mMsSdDaAjuU79\/+-]/g, '').trim();
-    segments.push({ chord: cleanChordSeg || chordSeg, lyric: lyricSeg });
+  for (const part of parts) {
+    // 提取和弦部分和歌詞部分
+    const { chord, lyric } = extractChordPart(part);
+    if (chord || lyric) {
+      segments.push({ chord: chord || '', lyric: lyric || '' });
+    }
   }
   
   if (segments.length === 0) {
-    // 沒有找到交替模式，可能是純和弦行或格式不對
     return { 
       sectionMarker: sectionPrefix,
       chordPart: remaining, 
@@ -249,8 +285,8 @@ function processMixedLine(line, transposeSemitones = 0) {
   // 組合所有和弦段落
   let chordLine = '';
   segments.forEach((seg, idx) => {
-    if (idx > 0) chordLine += ' ';
-    chordLine += seg.chord;
+    if (idx > 0) chordLine += ' |';
+    if (seg.chord) chordLine += ' ' + seg.chord;
   });
   
   // 處理轉調
@@ -258,39 +294,38 @@ function processMixedLine(line, transposeSemitones = 0) {
     chordLine = transposeChordLine(chordLine, transposeSemitones);
   }
   
-  // 解析所有歌詞段落
+  // 組合所有歌詞段落
   const lyricParts = [];
-  segments.forEach(seg => {
-    // 解析這一段歌詞的括號
-    let buffer = '';
-    let inBracket = false;
-    for (let char of seg.lyric) {
-      if (char === '(') {
-        if (buffer) lyricParts.push({ text: buffer, isInside: false });
-        buffer = '(';
-        inBracket = true;
-      } else if (char === ')') {
-        buffer += ')';
-        lyricParts.push({ text: buffer, isInside: true });
-        buffer = '';
-        inBracket = false;
-      } else {
-        buffer += char;
+  segments.forEach((seg, idx) => {
+    if (seg.lyric) {
+      // 解析括號
+      let buffer = '';
+      let inBracket = false;
+      for (let char of seg.lyric) {
+        if (char === '(') {
+          if (buffer) lyricParts.push({ text: buffer, isInside: false });
+          buffer = '(';
+          inBracket = true;
+        } else if (char === ')') {
+          buffer += ')';
+          lyricParts.push({ text: buffer, isInside: true });
+          buffer = '';
+          inBracket = false;
+        } else {
+          buffer += char;
+        }
       }
+      if (buffer) lyricParts.push({ text: buffer, isInside: inBracket });
     }
-    if (buffer) lyricParts.push({ text: buffer, isInside: inBracket });
     // 段落之間加空格
-    lyricParts.push({ text: '  ', isInside: false });
+    if (idx < segments.length - 1) {
+      lyricParts.push({ text: '  ', isInside: false });
+    }
   });
-  
-  // 移除最後多餘的空格
-  if (lyricParts.length > 0 && lyricParts[lyricParts.length - 1].text === '  ') {
-    lyricParts.pop();
-  }
   
   return { 
     sectionMarker: sectionPrefix,
-    chordPart: chordLine, 
+    chordPart: chordLine || '|', 
     lyricParts, 
     error: false 
   };
