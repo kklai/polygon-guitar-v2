@@ -76,7 +76,18 @@ function normalizeInput(text) {
 }
 
 // Section marker 列表
-const SECTION_MARKERS = ['Verse', 'Chorus', 'Prechorus', 'Pre-chorus', 'Bridge', 'Intro', 'Outro', 'Interlude', 'Solo', 'Break'];
+const SECTION_MARKERS = [
+  'Intro', 'Outro', 
+  'Verse', 'Verse 1', 'Verse 2', 'Verse 3', 'Verse 4',
+  'Chorus', 'Chorus 1', 'Chorus 2', 'Chorus 3',
+  'Prechorus', 'Pre-chorus', 'Pre Chorus', 'Pre Chorus 1', 'Pre Chorus 2',
+  'Bridge', 
+  'Interlude', 
+  'Solo', 'Guitar Solo',
+  'Break', 'Music Break', ' instrumental',
+  'Hook', 'Refrain',
+  'Fade out'
+];
 
 // 檢查是否為 Section Marker 行
 function isSectionMarkerLine(line) {
@@ -89,8 +100,15 @@ function isSectionMarkerLine(line) {
 // 提取 Section Marker 和其後的內容
 function extractSectionMarker(line) {
   const trimmed = line.trim();
-  for (const marker of SECTION_MARKERS) {
-    if (trimmed.toLowerCase().startsWith(marker.toLowerCase())) {
+  
+  // 按長度排序，先匹配長的（避免 "Verse" 搶先匹配 "Verse 1"）
+  const sortedMarkers = [...SECTION_MARKERS].sort((a, b) => b.length - a.length);
+  
+  for (const marker of sortedMarkers) {
+    const markerLower = marker.toLowerCase();
+    const trimmedLower = trimmed.toLowerCase();
+    
+    if (trimmedLower.startsWith(markerLower)) {
       // 找到 marker 後的內容
       const afterMarker = trimmed.substring(marker.length).trim();
       return { 
