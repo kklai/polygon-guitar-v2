@@ -112,8 +112,8 @@ export default function TabDetail() {
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album
 
   return (
-    <Layout fullWidth>
-      <div className="w-full pb-20">
+    <Layout>
+      <div className="w-full">
         {/* Header - 全寬 */}
         <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
           {/* 頂部：標題 + 歌手 */}
@@ -238,15 +238,13 @@ export default function TabDetail() {
         </div>
 
         {/* 主要內容：譜 - 全寬無邊距 */}
-        <div style={{ height: 'auto', minHeight: 'auto', overflow: 'visible' }}>
-          <TabContent 
-            content={tab.content} 
-            originalKey={tab.originalKey || 'C'}
-            initialKey={queryKey}
-            onKeyChange={setCurrentKey}
-            fullWidth
-          />
-        </div>
+        <TabContent 
+          content={tab.content} 
+          originalKey={tab.originalKey || 'C'}
+          initialKey={queryKey}
+          onKeyChange={setCurrentKey}
+          fullWidth
+        />
       </div>
     </Layout>
   )
