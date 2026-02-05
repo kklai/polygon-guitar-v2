@@ -17,23 +17,45 @@ const SEMITONE_TO_KEY = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', '
 const CHORDS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const CHORDS_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
+// 轉調單個和弦（支援 slash chord，如 C/E）
 function transposeChord(chord, semitones) {
-  const match = chord.match(/^([A-G][#b]?)(.*)$/);
-  if (!match) return chord;
+  // 處理 slash chord，例如 C/E, D7/F#
+  const slashMatch = chord.match(/^([A-G][#b]?[^\/]*)(?:\/([A-G][#b]?))?$/);
+  if (!slashMatch) return chord;
   
-  const [, root, suffix] = match;
+  const [, mainChord, bassNote] = slashMatch;
   
+  // 轉調主和弦
+  const mainMatch = mainChord.match(/^([A-G][#b]?)(.*)$/);
+  if (!mainMatch) return chord;
+  
+  const [, root, suffix] = mainMatch;
   let index = CHORDS.indexOf(root);
   if (index === -1) index = CHORDS_FLAT.indexOf(root);
   if (index === -1) return chord;
   
   const newIndex = (index + semitones + 12) % 12;
-  return CHORDS[newIndex] + suffix;
+  const newRoot = CHORDS[newIndex];
+  
+  // 轉調 bass note（如果有）
+  let newBass = '';
+  if (bassNote) {
+    let bassIndex = CHORDS.indexOf(bassNote);
+    if (bassIndex === -1) bassIndex = CHORDS_FLAT.indexOf(bassNote);
+    if (bassIndex !== -1) {
+      const newBassIndex = (bassIndex + semitones + 12) % 12;
+      newBass = '/' + CHORDS[newBassIndex];
+    }
+  }
+  
+  return newRoot + suffix + newBass;
 }
 
 function transposeChordLine(line, semitones) {
   if (!semitones || semitones === 0) return line;
   
+  // 匹配和弦，包括 slash chord（如 C/E, D7/F#）
+  // 避免重複轉調已轉過的結果
   return line.replace(/\|?\s*([A-G][#b]?[^\s|]*)/g, (match, chord) => {
     const hasBar = match.includes('|');
     const transposed = transposeChord(chord, semitones);
@@ -173,9 +195,21 @@ function getCapoSuggestion(capo) {
 function isMixedLine(line) {
   // 必須包含括號（歌詞標記）
   if (!line.includes('(')) return false;
-  // 必須包含和弦模式
-  const hasChord = /\|[\s]*[A-G][#b]?/.test(line) || /^[\s]*[A-G][#b]?/.test(line);
-  return hasChord;
+  
+  // 檢查是否有 Section Marker
+  const sectionInfo = extractSectionMarker(line);
+  if (sectionInfo.hasMarker) {
+    // 有 Section Marker 的行，檢查剩餘部分是否包含 |
+    const rest = sectionInfo.rest;
+    return /\|/.test(rest) && /\(/.test(rest);
+  }
+  
+  // 沒有 Section Marker，檢查是否包含 | 開頭的和弦 + 括號歌詞
+  // 但排除純歌詞行（只有中文字和括號）
+  const hasChordBar = /\|[\s]*[A-G][#b]?/.test(line);
+  const hasLyricBracket = /\([^A-G]/.test(line); // 括號內不是和弦（避免誤判）
+  
+  return hasChordBar && hasLyricBracket;
 }
 
 // 處理混合行 - 將交替出現的和弦與歌詞分開
@@ -188,15 +222,18 @@ function processMixedLine(line, transposeSemitones = 0) {
   let remaining = sectionInfo.rest;
   
   // 模式：和弦 |...| 後面跟著歌詞 (...)，可能重複多次
-  // 用正則找出所有交替的部分
+  // 和弦部分只包含：|、空格、A-G、#、b、數字、m、maj、min、sus、dim、aug、add、7、9、/ 等
   const segments = [];
-  const pattern = /(\|[^|(]*)(\([^)]*\)[^|]*)/g;
+  // 改進的正則：和弦部分只允許特定字符（不包含中文字）
+  const pattern = /(\|[\sA-Ga-g#b0-9mMsSdDaAjuU79\/+-]*)(\([^)]*\)[^|]*)/g;
   let match;
   
   while ((match = pattern.exec(remaining)) !== null) {
     const chordSeg = match[1].trim();
     const lyricSeg = match[2].trim();
-    segments.push({ chord: chordSeg, lyric: lyricSeg });
+    // 清理和弦部分的任何中文字符（以防萬一）
+    const cleanChordSeg = chordSeg.replace(/[^\|\sA-Ga-g#b0-9mMsSdDaAjuU79\/+-]/g, '').trim();
+    segments.push({ chord: cleanChordSeg || chordSeg, lyric: lyricSeg });
   }
   
   if (segments.length === 0) {
@@ -435,8 +472,20 @@ const TabContent = ({
         continue;
       }
       
-      const isChord = /[A-G][#b]?/.test(line) || line.includes('|') || line.includes('｜');
-      const nextIsChord = /[A-G][#b]?/.test(nextLine) || nextLine.includes('|') || nextLine.includes('｜');
+      // 更精確的和弦行檢測：必須包含和弦模式，且不能主要是中文字
+      const chordPattern = /(\|[\s]*[A-G][#b]?|[\s/]*[A-G][#b]?)(m|maj|min|sus|dim|aug|add|[0-9])*/g;
+      const chordMatches = line.match(chordPattern) || [];
+      const hasChordPattern = chordMatches.length >= 2 || line.includes('|') || line.includes('｜');
+      // 檢查中文字比例，如果超過 30% 就不是和弦行
+      const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
+      const chineseRatio = chineseChars.length / line.length;
+      const isChord = hasChordPattern && chineseRatio < 0.3;
+      // 同樣檢查下一行
+      const nextChordMatches = nextLine.match(chordPattern) || [];
+      const nextHasChordPattern = nextChordMatches.length >= 2 || nextLine.includes('|') || nextLine.includes('｜');
+      const nextChineseChars = nextLine.match(/[\u4e00-\u9fff]/g) || [];
+      const nextChineseRatio = nextChineseChars.length / nextLine.length;
+      const nextIsChord = nextHasChordPattern && nextChineseRatio < 0.3;
       const isMixed = isMixedLine(line);
       
       // 處理混合行（chord + lyric 在同一行）
