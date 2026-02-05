@@ -426,7 +426,7 @@ const TabContent = ({
           </div>
         )}
         
-        <div className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 sm:pb-2 scrollbar-hide">
+        <div className="flex flex-wrap gap-1 sm:gap-1.5 pb-1 sm:pb-2">
           {KEYS.map((key) => {
             const isCurrent = key === currentKey;
             return (
