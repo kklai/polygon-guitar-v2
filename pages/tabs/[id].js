@@ -114,6 +114,11 @@ export default function TabDetail() {
   return (
     <Layout>
       <div className="w-full">
+        {/* 版本號 - 最頂顯示 */}
+        <div className="bg-black text-[#FFD700] text-[10px] px-3 py-1 text-right">
+          v18 - 2025-02-04 14:15
+        </div>
+        
         {/* Header - 全寬 */}
         <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
           {/* 頂部：標題 + 歌手 */}

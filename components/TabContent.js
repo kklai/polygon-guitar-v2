@@ -561,10 +561,6 @@ const TabContent = ({
         >
           {renderContent()}
         </div>
-        {/* 版本號 */}
-        <div style={{ textAlign: 'right', fontSize: '10px', color: '#666', marginTop: '20px' }}>
-          v17 - 2025-02-04 14:00 - Height: auto
-        </div>
       </div>
     </div>
   );
