@@ -612,11 +612,11 @@ const TabContent = ({
 
   // ============ 顯示模式 ============
   return (
-    <div className={`bg-[#121212] rounded-xl border border-gray-800 overflow-hidden ${className}`}>
+    <div className={`bg-[#121212] rounded-xl border border-gray-800 ${className}`}>
       {showControls && <ControlBar />}
       <div 
         ref={scrollRef}
-        className="p-3 sm:p-6 overflow-x-auto max-h-[60vh] sm:max-h-[70vh] overflow-y-auto"
+        className="p-3 sm:p-6 overflow-x-auto"
         style={{ scrollBehavior: isAutoScroll ? 'auto' : 'smooth' }}
       >
         <div style={{
