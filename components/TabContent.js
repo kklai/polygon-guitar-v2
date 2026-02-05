@@ -284,6 +284,7 @@ const TabContent = ({
     if (!content) return null;
 
     const lines = content.split('\n');
+    const totalLines = lines.length;
     const elements = [];
     let i = 0;
 
