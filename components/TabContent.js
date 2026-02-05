@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 // ============ 常數定義 ============
 const KEYS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
@@ -253,8 +253,12 @@ const TabContent = ({
 }) => {
   const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
   const [fontSize, setFontSize] = useState(16);
+  const [isAutoScroll, setIsAutoScroll] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(3); // 1-5 levels
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
+  
+  const autoScrollRef = useRef(null);
 
   const capo = calculateCapo(originalKey, currentKey);
   const transposeSemitones = calculateTransposeSemitones(originalKey, currentKey);
@@ -265,6 +269,24 @@ const TabContent = ({
       setCurrentKey(initialKey);
     }
   }, [initialKey]);
+
+  // 自動滾動 - 成個頁面一齊滾動
+  useEffect(() => {
+    if (isAutoScroll) {
+      const speeds = [0, 1, 2, 3, 4, 5]; // 對應 0-5 級，每級 1px
+      autoScrollRef.current = setInterval(() => {
+        window.scrollBy({ top: speeds[scrollSpeed] || 2, behavior: 'auto' });
+      }, 50);
+    } else {
+      if (autoScrollRef.current) {
+        clearInterval(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
+    }
+    return () => {
+      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+    };
+  }, [isAutoScroll, scrollSpeed]);
 
   const handleFontSize = (delta) => {
     setFontSize(prev => Math.max(12, Math.min(24, prev + delta)));
