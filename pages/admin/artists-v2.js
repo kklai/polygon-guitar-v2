@@ -28,11 +28,13 @@ const GENDER_OPTIONS = [
 export default function ArtistsV2Page() {
   const [artists, setArtists] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all') // all, noGender, noPhoto
+  const [filter, setFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedArtist, setSelectedArtist] = useState(null)
   const [editForm, setEditForm] = useState(null)
   const [message, setMessage] = useState(null)
+  const [selectedArtists, setSelectedArtists] = useState(new Set()) // 多選功能
+  const [batchMode, setBatchMode] = useState(false) // 批量模式
   const [stats, setStats] = useState({
     total: 0,
     withGender: 0,
@@ -153,15 +155,46 @@ export default function ArtistsV2Page() {
     }
   }
 
-  // 批量設置性別
+  // 多選功能：切換選中狀態
+  const toggleSelection = (artistId) => {
+    const newSelected = new Set(selectedArtists)
+    if (newSelected.has(artistId)) {
+      newSelected.delete(artistId)
+    } else {
+      newSelected.add(artistId)
+    }
+    setSelectedArtists(newSelected)
+  }
+
+  // 多選功能：全選當前過濾結果
+  const selectAll = () => {
+    if (selectedArtists.size === filteredArtists.length) {
+      // 如果已全部選中，則取消全選
+      setSelectedArtists(new Set())
+    } else {
+      // 否則全選
+      const newSelected = new Set(filteredArtists.map(a => a.id))
+      setSelectedArtists(newSelected)
+    }
+  }
+
+  // 批量設置性別（使用選中的歌手）
   const handleBatchSetGender = async (gender) => {
-    const targets = artists.filter(a => !a.artistType && !a.gender)
+    // 優先使用選中的歌手，如果沒有選中則使用所有未分類歌手
+    let targets
+    if (selectedArtists.size > 0) {
+      targets = artists.filter(a => selectedArtists.has(a.id))
+    } else {
+      targets = artists.filter(a => !a.artistType && !a.gender)
+    }
+    
     if (targets.length === 0) {
       showMessage('沒有需要設置的歌手')
       return
     }
 
-    if (!confirm(`確定要將 ${targets.length} 個歌手設置為「${GENDER_OPTIONS.find(g => g.value === gender)?.label}」嗎？`)) {
+    const selectionMode = selectedArtists.size > 0 ? '選中的' : '所有未分類的'
+    if (!confirm(`確定要將 ${selectionMode} ${targets.length} 個歌手設置為「${GENDER_OPTIONS.find(g => g.value === gender)?.label}」嗎？`)) {
       return
     }
 
@@ -183,6 +216,7 @@ export default function ArtistsV2Page() {
     }
 
     showMessage(`批量設置完成: ${success} 成功, ${failed} 失敗`)
+    setSelectedArtists(new Set()) // 清空選中
     fetchArtists()
   }
 
@@ -292,7 +326,31 @@ export default function ArtistsV2Page() {
             </div>
 
             <div className="flex items-center gap-2">
-              {stats.withoutGender > 0 && (
+              {/* 批量模式切換 */}
+              <button
+                onClick={() => {
+                  setBatchMode(!batchMode)
+                  if (batchMode) setSelectedArtists(new Set())
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  batchMode 
+                    ? 'bg-[#FFD700] text-black' 
+                    : 'bg-[#282828] hover:bg-[#3E3E3E] text-white'
+                }`}
+              >
+                {batchMode ? '✓ 完成選擇' : '☐ 批量選擇'}
+              </button>
+              
+              {batchMode && (
+                <button
+                  onClick={selectAll}
+                  className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                >
+                  {selectedArtists.size === filteredArtists.length ? '取消全選' : '全選'} ({selectedArtists.size})
+                </button>
+              )}
+              
+              {(stats.withoutGender > 0 || selectedArtists.size > 0) && (
                 <>
                   <span className="text-[#B3B3B3] text-sm">批量設為:</span>
                   <button
@@ -333,17 +391,31 @@ export default function ArtistsV2Page() {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="text-[#B3B3B3] text-sm mb-2">
-                顯示 {filteredArtists.length} / {stats.total} 個歌手
+              <div className="text-[#B3B3B3] text-sm mb-2 flex items-center justify-between">
+                <span>顯示 {filteredArtists.length} / {stats.total} 個歌手</span>
+                {selectedArtists.size > 0 && (
+                  <span className="text-[#FFD700]">
+                    已選擇 {selectedArtists.size} 個歌手
+                  </span>
+                )}
               </div>
               {filteredArtists.map((artist) => (
                 <div
                   key={artist.id}
                   className={`bg-[#121212] rounded-lg border ${
                     !artist.artistType && !artist.gender ? 'border-red-800/50' : 'border-gray-800'
-                  } p-4`}
+                  } ${selectedArtists.has(artist.id) ? 'ring-2 ring-[#FFD700]' : ''} p-4`}
                 >
                   <div className="flex items-center gap-4">
+                    {/* 多選複選框 */}
+                    {batchMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedArtists.has(artist.id)}
+                        onChange={() => toggleSelection(artist.id)}
+                        className="w-5 h-5 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700] focus:ring-offset-0 bg-[#1a1a1a]"
+                      />
+                    )}
                     {/* 照片 */}
                     <div className="w-16 h-16 rounded-lg bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
                       {getArtistPhoto(artist) ? (
