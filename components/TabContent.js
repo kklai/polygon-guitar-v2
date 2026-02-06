@@ -956,7 +956,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.5em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            <div key={i} style={{ marginBottom: '0.5em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre', overflowWrap: 'break-word' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -996,7 +996,7 @@ const TabContent = ({
           // 顯示和弦行
           elements.push(
             <div key={i} style={{ marginBottom: '0.3em' }}>
-              <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+              <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {transposeChordLine(cleanLine, transposeSemitones)}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -1011,7 +1011,7 @@ const TabContent = ({
                 style={{ 
                   color: '#6B7280', // 淺灰色
                   fontSize: `${lineFontSize}px`, 
-                  whiteSpace: 'pre-wrap', 
+                  whiteSpace: 'pre', 
                   overflowWrap: 'break-word',
                   fontFamily: 'monospace'
                 }}
@@ -1066,7 +1066,7 @@ const TabContent = ({
             const oldResult = processPair(cleanLine, nextLine, transposeSemitones);
             elements.push(
               <div key={i} style={{ marginBottom: '0.8em' }}>
-                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre', overflowWrap: 'break-word' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {oldResult.chordLine}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -1110,7 +1110,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
           if (transposedChordLine.trim()) {
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
                 {transposedChordLine}
               </div>
             );
@@ -1120,7 +1120,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
           
           elements.push(
-            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
