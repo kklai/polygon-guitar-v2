@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getAllArtists, getAllTabs } from '@/lib/tabs'
+import { getAllArtists, getAllTabs, getCategoryImages } from '@/lib/tabs'
 import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
@@ -172,16 +172,14 @@ export default function Home() {
       }
       setManualPlaylists(manual)
 
-      // 獲取自定義分類圖片
+      // 獲取自定義分類圖片（使用熱門歌手相片）
       try {
-        const docRef = doc(db, 'settings', 'categoryImages')
-        const docSnap = await getDoc(docRef)
-        if (docSnap.exists()) {
-          const data = docSnap.data()
+        const categoryImages = await getCategoryImages()
+        if (categoryImages) {
           // 更新分類圖片
           setCategories(prev => prev.map(cat => ({
             ...cat,
-            image: data[cat.id] || cat.image
+            image: categoryImages[cat.id]?.image || cat.image
           })))
         }
       } catch (e) {
