@@ -45,25 +45,28 @@ export default function CategoryImagesAdmin() {
 
       for (const [type, label] of Object.entries(categories)) {
         try {
-          // 查詢該類別最熱門的歌手
+          // 查詢該類別的歌手（不在服務器排序，避免需要索引）
           const q = query(
             collection(db, 'artists'),
             where('artistType', '==', type),
-            orderBy('tabCount', 'desc'),
-            limit(1)
+            limit(100)
           )
 
           const snapshot = await getDocs(q)
           
-          if (!snapshot.empty) {
-            const artistDoc = snapshot.docs[0]
-            const artist = artistDoc.data()
+          // 客戶端排序找出最熱門
+          const artists = snapshot.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+          
+          if (artists.length > 0) {
+            const artist = artists[0]
             const photoUrl = artist.wikiPhotoURL || artist.photoURL
             
             if (photoUrl) {
               updates[type] = {
                 image: photoUrl,
-                artistId: artistDoc.id,
+                artistId: artist.id,
                 artistName: artist.name,
                 updatedAt: new Date().toISOString(),
                 hotScore: artist.tabCount || 0
