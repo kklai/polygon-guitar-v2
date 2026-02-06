@@ -36,13 +36,17 @@ function calculateFontSize(text, containerWidth = 800) {
 }
 
 // ============ 常數定義 ============
-const KEYS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+const KEYS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'Am', 'Bbm', 'Bm', 'Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m'];
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
+  // Major
   'C': 0, 'Db': 1, 'C#': 1, 'D': 2, 'Eb': 3, 'D#': 3,
   'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'Ab': 8, 'G#': 8,
-  'A': 9, 'Bb': 10, 'A#': 10, 'B': 11
+  'A': 9, 'Bb': 10, 'A#': 10, 'B': 11,
+  // Minor（同 Major 音高相同，用嚟識別相對小調）
+  'Cm': 0, 'C#m': 1, 'Dm': 2, 'D#m': 3, 'Ebm': 3, 'Em': 4,
+  'Fm': 5, 'F#m': 6, 'Gm': 7, 'G#m': 8, 'Am': 9, 'Bbm': 10, 'Bm': 11
 };
 
 // Semitone 對應的 Key (優先使用 flat)
