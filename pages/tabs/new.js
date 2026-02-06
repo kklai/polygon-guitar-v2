@@ -24,6 +24,8 @@ export default function NewTab() {
     artistPhoto: '',
     artistBio: '',
     artistYear: '',
+    artistBirthYear: '',
+    artistDebutYear: '',
     // 歌曲資訊
     songYear: '',
     composer: '',
@@ -173,6 +175,8 @@ export default function NewTab() {
       artistPhoto: data.photo || '',
       artistBio: data.bio || '',
       artistYear: data.year || '',
+      artistBirthYear: data.birthYear || '',
+      artistDebutYear: data.debutYear || '',
       artistType: data.artistType !== 'unknown' ? data.artistType : prev.artistType
     }))
   }
@@ -356,7 +360,7 @@ E|----------------------------------------------------------------|
               </select>
               
               {/* 已填入的歌手資料預覽 */}
-              {(formData.artistPhoto || formData.artistYear || formData.artistType) && (
+              {(formData.artistPhoto || formData.artistYear || formData.artistBirthYear || formData.artistDebutYear || formData.artistType) && (
                 <div className="mt-4 p-4 bg-black rounded-lg border border-gray-700">
                   <h4 className="text-sm font-medium text-[#FFD700] mb-3">已填入歌手資料：</h4>
                   <div className="flex gap-4">
@@ -375,9 +379,14 @@ E|----------------------------------------------------------------|
                            formData.artistType === 'female' ? '女歌手' : '組合'}
                         </p>
                       )}
-                      {formData.artistYear && (
-                        <p className="text-gray-500 text-xs">出道/出生年份：{formData.artistYear}</p>
-                      )}
+                      <div className="flex gap-2 mt-1">
+                        {formData.artistBirthYear && (
+                          <span className="text-blue-400 text-xs">出生：{formData.artistBirthYear}</span>
+                        )}
+                        {formData.artistDebutYear && (
+                          <span className="text-purple-400 text-xs">出道：{formData.artistDebutYear}</span>
+                        )}
+                      </div>
                       {formData.artistBio && (
                         <p className="text-gray-600 text-xs mt-1 line-clamp-2">{formData.artistBio}</p>
                       )}

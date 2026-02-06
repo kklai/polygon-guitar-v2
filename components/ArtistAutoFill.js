@@ -88,6 +88,8 @@ export default function ArtistAutoFill({
           photo: data.photo,
           bio: data.bio,
           year: data.year,
+          birthYear: data.birthYear,
+          debutYear: data.debutYear,
           artistType: data.artistType
         });
       } else {
@@ -107,6 +109,8 @@ export default function ArtistAutoFill({
         photo: preview.photo,
         bio: preview.bio,
         year: preview.year,
+        birthYear: preview.birthYear,
+        debutYear: preview.debutYear,
         artistType: preview.artistType
       });
       setPreview(null);
@@ -203,10 +207,17 @@ export default function ArtistAutoFill({
                 <span className="text-white">{preview.name}</span>
               </div>
               
-              {preview.year && (
+              {preview.birthYear && (
                 <div className="mb-1">
-                  <span className="text-gray-500 text-sm">年份：</span>
-                  <span className="text-white">{preview.year}</span>
+                  <span className="text-gray-500 text-sm">出生年份：</span>
+                  <span className="text-white">{preview.birthYear}</span>
+                </div>
+              )}
+              
+              {preview.debutYear && (
+                <div className="mb-1">
+                  <span className="text-gray-500 text-sm">出道年份：</span>
+                  <span className="text-white">{preview.debutYear}</span>
                 </div>
               )}
               

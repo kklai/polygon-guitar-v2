@@ -126,7 +126,9 @@ export default function ArtistsV2Page() {
       bio: artist.bio || '',
       photoURL: artist.photoURL || artist.photo || '',
       wikiPhotoURL: artist.wikiPhotoURL || '',
-      heroPhoto: artist.heroPhoto || ''
+      heroPhoto: artist.heroPhoto || '',
+      birthYear: artist.birthYear || '',
+      debutYear: artist.debutYear || ''
     })
   }
 
@@ -142,6 +144,8 @@ export default function ArtistsV2Page() {
         photoURL: editForm.photoURL,
         wikiPhotoURL: editForm.wikiPhotoURL,
         heroPhoto: editForm.heroPhoto,
+        birthYear: editForm.birthYear || '',
+        debutYear: editForm.debutYear || '',
         updatedAt: new Date().toISOString()
       })
 
@@ -443,6 +447,16 @@ export default function ArtistsV2Page() {
                             {GENDER_OPTIONS.find(g => g.value === (artist.artistType || artist.gender))?.label || artist.artistType}
                           </span>
                         )}
+                        {artist.birthYear && (
+                          <span className="bg-blue-900/30 text-blue-400 text-xs px-2 py-0.5 rounded-full">
+                            出生: {artist.birthYear}
+                          </span>
+                        )}
+                        {artist.debutYear && (
+                          <span className="bg-purple-900/30 text-purple-400 text-xs px-2 py-0.5 rounded-full">
+                            出道: {artist.debutYear}
+                          </span>
+                        )}
                       </div>
                       <div className="text-gray-500 text-xs space-y-0.5">
                         <p>ID: {artist.id}</p>
@@ -570,6 +584,33 @@ export default function ArtistsV2Page() {
                         onChange={(e) => setEditForm({...editForm, wikiPhotoURL: e.target.value})}
                         className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[#B3B3B3] text-sm mb-2">
+                          出生年份
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.birthYear}
+                          onChange={(e) => setEditForm({...editForm, birthYear: e.target.value})}
+                          placeholder="例如: 1990"
+                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#B3B3B3] text-sm mb-2">
+                          出道年份
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.debutYear}
+                          onChange={(e) => setEditForm({...editForm, debutYear: e.target.value})}
+                          placeholder="例如: 2010"
+                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        />
+                      </div>
                     </div>
 
                     <div>

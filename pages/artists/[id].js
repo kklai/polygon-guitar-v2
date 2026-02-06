@@ -181,9 +181,11 @@ export default function ArtistDetail() {
               <p className="text-gray-500 text-xs italic">暫無簡介</p>
             )}
             
-            {artist?.year && (
+            {(artist?.birthYear || artist?.debutYear) && (
               <p className="text-gray-400 text-[10px] mt-3">
-                🎵 {artist.year}年出道
+                {artist.birthYear && `🎂 ${artist.birthYear}年出生`}
+                {artist.birthYear && artist.debutYear && ' • '}
+                {artist.debutYear && `🎵 ${artist.debutYear}年出道`}
               </p>
             )}
           </div>
@@ -288,7 +290,8 @@ export default function ArtistDetail() {
             
             <p className="text-lg text-gray-300 drop-shadow">
               {tabs.length} 首結他譜
-              {artist?.year && ` • ${artist.year}年出道`}
+              {artist?.birthYear && ` • ${artist.birthYear}年出生`}
+              {artist?.debutYear && ` • ${artist.debutYear}年出道`}
             </p>
           </div>
         </div>
