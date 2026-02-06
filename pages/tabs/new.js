@@ -243,6 +243,7 @@ E|----------------------------------------------------------------|
                 <ArtistAutoFill 
                   artistName={formData.artist}
                   onFill={handleArtistFill}
+                  autoApply={true} // 自動應用搜尋結果（無需確認）
                 />
               </div>
             </div>

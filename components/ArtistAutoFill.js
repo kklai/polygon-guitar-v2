@@ -7,7 +7,8 @@ export default function ArtistAutoFill({
   artistName, 
   onFill, 
   className = '',
-  skipIfExists = true // 如果歌手已存在且有資料，跳過搜尋
+  skipIfExists = true, // 如果歌手已存在且有資料，跳過搜尋
+  autoApply = false // 自動應用搜尋結果（無需確認）
 }) {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -58,6 +59,18 @@ export default function ArtistAutoFill({
     return () => clearTimeout(timer);
   }, [artistName, skipIfExists]);
 
+  // 自動搜尋模式：當歌手不存在且有輸入時自動搜尋
+  useEffect(() => {
+    if (!autoApply || !hasChecked || !artistName?.trim()) return;
+    if (existingArtist) return; // 已存在，不搜尋
+    
+    const timer = setTimeout(() => {
+      handleSearch();
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [artistName, hasChecked, existingArtist, autoApply]);
+
   const handleSearch = async () => {
     if (!artistName?.trim()) return;
     
@@ -68,7 +81,18 @@ export default function ArtistAutoFill({
     const data = await searchArtistFromWikipedia(artistName);
     
     if (data) {
-      setPreview(data);
+      if (autoApply) {
+        // 自動應用，無需確認
+        onFill({
+          name: data.name,
+          photo: data.photo,
+          bio: data.bio,
+          year: data.year,
+          artistType: data.artistType
+        });
+      } else {
+        setPreview(data);
+      }
     } else {
       setError('搵唔到資料（可能維基百科未有呢個歌手）');
     }
