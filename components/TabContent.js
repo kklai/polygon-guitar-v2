@@ -260,6 +260,12 @@ function isChordOnly(str) {
   // 移除空格後檢查
   const trimmed = str.trim();
   if (!trimmed) return true;
+  
+  // 如果係純數字（指法譜），唔係和弦
+  if (/^[\d\s\.]+$/.test(trimmed)) {
+    return false;
+  }
+  
   // 只允許：A-G, #, b, m, a, j, s, u, d, i, M, n, 0-9, /, -, +, *, (, ), |
   return /^[A-Ga-g#b0-9mMsSjJuUaAdDiInN\/\+\-\*\(\)\|\s]+$/.test(trimmed);
 }
