@@ -1,5 +1,4 @@
-import { collection, query, where, orderBy, limit, getDocs, doc, setDoc } from 'firebase/firestore'
-import { db } from '../../../lib/firebase'
+import { db } from '../../../lib/firebase-admin'
 
 /**
  * 自動更新分類封面 API
@@ -20,7 +19,10 @@ export default async function handler(req, res) {
   // 本地開發或手動觸發需要 key
   const isManualTrigger = key === cronSecret
   
-  if (!isVercelCron && !isManualTrigger && process.env.NODE_ENV === 'production') {
+  // 開發環境跳過驗證
+  const isDev = process.env.NODE_ENV !== 'production'
+  
+  if (!isVercelCron && !isManualTrigger && !isDev) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
@@ -36,14 +38,13 @@ export default async function handler(req, res) {
 
     for (const [type, label] of Object.entries(categories)) {
       // 查詢該類別最熱門的歌手（以 tabCount 排序）
-      const q = query(
-        collection(db, 'artists'),
-        where('artistType', '==', type),
-        orderBy('tabCount', 'desc'),
-        limit(1)
-      )
+      const artistsRef = db.collection('artists')
+      const q = artistsRef
+        .where('artistType', '==', type)
+        .orderBy('tabCount', 'desc')
+        .limit(1)
 
-      const snapshot = await getDocs(q)
+      const snapshot = await q.get()
       
       if (!snapshot.empty) {
         const artistDoc = snapshot.docs[0]
@@ -72,8 +73,8 @@ export default async function handler(req, res) {
 
     // 更新 settings/categoryImages 文檔
     if (Object.keys(updates).length > 0) {
-      const settingsRef = doc(db, 'settings', 'categoryImages')
-      await setDoc(settingsRef, updates, { merge: true })
+      const settingsRef = db.collection('settings').doc('categoryImages')
+      await settingsRef.set(updates, { merge: true })
     }
 
     return res.status(200).json({
