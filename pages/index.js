@@ -30,6 +30,22 @@ const DEFAULT_CATEGORIES = [
   }
 ]
 
+// 裁剪維基百科圖片URL（顯示頭部區域）
+function getCroppedWikiImage(url) {
+  if (!url) return url
+  
+  // 維基百科圖片通過添加參數來裁剪
+  // /thumb/ 路徑的圖片可以修改尺寸
+  if (url.includes('/thumb/')) {
+    // 將現有尺寸改為正方形頭像尺寸（例如 200x200）
+    // 維基圖片格式: .../thumb/.../檔名/寬度px-檔名
+    // 改為: .../thumb/.../檔名/200px-檔名
+    return url.replace(/\/\d+px-/, '/200px-')
+  }
+  
+  return url
+}
+
 // 靜態備用自動歌單（當 Firestore 冇數據時使用）
 const FALLBACK_AUTO_PLAYLISTS = [
   {
@@ -176,11 +192,15 @@ export default function Home() {
       try {
         const categoryImages = await getCategoryImages()
         if (categoryImages) {
-          // 更新分類圖片
-          setCategories(prev => prev.map(cat => ({
-            ...cat,
-            image: categoryImages[cat.id]?.image || cat.image
-          })))
+          // 更新分類圖片（維基圖片裁剪為頭像）
+          setCategories(prev => prev.map(cat => {
+            let imageUrl = categoryImages[cat.id]?.image || cat.image
+            // 如果是維基百科圖片，添加裁剪參數顯示頭部
+            if (imageUrl && imageUrl.includes('wikipedia.org')) {
+              imageUrl = getCroppedWikiImage(imageUrl)
+            }
+            return { ...cat, image: imageUrl }
+          }))
         }
       } catch (e) {
         console.log('Error loading category images:', e)
@@ -272,7 +292,7 @@ export default function Home() {
                 <img
                   src={category.image}
                   alt={category.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                 />
                 {/* Gradient Overlay */}
                 <div className={`absolute inset-0 bg-gradient-to-t ${category.color}`} />
