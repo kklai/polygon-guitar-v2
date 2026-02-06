@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { createTab } from '@/lib/tabs'
@@ -8,6 +8,8 @@ import ArtistAutoFill from '@/components/ArtistAutoFill'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import { searchSongInfo } from '@/lib/musicapi'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 export default function NewTab() {
   const router = useRouter()
@@ -46,6 +48,9 @@ export default function NewTab() {
   
   // YouTube Modal 狀態
   const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false)
+  
+  // 相似歌手檢查
+  const [similarArtists, setSimilarArtists] = useState([])
 
   // Redirect if not logged in
   if (!isAuthenticated && !user) {
@@ -109,6 +114,57 @@ export default function NewTab() {
     }
   }
 
+  // 檢查相似歌手
+  useEffect(() => {
+    const checkSimilarArtists = async () => {
+      if (!formData.artist?.trim() || formData.artist.length < 2) {
+        setSimilarArtists([])
+        return
+      }
+      
+      try {
+        const snapshot = await getDocs(collection(db, 'artists'))
+        const inputName = formData.artist.toLowerCase().replace(/\s+/g, '')
+        const inputCore = inputName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || inputName
+        
+        const similar = []
+        snapshot.forEach(doc => {
+          const artist = doc.data()
+          const artistName = artist.name.toLowerCase().replace(/\s+/g, '')
+          const artistCore = artistName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || artistName
+          
+          // 檢查是否相似
+          if (artistCore === inputCore || 
+              artistName.includes(inputName) || 
+              inputName.includes(artistName) ||
+              (inputCore && artistCore && (artistCore.includes(inputCore) || inputCore.includes(artistCore)))) {
+            similar.push({ id: doc.id, ...artist })
+          }
+        })
+        
+        setSimilarArtists(similar.slice(0, 3)) // 最多顯示 3 個
+      } catch (err) {
+        console.error('檢查相似歌手失敗:', err)
+      }
+    }
+    
+    const timer = setTimeout(checkSimilarArtists, 500)
+    return () => clearTimeout(timer)
+  }, [formData.artist])
+  
+  // 使用現有歌手
+  const useExistingArtist = (artist) => {
+    setFormData(prev => ({
+      ...prev,
+      artist: artist.name,
+      artistType: artist.artistType || '',
+      artistPhoto: artist.photoURL || artist.wikiPhotoURL || '',
+      artistBio: artist.bio || '',
+      artistYear: artist.year || ''
+    }))
+    setSimilarArtists([])
+  }
+  
   // 處理 Wikipedia 自動填入的歌手資料
   const handleArtistFill = (data) => {
     setFormData(prev => ({
@@ -237,6 +293,39 @@ E|----------------------------------------------------------------|
               <p className="mt-1 text-sm text-[#B3B3B3]">
                 新歌手會自動建立分類
               </p>
+              
+              {/* 相似歌手提示 */}
+              {similarArtists.length > 0 && (
+                <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg">
+                  <p className="text-yellow-400 text-sm mb-2">
+                    ⚠️ 發現相似歌手，是否使用現有資料？
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {similarArtists.map(artist => (
+                      <button
+                        key={artist.id}
+                        type="button"
+                        onClick={() => useExistingArtist(artist)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-white transition"
+                      >
+                        {artist.photoURL && (
+                          <img 
+                            src={artist.photoURL} 
+                            alt={artist.name}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        )}
+                        <span>{artist.name}</span>
+                        {artist.artistType && (
+                          <span className="text-gray-400 text-xs">
+                            ({artist.artistType === 'male' ? '男' : artist.artistType === 'female' ? '女' : '組合'})
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {/* 自動搜尋歌手資料 */}
               <div className="mt-3">
