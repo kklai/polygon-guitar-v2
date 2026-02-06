@@ -74,15 +74,13 @@ export default function ArtistDetail() {
 
       setArtist(currentArtist)
 
-      // Get tabs for this artist
-      const artistTabs = await getTabsByArtist(currentArtist.name)
+      // Get tabs for this artist - 使用歌手ID和名字一起查詢
+      const artistTabs = await getTabsByArtist(currentArtist.name, currentArtist.id)
       setTabs(artistTabs)
       
-      // 計算 artistId
-      const calculatedArtistId = currentArtist.name.toLowerCase().replace(/\s+/g, '-')
       setDebugInfo(prev => ({ 
         ...prev, 
-        artistId: calculatedArtistId,
+        artistId: currentArtist.id,
         queryResultCount: artistTabs.length
       }))
       
