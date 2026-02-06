@@ -46,7 +46,7 @@ export default function Artists() {
     // 類型過濾
     if (activeCategory !== 'all') {
       result = result.filter(artist => {
-        const type = artist.artistType || 'other'
+        const type = artist.artistType || artist.gender || 'other'
         return type === activeCategory
       })
     }
@@ -68,7 +68,7 @@ export default function Artists() {
 
   // 按類型分組歌手
   const groupedByCategory = filteredArtists.reduce((acc, artist) => {
-    const type = artist.artistType || 'other'
+    const type = artist.artistType || artist.gender || 'other'
     if (!acc[type]) {
       acc[type] = []
     }
@@ -82,7 +82,7 @@ export default function Artists() {
 
   // 統計各類型數量
   const categoryCounts = categoryOrder.reduce((acc, type) => {
-    acc[type] = artists.filter(a => (a.artistType || 'other') === type).length
+    acc[type] = artists.filter(a => (a.artistType || a.gender || 'other') === type).length
     return acc
   }, {})
 

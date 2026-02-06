@@ -34,7 +34,7 @@ export default function CategoryImagesAdmin() {
     setMessage(null)
     
     try {
-      // 定義各類別及其可能的 artistType 值
+      // 定義各類別及其可能的 artistType/gender 值
       const categories = {
         male: { label: '男歌手', types: ['male'] },
         female: { label: '女歌手', types: ['female'] },
@@ -48,16 +48,27 @@ export default function CategoryImagesAdmin() {
         try {
           let allArtists = []
           
-          // 對每種可能的 type 值進行查詢
+          // 對每種可能的 type 值進行查詢（同時查 artistType 和 gender）
           for (const typeValue of config.types) {
-            const q = query(
+            // 查 artistType
+            const q1 = query(
               collection(db, 'artists'),
               where('artistType', '==', typeValue),
               limit(100)
             )
+            const snapshot1 = await getDocs(q1)
+            snapshot1.docs.forEach(d => {
+              allArtists.push({ id: d.id, ...d.data() })
+            })
             
-            const snapshot = await getDocs(q)
-            snapshot.docs.forEach(d => {
+            // 查 gender（兼容性）
+            const q2 = query(
+              collection(db, 'artists'),
+              where('gender', '==', typeValue),
+              limit(100)
+            )
+            const snapshot2 = await getDocs(q2)
+            snapshot2.docs.forEach(d => {
               allArtists.push({ id: d.id, ...d.data() })
             })
           }
@@ -248,8 +259,9 @@ export default function CategoryImagesAdmin() {
           <h3 className="text-lg font-medium mb-2">說明</h3>
           <ul className="text-sm text-slate-400 space-y-1 list-disc list-inside">
             <li>系統會根據歌手的 tabCount（譜數量）排序，選出最熱門的歌手</li>
-            <li>優先使用維基百科圖片，如無則使用用戶上傳的圖片</li>
-            <li>組合類別會檢查 artistType = 'group' 或 'band'</li>
+            <li>優先使用用戶上傳的圖片，其次維基百科圖片</li>
+            <li>支援 artistType 和 gender 兩個欄位（兼容舊資料）</li>
+            <li>組合類別會檢查 'group' 或 'band'</li>
             <li>需要時才手動更新，無需自動排程</li>
           </ul>
         </div>

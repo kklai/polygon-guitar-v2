@@ -325,8 +325,8 @@ export default function Home() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl">
-                      {artist.artistType === 'male' ? '👨‍🎤' : 
-                       artist.artistType === 'female' ? '👩‍🎤' : '🎸'}
+                      {(artist.artistType || artist.gender) === 'male' ? '👨‍🎤' : 
+                       (artist.artistType || artist.gender) === 'female' ? '👩‍🎤' : '🎸'}
                     </div>
                   )}
                 </div>
