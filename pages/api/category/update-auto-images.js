@@ -1,4 +1,4 @@
-import { db } from '../../../lib/firebase-admin'
+import { getDb } from '../../../lib/firebase-admin'
 
 /**
  * 自動更新分類封面 API
@@ -29,6 +29,9 @@ export default async function handler(req, res) {
     if (!isVercelCron && !isManualTrigger && !isDev) {
       return res.status(401).json({ error: 'Unauthorized', reason: 'invalid_key' })
     }
+
+    // 初始化數據庫
+    const db = getDb()
 
     const categories = {
       male: '男歌手',

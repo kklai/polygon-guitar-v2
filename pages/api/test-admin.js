@@ -1,10 +1,11 @@
-import { db } from '../../lib/firebase-admin'
+import { getDb } from '../../lib/firebase-admin'
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
   
   try {
     // 測試數據庫連接
+    const db = getDb()
     const testDoc = db.collection('settings').doc('test')
     const snapshot = await testDoc.get()
     
