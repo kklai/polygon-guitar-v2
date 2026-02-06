@@ -533,7 +533,7 @@ const TabContent = ({
   }, [isAutoScroll, scrollSpeed]);
 
   const handleFontSize = (delta) => {
-    setFontSize(prev => Math.max(12, Math.min(24, prev + delta)));
+    setFontSize(prev => Math.max(12, Math.min(28, prev + delta)));
   };
 
   const handleCopy = useCallback(() => {
@@ -557,7 +557,7 @@ const TabContent = ({
     
     // 如果用戶手動調整了字體大小，按比例調整
     const ratio = fontSize / 16; // 16 是預設值
-    return Math.max(10, Math.min(20, Math.round(adjustedBase * ratio)));
+    return Math.max(10, Math.min(28, Math.round(adjustedBase * ratio)));
   };
 
   const renderContent = () => {
