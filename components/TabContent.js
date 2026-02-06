@@ -36,7 +36,11 @@ function calculateFontSize(text, containerWidth = 800) {
 }
 
 // ============ 常數定義 ============
-const KEYS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'Am', 'Bbm', 'Bm', 'Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m'];
+// 根據原調類型顯示對應的 Key 選項（Major 只顯示 Major，Minor 只顯示 Minor）
+const MAJOR_KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const MINOR_KEYS = ['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
+// 兼容舊代碼
+const KEYS = [...MAJOR_KEYS, ...MINOR_KEYS];
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
@@ -784,7 +788,8 @@ const TabContent = ({
         )}
         
         <div className="flex flex-wrap gap-1 sm:gap-1.5 pb-1 sm:pb-2">
-          {KEYS.map((key) => {
+          {/* 根據原調類型顯示對應的 Key：Major 歌只顯示 Major Keys，Minor 歌只顯示 Minor Keys */}
+          {(originalKey?.endsWith('m') ? MINOR_KEYS : MAJOR_KEYS).map((key) => {
             const isCurrent = key === currentKey;
             return (
               <button
