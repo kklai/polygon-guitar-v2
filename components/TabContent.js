@@ -266,6 +266,16 @@ function isChordOnly(str) {
     return false;
   }
   
+  // 檢查係咪數字譜格式（如 (1)351' 或 6.7.1' 等）
+  // 數字譜特徵：大量數字、點、括號、撇號，少於2個和弦
+  const digits = (trimmed.match(/\d/g) || []).length;
+  const chordRoots = (trimmed.match(/[A-G][#b]?/g) || []).length;
+  
+  // 如果數字多過和弦根音超過3倍，可能係數字譜
+  if (digits > 6 && chordRoots < 2) {
+    return false;
+  }
+  
   // 只允許：A-G, #, b, m, a, j, s, u, d, i, M, n, 0-9, /, -, +, *, (, ), |
   return /^[A-Ga-g#b0-9mMsSjJuUaAdDiInN\/\+\-\*\(\)\|\s]+$/.test(trimmed);
 }
