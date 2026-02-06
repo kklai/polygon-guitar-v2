@@ -35,8 +35,19 @@ export default function CategoryImagesAdmin() {
     
     try {
       const response = await fetch('/api/category/update-auto-images', {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       })
+      
+      // 檢查回應是否為 JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        throw new Error(`Server returned non-JSON: ${text.substring(0, 200)}`)
+      }
       
       const data = await response.json()
       
@@ -44,9 +55,10 @@ export default function CategoryImagesAdmin() {
         setMessage({ type: 'success', text: '封面更新成功！' })
         await loadCategoryImages()
       } else {
-        setMessage({ type: 'error', text: data.error || '更新失敗' })
+        setMessage({ type: 'error', text: data.error || data.details || '更新失敗' })
       }
     } catch (error) {
+      console.error('Update error:', error)
       setMessage({ type: 'error', text: '請求失敗：' + error.message })
     } finally {
       setUpdating(false)
