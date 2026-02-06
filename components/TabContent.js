@@ -603,7 +603,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.8em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
+            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px`, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -613,7 +613,7 @@ const TabContent = ({
           // 有 Section Marker 時，分三行顯示
           if (result.sectionMarker) {
             elements.push(
-              <div key={`${i}-marker`} style={{ marginBottom: '0.8em' }}>
+              <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
                 {/* Section Marker 單獨一行 */}
                 <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
@@ -625,7 +625,7 @@ const TabContent = ({
                   {result.chordPart}
                 </div>
                 {/* 歌詞行 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => (
                     <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                       {part.text}
@@ -636,7 +636,7 @@ const TabContent = ({
             );
           } else {
             elements.push(
-              <div key={i} style={{ marginBottom: '0.8em' }}>
+              <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
                 {/* 和弦行 */}
                 <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
@@ -644,7 +644,7 @@ const TabContent = ({
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </div>
                 {/* 歌詞行 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => (
                     <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                       {part.text}
@@ -662,24 +662,24 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.8em' }}>
+            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
               <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
-              <div style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{result.lyricLine}</div>
+              <div style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>{result.lyricLine}</div>
             </div>
           );
         } else {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.8em' }}>
+            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
               <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
-              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>
+              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                 {result.lyricParts.map((part, idx) => (
                   <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
                     {part.text}
@@ -697,7 +697,7 @@ const TabContent = ({
         if (sectionInfo.hasMarker) {
           // Section Marker 單獨一行
           elements.push(
-            <div key={`${i}-marker`} style={{ marginBottom: '0.8em' }}>
+            <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
               <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
                 {sectionInfo.marker}
               </span>
@@ -707,7 +707,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
           if (transposedChordLine.trim()) {
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.8em' }}>
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
                 {transposedChordLine}
               </div>
             );
@@ -717,7 +717,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
           
           elements.push(
-            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.8em' }}>
+            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -727,7 +727,7 @@ const TabContent = ({
         i++;
       } else {
         elements.push(
-          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: '0.8em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
+          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
         );
         i++;
       }
