@@ -603,7 +603,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.3em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            <div key={i} style={{ marginBottom: '0.8em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -613,7 +613,7 @@ const TabContent = ({
           // 有 Section Marker 時，分三行顯示
           if (result.sectionMarker) {
             elements.push(
-              <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
+              <div key={`${i}-marker`} style={{ marginBottom: '0.8em' }}>
                 {/* Section Marker 單獨一行 */}
                 <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
@@ -636,7 +636,7 @@ const TabContent = ({
             );
           } else {
             elements.push(
-              <div key={i} style={{ marginBottom: '0.15em' }}>
+              <div key={i} style={{ marginBottom: '0em' }}>
                 {/* 和弦行 */}
                 <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
@@ -662,7 +662,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.15em' }}>
+            <div key={i} style={{ marginBottom: '0em' }}>
               <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
@@ -673,7 +673,7 @@ const TabContent = ({
           );
         } else {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.15em' }}>
+            <div key={i} style={{ marginBottom: '0em' }}>
               <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
@@ -697,7 +697,7 @@ const TabContent = ({
         if (sectionInfo.hasMarker) {
           // Section Marker 單獨一行
           elements.push(
-            <div key={`${i}-marker`} style={{ marginBottom: '0.3em' }}>
+            <div key={`${i}-marker`} style={{ marginBottom: '0.8em' }}>
               <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
                 {sectionInfo.marker}
               </span>
@@ -707,7 +707,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
           if (transposedChordLine.trim()) {
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.3em' }}>
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.8em' }}>
                 {transposedChordLine}
               </div>
             );
@@ -717,7 +717,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
           
           elements.push(
-            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.3em' }}>
+            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.8em' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -727,7 +727,7 @@ const TabContent = ({
         i++;
       } else {
         elements.push(
-          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: '0.3em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
+          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: '0.8em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
         );
         i++;
       }
