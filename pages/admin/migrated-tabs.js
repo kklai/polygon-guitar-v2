@@ -14,23 +14,61 @@ import {
   setDoc,
   increment,
   limit,
-  startAfter,
   orderBy
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
+import { searchArtistFromWikipedia } from '@/lib/wikipedia'
+
+// 解析雙語歌手名
+function parseBilingualName(artistName) {
+  if (!artistName) return { preferred: '' };
+  
+  // 移除常見前綴
+  const prefixes = ['MK三部曲', 'EP', 'Album', 'Single', '新歌', '新碟', '大碟', '專輯'];
+  let cleanName = artistName;
+  for (const prefix of prefixes) {
+    const regex = new RegExp(`^${prefix}\\s*`, 'i');
+    cleanName = cleanName.replace(regex, '');
+  }
+  
+  cleanName = cleanName.trim();
+  
+  // 情況: "英文名 中文名" 或 "中文名 英文名"
+  const mixedMatch = cleanName.match(/^([a-zA-Z\s]+)\s+([\u4e00-\u9fa5]{2,})$/);
+  if (mixedMatch) {
+    return {
+      english: mixedMatch[1].trim(),
+      chinese: mixedMatch[2].trim(),
+      preferred: mixedMatch[2].trim()
+    };
+  }
+  
+  const mixedMatch2 = cleanName.match(/^([\u4e00-\u9fa5]{2,})\s+([a-zA-Z\s]+)$/);
+  if (mixedMatch2) {
+    return {
+      chinese: mixedMatch2[1].trim(),
+      english: mixedMatch2[2].trim(),
+      preferred: mixedMatch2[1].trim()
+    };
+  }
+  
+  return { preferred: cleanName };
+}
 
 export default function MigratedTabsPage() {
   const { user } = useAuth()
   const [tabs, setTabs] = useState([])
-  const [allTabs, setAllTabs] = useState([]) // 所有樂譜（用於統計）
+  const [allTabs, setAllTabs] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [selectedTab, setSelectedTab] = useState(null)
   const [editForm, setEditForm] = useState(null)
   const [message, setMessage] = useState(null)
   const [debugInfo, setDebugInfo] = useState(null)
+  const [wikiData, setWikiData] = useState(null)
+  const [searchingWiki, setSearchingWiki] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     blogger: 0,
@@ -189,6 +227,46 @@ export default function MigratedTabsPage() {
       originalKey: tab.originalKey || 'C',
       capo: tab.capo || ''
     })
+    setWikiData(null)
+  }
+
+  // 搜尋維基百科
+  const handleWikiSearch = async () => {
+    if (!editForm.artist) return
+    
+    setSearchingWiki(true)
+    setWikiData(null)
+    
+    try {
+      // 嘗試使用中文名搜尋
+      const parsed = parseBilingualName(editForm.artist)
+      const searchName = parsed.preferred || editForm.artist
+      
+      const data = await searchArtistFromWikipedia(searchName)
+      
+      if (data) {
+        setWikiData(data)
+        showMessage(`找到維基資料: ${data.name}`)
+      } else {
+        showMessage('未找到維基資料', 'error')
+      }
+    } catch (error) {
+      console.error('搜尋失敗:', error)
+      showMessage('搜尋失敗: ' + error.message, 'error')
+    } finally {
+      setSearchingWiki(false)
+    }
+  }
+
+  // 應用維基資料
+  const applyWikiData = () => {
+    if (!wikiData) return
+    
+    setEditForm({
+      ...editForm,
+      artist: wikiData.name || editForm.artist
+    })
+    showMessage('已應用維基歌手名')
   }
 
   // 保存編輯
@@ -640,15 +718,59 @@ export default function MigratedTabsPage() {
 
                     <div>
                       <label className="block text-[#B3B3B3] text-sm mb-2">歌手 *</label>
-                      <input
-                        type="text"
-                        value={editForm.artist}
-                        onChange={(e) => setEditForm({...editForm, artist: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editForm.artist}
+                          onChange={(e) => setEditForm({...editForm, artist: e.target.value})}
+                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        />
+                        <button
+                          onClick={handleWikiSearch}
+                          disabled={searchingWiki || !editForm.artist}
+                          className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          {searchingWiki ? '搜尋中...' : '🔍 維基'}
+                        </button>
+                      </div>
                       <p className="text-gray-500 text-xs mt-1">
                         會自動生成 artistId: {editForm.artist.toLowerCase().replace(/\s+/g, '-')}
                       </p>
+                      
+                      {/* 維基搜尋結果 */}
+                      {wikiData && (
+                        <div className="mt-3 bg-[#1a1a1a] rounded-lg p-3 border border-blue-800/50">
+                          <div className="flex items-start gap-3">
+                            {wikiData.photo && (
+                              <img 
+                                src={wikiData.photo} 
+                                alt={wikiData.name}
+                                className="w-16 h-16 object-cover rounded-lg"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <h4 className="text-white font-medium">{wikiData.name}</h4>
+                              <p className="text-[#B3B3B3] text-xs mt-1 line-clamp-2">{wikiData.bio}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                {wikiData.artistType && (
+                                  <span className="text-xs bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded">
+                                    {wikiData.artistType}
+                                  </span>
+                                )}
+                                {wikiData.year && (
+                                  <span className="text-xs text-gray-500">{wikiData.year}年</span>
+                                )}
+                              </div>
+                              <button
+                                onClick={applyWikiData}
+                                className="mt-2 text-xs bg-[#FFD700] text-black px-3 py-1 rounded hover:bg-yellow-400 transition-colors"
+                              >
+                                應用此歌手名
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
