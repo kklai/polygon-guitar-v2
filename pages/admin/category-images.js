@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { doc, getDoc, setDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
+import { doc, getDoc, setDoc, collection, query, where, limit, getDocs } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 
 export default function CategoryImagesAdmin() {
@@ -34,56 +34,82 @@ export default function CategoryImagesAdmin() {
     setMessage(null)
     
     try {
+      // 定義各類別及其可能的 artistType 值
       const categories = {
-        male: '男歌手',
-        female: '女歌手',
-        group: '組合'
+        male: { label: '男歌手', types: ['male'] },
+        female: { label: '女歌手', types: ['female'] },
+        group: { label: '組合', types: ['group', 'band'] }
       }
       
       const updates = {}
       const details = {}
 
-      for (const [type, label] of Object.entries(categories)) {
+      for (const [catId, config] of Object.entries(categories)) {
         try {
-          // 查詢該類別的歌手（不在服務器排序，避免需要索引）
-          const q = query(
-            collection(db, 'artists'),
-            where('artistType', '==', type),
-            limit(100)
-          )
-
-          const snapshot = await getDocs(q)
+          let allArtists = []
+          
+          // 對每種可能的 type 值進行查詢
+          for (const typeValue of config.types) {
+            const q = query(
+              collection(db, 'artists'),
+              where('artistType', '==', typeValue),
+              limit(100)
+            )
+            
+            const snapshot = await getDocs(q)
+            snapshot.docs.forEach(d => {
+              allArtists.push({ id: d.id, ...d.data() })
+            })
+          }
+          
+          // 去重（根據 ID）
+          const uniqueArtists = []
+          const seenIds = new Set()
+          for (const artist of allArtists) {
+            if (!seenIds.has(artist.id)) {
+              seenIds.add(artist.id)
+              uniqueArtists.push(artist)
+            }
+          }
           
           // 客戶端排序找出最熱門
-          const artists = snapshot.docs
-            .map(d => ({ id: d.id, ...d.data() }))
+          const sortedArtists = uniqueArtists
             .sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
           
-          if (artists.length > 0) {
-            const artist = artists[0]
+          if (sortedArtists.length > 0) {
+            const artist = sortedArtists[0]
             const photoUrl = artist.wikiPhotoURL || artist.photoURL
             
             if (photoUrl) {
-              updates[type] = {
+              updates[catId] = {
                 image: photoUrl,
                 artistId: artist.id,
                 artistName: artist.name,
+                artistType: artist.artistType,
                 updatedAt: new Date().toISOString(),
                 hotScore: artist.tabCount || 0
               }
-              details[type] = {
+              details[catId] = {
                 artistName: artist.name,
+                artistType: artist.artistType,
                 image: photoUrl,
                 hotScore: artist.tabCount || 0
               }
             } else {
-              details[type] = { error: 'No photo found', artistName: artist.name }
+              details[catId] = { 
+                error: 'No photo found', 
+                artistName: artist.name,
+                artistType: artist.artistType
+              }
             }
           } else {
-            details[type] = { error: 'No artists found' }
+            details[catId] = { 
+              error: 'No artists found',
+              triedTypes: config.types 
+            }
           }
         } catch (typeError) {
-          details[type] = { error: typeError.message }
+          details[catId] = { error: typeError.message }
         }
       }
 
@@ -93,8 +119,20 @@ export default function CategoryImagesAdmin() {
         await setDoc(settingsRef, updates, { merge: true })
       }
 
-      setMessage({ type: 'success', text: '封面更新成功！' })
+      setMessage({ 
+        type: 'success', 
+        text: `更新完成：${Object.keys(updates).length} 個類別已更新` 
+      })
       await loadCategoryImages()
+      
+      // 如果有找不到的，顯示警告
+      const notFound = Object.entries(details)
+        .filter(([k, v]) => v.error === 'No artists found')
+        .map(([k]) => k)
+      
+      if (notFound.length > 0) {
+        console.log('Categories not found:', notFound, details)
+      }
       
     } catch (error) {
       console.error('Update error:', error)
@@ -131,7 +169,7 @@ export default function CategoryImagesAdmin() {
               <h2 className="text-xl font-semibold mb-1">手動更新封面</h2>
               <p className="text-slate-400 text-sm">
                 系統會獲取各類別最熱門的歌手相片作為封面<br/>
-                <span className="text-slate-500">（根據 tabCount 排序）</span>
+                <span className="text-slate-500">（組合會檢查 group / band 兩種類型）</span>
               </p>
             </div>
             <button
@@ -174,6 +212,12 @@ export default function CategoryImagesAdmin() {
                   </div>
                 </div>
                 <div className="p-4 space-y-2">
+                  {data?.artistType && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">類型</span>
+                      <span className="text-slate-200">{data.artistType}</span>
+                    </div>
+                  )}
                   {data?.hotScore !== undefined && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">熱門分數</span>
@@ -200,6 +244,7 @@ export default function CategoryImagesAdmin() {
           <ul className="text-sm text-slate-400 space-y-1 list-disc list-inside">
             <li>系統會根據歌手的 tabCount（譜數量）排序，選出最熱門的歌手</li>
             <li>優先使用維基百科圖片，如無則使用用戶上傳的圖片</li>
+            <li>組合類別會檢查 artistType = 'group' 或 'band'</li>
             <li>需要時才手動更新，無需自動排程</li>
           </ul>
         </div>
