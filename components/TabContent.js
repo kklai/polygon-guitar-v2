@@ -636,7 +636,7 @@ const TabContent = ({
             );
           } else {
             elements.push(
-              <div key={i} style={{ marginBottom: '0.4em' }}>
+              <div key={i} style={{ marginBottom: '0.15em' }}>
                 {/* 和弦行 */}
                 <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
@@ -662,7 +662,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.4em' }}>
+            <div key={i} style={{ marginBottom: '0.15em' }}>
               <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
@@ -673,7 +673,7 @@ const TabContent = ({
           );
         } else {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.4em' }}>
+            <div key={i} style={{ marginBottom: '0.15em' }}>
               <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
