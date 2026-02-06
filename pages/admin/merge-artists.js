@@ -13,62 +13,7 @@ import {
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
-
-// 解析雙語歌手名
-function parseBilingualName(artistName) {
-  if (!artistName || artistName === 'Unknown') return { preferred: artistName };
-  
-  const prefixes = ['MK三部曲', 'EP', 'Album', 'Single', '新歌', '新碟', '大碟', '專輯'];
-  let cleanName = artistName;
-  for (const prefix of prefixes) {
-    const regex = new RegExp(`^${prefix}\\s*`, 'i');
-    cleanName = cleanName.replace(regex, '');
-  }
-  
-  cleanName = cleanName.trim();
-  
-  // 匹配 "中文名 英文名"
-  const chineseFirstMatch = cleanName.match(/^([\u4e00-\u9fa5]{2,4})\s+([a-zA-Z\s]+)$/i);
-  if (chineseFirstMatch) {
-    return {
-      chinese: chineseFirstMatch[1].trim(),
-      english: chineseFirstMatch[2].trim(),
-      preferred: chineseFirstMatch[1].trim()
-    };
-  }
-  
-  // 匹配 "英文名 中文名"
-  const englishFirstMatch = cleanName.match(/^([a-zA-Z\s]+)\s+([\u4e00-\u9fa5]{2,4})$/i);
-  if (englishFirstMatch) {
-    return {
-      english: englishFirstMatch[1].trim(),
-      chinese: englishFirstMatch[2].trim(),
-      preferred: englishFirstMatch[2].trim()
-    };
-  }
-  
-  return { preferred: cleanName };
-}
-
-// 檢查是否可能是同一人
-function isPotentialDuplicate(artist1, artist2) {
-  if (artist1.id === artist2.id) return false;
-  
-  const parsed1 = parseBilingualName(artist1.name);
-  const parsed2 = parseBilingualName(artist2.name);
-  
-  // 比較中文名
-  if (parsed1.chinese && parsed2.chinese) {
-    return parsed1.chinese === parsed2.chinese;
-  }
-  
-  // 比較英文名
-  if (parsed1.english && parsed2.english) {
-    return parsed1.english.toLowerCase() === parsed2.english.toLowerCase();
-  }
-  
-  return false;
-}
+import { isArtistMatch, generateMergeSuggestions, parseBilingualNameImproved } from '@/lib/artistNameMatcher'
 
 export default function MergeArtistsPage() {
   const [artists, setArtists] = useState([])
@@ -108,32 +53,19 @@ export default function MergeArtistsPage() {
     setTimeout(() => setMessage(null), 5000)
   }
 
-  // 找出重複組
+  // 使用智能算法找出重複組
   const findDuplicates = (artistsData) => {
-    const groups = []
-    const processed = new Set()
+    const suggestions = generateMergeSuggestions(artistsData);
     
-    for (let i = 0; i < artistsData.length; i++) {
-      if (processed.has(artistsData[i].id)) continue
-      
-      const group = [artistsData[i]]
-      
-      for (let j = i + 1; j < artistsData.length; j++) {
-        if (processed.has(artistsData[j].id)) continue
-        
-        if (isPotentialDuplicate(artistsData[i], artistsData[j])) {
-          group.push(artistsData[j])
-          processed.add(artistsData[j].id)
-        }
-      }
-      
-      if (group.length > 1) {
-        groups.push(group)
-        processed.add(artistsData[i].id)
-      }
-    }
+    // 轉換為舊格式兼容
+    const groups = suggestions.map(s => ({
+      artists: s.allArtists,
+      primary: s.primary,
+      matches: s.matches,
+      confidence: s.confidence
+    }));
     
-    setDuplicates(groups)
+    setDuplicates(groups);
   }
 
   // 合併歌手
@@ -354,19 +286,47 @@ export default function MergeArtistsPage() {
                 <div className="space-y-6">
                   {duplicates.map((group, groupIdx) => (
                     <div key={groupIdx} className="bg-[#121212] rounded-lg border border-yellow-800/30 p-6">
-                      <h3 className="text-lg font-bold text-yellow-400 mb-4">
-                        重複組 {groupIdx + 1} / {duplicates.length}
-                      </h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-bold text-yellow-400">
+                          可能重複組 {groupIdx + 1} / {duplicates.length}
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                          匹配度: {Math.round(group.confidence * 100)}%
+                        </span>
+                      </div>
+                      
+                      {/* 顯示匹配原因 */}
+                      {group.matches && group.matches.length > 0 && (
+                        <div className="mb-4 text-sm">
+                          <span className="text-gray-400">匹配原因: </span>
+                          <span className="text-yellow-400">
+                            {group.matches.map(m => {
+                              const reasons = {
+                                'exact': '完全一樣',
+                                'chinese_exact': '中文名相同',
+                                'chinese_traditional_simplified': '簡繁轉換',
+                                'chinese_similar': '中文名相似',
+                                'english_similar': '英文名相似',
+                                'english_partial': '英文名部分匹配',
+                                'full_name_similar': '整體名稱相似',
+                                'common_variant': '常見變體'
+                              };
+                              return reasons[m.reason] || m.reason;
+                            }).join(', ')}
+                          </span>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {group.map(artist => {
-                          const parsed = parseBilingualName(artist.name)
+                        {group.artists ? group.artists.map(artist => {
+                          const parsed = parseBilingualNameImproved(artist.name)
+                          const isPrimary = group.primary && artist.id === group.primary.id
                           return (
                             <div 
                               key={artist.id}
                               className={`bg-[#1a1a1a] rounded-lg p-4 border ${
-                                selectedGroup?.id === artist.id 
-                                  ? 'border-[#FFD700] ring-2 ring-[#FFD700]/20' 
+                                isPrimary
+                                  ? 'border-green-500 ring-2 ring-green-500/20' 
                                   : 'border-gray-800'
                               }`}
                             >
@@ -384,9 +344,16 @@ export default function MergeArtistsPage() {
                                 </div>
                                 
                                 <div className="flex-1">
-                                  <h4 className="text-white font-medium">{artist.name}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="text-white font-medium">{artist.name}</h4>
+                                    {isPrimary && (
+                                      <span className="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded">
+                                        建議保留
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-gray-500 text-xs">ID: {artist.id}</p>
-                                  <div className="flex items-center gap-2 mt-1">
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     {parsed.chinese && (
                                       <span className="text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded">
                                         中文: {parsed.chinese}
@@ -405,7 +372,7 @@ export default function MergeArtistsPage() {
                               </div>
                             </div>
                           )
-                        })}
+                        }) : null}
                       </div>
                       
                       {/* 合併選項 */}
@@ -414,11 +381,11 @@ export default function MergeArtistsPage() {
                           選擇要保留的歌手（另一個會被合併並刪除）：
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {group.map(artist => (
+                          {group.artists && group.artists.map(artist => (
                             <button
                               key={artist.id}
                               onClick={() => {
-                                const other = group.find(a => a.id !== artist.id)
+                                const other = group.artists.find(a => a.id !== artist.id)
                                 if (other) mergeArtists(artist, other)
                               }}
                               disabled={processing}
