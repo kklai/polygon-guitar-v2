@@ -12,7 +12,10 @@ import {
   deleteDoc,
   getDoc,
   setDoc,
-  increment
+  increment,
+  limit,
+  startAfter,
+  orderBy
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
@@ -21,23 +24,60 @@ import Layout from '@/components/Layout'
 export default function MigratedTabsPage() {
   const { user } = useAuth()
   const [tabs, setTabs] = useState([])
+  const [allTabs, setAllTabs] = useState([]) // 所有樂譜（用於統計）
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all') // all, issues, noArtist, noContent
+  const [filter, setFilter] = useState('all')
   const [selectedTab, setSelectedTab] = useState(null)
   const [editForm, setEditForm] = useState(null)
   const [message, setMessage] = useState(null)
+  const [debugInfo, setDebugInfo] = useState(null)
   const [stats, setStats] = useState({
     total: 0,
+    blogger: 0,
+    manual: 0,
     withIssues: 0,
     noArtistId: 0,
     noContent: 0,
     noArtistName: 0
   })
 
-  // 獲取所有遷移的樂譜
+  // 獲取所有樂譜（用於統計和debug）
+  const fetchAllTabs = async () => {
+    try {
+      // 獲取所有樂譜（不分source）
+      const allSnapshot = await getDocs(collection(db, 'tabs'))
+      const allData = allSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setAllTabs(allData)
+
+      // 統計source分佈
+      const bloggerCount = allData.filter(t => t.source === 'blogger').length
+      const manualCount = allData.filter(t => t.source === 'manual' || !t.source).length
+      const otherCount = allData.filter(t => t.source && t.source !== 'blogger' && t.source !== 'manual').length
+
+      return { 
+        total: allData.length, 
+        blogger: bloggerCount, 
+        manual: manualCount,
+        other: otherCount,
+        all: allData 
+      }
+    } catch (error) {
+      console.error('獲取所有樂譜失敗:', error)
+      return { total: 0, blogger: 0, manual: 0, other: 0, all: [] }
+    }
+  }
+
+  // 獲取遷移的樂譜
   const fetchMigratedTabs = async () => {
     setLoading(true)
     try {
+      // 先獲取所有樂譜統計
+      const allStats = await fetchAllTabs()
+      
+      // 獲取blogger來源的樂譜
       const q = query(
         collection(db, 'tabs'),
         where('source', '==', 'blogger')
@@ -78,7 +118,7 @@ export default function MigratedTabsPage() {
         if (issues.length > 0) withIssues++
       })
 
-      // 按創建時間排序（新的在前）
+      // 按創建時間排序
       tabsData.sort((a, b) => {
         const dateA = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt || 0)
         const dateB = b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(b.createdAt || 0)
@@ -87,12 +127,27 @@ export default function MigratedTabsPage() {
 
       setTabs(tabsData)
       setStats({
-        total: tabsData.length,
+        total: allStats.total,
+        blogger: allStats.blogger,
+        manual: allStats.manual,
+        other: allStats.other,
         withIssues,
         noArtistId,
         noContent,
         noArtistName
       })
+
+      // Debug 信息
+      setDebugInfo({
+        totalInDB: allStats.total,
+        bloggerCount: tabsData.length,
+        sampleSources: allStats.all.slice(0, 10).map(t => ({ 
+          title: t.title?.substring(0, 20), 
+          source: t.source,
+          artistId: t.artistId 
+        }))
+      })
+
     } catch (error) {
       console.error('獲取樂譜失敗:', error)
       showMessage('獲取樂譜失敗: ' + error.message, 'error')
@@ -157,7 +212,6 @@ export default function MigratedTabsPage() {
 
       // 如果歌手變了，更新歌手計數
       if (oldArtistId !== newArtistId) {
-        // 減少舊歌手計數
         if (oldArtistId) {
           const oldArtistRef = doc(db, 'artists', oldArtistId)
           const oldArtistSnap = await getDoc(oldArtistRef)
@@ -168,7 +222,6 @@ export default function MigratedTabsPage() {
           }
         }
 
-        // 創建或更新新歌手
         const newArtistRef = doc(db, 'artists', newArtistId)
         const newArtistSnap = await getDoc(newArtistRef)
         if (!newArtistSnap.exists()) {
@@ -178,7 +231,6 @@ export default function MigratedTabsPage() {
             tabCount: 1,
             createdAt: new Date().toISOString()
           })
-          showMessage(`已創建新歌手: ${editForm.artist}`)
         } else {
           await updateDoc(newArtistRef, {
             tabCount: increment(1)
@@ -203,7 +255,6 @@ export default function MigratedTabsPage() {
     }
 
     try {
-      // 減少歌手計數
       if (tab.artistId) {
         const artistRef = doc(db, 'artists', tab.artistId)
         const artistSnap = await getDoc(artistRef)
@@ -214,7 +265,6 @@ export default function MigratedTabsPage() {
         }
       }
 
-      // 刪除樂譜
       await deleteDoc(doc(db, 'tabs', tab.id))
       showMessage('刪除成功')
       fetchMigratedTabs()
@@ -230,13 +280,11 @@ export default function MigratedTabsPage() {
       const updates = {}
       let fixed = []
 
-      // 修復缺少 artistId
       if (!tab.artistId && tab.artist) {
         const newArtistId = tab.artist.toLowerCase().replace(/\s+/g, '-')
         updates.artistId = newArtistId
         fixed.push('artistId')
 
-        // 創建歌手
         const artistRef = doc(db, 'artists', newArtistId)
         const artistSnap = await getDoc(artistRef)
         if (!artistSnap.exists()) {
@@ -249,9 +297,7 @@ export default function MigratedTabsPage() {
         }
       }
 
-      // 修復 artist 欄位
       if (!tab.artist && tab.artistId) {
-        // 嘗試從 artistId 反推歌手名
         const artistRef = doc(db, 'artists', tab.artistId)
         const artistSnap = await getDoc(artistRef)
         if (artistSnap.exists()) {
@@ -318,6 +364,23 @@ export default function MigratedTabsPage() {
     fetchMigratedTabs()
   }
 
+  // 顯示所有樂譜（不分source）
+  const showAllTabs = () => {
+    setTabs(allTabs.map(tab => ({
+      ...tab,
+      issues: checkTabIssues(tab)
+    })))
+  }
+
+  const checkTabIssues = (tab) => {
+    const issues = []
+    if (!tab.artistId) issues.push('缺少 artistId')
+    if (!tab.artist) issues.push('缺少歌手名')
+    if (!tab.content || tab.content.length < 10) issues.push('內容過短或缺失')
+    if (!tab.title) issues.push('缺少歌名')
+    return issues
+  }
+
   return (
     <AdminGuard>
       <Layout>
@@ -353,23 +416,27 @@ export default function MigratedTabsPage() {
             </div>
           )}
 
-          {/* 統計卡片 */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          {/* 統計面板 */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
             <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
               <div className="text-2xl font-bold text-white">{stats.total}</div>
-              <div className="text-[#B3B3B3] text-sm">總數</div>
+              <div className="text-[#B3B3B3] text-sm">DB總數</div>
+            </div>
+            <div className="bg-[#121212] rounded-lg p-4 border border-yellow-800/50">
+              <div className="text-2xl font-bold text-yellow-400">{stats.blogger}</div>
+              <div className="text-[#B3B3B3] text-sm">Blogger</div>
+            </div>
+            <div className="bg-[#121212] rounded-lg p-4 border border-blue-800/50">
+              <div className="text-2xl font-bold text-blue-400">{stats.manual}</div>
+              <div className="text-[#B3B3B3] text-sm">手動上傳</div>
             </div>
             <div className="bg-[#121212] rounded-lg p-4 border border-red-800/50">
               <div className="text-2xl font-bold text-red-400">{stats.withIssues}</div>
               <div className="text-[#B3B3B3] text-sm">有問題</div>
             </div>
             <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
-              <div className="text-2xl font-bold text-yellow-400">{stats.noArtistId}</div>
-              <div className="text-[#B3B3B3] text-sm">缺 artistId</div>
-            </div>
-            <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
-              <div className="text-2xl font-bold text-orange-400">{stats.noArtistName}</div>
-              <div className="text-[#B3B3B3] text-sm">缺歌手名</div>
+              <div className="text-2xl font-bold text-orange-400">{stats.noArtistId}</div>
+              <div className="text-[#B3B3B3] text-sm">缺artistId</div>
             </div>
             <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
               <div className="text-2xl font-bold text-purple-400">{stats.noContent}</div>
@@ -379,18 +446,24 @@ export default function MigratedTabsPage() {
 
           {/* 工具欄 */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[#B3B3B3] text-sm">過濾:</span>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="bg-[#121212] text-white border border-gray-700 rounded-lg px-3 py-2 text-sm"
               >
-                <option value="all">全部 ({stats.total})</option>
+                <option value="all">全部 Blogger ({stats.blogger})</option>
                 <option value="issues">有問題 ({stats.withIssues})</option>
                 <option value="noArtist">缺歌手 ({stats.noArtistId + stats.noArtistName})</option>
                 <option value="noContent">缺內容 ({stats.noContent})</option>
               </select>
+              <button
+                onClick={showAllTabs}
+                className="bg-blue-900/50 hover:bg-blue-800/50 text-blue-300 border border-blue-700 px-3 py-2 rounded-lg text-sm transition-colors"
+              >
+                顯示全部 ({stats.total})
+              </button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -411,6 +484,23 @@ export default function MigratedTabsPage() {
             </div>
           </div>
 
+          {/* Debug 信息 */}
+          {debugInfo && (
+            <div className="mb-6 bg-[#1a1a1a] rounded-lg p-4 border border-gray-800">
+              <h3 className="text-[#B3B3B3] text-sm font-medium mb-2">Debug 信息</h3>
+              <div className="text-xs text-gray-500 font-mono space-y-1">
+                <p>資料庫總數: {debugInfo.totalInDB}</p>
+                <p>Blogger 來源: {debugInfo.bloggerCount}</p>
+                <p>前10筆樣本:</p>
+                <ul className="ml-4 space-y-0.5">
+                  {debugInfo.sampleSources.map((s, i) => (
+                    <li key={i}>{s.title} | source: {s.source || 'null'} | artistId: {s.artistId || 'null'}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* 樂譜列表 */}
           {loading ? (
             <div className="text-center py-12 text-[#B3B3B3]">載入中...</div>
@@ -420,11 +510,14 @@ export default function MigratedTabsPage() {
             </div>
           ) : (
             <div className="space-y-3">
+              <div className="text-[#B3B3B3] text-sm mb-2">
+                顯示 {filteredTabs.length} 首樂譜
+              </div>
               {filteredTabs.map((tab) => (
                 <div
                   key={tab.id}
                   className={`bg-[#121212] rounded-lg border ${
-                    tab.issues.length > 0 ? 'border-red-800/50' : 'border-gray-800'
+                    tab.issues?.length > 0 ? 'border-red-800/50' : 'border-gray-800'
                   } p-4`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -433,9 +526,18 @@ export default function MigratedTabsPage() {
                         <h3 className="text-white font-medium truncate">
                           {tab.title || '(無歌名)'}
                         </h3>
-                        {tab.issues.length > 0 && (
+                        {tab.issues?.length > 0 && (
                           <span className="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded-full">
                             {tab.issues.length} 個問題
+                          </span>
+                        )}
+                        {tab.source && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            tab.source === 'blogger' 
+                              ? 'bg-yellow-900/30 text-yellow-400' 
+                              : 'bg-blue-900/30 text-blue-400'
+                          }`}>
+                            {tab.source}
                           </span>
                         )}
                       </div>
@@ -445,7 +547,7 @@ export default function MigratedTabsPage() {
                           <span className="text-gray-500 ml-2">ID: {tab.artistId}</span>
                         )}
                       </p>
-                      {tab.issues.length > 0 && (
+                      {tab.issues?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {tab.issues.map((issue, idx) => (
                             <span 
@@ -480,7 +582,7 @@ export default function MigratedTabsPage() {
                       >
                         查看
                       </Link>
-                      {tab.issues.length > 0 && (
+                      {tab.issues?.length > 0 && (
                         <button
                           onClick={() => handleAutoFix(tab)}
                           className="text-yellow-400 hover:text-yellow-300 text-sm px-3 py-1.5 rounded-lg hover:bg-yellow-900/30 transition-colors"

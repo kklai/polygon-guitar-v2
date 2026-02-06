@@ -11,9 +11,9 @@ export default function AdminIndex() {
       color: 'bg-purple-600'
     },
     {
-      href: '/admin/artists',
-      title: '歌手管理',
-      description: '查看和管理所有歌手資料',
+      href: '/admin/artists-v2',
+      title: '歌手管理 V2',
+      description: '統一管理歌手資料、分類和照片',
       icon: '🎤',
       color: 'bg-blue-600'
     },
