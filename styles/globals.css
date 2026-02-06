@@ -34,7 +34,7 @@ body {
   white-space: pre-wrap;
   word-wrap: break-word;
   /* 優先使用 Google Fonts，確保跨平台一致 */
-  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'MingLiU', monospace;
+  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Microsoft YaHei Mono', 'Microsoft YaHei', 'SimHei', monospace;
   line-height: 1.6;
   color: #FFFFFF;
 }
@@ -42,7 +42,7 @@ body {
 /* TabContent wrapper - ensure no internal scroll */
 .tab-content-wrapper {
   /* 優先使用 Google Fonts，確保跨平台一致 */
-  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'MingLiU', monospace;
+  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Microsoft YaHei Mono', 'Microsoft YaHei', 'SimHei', monospace;
   line-height: 1.6;
 }
 
