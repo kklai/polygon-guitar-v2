@@ -46,6 +46,13 @@ export default function AdminIndex() {
       color: 'bg-amber-600'
     },
     {
+      href: '/admin/merge-artists',
+      title: '合併重複歌手',
+      description: '檢測並合併中英文名的重複歌手檔案',
+      icon: '🔀',
+      color: 'bg-rose-600'
+    },
+    {
       href: '/admin/analyze',
       title: '數據分析',
       description: '分析結他譜數據、和弦統計',

@@ -1,0 +1,442 @@
+import { useState, useEffect } from 'react'
+import Head from 'next/head'
+import Link from 'next/link'
+import { 
+  collection, 
+  query, 
+  getDocs, 
+  doc, 
+  updateDoc,
+  deleteDoc,
+  where
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import AdminGuard from '@/components/AdminGuard'
+import Layout from '@/components/Layout'
+
+// 解析雙語歌手名
+function parseBilingualName(artistName) {
+  if (!artistName || artistName === 'Unknown') return { preferred: artistName };
+  
+  const prefixes = ['MK三部曲', 'EP', 'Album', 'Single', '新歌', '新碟', '大碟', '專輯'];
+  let cleanName = artistName;
+  for (const prefix of prefixes) {
+    const regex = new RegExp(`^${prefix}\\s*`, 'i');
+    cleanName = cleanName.replace(regex, '');
+  }
+  
+  cleanName = cleanName.trim();
+  
+  // 匹配 "中文名 英文名"
+  const chineseFirstMatch = cleanName.match(/^([\u4e00-\u9fa5]{2,4})\s+([a-zA-Z\s]+)$/i);
+  if (chineseFirstMatch) {
+    return {
+      chinese: chineseFirstMatch[1].trim(),
+      english: chineseFirstMatch[2].trim(),
+      preferred: chineseFirstMatch[1].trim()
+    };
+  }
+  
+  // 匹配 "英文名 中文名"
+  const englishFirstMatch = cleanName.match(/^([a-zA-Z\s]+)\s+([\u4e00-\u9fa5]{2,4})$/i);
+  if (englishFirstMatch) {
+    return {
+      english: englishFirstMatch[1].trim(),
+      chinese: englishFirstMatch[2].trim(),
+      preferred: englishFirstMatch[2].trim()
+    };
+  }
+  
+  return { preferred: cleanName };
+}
+
+// 檢查是否可能是同一人
+function isPotentialDuplicate(artist1, artist2) {
+  if (artist1.id === artist2.id) return false;
+  
+  const parsed1 = parseBilingualName(artist1.name);
+  const parsed2 = parseBilingualName(artist2.name);
+  
+  // 比較中文名
+  if (parsed1.chinese && parsed2.chinese) {
+    return parsed1.chinese === parsed2.chinese;
+  }
+  
+  // 比較英文名
+  if (parsed1.english && parsed2.english) {
+    return parsed1.english.toLowerCase() === parsed2.english.toLowerCase();
+  }
+  
+  return false;
+}
+
+export default function MergeArtistsPage() {
+  const [artists, setArtists] = useState([])
+  const [duplicates, setDuplicates] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState(null)
+  const [processing, setProcessing] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState(null)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualSelection, setManualSelection] = useState({ keep: null, merge: null })
+
+  const fetchArtists = async () => {
+    setLoading(true)
+    try {
+      const snapshot = await getDocs(collection(db, 'artists'))
+      const artistsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      
+      setArtists(artistsData)
+      findDuplicates(artistsData)
+    } catch (error) {
+      console.error('獲取歌手失敗:', error)
+      showMessage('獲取歌手失敗: ' + error.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchArtists()
+  }, [])
+
+  const showMessage = (text, type = 'success') => {
+    setMessage({ text, type })
+    setTimeout(() => setMessage(null), 5000)
+  }
+
+  // 找出重複組
+  const findDuplicates = (artistsData) => {
+    const groups = []
+    const processed = new Set()
+    
+    for (let i = 0; i < artistsData.length; i++) {
+      if (processed.has(artistsData[i].id)) continue
+      
+      const group = [artistsData[i]]
+      
+      for (let j = i + 1; j < artistsData.length; j++) {
+        if (processed.has(artistsData[j].id)) continue
+        
+        if (isPotentialDuplicate(artistsData[i], artistsData[j])) {
+          group.push(artistsData[j])
+          processed.add(artistsData[j].id)
+        }
+      }
+      
+      if (group.length > 1) {
+        groups.push(group)
+        processed.add(artistsData[i].id)
+      }
+    }
+    
+    setDuplicates(groups)
+  }
+
+  // 合併歌手
+  const mergeArtists = async (keepArtist, mergeArtist) => {
+    if (!confirm(`確定要將「${mergeArtist.name}」合併到「${keepArtist.name}」嗎？\n\n這會:\n1. 將「${mergeArtist.name}」的 ${mergeArtist.tabCount || 0} 首譜轉移到「${keepArtist.name}」\n2. 刪除「${mergeArtist.name}」的歌手檔案\n\n此操作不可恢復。`)) {
+      return
+    }
+
+    setProcessing(true)
+    try {
+      // 1. 更新所有樂譜
+      const tabsSnapshot = await getDocs(
+        query(collection(db, 'tabs'), where('artistId', '==', mergeArtist.id))
+      )
+      
+      let updatedTabs = 0
+      for (const tabDoc of tabsSnapshot.docs) {
+        await updateDoc(tabDoc.ref, {
+          artistId: keepArtist.id,
+          artist: keepArtist.name,
+          updatedAt: new Date().toISOString()
+        })
+        updatedTabs++
+      }
+
+      // 2. 合併歌手資料
+      const keepRef = doc(db, 'artists', keepArtist.id)
+      const updates = {
+        tabCount: (keepArtist.tabCount || 0) + (mergeArtist.tabCount || 0),
+        viewCount: (keepArtist.viewCount || 0) + (mergeArtist.viewCount || 0),
+        updatedAt: new Date().toISOString()
+      }
+      
+      // 合併照片（保留優先級高的）
+      if (!keepArtist.photoURL && mergeArtist.photoURL) updates.photoURL = mergeArtist.photoURL
+      if (!keepArtist.wikiPhotoURL && mergeArtist.wikiPhotoURL) updates.wikiPhotoURL = mergeArtist.wikiPhotoURL
+      if (!keepArtist.heroPhoto && mergeArtist.heroPhoto) updates.heroPhoto = mergeArtist.heroPhoto
+      
+      // 合併簡介（保留較長的）
+      if (!keepArtist.bio || (mergeArtist.bio && mergeArtist.bio.length > keepArtist.bio.length)) {
+        updates.bio = mergeArtist.bio
+      }
+      
+      // 記錄合併歷史
+      updates.mergedArtists = [...(keepArtist.mergedArtists || []), {
+        name: mergeArtist.name,
+        id: mergeArtist.id,
+        mergedAt: new Date().toISOString()
+      }]
+      
+      await updateDoc(keepRef, updates)
+
+      // 3. 刪除被合併的歌手
+      await deleteDoc(doc(db, 'artists', mergeArtist.id))
+
+      showMessage(`✅ 合併成功！更新了 ${updatedTabs} 首樂譜`)
+      
+      // 重新載入
+      setSelectedGroup(null)
+      setManualSelection({ keep: null, merge: null })
+      fetchArtists()
+      
+    } catch (error) {
+      console.error('合併失敗:', error)
+      showMessage('合併失敗: ' + error.message, 'error')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // 獲取歌手照片
+  const getPhoto = (artist) => {
+    return artist.photoURL || artist.wikiPhotoURL || artist.photo || null
+  }
+
+  return (
+    <AdminGuard>
+      <Layout>
+        <Head>
+          <title>合併重複歌手 | Polygon Guitar</title>
+        </Head>
+
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* 標題 */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-white">合併重複歌手</h1>
+              <p className="text-[#B3B3B3] text-sm mt-1">
+                自動檢測並合併重複的歌手檔案
+              </p>
+            </div>
+            <Link
+              href="/admin"
+              className="text-[#B3B3B3] hover:text-white transition-colors"
+            >
+              ← 返回管理員中心
+            </Link>
+          </div>
+
+          {/* 提示訊息 */}
+          {message && (
+            <div className={`mb-4 p-4 rounded-lg ${
+              message.type === 'error' 
+                ? 'bg-red-900/50 text-red-200 border border-red-700' 
+                : 'bg-green-900/50 text-green-200 border border-green-700'
+            }`}>
+              {message.text}
+            </div>
+          )}
+
+          {/* 統計 */}
+          <div className="bg-[#121212] rounded-lg p-4 border border-gray-800 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-white">{artists.length}</div>
+                <div className="text-[#B3B3B3] text-sm">總歌手數</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-yellow-400">{duplicates.length}</div>
+                <div className="text-[#B3B3B3] text-sm">發現重複組</div>
+              </div>
+              <button
+                onClick={() => setManualMode(!manualMode)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  manualMode 
+                    ? 'bg-[#FFD700] text-black' 
+                    : 'bg-[#282828] hover:bg-[#3E3E3E] text-white'
+                }`}
+              >
+                {manualMode ? '返回自動檢測' : '手動合併模式'}
+              </button>
+              <button
+                onClick={fetchArtists}
+                disabled={loading}
+                className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                {loading ? '載入中...' : '🔄 刷新'}
+              </button>
+            </div>
+          </div>
+
+          {/* 手動合併模式 */}
+          {manualMode && (
+            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+              <h2 className="text-lg font-bold text-white mb-4">手動選擇合併</h2>
+              <p className="text-[#B3B3B3] text-sm mb-4">
+                選擇兩個要合併的歌手，第一個會被保留，第二個會被合併到第一個
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-[#B3B3B3] text-sm mb-2">保留（主歌手）</label>
+                  <select
+                    value={manualSelection.keep || ''}
+                    onChange={(e) => setManualSelection({...manualSelection, keep: e.target.value})}
+                    className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                  >
+                    <option value="">選擇歌手...</option>
+                    {artists.sort((a, b) => a.name.localeCompare(b.name)).map(artist => (
+                      <option key={artist.id} value={artist.id}>
+                        {artist.name} ({artist.tabCount || 0}首)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[#B3B3B3] text-sm mb-2">合併（將被刪除）</label>
+                  <select
+                    value={manualSelection.merge || ''}
+                    onChange={(e) => setManualSelection({...manualSelection, merge: e.target.value})}
+                    className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                  >
+                    <option value="">選擇歌手...</option>
+                    {artists
+                      .filter(a => a.id !== manualSelection.keep)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(artist => (
+                        <option key={artist.id} value={artist.id}>
+                          {artist.name} ({artist.tabCount || 0}首)
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+              
+              {manualSelection.keep && manualSelection.merge && (
+                <button
+                  onClick={() => {
+                    const keep = artists.find(a => a.id === manualSelection.keep)
+                    const merge = artists.find(a => a.id === manualSelection.merge)
+                    if (keep && merge) mergeArtists(keep, merge)
+                  }}
+                  disabled={processing}
+                  className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                >
+                  {processing ? '處理中...' : '執行合併'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 重複組列表 */}
+          {!manualMode && (
+            <>
+              {loading ? (
+                <div className="text-center py-12 text-[#B3B3B3]">載入中...</div>
+              ) : duplicates.length === 0 ? (
+                <div className="text-center py-12 bg-[#121212] rounded-lg border border-gray-800">
+                  <span className="text-4xl mb-4 block">✅</span>
+                  <h3 className="text-lg font-medium text-white mb-2">
+                    沒有發現重複歌手
+                  </h3>
+                  <p className="text-[#B3B3B3]">
+                    所有歌手檔案都是唯一的
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {duplicates.map((group, groupIdx) => (
+                    <div key={groupIdx} className="bg-[#121212] rounded-lg border border-yellow-800/30 p-6">
+                      <h3 className="text-lg font-bold text-yellow-400 mb-4">
+                        重複組 {groupIdx + 1} / {duplicates.length}
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {group.map(artist => {
+                          const parsed = parseBilingualName(artist.name)
+                          return (
+                            <div 
+                              key={artist.id}
+                              className={`bg-[#1a1a1a] rounded-lg p-4 border ${
+                                selectedGroup?.id === artist.id 
+                                  ? 'border-[#FFD700] ring-2 ring-[#FFD700]/20' 
+                                  : 'border-gray-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 rounded-lg bg-[#0A0A0A] flex items-center justify-center overflow-hidden">
+                                  {getPhoto(artist) ? (
+                                    <img 
+                                      src={getPhoto(artist)} 
+                                      alt={artist.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-2xl">🎤</span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1">
+                                  <h4 className="text-white font-medium">{artist.name}</h4>
+                                  <p className="text-gray-500 text-xs">ID: {artist.id}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {parsed.chinese && (
+                                      <span className="text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded">
+                                        中文: {parsed.chinese}
+                                      </span>
+                                    )}
+                                    {parsed.english && (
+                                      <span className="text-xs bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded">
+                                        英文: {parsed.english}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[#B3B3B3] text-sm mt-2">
+                                    譜數: {artist.tabCount || 0} | 瀏覽: {artist.viewCount || 0}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      {/* 合併選項 */}
+                      <div className="bg-[#1a1a1a] rounded-lg p-4 border border-gray-800">
+                        <p className="text-[#B3B3B3] text-sm mb-3">
+                          選擇要保留的歌手（另一個會被合併並刪除）：
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {group.map(artist => (
+                            <button
+                              key={artist.id}
+                              onClick={() => {
+                                const other = group.find(a => a.id !== artist.id)
+                                if (other) mergeArtists(artist, other)
+                              }}
+                              disabled={processing}
+                              className="bg-[#FFD700] hover:bg-yellow-400 disabled:bg-gray-700 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              保留「{artist.name}」
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </Layout>
+    </AdminGuard>
+  )
+}
