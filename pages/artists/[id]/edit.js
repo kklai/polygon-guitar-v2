@@ -32,6 +32,7 @@ function EditArtist() {
   const [isFixingSongs, setIsFixingSongs] = useState(false)
   const [fixMessage, setFixMessage] = useState(null)
   const [relatedSongsCount, setRelatedSongsCount] = useState(0)
+  const [actualDocId, setActualDocId] = useState(null) // 儲存實際嘅 document ID（處理簡繁體）
 
   // 載入歌手資料
   useEffect(() => {
@@ -40,10 +41,28 @@ function EditArtist() {
     }
   }, [id])
 
+  // 簡單簡繁轉換（常用字）
+  const toTraditional = (name) => {
+    const sc2tc = {
+      '学': '學', '东': '東', '伟': '偉', '杰': '傑', '强': '強',
+      '张': '張', '陈': '陳', '刘': '劉', '黄': '黃', '邓': '鄧'
+    };
+    return name.split('').map(c => sc2tc[c] || c).join('');
+  };
+
   const loadArtist = async () => {
     try {
-      const artistRef = doc(db, 'artists', id)
-      const artistSnap = await getDoc(artistRef)
+      let artistRef = doc(db, 'artists', id)
+      let artistSnap = await getDoc(artistRef)
+      
+      // 如果搵唔到，嘗試用繁體版 ID
+      if (!artistSnap.exists()) {
+        const traditionalId = toTraditional(id);
+        if (traditionalId !== id) {
+          artistRef = doc(db, 'artists', traditionalId);
+          artistSnap = await getDoc(artistRef);
+        }
+      }
       
       if (!artistSnap.exists()) {
         alert('搵唔到歌手')
@@ -52,6 +71,7 @@ function EditArtist() {
       }
 
       const data = artistSnap.data()
+      setActualDocId(artistSnap.id) // 儲存實際嘅 document ID
       setOriginalName(data.name || '')
       setFormData({
         name: data.name || '',
@@ -64,7 +84,7 @@ function EditArtist() {
       })
       
       // 檢查相關歌曲數量
-      await checkRelatedSongs(data.name, data.normalizedName || id)
+      await checkRelatedSongs(data.name, data.normalizedName || artistSnap.id)
     } catch (error) {
       console.error('Error loading artist:', error)
     } finally {
@@ -95,7 +115,9 @@ function EditArtist() {
         await handleFixSongsData()
       }
       
-      const artistRef = doc(db, 'artists', id)
+      // 使用實際嘅 document ID（處理簡繁體問題）
+      const docId = actualDocId || id
+      const artistRef = doc(db, 'artists', docId)
       await updateDoc(artistRef, {
         name: formData.name,
         photoURL: formData.photoURL,
@@ -204,8 +226,10 @@ function EditArtist() {
       const oldArtistId = originalName.toLowerCase().replace(/\s+/g, '-')
       
       // 查找所有相關歌曲（用舊的 artistId 或 artist 名）
+      // 使用實際嘅 document ID（處理簡繁體問題）
+      const docId = actualDocId || id
       const possibleOldIds = [
-        id, // normalizedName
+        docId, // normalizedName
         oldArtistId,
         originalName
       ].filter(Boolean)
