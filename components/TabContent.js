@@ -832,6 +832,7 @@ const TabContent = ({
   const autoScrollRef = useRef(null);
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  const [isMobile, setIsMobile] = useState(false);
 
   const capo = calculateCapo(originalKey, currentKey);
   const transposeSemitones = calculateTransposeSemitones(originalKey, currentKey);
@@ -851,6 +852,8 @@ const TabContent = ({
       if (containerRef.current) {
         setContainerWidth(containerRef.current.clientWidth);
       }
+      // 檢測是否為手機版（小於 768px）
+      setIsMobile(window.innerWidth < 768);
     };
     
     updateWidth();
@@ -1080,11 +1083,25 @@ const TabContent = ({
                 </div>
               </div>
             );
-          } else {
-            // 使用新的 Flexbox Pair 結構
+          } else if (isMobile) {
+            // 手機版：使用 Flexbox Pair 結構
             elements.push(
               <div key={i}>
                 {renderChordLyricPairs(result.pairs, lineFontSize, prefix, suffix)}
+              </div>
+            );
+          } else {
+            // 桌面版：使用原來兩行對齊
+            elements.push(
+              <div key={i} style={{ marginBottom: '0.8em' }}>
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                  {cleanLine}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                </div>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal' }}>
+                  {nextLine}
+                </div>
               </div>
             );
           }
