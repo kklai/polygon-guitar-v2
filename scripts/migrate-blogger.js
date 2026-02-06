@@ -91,6 +91,9 @@ function parseTitle(title) {
   return { artist: 'Unknown', title: cleanTitle };
 }
 
+// 引入譜內容解析器
+const { formatTabContent } = require('../lib/tabParser');
+
 // 從內容提取結他譜
 function parseContent(content) {
   // 移除 HTML 標籤但保留換行
@@ -129,11 +132,42 @@ function parseContent(content) {
     youtubeUrl = `https://youtube.com/watch?v=${ytMatch[1]}`;
   }
   
+  // 嘗試提取作曲/填詞資料（通常在內容第一行）
+  let composer = null;
+  let lyricist = null;
+  let arranger = null;
+  
+  // 解析內容第一行（metadata 行）
+  const firstLine = text.split('\n')[0] || '';
+  
+  // 曲：xxx / 詞：xxx / 編：xxx 格式（到下一個 / 或 Key 或 Capo 或行尾）
+  const composerMatch = firstLine.match(/曲[：:]\s*([^\/\n]+?)(?=\s*[\/]|\s+Key[：:]|\s+Capo|$)/i);
+  const lyricistMatch = firstLine.match(/詞[：:]\s*([^\/\n]+?)(?=\s*[\/]|\s+Key[：:]|\s+Capo|$)/i);
+  const arrangerMatch = firstLine.match(/(編[曲:]?|編監[：:])\s*([^\/\n]+?)(?=\s*[\/]|\s+Key[：:]|\s+Capo|$)/i);
+  
+  if (composerMatch) composer = composerMatch[1].trim().replace(/\s+/g, ' ');
+  if (lyricistMatch) lyricist = lyricistMatch[1].trim().replace(/\s+/g, ' ');
+  if (arrangerMatch) arranger = arrangerMatch[2] ? arrangerMatch[2].trim().replace(/\s+/g, ' ') : arrangerMatch[1].trim().replace(/\s+/g, ' ');
+  
+  // 移除 metadata 行（如果它包含 Key/Capo 信息）
+  let cleanedText = text;
+  if (firstLine.includes('曲：') || firstLine.includes('詞：') || 
+      firstLine.includes('Key:') || firstLine.includes('Capo') ||
+      firstLine.match(/原調[：:]/i)) {
+    cleanedText = text.split('\n').slice(1).join('\n').trim();
+  }
+  
+  // 使用譜內容解析器格式化內容
+  const formattedContent = formatTabContent(cleanedText);
+  
   return {
-    content: text,
+    content: formattedContent,
     originalKey,
     capo,
-    youtubeUrl
+    youtubeUrl,
+    composer,
+    lyricist,
+    arranger
   };
 }
 
@@ -344,6 +378,9 @@ async function main() {
             originalKey: post.originalKey,
             capo: post.capo,
             youtubeUrl: post.youtubeUrl,
+            composer: post.composer,
+            lyricist: post.lyricist,
+            arranger: post.arranger,
             createdAt: new Date(post.published),
             updatedAt: new Date(),
             views: 0,
