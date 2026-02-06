@@ -76,11 +76,13 @@ export default function CategoryImagesAdmin() {
           const sortedArtists = uniqueArtists
             .sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
           
-          // 找出第一個有照片的藝人
-          const artistWithPhoto = sortedArtists.find(a => a.wikiPhotoURL || a.photoURL)
+          // 找出第一個有照片的藝人（檢查多種可能的欄位）
+          const artistWithPhoto = sortedArtists.find(a => 
+            a.photo || a.wikiPhotoURL || a.photoURL
+          )
           
           if (artistWithPhoto) {
-            const photoUrl = artistWithPhoto.wikiPhotoURL || artistWithPhoto.photoURL
+            const photoUrl = artistWithPhoto.photo || artistWithPhoto.wikiPhotoURL || artistWithPhoto.photoURL
             updates[catId] = {
               image: photoUrl,
               artistId: artistWithPhoto.id,
