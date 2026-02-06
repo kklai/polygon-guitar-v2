@@ -345,8 +345,8 @@ export default function ArtistDetail() {
                       </span>
                     </div>
                     
-                    {/* 縮圖 - w-10 h-10 (40px)，使用 YouTube 縮圖 */}
-                    <div className="flex-shrink-0 w-10 h-10 rounded-md overflow-hidden bg-gray-800">
+                    {/* 縮圖 - 縮細 w-8 h-8，使用 YouTube 縮圖 */}
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-gray-800">
                       {getYouTubeThumbnail(song) ? (
                         <img
                           src={getYouTubeThumbnail(song)}
@@ -360,15 +360,15 @@ export default function ArtistDetail() {
                       )}
                     </div>
                     
-                    {/* Key Selection - 新規格 w-6 h-6 (24px) */}
-                    <div className="flex-1 flex flex-nowrap gap-1 overflow-x-auto scrollbar-hide">
+                    {/* Key Selection - 新規格 w-7 h-7 */}
+                    <div className="flex-1 flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-hide">
                       {KEYS.map((key) => (
                         <button
                           key={key}
                           onClick={(e) => handleKeyClick(e, song.id, key)}
-                          className={`flex-shrink-0 w-6 h-6 rounded-full text-[10px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
+                          className={`flex-shrink-0 w-7 h-7 rounded-full text-[11px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
                             key === song.originalKey
-                              ? 'bg-black text-[#FFD700] ring-2 ring-white'
+                              ? 'bg-black text-[#FFD700] border border-[#FFD700]'
                               : 'bg-[#FFD700] text-black'
                           }`}
                           title={`以 ${key} Key 演奏`}

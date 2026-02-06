@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 本地 Sarasa Mono TC - 等寬中文字體（備用） */
+/* Sarasa Mono TC - 等寬中文字體 */
 @font-face {
   font-family: 'Sarasa Mono TC';
   src: local('Sarasa Mono TC'),
@@ -29,19 +29,17 @@ body {
 }
 
 .tab-content {
-  white-space: pre;
-  font-family: 'Sarasa Mono TC', 'Microsoft YaHei Mono', 'MingLiU', monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   line-height: 1.6;
   color: #FFFFFF;
-  font-size: 16px;
 }
 
 /* TabContent wrapper - ensure no internal scroll */
 .tab-content-wrapper {
-  font-family: 'Sarasa Mono TC', 'Microsoft YaHei Mono', 'MingLiU', monospace;
+  font-family: 'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace;
   line-height: 1.6;
-  font-size: 16px;
-  white-space: pre;
 }
 
 /* Prevent any element from having its own scroll */

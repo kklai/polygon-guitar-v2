@@ -243,7 +243,6 @@ E|----------------------------------------------------------------|
                 <ArtistAutoFill 
                   artistName={formData.artist}
                   onFill={handleArtistFill}
-                  autoApply={true} // 自動應用搜尋結果（無需確認）
                 />
               </div>
             </div>
@@ -521,19 +520,12 @@ E|----------------------------------------------------------------|
                 onChange={handleChange}
                 className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
               >
-                <optgroup label="Major (大調)">
-                  {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Minor (小調)">
-                  {['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'].map((key) => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
+                {['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'].map((key) => (
+                  <option key={key} value={key}>{key}</option>
+                ))}
               </select>
               <p className="mt-1 text-sm text-[#B3B3B3]">
-                小調（m）是相對小調，例如 Am 是 C 的相對小調
+                用戶可以之後在譜面轉調
               </p>
             </div>
 
