@@ -34,7 +34,7 @@ export default function Layout({ children, fullWidth = false }) {
     // 只有 Admin 先顯示管理項目
     if (isAdmin) {
       items.push(
-        { path: '/admin/artists', label: '管理', icon: 'admin' },
+        { path: '/admin', label: '管理', icon: 'admin' },
         { path: '/admin/hero-photos', label: 'Hero', icon: 'hero' },
         { path: '/admin/playlists', label: '歌單', icon: 'playlist' }
       )
