@@ -603,7 +603,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.5em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            <div key={i} style={{ marginBottom: '0.3em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -636,7 +636,7 @@ const TabContent = ({
             );
           } else {
             elements.push(
-              <div key={i} style={{ marginBottom: '0.8em' }}>
+              <div key={i} style={{ marginBottom: '0.4em' }}>
                 {/* 和弦行 */}
                 <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
@@ -662,7 +662,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.8em' }}>
+            <div key={i} style={{ marginBottom: '0.4em' }}>
               <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
@@ -673,7 +673,7 @@ const TabContent = ({
           );
         } else {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.8em' }}>
+            <div key={i} style={{ marginBottom: '0.4em' }}>
               <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
@@ -707,7 +707,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
           if (transposedChordLine.trim()) {
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.3em' }}>
                 {transposedChordLine}
               </div>
             );
@@ -717,7 +717,7 @@ const TabContent = ({
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
           
           elements.push(
-            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.5em' }}>
+            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.3em' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -727,7 +727,7 @@ const TabContent = ({
         i++;
       } else {
         elements.push(
-          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: '0.5em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
+          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: '0.3em', whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
         );
         i++;
       }
