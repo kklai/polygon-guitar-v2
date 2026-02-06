@@ -603,7 +603,7 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0.8em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            <div key={i} style={{ marginBottom: '0.8em', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
               {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
               {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -621,7 +621,7 @@ const TabContent = ({
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </span>
                 {/* 和弦行 */}
-                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
                   {result.chordPart}
                 </div>
                 {/* 歌詞行 */}
@@ -636,9 +636,9 @@ const TabContent = ({
             );
           } else {
             elements.push(
-              <div key={i} style={{ marginBottom: '0em' }}>
+              <div key={i} style={{ marginBottom: '0.8em' }}>
                 {/* 和弦行 */}
-                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordPart}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -662,8 +662,8 @@ const TabContent = ({
         
         if (result.error) {
           elements.push(
-            <div key={i} style={{ marginBottom: '0em' }}>
-              <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            <div key={i} style={{ marginBottom: '0.8em' }}>
+              <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -673,8 +673,8 @@ const TabContent = ({
           );
         } else {
           elements.push(
-            <div key={i} style={{ marginBottom: '0em' }}>
-              <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            <div key={i} style={{ marginBottom: '0.8em' }}>
+              <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
                 {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {result.chordLine}
                 {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
