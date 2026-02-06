@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-02-07
+> 最後更新：2026-02-07（今日新增後台管理工具）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -197,6 +197,13 @@ const capo = (originalIndex - targetIndex + 12) % 12;
    - Playlist 區
    - 教學區
 
+7. **後台管理工具**（2026-02-07 新增）
+   - **遷移樂譜管理** `/admin/migrated-tabs` - 查看/編輯/修復 Blogger 遷移的樂譜
+   - **歌手管理 V2** `/admin/artists-v2` - 統一管理歌手資料、分類、批量設置
+   - **合併重複歌手** `/admin/merge-artists` - 自動檢測並合併中英文重複歌手
+   - 維基百科搜尋整合 - 編輯樂譜時可直接搜尋歌手中文名
+   - 多選批量操作 - 支援批量設置歌手分類
+
 ---
 
 ## 待修復/進行中 🔄
@@ -319,8 +326,11 @@ text-white / text-[#B3B3B3] / text-[#FFD700]
 | `scripts/import-30-tabs.js` | 最初測試用，導入前 30 篇 |
 | `scripts/import-100-tabs.js` | 導入第 31-130 篇（已執行） |
 | `scripts/fix-migrated-tabs.js` | 修復已導入但缺少 artistId 的 tabs |
+| `scripts/fix-all-artist-names.js` | 修復雙語歌手名 + 合併重複歌手（命令列工具） |
 | `pages/admin/import-tabs.js` | 後台手動導入頁面（單首/CSV 批量） |
-| `pages/admin/migrated-tabs.js` | **遷移樂譜管理後台**（查看/編輯/刪除/修復問題） |
+| `pages/admin/migrated-tabs.js` | **遷移樂譜管理後台**（查看/編輯/刪除/修復問題、維基搜尋） |
+| `pages/admin/artists-v2.js` | **歌手管理 V2**（統一管理、多選批量設置分類） |
+| `pages/admin/merge-artists.js` | **合併重複歌手**（自動檢測中英文重複、手動合併） |
 
 ### 標題解析邏輯
 ```javascript
@@ -400,7 +410,38 @@ node scripts/migrate-blogger.js --write --all
 | 初期 | 擱置 Imgur，改用 Cloudinary | 更穩定嘅匿名上傳 |
 | 初期 | 簡單 Parser | 用戶輸入格式唔統一 |
 | 初期 | 深色模式優先 | Spotify 風格，護眼 |
+| 2026-02-07 | 新增後台管理工具 | 遷移樂譜管理、歌手管理 V2、合併重複歌手 |
+| 2026-02-07 | 修復歌手改名問題 | 查詢函數支援多種 ID 變體，解決改名後睇唔到歌嘅問題 |
 | 2026-02 | 改用 Pages Router | 簡化 Firebase 整合 |
+
+---
+
+## 今日工作摘要 (2026-02-07)
+
+### 新增功能
+1. **創建 AGENTS.md** - 項目記憶檔案系統
+2. **遷移樂譜管理後台** `/admin/migrated-tabs`
+   - 查看所有遷移樂譜及其來源分佈
+   - 編輯樂譜內容、歌手、調性
+   - 維基百科搜尋整合
+   - 自動修復問題功能
+3. **歌手管理 V2** `/admin/artists-v2`
+   - 統一顯示所有歌手（32個）
+   - 多選批量設置分類（男/女/組合）
+   - 編輯歌手資料、照片、Hero
+4. **合併重複歌手** `/admin/merge-artists`
+   - 自動檢測中英文重複歌手
+   - 一鍵合併轉移樂譜
+   - 手動選擇合併模式
+
+### Bug 修復
+1. **歌手分類顯示** - `unknown` 同空字符串歸入「其他」分類
+2. **歌手改名後查詢** - `getTabsByArtist` 支援多種 ID 變體查詢
+3. **雙語歌手名解析** - 支援「中文名 英文名」格式
+
+### 已知限制
+- 歌手改名後，舊樂譜的 `artistId` 不會自動更新（已透過查詢函數兼容處理）
+- UNKNOWN 歌手需要手動修復
 
 ---
 
