@@ -76,31 +76,33 @@ export default function CategoryImagesAdmin() {
           const sortedArtists = uniqueArtists
             .sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
           
-          if (sortedArtists.length > 0) {
-            const artist = sortedArtists[0]
-            const photoUrl = artist.wikiPhotoURL || artist.photoURL
-            
-            if (photoUrl) {
-              updates[catId] = {
-                image: photoUrl,
-                artistId: artist.id,
-                artistName: artist.name,
-                artistType: artist.artistType,
-                updatedAt: new Date().toISOString(),
-                hotScore: artist.tabCount || 0
-              }
-              details[catId] = {
-                artistName: artist.name,
-                artistType: artist.artistType,
-                image: photoUrl,
-                hotScore: artist.tabCount || 0
-              }
-            } else {
-              details[catId] = { 
-                error: 'No photo found', 
-                artistName: artist.name,
-                artistType: artist.artistType
-              }
+          // 找出第一個有照片的藝人
+          const artistWithPhoto = sortedArtists.find(a => a.wikiPhotoURL || a.photoURL)
+          
+          if (artistWithPhoto) {
+            const photoUrl = artistWithPhoto.wikiPhotoURL || artistWithPhoto.photoURL
+            updates[catId] = {
+              image: photoUrl,
+              artistId: artistWithPhoto.id,
+              artistName: artistWithPhoto.name,
+              artistType: artistWithPhoto.artistType,
+              updatedAt: new Date().toISOString(),
+              hotScore: artistWithPhoto.tabCount || 0
+            }
+            details[catId] = {
+              artistName: artistWithPhoto.name,
+              artistType: artistWithPhoto.artistType,
+              image: photoUrl,
+              hotScore: artistWithPhoto.tabCount || 0
+            }
+          } else if (sortedArtists.length > 0) {
+            // 有藝人但都沒有照片
+            const topArtist = sortedArtists[0]
+            details[catId] = { 
+              error: 'No photo found', 
+              artistName: topArtist.name,
+              artistType: topArtist.artistType,
+              note: `${sortedArtists.length} artists but no photos`
             }
           } else {
             details[catId] = { 
