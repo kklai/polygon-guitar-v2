@@ -39,6 +39,13 @@ export default function AdminIndex() {
       color: 'bg-orange-600'
     },
     {
+      href: '/admin/migrated-tabs',
+      title: '遷移樂譜管理',
+      description: '管理已遷移的樂譜，修復顯示問題',
+      icon: '🔧',
+      color: 'bg-amber-600'
+    },
+    {
       href: '/admin/analyze',
       title: '數據分析',
       description: '分析結他譜數據、和弦統計',
