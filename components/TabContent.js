@@ -252,6 +252,13 @@ function isMixedLine(line) {
   const hasChordBar = /\|[\s]*[A-G][#b]?/.test(line);
   const hasLyricBracket = /\([^A-G]/.test(line); // 括號內不是和弦（避免誤判）
   
+  // 如果中文字比例高，視為歌詞行而非混合行
+  const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
+  const chineseRatio = chineseChars.length / line.length;
+  if (chineseRatio > 0.3) {
+    return false;
+  }
+  
   return hasChordBar && hasLyricBracket;
 }
 
@@ -596,7 +603,12 @@ const TabContent = ({
       const nextLine = lines[i + 1] || '';
       
       if (!line.trim()) {
-        elements.push(<div key={i} style={{ height: '1.5em' }} />);
+        // 跳過連續空行，只保留一個
+        if (i > 0 && !lines[i - 1].trim()) {
+          i++;
+          continue;
+        }
+        elements.push(<div key={i} style={{ height: '0.8em' }} />);
         i++;
         continue;
       }
@@ -607,11 +619,15 @@ const TabContent = ({
       // 更精確的和弦行檢測：必須包含和弦模式，且不能主要是中文字
       const chordPattern = /(\|[\s]*[A-G][#b]?|[\s/]*[A-G][#b]?)(m|maj|min|sus|dim|aug|add|[0-9])*/g;
       const chordMatches = line.match(chordPattern) || [];
-      const hasChordPattern = chordMatches.length >= 2 || line.includes('|') || line.includes('｜');
+      // 只計算真正有和弦字母嘅匹配（避免匹配到空字符串）
+      const validChordMatches = chordMatches.filter(m => /[A-G]/.test(m));
+      const hasChordPattern = validChordMatches.length >= 2 || /\|[\s]*[A-G]/.test(line);
       // 檢查中文字比例，如果超過 30% 就不是和弦行
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const chineseRatio = chineseChars.length / line.length;
-      const isChord = hasChordPattern && chineseRatio < 0.3;
+      // 如果高中文比例且有括號歌詞，視為歌詞行
+      const hasLyricBrackets = chineseRatio > 0.3 && /\([^A-G#b\)]{1,3}\)/.test(line);
+      const isChord = hasChordPattern && chineseRatio < 0.3 && !hasLyricBrackets;
       // 同樣檢查下一行
       const nextChordMatches = nextLine.match(chordPattern) || [];
       const nextHasChordPattern = nextChordMatches.length >= 2 || nextLine.includes('|') || nextLine.includes('｜');
