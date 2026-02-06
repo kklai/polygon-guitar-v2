@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono+CJK+TC&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Sarasa Mono TC - 等寬中文字體 */
+/* Sarasa Mono TC - 等寬中文字體 (備用) */
 @font-face {
   font-family: 'Sarasa Mono TC';
   src: local('Sarasa Mono TC'),
@@ -31,14 +33,16 @@ body {
 .tab-content {
   white-space: pre-wrap;
   word-wrap: break-word;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  /* 優先使用 Google Fonts，確保跨平台一致 */
+  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'MingLiU', monospace;
   line-height: 1.6;
   color: #FFFFFF;
 }
 
 /* TabContent wrapper - ensure no internal scroll */
 .tab-content-wrapper {
-  font-family: 'Sarasa Mono TC', 'Noto Sans Mono CJK TC', 'MingLiU', monospace;
+  /* 優先使用 Google Fonts，確保跨平台一致 */
+  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'MingLiU', monospace;
   line-height: 1.6;
 }
 
