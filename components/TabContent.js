@@ -696,75 +696,85 @@ const TabContent = ({
           }
         }
         i++;
-      } else if (isChord && !nextIsChord && nextLine.trim() && nextLine.includes('(')) {
-        const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-        const result = processPair(cleanLine, nextLine, transposeSemitones);
-        
-        if (result.error) {
-          elements.push(
-            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
-                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                {result.chordLine}
-                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-              </div>
-              <div style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>{result.lyricLine}</div>
-            </div>
-          );
-        } else {
-          elements.push(
-            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
-                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                {result.chordLine}
-                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-              </div>
-              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                {result.lyricParts.map((part, idx) => (
-                  <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
-                    {part.text}
-                  </span>
-                ))}
-              </div>
-            </div>
-          );
-        }
-        i += 2;
       } else if (isChord) {
-        // 檢查是否有 Section Marker
-        const sectionInfo = extractSectionMarker(line);
+        // 如果下一行係空行，跳過去搵歌詞行
+        let lyricLineIndex = i + 1;
+        while (lyricLineIndex < lines.length && !lines[lyricLineIndex].trim()) {
+          lyricLineIndex++;
+        }
+        const lyricLine = lines[lyricLineIndex] || '';
         
-        if (sectionInfo.hasMarker) {
-          // Section Marker 單獨一行
-          elements.push(
-            <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
-                {sectionInfo.marker}
-              </span>
-            </div>
-          );
-          // 和弦部分
-          const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
-          if (transposedChordLine.trim()) {
+        // 檢查係咪和弦行 + 歌詞行組合
+        if (lyricLine && lyricLine.includes('(') && !lyricLine.match(/\|[\s]*[A-G][#b]?/)) {
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+          const result = processPair(cleanLine, lyricLine, transposeSemitones);
+          
+          if (result.error) {
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-                {transposedChordLine}
+              <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+                <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                  {result.chordLine}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                </div>
+                <div style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>{result.lyricLine}</div>
+              </div>
+            );
+          } else {
+            elements.push(
+              <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
+                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                  {result.chordLine}
+                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                </div>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  {result.lyricParts.map((part, idx) => (
+                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
               </div>
             );
           }
+          i = lyricLineIndex + 1;
         } else {
-          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+          // 冇歌詞行，當作單獨和弦行處理（包括 Section Marker）
+          const sectionInfo = extractSectionMarker(line);
           
-          elements.push(
-            <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-              {transposedChordLine}
-              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-            </div>
-          );
+          if (sectionInfo.hasMarker) {
+            // Section Marker 單獨一行
+            elements.push(
+              <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
+                  {sectionInfo.marker}
+                </span>
+              </div>
+            );
+            // 和弦部分
+            const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
+            if (transposedChordLine.trim()) {
+              elements.push(
+                <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+                  {transposedChordLine}
+                </div>
+              );
+            }
+          } else {
+            const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+            const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+            
+            elements.push(
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                {transposedChordLine}
+                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+              </div>
+            );
+          }
+          i++;
         }
-        i++;
       } else {
         elements.push(
           <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
