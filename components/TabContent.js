@@ -97,13 +97,18 @@ function transposeChord(chord, semitones) {
 function transposeChordLine(line, semitones) {
   if (!semitones || semitones === 0) return line;
   
-  // 匹配和弦（A-G 開頭）或延長符號（獨立的 -）
-  return line.replace(/\|?\s*([A-G][#b]?[^\s|]*|-)/g, (match, chord) => {
-    const hasBar = match.includes('|');
+  // 匹配：| + 和弦，或 空格 + 和弦，或 |，或獨立的 -
+  return line.replace(/(\|\s*|\s+)([A-G][#b]?[^\s|]*|-)|(\|)/g, (match, separator, chord, barOnly) => {
+    // 處理只有 | 的情況
+    if (barOnly === '|') return ' |';
+    
+    // 判斷是否有 | 
+    const hasBar = separator && separator.includes('|');
+    const leadingSpace = separator && separator.match(/\s*$/)?.[0] || '';
     
     // 處理獨立的延長符號（只是 -）
     if (chord === '-') {
-      return hasBar ? '| ' : '' + '-';
+      return (hasBar ? ' |' : leadingSpace || ' ') + '-';
     }
     
     // 檢查係咪有延長符號（結尾係 -）
@@ -111,7 +116,7 @@ function transposeChordLine(line, semitones) {
     const cleanChord = hasDash ? chord.slice(0, -1) : chord;
     const transposed = transposeChord(cleanChord, semitones);
     const result = hasDash ? transposed + '-' : transposed;
-    return hasBar ? '| ' + result : result;
+    return (hasBar ? ' |' : leadingSpace || ' ') + result;
   });
 }
 
