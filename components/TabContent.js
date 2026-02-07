@@ -416,7 +416,8 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   const normalizedLyric = normalizeInput(lyricLine);
   const bracketPositions = findBracketPositions(normalizedLyric);
   
-  const chords = [];
+  // 解析和弦行，記錄每個 token 及其位置
+  const tokens = [];
   let i = 0;
   const chars = Array.from(normalizedChord);
   
@@ -431,58 +432,80 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
       while (i < chars.length && chars[i] === ' ') i++;
     }
     
-    let chordName = '';
+    let tokenName = '';
     while (i < chars.length && chars[i] !== ' ' && chars[i] !== '\u3000') {
-      chordName += chars[i];
+      tokenName += chars[i];
       i++;
     }
     
-    // 處理和弦（A-G 開頭）或延長符號（-）
-    if (chordName && (/^[A-G]/.test(chordName) || chordName === '-')) {
-      let displayName = chordName;
+    // 處理和弦（A-G 開頭）或延長符號/節奏記號（-、*、2/4 等）
+    if (tokenName) {
+      let displayName = tokenName;
+      let isChord = /^[A-G]/.test(tokenName);
+      let isDash = tokenName === '-' || tokenName === '*' || /^\d+\/\d+$/.test(tokenName);
       
-      // 如果是和弦（非延長符號），處理轉調
-      if (/^[A-G]/.test(chordName)) {
-        displayName = transposeSemitones !== 0 
-          ? transposeChord(chordName, transposeSemitones)
-          : chordName;
+      // 如果是和弦，處理轉調
+      if (isChord && transposeSemitones !== 0) {
+        displayName = transposeChord(tokenName, transposeSemitones);
       }
       
-      chords.push({
+      tokens.push({
         name: displayName,
         fullToken: hasBar ? '|' + displayName : displayName,
         isBarStart: hasBar,
+        isChord: isChord,
+        isDash: isDash,
         width: getTextWidth(hasBar ? '|' + displayName : displayName),
         nameWidth: getTextWidth(displayName)
       });
     }
   }
-
-  if (chords.length !== bracketPositions.length) {
+  
+  // 分離和弦（需要對齊）同延長符號（按位置顯示）
+  const chordTokens = tokens.filter(t => t.isChord);
+  
+  // 檢查和弦數量是否匹配括號數量
+  if (chordTokens.length !== bracketPositions.length) {
     return { chordLine, lyricLine, error: true };
   }
 
+  // 重建和弦行：和弦對齊括號，延長符號按原始位置顯示
   let newChordLine = '';
   let currentCol = 0;
+  let chordIdx = 0;
 
-  for (let idx = 0; idx < chords.length; idx++) {
-    const chord = chords[idx];
-    const targetPos = bracketPositions[idx];
-    const bracketWidth = 2;
-    const centerOffset = Math.round((bracketWidth - chord.nameWidth) / 2);
+  for (let idx = 0; idx < tokens.length; idx++) {
+    const token = tokens[idx];
     
-    let startCol = chord.isBarStart ? targetPos - 1 + centerOffset : targetPos + centerOffset;
-    if (startCol < currentCol) startCol = currentCol;
-    
-    const spacesNeeded = startCol - currentCol;
-    const fullSpaces = Math.floor(spacesNeeded / 2);
-    const halfSpace = spacesNeeded % 2;
-    
-    newChordLine += '\u3000'.repeat(fullSpaces);
-    if (halfSpace) newChordLine += ' ';
-    
-    newChordLine += chord.fullToken;
-    currentCol = startCol + chord.width;
+    if (token.isChord) {
+      // 和弦：對齊到對應括號
+      const targetPos = bracketPositions[chordIdx];
+      const bracketWidth = 2;
+      const centerOffset = Math.round((bracketWidth - token.nameWidth) / 2);
+      
+      let startCol = token.isBarStart ? targetPos - 1 + centerOffset : targetPos + centerOffset;
+      if (startCol < currentCol) startCol = currentCol;
+      
+      const spacesNeeded = startCol - currentCol;
+      const fullSpaces = Math.floor(spacesNeeded / 2);
+      const halfSpace = spacesNeeded % 2;
+      
+      newChordLine += '\u3000'.repeat(fullSpaces);
+      if (halfSpace) newChordLine += ' ';
+      
+      newChordLine += token.fullToken;
+      currentCol = startCol + token.width;
+      chordIdx++;
+    } else {
+      // 延長符號/節奏記號：按固定間隔顯示
+      const spacesNeeded = 2; // 延長符號之間約 2 個半寬空格
+      if (currentCol > 0) {
+        newChordLine += ' '.repeat(spacesNeeded);
+        currentCol += spacesNeeded;
+      }
+      newChordLine += token.fullToken;
+      currentCol += token.width;
+    }
   }
 
   const parts = [];
