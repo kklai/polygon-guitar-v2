@@ -105,7 +105,7 @@ export default function MergeArtistsPage() {
       if (!keepArtist.heroPhoto && mergeArtist.heroPhoto) updates.heroPhoto = mergeArtist.heroPhoto
       
       // 合併簡介（保留較長的）
-      if (!keepArtist.bio || (mergeArtist.bio && mergeArtist.bio.length > keepArtist.bio.length)) {
+      if (mergeArtist.bio && (!keepArtist.bio || mergeArtist.bio.length > keepArtist.bio.length)) {
         updates.bio = mergeArtist.bio
       }
       
