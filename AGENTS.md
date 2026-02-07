@@ -287,6 +287,30 @@ BLOGGER_API_KEY=
 
 ## 開發偏好
 
+### ⚠️ 重要規則：每次更改必須部署
+> **任何代碼修改後，必須立即部署到 Vercel，確保網上版本同步更新**
+
+**部署流程：**
+```bash
+# 1. 確認所有更改
+git status
+
+# 2. 提交更改
+git add -A
+git commit -m "描述更改內容"
+git push
+
+# 3. 部署到 Vercel
+vercel --prod
+```
+
+**部署後檢查：**
+- 確認 Production URL 正常運作
+- 測試修改的功能是否正常
+- 檢查 Console 有無錯誤
+
+---
+
 ### 編碼風格
 - 使用 JavaScript（非 TypeScript）
 - Tailwind CSS 優先
