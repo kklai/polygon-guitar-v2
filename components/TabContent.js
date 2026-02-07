@@ -437,17 +437,23 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
       i++;
     }
     
-    if (chordName && /^[A-G]/.test(chordName)) {
-      const transposedName = transposeSemitones !== 0 
-        ? transposeChord(chordName, transposeSemitones)
-        : chordName;
+    // 處理和弦（A-G 開頭）或延長符號（-）
+    if (chordName && (/^[A-G]/.test(chordName) || chordName === '-')) {
+      let displayName = chordName;
+      
+      // 如果是和弦（非延長符號），處理轉調
+      if (/^[A-G]/.test(chordName)) {
+        displayName = transposeSemitones !== 0 
+          ? transposeChord(chordName, transposeSemitones)
+          : chordName;
+      }
       
       chords.push({
-        name: transposedName,
-        fullToken: hasBar ? '|' + transposedName : transposedName,
+        name: displayName,
+        fullToken: hasBar ? '|' + displayName : displayName,
         isBarStart: hasBar,
-        width: getTextWidth(hasBar ? '|' + transposedName : transposedName),
-        nameWidth: getTextWidth(transposedName)
+        width: getTextWidth(hasBar ? '|' + displayName : displayName),
+        nameWidth: getTextWidth(displayName)
       });
     }
   }
