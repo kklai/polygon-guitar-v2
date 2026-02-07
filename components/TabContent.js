@@ -97,12 +97,21 @@ function transposeChord(chord, semitones) {
 function transposeChordLine(line, semitones) {
   if (!semitones || semitones === 0) return line;
   
-  // 匹配和弦，包括 slash chord（如 C/E, D7/F#）
-  // 避免重複轉調已轉過的結果
-  return line.replace(/\|?\s*([A-G][#b]?[^\s|]*)/g, (match, chord) => {
+  // 匹配和弦（A-G 開頭）或延長符號（獨立的 -）
+  return line.replace(/\|?\s*([A-G][#b]?[^\s|]*|-)/g, (match, chord) => {
     const hasBar = match.includes('|');
-    const transposed = transposeChord(chord, semitones);
-    return hasBar ? '| ' + transposed : transposed;
+    
+    // 處理獨立的延長符號（只是 -）
+    if (chord === '-') {
+      return hasBar ? '| ' : '' + '-';
+    }
+    
+    // 檢查係咪有延長符號（結尾係 -）
+    const hasDash = chord.endsWith('-');
+    const cleanChord = hasDash ? chord.slice(0, -1) : chord;
+    const transposed = transposeChord(cleanChord, semitones);
+    const result = hasDash ? transposed + '-' : transposed;
+    return hasBar ? '| ' + result : result;
   });
 }
 
@@ -492,6 +501,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
 const TabContent = ({ 
   content, 
   originalKey = 'C',
+  playKey, // 實際內容的調（Capo後彈奏的調）
   editable = false,
   onContentChange,
   onKeyChange,
@@ -500,7 +510,9 @@ const TabContent = ({
   initialKey,
   fullWidth = false
 }) => {
-  const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
+  // 使用 playKey 作為基準調（如果有的話）
+  const baseKey = playKey || originalKey;
+  const [currentKey, setCurrentKey] = useState(initialKey || baseKey);
   const [fontSize, setFontSize] = useState(16);
   const [isAutoScroll, setIsAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3);
@@ -511,12 +523,15 @@ const TabContent = ({
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
 
-  const capo = calculateCapo(originalKey, currentKey);
-  const transposeSemitones = calculateTransposeSemitones(originalKey, currentKey);
-  const capoSuggestion = getCapoSuggestion(capo);
+  // 轉調計算：內容轉調以 baseKey 為準
+  const transposeSemitones = calculateTransposeSemitones(baseKey, currentKey);
+  // 但 Capo 顯示要以原調計算（顯示實際要夾幾多格）
+  const displayCapo = calculateCapo(originalKey, currentKey);
+  const capoSuggestion = getCapoSuggestion(displayCapo);
 
+  // 強制使用 initialKey 作為初始值
   useEffect(() => {
-    if (initialKey && initialKey !== currentKey) {
+    if (initialKey) {
       setCurrentKey(initialKey);
     }
   }, [initialKey]);
@@ -804,10 +819,10 @@ const TabContent = ({
                 <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-800 text-gray-400 rounded">免Capo</span>
               )}
               {capoSuggestion.status === 'ok' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-900/50 text-green-400 rounded">Capo {capo}</span>
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-900/50 text-green-400 rounded">Capo {displayCapo}</span>
               )}
               {capoSuggestion.status === 'high' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">Capo {capo}太高</span>
+                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">Capo {displayCapo}太高</span>
               )}
             </>
           )}
@@ -830,8 +845,8 @@ const TabContent = ({
         )}
         
         <div className="flex flex-wrap gap-1 sm:gap-1.5 pb-1 sm:pb-2">
-          {/* 根據原調類型顯示對應的 Key：Major 歌只顯示 Major Keys，Minor 歌只顯示 Minor Keys */}
-          {(originalKey?.endsWith('m') ? MINOR_KEYS : MAJOR_KEYS).map((key) => {
+          {/* 根據基準調類型顯示對應的 Key：Major 歌只顯示 Major Keys，Minor 歌只顯示 Minor Keys */}
+          {(baseKey?.endsWith('m') ? MINOR_KEYS : MAJOR_KEYS).map((key) => {
             const isCurrent = key === currentKey;
             return (
               <button

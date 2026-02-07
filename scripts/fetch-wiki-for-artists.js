@@ -211,8 +211,10 @@ async function fetchWikiForArtists() {
     if (details.birthYear) updateData.birthYear = details.birthYear;
     if (details.debutYear) updateData.debutYear = details.debutYear;
     
-    // 如果類型係 unknown，用維基嘅類型
-    if (artist.artistType === 'unknown' && details.artistType !== 'unknown') {
+    // 如果類型係 unknown/undefined/空，用維基嘅類型
+    const currentType = artist.artistType;
+    const hasNoType = !currentType || currentType === 'unknown';
+    if (hasNoType && details.artistType && details.artistType !== 'unknown') {
       updateData.artistType = details.artistType;
       console.log('  🏷️ 類型: ' + details.artistType);
     }

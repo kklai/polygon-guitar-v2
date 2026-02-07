@@ -1,6 +1,14 @@
 // Blogger 結他譜遷移工具 V2 - 改善格式保留
 const axios = require('axios');
+const admin = require('firebase-admin');
+const serviceAccount = require('./firebase-service-account.json');
 require('dotenv').config({ path: '.env.local' });
+
+// 初始化 Firebase
+if (admin.apps.length === 0) {
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+}
+const db = admin.firestore();
 
 // Blogger 設定
 const BLOG_ID = process.env.BLOGGER_BLOG_ID || '7655351322076661979';
@@ -25,12 +33,151 @@ const offsetArg = args.find(arg => arg.startsWith('--offset='));
 const LIMIT = ALL_POSTS ? 5000 : (limitArg ? parseInt(limitArg.split('=')[1]) : 50);
 const OFFSET = offsetArg ? parseInt(offsetArg.split('=')[1]) : 0;
 
+// ============ 過濾規則：跳過教學文/測驗/鼓譜 ============
+
+const SKIP_KEYWORDS = [
+  '教學', '教學文', '課程', '測驗', '測試', '測考', 'Quiz', 'quiz', 'QUIZ',
+  '常識', '問題', '題目', '練習', '考試', '小測', '測驗',
+  'drum', 'DRUM', 'Drum', '鼓譜', '打鼓', '木箱鼓', 'cajon', 'Cajon', 'CAJON',
+  'kalimba', 'Kalimba', 'KALIMBA', '卡林巴', '拇指琴',
+  '鋼琴教學', '鋼琴', 'piano 教學', 'piano教學',
+  '課程', '一堂', '學左', '學咗', '學了',
+  '目錄', '列表', '分享', '團購', '放榜',
+  '十大結他譜', '排行榜',
+  'Rockschool', 'rockschool', 'ROCKSCHOOL',
+  'Party', 'party', 'PARTY',
+  'Cover', 'cover', 'COVER'
+];
+
+function shouldSkipPost(title) {
+  if (!title || title.trim() === '') return true; // 跳過空標題
+  const lowerTitle = title.toLowerCase();
+  return SKIP_KEYWORDS.some(keyword => lowerTitle.includes(keyword.toLowerCase()));
+}
+
 // ============ 改善嘅 HTML 處理 ============
 
-// 改善嘅內容提取 - 更好保留格式
+// 改善嘅內容提取 - 更好保留格式 + 提取詳細資訊
 function parseContentV2(content) {
-  if (!content) return { content: '', originalKey: 'C', capo: null, youtubeUrl: '' };
+  if (!content) return { 
+    content: '', 
+    originalKey: 'C', 
+    capo: null, 
+    youtubeUrl: '',
+    composer: '',
+    lyricist: ''
+  };
   
+  // 先用原始內容提取資訊（未處理 HTML 前）
+  const rawText = content
+    .replace(/<[^>]+>/g, ' ')  // 移除 HTML，保留空格
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+  
+  // ========== 提取作曲 ==========
+  let composer = '';
+  const composerPatterns = [
+    /曲[：:]\s*([^\n,，詞Key原調]+?)(?=\s*(?:詞|Key|原調|編曲|$))/i,
+    /作曲[：:]\s*([^\n,，]+?)(?=\s*(?:詞|Key|原調|編曲|$))/i,
+    /Composer[：:]\s*([^\n,，]+)/i,
+    /Music[：:]\s*([^\n,，]+)/i,
+    /曲\s*[:：]\s*([A-Za-z\s\u4e00-\u9fa5]+?)(?=\s+(?:詞|Key|原調|編曲|Arranged))/i,
+    /曲\s*[:：]\s*([A-Za-z\s\u4e00-\u9fa5]+?)(?=\s|$)/i
+  ];
+  
+  for (const pattern of composerPatterns) {
+    const match = rawText.match(pattern);
+    if (match && match[1] && match[1].trim().length > 1) {
+      composer = match[1].trim().replace(/\s+/g, ' ');
+      // 清理常見多餘文字
+      composer = composer.replace(/(作)?詞.*$/, '').trim();
+      if (composer && composer.length <= 50) break;
+    }
+  }
+  
+  // ========== 提取填詞 ==========
+  let lyricist = '';
+  const lyricistPatterns = [
+    /詞[：:]\s*([^\n,，曲Key原調]+?)(?=\s*(?:曲|Key|原調|編曲|$))/i,
+    /作詞[：:]\s*([^\n,，]+?)(?=\s*(?:曲|Key|原調|編曲|$))/i,
+    /填詞[：:]\s*([^\n,，]+?)(?=\s*(?:曲|Key|原調|編曲|$))/i,
+    /Lyricist[：:]\s*([^\n,，]+)/i,
+    /Lyrics[：:]\s*([^\n,，]+)/i,
+    /詞\s*[:：]\s*([A-Za-z\s\u4e00-\u9fa5]+?)(?=\s+(?:曲|Key|原調|編曲|Arranged))/i,
+    /詞\s*[:：]\s*([A-Za-z\s\u4e00-\u9fa5]+?)(?=\s|$)/i
+  ];
+  
+  for (const pattern of lyricistPatterns) {
+    const match = rawText.match(pattern);
+    if (match && match[1] && match[1].trim().length > 1) {
+      lyricist = match[1].trim().replace(/\s+/g, ' ');
+      // 清理常見多餘文字
+      lyricist = lyricist.replace(/(作)?曲.*$/, '').trim();
+      if (lyricist && lyricist.length <= 50) break;
+    }
+  }
+  
+  // ========== 提取 Key 同 Capo（支援多種格式）==========
+  let originalKey = 'C';
+  let capo = null;
+  let playKey = null; // 樂譜實際彈奏嘅調（如果同原調不同）
+  
+  // 格式 1: Key: E Capo 4 > Play C / Key: E Capo 4 Play C
+  // 意思：原調 E，夾 Capo 4，用 C 和弦彈
+  const capoPlayMatch = rawText.match(/Key[\s:：]*([A-G][#b]?)[\s]*Capo[\s:：]*(\d+)(?:\s*[>\-]?\s*(?:Play|弹|彈)?\s*([A-G][#b]?m?))?/i);
+  if (capoPlayMatch) {
+    originalKey = capoPlayMatch[1];      // 原調（實際音高）
+    capo = parseInt(capoPlayMatch[2]);   // Capo 位置
+    playKey = capoPlayMatch[3] || null;  // 彈奏調（如果指定咗）
+    console.log(`    🎵 檢測到 Capo 格式: 原調 ${originalKey}, Capo ${capo}${playKey ? ', 彈奏 ' + playKey : ''}`);
+  } else {
+    // 格式 2: 標準格式（分開提取）
+    const keyPatterns = [
+      /原調[：:]\s*([A-G][#b]?)/i,
+      /Key[：:]\s*([A-G][#b]?)/i,
+      /調\s*([A-G][#b]?)\s*調/,
+      /Key\s*[:：]\s*([A-G][#b]?)/i,
+      /調性[：:]\s*([A-G][#b]?)/i,
+      /\b([A-G][#b]?)\s*major/i,
+      /\b([A-G][#b]?)\s*minor/i
+    ];
+    
+    for (const pattern of keyPatterns) {
+      const match = rawText.match(pattern);
+      if (match && match[1]) {
+        originalKey = match[1];
+        break;
+      }
+    }
+    
+    // 提取 Capo（標準格式）
+    const capoPatterns = [
+      /Capo[：:]?\s*(\d+)/i,
+      /夾\s*(\d+)/,
+      /capo\s*(\d+)/i,
+      /轉調[：:]?\s*(\d+)/
+    ];
+    
+    for (const pattern of capoPatterns) {
+      const match = rawText.match(pattern);
+      if (match) {
+        capo = parseInt(match[1]);
+        break;
+      }
+    }
+  }
+  
+  // ========== 提取 YouTube ==========
+  let youtubeUrl = '';
+  const ytMatch = content.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/) ||
+                  content.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    youtubeUrl = `https://youtube.com/watch?v=${ytMatch[1]}`;
+  }
+  
+  // ========== 處理內容格式 ==========
   let text = content;
   
   // Step 1: 處理常見 HTML 實體
@@ -42,13 +189,13 @@ function parseContentV2(content) {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
   
-  // Step 2: 處理換行元素（重要：順序很重要）
+  // Step 2: 處理換行元素
   text = text
-    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n')  // 雙 br = 段落分隔
-    .replace(/<br\s*\/?>/gi, '\n')                   // 單 br = 換行
-    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')          // p 之間 = 段落
-    .replace(/<\/p>/gi, '\n\n')                      // p 結束 = 段落
-    .replace(/<p[^>]*>/gi, '');                      // p 開始 = 移除
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<p[^>]*>/gi, '');
   
   // Step 3: 處理其他塊級元素
   text = text
@@ -60,58 +207,35 @@ function parseContentV2(content) {
     .replace(/<\/pre>/gi, '\n')
     .replace(/<pre[^>]*>/gi, '');
   
-  // Step 4: 處理行內元素（轉為空格或移除）
+  // Step 4: 處理行內元素
   text = text
-    .replace(/<span[^>]*>\s*<\/span>/gi, '')         // 空 span 移除
-    .replace(/<span[^>]*>(.+?)<\/span>/gi, '$1')     // 有內容嘅 span 保留內容
-    .replace(/<font[^>]*>(.+?)<\/font>/gi, '$1')     // font 標籤
-    .replace(/<b>(.+?)<\/b>/gi, '$1')                // b 標籤
-    .replace(/<i>(.+?)<\/i>/gi, '$1')                // i 標籤
-    .replace(/<u>(.+?)<\/u>/gi, '$1')                // u 標籤
-    .replace(/<strong>(.+?)<\/strong>/gi, '$1')      // strong
-    .replace(/<em>(.+?)<\/em>/gi, '$1');             // em
+    .replace(/<span[^>]*>\s*<\/span>/gi, '')
+    .replace(/<span[^>]*>(.+?)<\/span>/gi, '$1')
+    .replace(/<font[^>]*>(.+?)<\/font>/gi, '$1')
+    .replace(/<b>(.+?)<\/b>/gi, '$1')
+    .replace(/<i>(.+?)<\/i>/gi, '$1')
+    .replace(/<u>(.+?)<\/u>/gi, '$1')
+    .replace(/<strong>(.+?)<\/strong>/gi, '$1')
+    .replace(/<em>(.+?)<\/em>/gi, '$1');
   
   // Step 5: 移除所有剩餘 HTML 標籤
   text = text.replace(/<[^>]+>/g, '');
   
   // Step 6: 清理多餘空白
   text = text
-    .replace(/[ \t]+/g, ' ')          // 多個空格/Tab -> 單空格
-    .replace(/^ +/gm, '')              // 行首空格移除
-    .replace(/\n{3,}/g, '\n\n')        // 3+ 換行 -> 2 換行
+    .replace(/[ \t]+/g, ' ')
+    .replace(/^ +/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
-  
-  // Step 7: 嘗試提取調性
-  let originalKey = 'C';
-  const keyMatch = text.match(/原調[：:]\s*([A-G][#b]?)/i) || 
-                   text.match(/Key[：:]\s*([A-G][#b]?)/i) ||
-                   text.match(/調\s*([A-G][#b]?)\s*調/);
-  if (keyMatch) {
-    originalKey = keyMatch[1];
-  }
-  
-  // Step 8: 嘗試提取 Capo
-  let capo = null;
-  const capoMatch = text.match(/Capo[：:]?\s*(\d+)/i) ||
-                    text.match(/夾\s*(\d+)/) ||
-                    text.match(/capo\s*(\d+)/i);
-  if (capoMatch) {
-    capo = parseInt(capoMatch[1]);
-  }
-  
-  // Step 9: 提取 YouTube 連結
-  let youtubeUrl = '';
-  const ytMatch = content.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/) ||
-                  content.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-  if (ytMatch) {
-    youtubeUrl = `https://youtube.com/watch?v=${ytMatch[1]}`;
-  }
   
   return {
     content: text,
     originalKey,
     capo,
-    youtubeUrl
+    playKey,      // 樂譜實際彈奏嘅調（用於 Capo 格式）
+    youtubeUrl,
+    composer,
+    lyricist
   };
 }
 
@@ -168,12 +292,25 @@ function parseTitle(title) {
   }
   
   // 嘗試匹配「歌手名 歌名」格式（常見歌手名在第一個空格前）
-  const spaceMatch = cleanTitle.match(/^([\u4e00-\u9fa5]{2,4})\s+(.+)$/);
-  if (spaceMatch) {
-    const potentialArtist = spaceMatch[1];
-    const potentialTitle = spaceMatch[2];
+  // 支援中文（2-4字）
+  const chineseMatch = cleanTitle.match(/^([\u4e00-\u9fa5]{2,4})\s+(.+)$/);
+  if (chineseMatch) {
+    const potentialArtist = chineseMatch[1];
+    const potentialTitle = chineseMatch[2];
     // 如果歌名部分看起來不像歌手名（例如包含英文字母或數字）
     if (potentialTitle.match(/[a-zA-Z0-9]/) || potentialTitle.length > potentialArtist.length) {
+      return { artist: potentialArtist, title: potentialTitle };
+    }
+  }
+  
+  // 支援英文/混合（如 "ButterWorks 各種經典老歌曲 Medley"）
+  // 第一個詞係歌手名（英文或中英混合），剩低係歌名
+  const mixedMatch = cleanTitle.match(/^([a-zA-Z][a-zA-Z0-9\s]*[a-zA-Z0-9]|[a-zA-Z])\s+(.+)$/);
+  if (mixedMatch) {
+    const potentialArtist = mixedMatch[1].trim();
+    const potentialTitle = mixedMatch[2].trim();
+    // 歌名應該比歌手名長，或者包含中文字
+    if (potentialTitle.length > potentialArtist.length || potentialTitle.match(/[\u4e00-\u9fa5]/)) {
       return { artist: potentialArtist, title: potentialTitle };
     }
   }
@@ -231,26 +368,7 @@ async function fetchAllPosts() {
 
 // ============ Firebase ============
 
-function initFirebase() {
-  const path = require('path');
-  const { initializeApp, cert } = require('firebase-admin/app');
-  const { getFirestore } = require('firebase-admin/firestore');
-  
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT;
-  
-  if (serviceAccountPath) {
-    const rootDir = path.resolve(__dirname, '..');
-    const fullPath = path.resolve(rootDir, serviceAccountPath);
-    const serviceAccount = require(fullPath);
-    const app = initializeApp({
-      credential: cert(serviceAccount)
-    }, 'blogger-v2'); // 指定 app name 避免衝突
-    return getFirestore(app);
-  } else {
-    const app = initializeApp({ name: 'blogger-v2' });
-    return getFirestore(app);
-  }
-}
+// Firebase 已經在頂部初始化，直接使用 db 變數
 
 function generateArtistId(artistName) {
   if (!artistName || artistName === 'Unknown') return null;
@@ -296,8 +414,18 @@ async function main() {
     console.log(`\n📊 總共獲得 ${posts.length} 篇文章`);
     console.log(`📍 處理範圍: ${OFFSET + 1} - ${Math.min(OFFSET + LIMIT, posts.length)} (${postsToProcess.length} 篇)\n`);
     
+    // 過濾教學文/測驗/鼓譜
+    const filteredPosts = postsToProcess.filter(post => !shouldSkipPost(post.title));
+    const skippedPosts = postsToProcess.filter(post => shouldSkipPost(post.title));
+    
+    if (skippedPosts.length > 0) {
+      console.log(`⏭️  跳過 ${skippedPosts.length} 篇非樂譜文章（教學/測驗/鼓譜等）`);
+      skippedPosts.forEach(post => console.log(`    - ${post.title || '(空標題)'}`));
+      console.log('');
+    }
+    
     // 分析每篇文章
-    const parsedPosts = postsToProcess.map((post, index) => {
+    const parsedPosts = filteredPosts.map((post, index) => {
       const titleInfo = parseTitle(post.title);
       const contentInfo = parseContentV2(post.content);
       
@@ -315,7 +443,12 @@ async function main() {
     console.log('==================');
     parsedPosts.slice(0, 3).forEach(post => {
       console.log(`\n[${post.index}] ${post.artist} - ${post.title}`);
-      console.log(`原調: ${post.originalKey}${post.capo ? ` (Capo ${post.capo})` : ''}`);
+      let keyDisplay = `原調: ${post.originalKey}`;
+      if (post.capo) keyDisplay += ` (Capo ${post.capo})`;
+      if (post.playKey) keyDisplay += ` [彈奏: ${post.playKey}]`;
+      console.log(keyDisplay);
+      if (post.composer) console.log(`作曲: ${post.composer}`);
+      if (post.lyricist) console.log(`填詞: ${post.lyricist}`);
       console.log(`內容長度: ${post.content.length} 字符`);
       console.log(`內容預覽（前 300 字符）：`);
       console.log('---');
@@ -331,6 +464,9 @@ async function main() {
     console.log(`有 YouTube: ${parsedPosts.filter(p => p.youtubeUrl).length}`);
     console.log(`有指定調性: ${parsedPosts.filter(p => p.originalKey !== 'C').length}`);
     console.log(`有 Capo: ${parsedPosts.filter(p => p.capo).length}`);
+    console.log(`有 PlayKey (Capo 格式): ${parsedPosts.filter(p => p.playKey).length}`);
+    console.log(`有作曲資料: ${parsedPosts.filter(p => p.composer).length}`);
+    console.log(`有填詞資料: ${parsedPosts.filter(p => p.lyricist).length}`);
     
     // 歌手統計
     const artistCounts = {};
@@ -349,7 +485,7 @@ async function main() {
     if (WRITE_MODE) {
       console.log('\n\n⚠️ 寫入模式 - 開始導入到 Firebase...');
       
-      const db = initFirebase();
+      // db 已經在頂部初始化，直接使用
       const tabsRef = db.collection('tabs');
       const sourceMark = USE_NEW_MARK ? 'blogger-v2' : 'blogger';
       
@@ -382,6 +518,9 @@ async function main() {
             content: post.content,
             originalKey: post.originalKey,
             capo: post.capo,
+            playKey: post.playKey || null,  // 樂譜實際彈奏嘅調（Capo 格式用）
+            composer: post.composer || '',
+            lyricist: post.lyricist || '',
             youtubeUrl: post.youtubeUrl,
             bloggerId: post.id, // 記錄 blogger ID
             createdAt: new Date(post.published),

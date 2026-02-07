@@ -60,6 +60,9 @@ export default function TabDetail() {
       const data = await getTab(id)
       if (data) {
         setTab(data)
+        // 初始化 currentKey：URL參數 > PlayKey > OriginalKey
+        const initialKey = queryKey || data.playKey || data.originalKey || 'C'
+        setCurrentKey(initialKey)
         if (id) incrementViewCount(id)
         if (data.createdBy) {
           const userDoc = await getDoc(doc(db, 'users', data.createdBy))
@@ -138,12 +141,21 @@ export default function TabDetail() {
           {/* 第二行：Key + 和弦統計 + 操作 */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
             <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-              {/* Key */}
+              {/* Key + Capo */}
               <span className="flex items-center gap-1 text-[#B3B3B3]">
                 <span className="text-[#FFD700]">♪</span>
-                {currentKey && currentKey !== tab.originalKey 
-                  ? `${tab.originalKey || 'C'}→${currentKey}`
-                  : tab.originalKey || 'C'}
+                <span>
+                  {/* 顯示當前選中嘅 Key */}
+                  {currentKey || tab.playKey || tab.originalKey || 'C'}
+                  {/* 顯示原調（如果不同）*/}
+                  {currentKey && currentKey !== tab.originalKey && (
+                    <span className="text-gray-500 ml-1">(原調 {tab.originalKey})</span>
+                  )}
+                  {/* 顯示 Capo */}
+                  {tab.capo > 0 && (
+                    <span className="text-[#FFD700] ml-1">Capo {tab.capo}</span>
+                  )}
+                </span>
               </span>
               
               {/* 和弦統計 */}
@@ -242,7 +254,8 @@ export default function TabDetail() {
         <TabContent 
           content={tab.content} 
           originalKey={tab.originalKey || 'C'}
-          initialKey={queryKey}
+          playKey={tab.playKey}
+          initialKey={queryKey || tab.playKey || tab.originalKey}
           onKeyChange={setCurrentKey}
           fullWidth
         />

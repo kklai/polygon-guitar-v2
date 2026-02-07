@@ -18,6 +18,8 @@ export default function EditTab() {
     artist: '',
     artistType: '',
     originalKey: 'C',
+    capo: '',
+    playKey: '',
     content: '',
     // 歌手資料
     artistPhoto: '',
@@ -78,6 +80,8 @@ export default function EditTab() {
         artist: data.artist,
         artistType: data.artistType || '',
         originalKey: data.originalKey || 'C',
+        capo: data.capo || '',
+        playKey: data.playKey || '',
         content: data.content,
         artistPhoto: data.artistPhoto || '',
         artistBio: data.artistBio || '',
@@ -526,6 +530,57 @@ export default function EditTab() {
                   <option key={key} value={key}>{key}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Capo */}
+            <div>
+              <label htmlFor="capo" className="block text-sm font-medium text-white mb-1">
+                Capo 位置
+              </label>
+              <select
+                id="capo"
+                name="capo"
+                value={formData.capo}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+              >
+                <option value="">唔用 Capo</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((num) => (
+                  <option key={num} value={num}>Capo {num}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-[#B3B3B3]">
+                夾邊格，例如 Capo 1 係夾第一格
+              </p>
+            </div>
+
+            {/* Play Key */}
+            <div>
+              <label htmlFor="playKey" className="block text-sm font-medium text-white mb-1">
+                彈奏調性
+              </label>
+              <select
+                id="playKey"
+                name="playKey"
+                value={formData.playKey}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+              >
+                <option value="">同原調</option>
+                <optgroup label="Major (大調)">
+                  {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Minor (小調)">
+                  {['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'].map((key) => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <p className="mt-1 text-sm text-[#B3B3B3]">
+                實際彈奏嘅調，例如「Capo 1 Play G」
+              </p>
             </div>
 
             {/* 演奏技巧 */}
