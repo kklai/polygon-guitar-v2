@@ -46,7 +46,11 @@ const SKIP_KEYWORDS = [
   '十大結他譜', '排行榜',
   'Rockschool', 'rockschool', 'ROCKSCHOOL',
   'Party', 'party', 'PARTY',
-  'Cover', 'cover', 'COVER'
+  'Cover', 'cover', 'COVER',
+  // 過濾 Fingerstyle 獨奏譜（用戶指定）
+  'Fingerstyle', 'fingerstyle', 'FINGERSTYLE',
+  '[Fingerstyle]', '[fingerstyle]',
+  '木結他獨奏', '結他獨奏'
 ];
 
 function shouldSkipPost(title) {

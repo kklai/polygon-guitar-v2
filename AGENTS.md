@@ -466,8 +466,10 @@ node scripts/migrate-blogger.js --write --all
 | **失敗** | 1 份（歌手名含 "/" 字符）|
 | **處理範圍** | 第 101-500 篇 |
 
-#### 新增歌手類型
-- **Fingerstyle 系列**: 陳奕迅 [Fingerstyle]、周杰倫 [Fingerstyle]、衛蘭 [Fingerstyle]
+#### 清理工作
+- **刪除 Fingerstyle 譜**: 110 個（根據用戶要求，Fingerstyle 獨奏譜不遷移）
+
+#### 新增歌手類型（已過濾 Fingerstyle）
 - **熱門歌手**: 鄭秀文、ROVER、林家謙、盧廣仲、AGA
 - **國際歌手**: Lady Gaga、Ed Sheeran、Charlie Puth
 
