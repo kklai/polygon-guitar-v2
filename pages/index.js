@@ -146,10 +146,10 @@ export default function Home() {
 
   const loadHomeData = async () => {
     try {
-      // 獲取熱門歌手（按歌曲數量排序）
+      // 獲取熱門歌手（按瀏覽總量排序）
       const allArtists = await getAllArtists()
       const sortedArtists = allArtists
-        .sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
         .slice(0, 10)
       setArtists(sortedArtists)
 
