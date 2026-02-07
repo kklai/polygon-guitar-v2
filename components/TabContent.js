@@ -469,43 +469,85 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
     return { chordLine, lyricLine, error: true };
   }
 
-  // 重建和弦行：和弦對齊括號，延長符號按原始位置顯示
-  let newChordLine = '';
-  let currentCol = 0;
+  // 計算每個 token 應該對齊嘅位置
+  // 和弦對齊括號，延長符號插在中間
+  const tokenPositions = [];
   let chordIdx = 0;
-
+  
   for (let idx = 0; idx < tokens.length; idx++) {
     const token = tokens[idx];
     
     if (token.isChord) {
       // 和弦：對齊到對應括號
-      const targetPos = bracketPositions[chordIdx];
-      const bracketWidth = 2;
-      const centerOffset = Math.round((bracketWidth - token.nameWidth) / 2);
-      
-      let startCol = token.isBarStart ? targetPos - 1 + centerOffset : targetPos + centerOffset;
-      if (startCol < currentCol) startCol = currentCol;
-      
-      const spacesNeeded = startCol - currentCol;
-      const fullSpaces = Math.floor(spacesNeeded / 2);
-      const halfSpace = spacesNeeded % 2;
-      
-      newChordLine += '\u3000'.repeat(fullSpaces);
-      if (halfSpace) newChordLine += ' ';
-      
-      newChordLine += token.fullToken;
-      currentCol = startCol + token.width;
+      tokenPositions.push(bracketPositions[chordIdx]);
       chordIdx++;
     } else {
-      // 延長符號/節奏記號：按固定間隔顯示
-      const spacesNeeded = 2; // 延長符號之間約 2 個半寬空格
-      if (currentCol > 0) {
-        newChordLine += ' '.repeat(spacesNeeded);
-        currentCol += spacesNeeded;
+      // 延長符號：計算前後和弦的中間位置
+      let prevChordBracketIdx = -1;
+      let nextChordBracketIdx = -1;
+      
+      // 找前一個和弦的括號索引
+      let chordCount = 0;
+      for (let j = 0; j < idx; j++) {
+        if (tokens[j].isChord) {
+          prevChordBracketIdx = chordCount;
+          chordCount++;
+        }
       }
-      newChordLine += token.fullToken;
-      currentCol += token.width;
+      
+      // 找後一個和弦的括號索引
+      chordCount = 0;
+      for (let j = 0; j < tokens.length; j++) {
+        if (tokens[j].isChord) {
+          if (j > idx) {
+            nextChordBracketIdx = chordCount;
+            break;
+          }
+          chordCount++;
+        }
+      }
+      
+      if (prevChordBracketIdx >= 0 && nextChordBracketIdx >= 0) {
+        // 在前後和弦的括號位置中間
+        const prevPos = bracketPositions[prevChordBracketIdx];
+        const nextPos = bracketPositions[nextChordBracketIdx];
+        const midPos = Math.round((prevPos + nextPos) / 2);
+        tokenPositions.push(midPos);
+      } else if (prevChordBracketIdx >= 0) {
+        // 只有前一個和弦，放在後面一點
+        tokenPositions.push(bracketPositions[prevChordBracketIdx] + 4);
+      } else if (nextChordBracketIdx >= 0) {
+        // 只有後一個和弦，放在前面一點
+        tokenPositions.push(Math.max(0, bracketPositions[nextChordBracketIdx] - 4));
+      } else {
+        tokenPositions.push(0);
+      }
     }
+  }
+
+  // 重建和弦行
+  let newChordLine = '';
+  let currentCol = 0;
+
+  for (let idx = 0; idx < tokens.length; idx++) {
+    const token = tokens[idx];
+    const targetPos = tokenPositions[idx];
+    
+    let startCol = token.isBarStart ? targetPos - 1 : targetPos;
+    // 延長符號稍微調整位置
+    if (token.isDash) startCol = targetPos;
+    
+    if (startCol < currentCol) startCol = currentCol;
+    
+    const spacesNeeded = startCol - currentCol;
+    const fullSpaces = Math.floor(spacesNeeded / 2);
+    const halfSpace = spacesNeeded % 2;
+    
+    newChordLine += '\u3000'.repeat(fullSpaces);
+    if (halfSpace) newChordLine += ' ';
+    
+    newChordLine += token.fullToken;
+    currentCol = startCol + token.width;
   }
 
   const parts = [];
