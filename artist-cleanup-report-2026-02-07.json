@@ -1,0 +1,908 @@
+{
+  "generatedAt": "2026-02-07T22:26:18.591Z",
+  "stats": {
+    "totalArtists": 235,
+    "orphanArtists": 90,
+    "songNameArtists": 33,
+    "fingerstyleArtists": 30,
+    "unknownArtists": 0
+  },
+  "orphanArtists": [
+    {
+      "id": "[兩隻手指搞店]-男人背後",
+      "name": "[兩隻手指搞店] 男人背後",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "best-of-me",
+      "name": "Best Of Me",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "i'll-never-love-again",
+      "name": "I'll Never Love Again",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "lemon",
+      "name": "Lemon",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "perfect",
+      "name": "Perfect",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "shallow",
+      "name": "Shallow",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "sometimes-when-we-touch",
+      "name": "Sometimes When We Touch",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-2018-木結他獨奏",
+      "name": "Supper Moment [Fingerstyle] 2018 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-木結他獨奏",
+      "name": "Supper Moment [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-附譜",
+      "name": "Supper Moment [Fingerstyle] 附譜",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "the-worst-is-yet-to-come",
+      "name": "The Worst is yet to come",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "twins-[fingerstyle]-木結他獨奏",
+      "name": "Twins [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "一天一天",
+      "name": "一天一天",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "一生愛你一個",
+      "name": "一生愛你一個",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "一雙手",
+      "name": "一雙手",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "三角誌",
+      "name": "三角誌",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "亂世情侶",
+      "name": "亂世情侶",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "五月天",
+      "name": "五月天",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "五月天-[fingerstyle]-2018-木結他獨奏",
+      "name": "五月天 [Fingerstyle] 2018 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "五月天-[fingerstyle]-木結他獨奏",
+      "name": "五月天 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "五月天-[精簡版-fingerstyle]-木結他獨奏",
+      "name": "五月天 [精簡版 Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "但願人長久",
+      "name": "但願人長久",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "側田-[fingerstyle]-木結他獨奏",
+      "name": "側田 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "其實我介意",
+      "name": "其實我介意",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "再不再見",
+      "name": "再不再見",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "分分鐘需要你",
+      "name": "分分鐘需要你",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "劉若英-林宥嘉-[fingerstyle]-木結他獨奏",
+      "name": "劉若英 林宥嘉 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "十七",
+      "name": "十七",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "古天樂-[fingerstyle]-木結他獨奏",
+      "name": "古天樂 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "只想與你再一起",
+      "name": "只想與你再一起",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "可惜我是水瓶座",
+      "name": "可惜我是水瓶座",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "告白氣球",
+      "name": "告白氣球",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "周杰倫-[fingerstyle]",
+      "name": "周杰倫 [Fingerstyle]",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "周杰倫-[fingerstyle]-木結他獨奏",
+      "name": "周杰倫 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "周杰倫-[拍線fingerstyle]-木結他獨奏",
+      "name": "周杰倫 [拍線Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "唯獨你是不可取替",
+      "name": "唯獨你是不可取替",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "垃圾",
+      "name": "垃圾",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "失落沙洲",
+      "name": "失落沙洲",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "如果雨之後",
+      "name": "如果雨之後",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "孤單心事",
+      "name": "孤單心事",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "孤單的心痛",
+      "name": "孤單的心痛",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "容祖兒-[fingerstyle]-木結他獨奏",
+      "name": "容祖兒 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "岑寧兒-[fingerstyle]",
+      "name": "岑寧兒 [Fingerstyle]",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "張學友-[fingerstyle]-木結他獨奏",
+      "name": "張學友 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "後來",
+      "name": "後來",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "忘記我自己",
+      "name": "忘記我自己",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "愛與痛的邊緣",
+      "name": "愛與痛的邊緣",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "愛與誠",
+      "name": "愛與誠",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "慢慢喜歡你",
+      "name": "慢慢喜歡你",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "我代你哭",
+      "name": "我代你哭",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "我們的愛",
+      "name": "我們的愛",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "我多喜歡你-你會知道",
+      "name": "我多喜歡你 你會知道",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "方皓玟-[fingerstyle]-有譜",
+      "name": "方皓玟 [Fingerstyle] 有譜",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "最愛",
+      "name": "最愛",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "會過去的",
+      "name": "會過去的",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "有一種悲傷",
+      "name": "有一種悲傷",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "有了你",
+      "name": "有了你",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "李克勤-[fingerstyle]-木結他獨奏",
+      "name": "李克勤 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "楊千嬅-[fingerstyle]-木結他獨奏",
+      "name": "楊千嬅 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "殘缺的彩虹",
+      "name": "殘缺的彩虹",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "漣漪",
+      "name": "漣漪",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "無賴",
+      "name": "無賴",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "玩轉極樂園-remember-me",
+      "name": "玩轉極樂園 Remember Me",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "玻璃之情",
+      "name": "玻璃之情",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "男人背後",
+      "name": "男人背後",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "當你走到無力",
+      "name": "當你走到無力",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "百變小櫻-magic-card",
+      "name": "百變小櫻 MAGIC CARD",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "盧廣仲-[fingerstyle]-木結他獨奏",
+      "name": "盧廣仲 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "給自己的情書",
+      "name": "給自己的情書",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "胡鴻鈞-[fingerstyle]-拍木-打板",
+      "name": "胡鴻鈞 [Fingerstyle] 拍木 打板",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "胡鴻鈞-[fingerstyle]-拍線打板",
+      "name": "胡鴻鈞 [Fingerstyle] 拍線打板",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "胡鴻鈞-蔣志光-(電視劇-降魔的-片尾曲)-[fingerstyle]",
+      "name": "胡鴻鈞 蔣志光 (電視劇 降魔的 片尾曲) [Fingerstyle]",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "藍天",
+      "name": "藍天",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "衛蘭-[fingerstyle]-木結他獨奏",
+      "name": "衛蘭 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "衛蘭-jw-[fingerstyle]-木結他獨奏",
+      "name": "衛蘭 JW [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "說散就散",
+      "name": "說散就散",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "謝霆鋒-[fingerstyle]-有結他譜",
+      "name": "謝霆鋒 [Fingerstyle] 有結他譜",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "財神到",
+      "name": "財神到",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "追",
+      "name": "追",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "那些你很冒險的夢",
+      "name": "那些你很冒險的夢",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "那英",
+      "name": "那英",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "醉赤壁",
+      "name": "醉赤壁",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "開始戀愛",
+      "name": "開始戀愛",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "陪著你走",
+      "name": "陪著你走",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "陳奕迅-[fingerstyle]",
+      "name": "陳奕迅 [Fingerstyle]",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "陳奕迅-[fingerstyle]-木結他獨奏",
+      "name": "陳奕迅 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "陳柏宇-[fingerstyle]-木結他獨奏",
+      "name": "陳柏宇 [Fingerstyle] 木結他獨奏",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "陳柏宇-[fingerstyle]-結他譜",
+      "name": "陳柏宇 [Fingerstyle] 結他譜",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "靈魂伴侶",
+      "name": "靈魂伴侶",
+      "reason": "沒有歌譜"
+    },
+    {
+      "id": "體面-(前任3-再見前任-插曲)",
+      "name": "體面 (前任3 再見前任 插曲)",
+      "reason": "沒有歌譜"
+    }
+  ],
+  "songNameArtists": [
+    {
+      "id": "[karson-x-kermit]-流行曲歌唱技巧",
+      "name": "[Karson X Kermit] 流行曲歌唱技巧",
+      "tabCount": 1,
+      "cleanName": "流行曲歌唱技巧",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "[兩隻手指搞店]-男人背後",
+      "name": "[兩隻手指搞店] 男人背後",
+      "tabCount": 0,
+      "cleanName": "男人背後",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-2018-木結他獨奏",
+      "name": "Supper Moment [Fingerstyle] 2018 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "Supper Moment 2018 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-木結他獨奏",
+      "name": "Supper Moment [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "Supper Moment 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-附譜",
+      "name": "Supper Moment [Fingerstyle] 附譜",
+      "tabCount": 0,
+      "cleanName": "Supper Moment 附譜",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "twins-[fingerstyle]-木結他獨奏",
+      "name": "Twins [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "Twins 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "《一個人行街》me",
+      "name": "《一個人行街》ME",
+      "tabCount": 1,
+      "cleanName": "《一個人行街》ME",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "五月天-[fingerstyle]-2018-木結他獨奏",
+      "name": "五月天 [Fingerstyle] 2018 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "五月天 2018 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "五月天-[fingerstyle]-木結他獨奏",
+      "name": "五月天 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "五月天 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "五月天-[精簡版-fingerstyle]-木結他獨奏",
+      "name": "五月天 [精簡版 Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "五月天 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "側田-[fingerstyle]-木結他獨奏",
+      "name": "側田 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "側田 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "劉若英-林宥嘉-[fingerstyle]-木結他獨奏",
+      "name": "劉若英 林宥嘉 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "劉若英 林宥嘉 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "古天樂-[fingerstyle]-木結他獨奏",
+      "name": "古天樂 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "古天樂 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "周杰倫-[fingerstyle]",
+      "name": "周杰倫 [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "周杰倫",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "周杰倫-[fingerstyle]-木結他獨奏",
+      "name": "周杰倫 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "周杰倫 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "周杰倫-[拍線fingerstyle]-木結他獨奏",
+      "name": "周杰倫 [拍線Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "周杰倫 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "容祖兒-[fingerstyle]-木結他獨奏",
+      "name": "容祖兒 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "容祖兒 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "岑寧兒-[fingerstyle]",
+      "name": "岑寧兒 [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "岑寧兒",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "張學友-[fingerstyle]-木結他獨奏",
+      "name": "張學友 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "張學友 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "方皓玟-[fingerstyle]-有譜",
+      "name": "方皓玟 [Fingerstyle] 有譜",
+      "tabCount": 0,
+      "cleanName": "方皓玟 有譜",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "李克勤-[fingerstyle]-木結他獨奏",
+      "name": "李克勤 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "李克勤 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "楊千嬅-[fingerstyle]-木結他獨奏",
+      "name": "楊千嬅 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "楊千嬅 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "盧廣仲-[fingerstyle]-木結他獨奏",
+      "name": "盧廣仲 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "盧廣仲 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "胡鴻鈞-[fingerstyle]-拍木-打板",
+      "name": "胡鴻鈞 [Fingerstyle] 拍木 打板",
+      "tabCount": 0,
+      "cleanName": "胡鴻鈞 拍木 打板",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "胡鴻鈞-[fingerstyle]-拍線打板",
+      "name": "胡鴻鈞 [Fingerstyle] 拍線打板",
+      "tabCount": 0,
+      "cleanName": "胡鴻鈞 拍線打板",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "胡鴻鈞-蔣志光-(電視劇-降魔的-片尾曲)-[fingerstyle]",
+      "name": "胡鴻鈞 蔣志光 (電視劇 降魔的 片尾曲) [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "胡鴻鈞 蔣志光",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "衛蘭-[fingerstyle]-木結他獨奏",
+      "name": "衛蘭 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "衛蘭 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "衛蘭-jw-[fingerstyle]-木結他獨奏",
+      "name": "衛蘭 JW [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "衛蘭 JW 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "謝霆鋒-[fingerstyle]-有結他譜",
+      "name": "謝霆鋒 [Fingerstyle] 有結他譜",
+      "tabCount": 0,
+      "cleanName": "謝霆鋒 有結他譜",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "陳奕迅-[fingerstyle]",
+      "name": "陳奕迅 [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "陳奕迅",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "陳奕迅-[fingerstyle]-木結他獨奏",
+      "name": "陳奕迅 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "陳奕迅 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "陳柏宇-[fingerstyle]-木結他獨奏",
+      "name": "陳柏宇 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "陳柏宇 木結他獨奏",
+      "reason": "名字格式似歌名"
+    },
+    {
+      "id": "陳柏宇-[fingerstyle]-結他譜",
+      "name": "陳柏宇 [Fingerstyle] 結他譜",
+      "tabCount": 0,
+      "cleanName": "陳柏宇 結他譜",
+      "reason": "名字格式似歌名"
+    }
+  ],
+  "fingerstyleArtists": [
+    {
+      "id": "supper-moment-[fingerstyle]-2018-木結他獨奏",
+      "name": "Supper Moment [Fingerstyle] 2018 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "Supper Moment 2018 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-木結他獨奏",
+      "name": "Supper Moment [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "Supper Moment 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "supper-moment-[fingerstyle]-附譜",
+      "name": "Supper Moment [Fingerstyle] 附譜",
+      "tabCount": 0,
+      "cleanName": "Supper Moment 附譜",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "twins-[fingerstyle]-木結他獨奏",
+      "name": "Twins [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "Twins 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "五月天-[fingerstyle]-2018-木結他獨奏",
+      "name": "五月天 [Fingerstyle] 2018 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "五月天 2018 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "五月天-[fingerstyle]-木結他獨奏",
+      "name": "五月天 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "五月天 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "五月天-[精簡版-fingerstyle]-木結他獨奏",
+      "name": "五月天 [精簡版 Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "五月天 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "側田-[fingerstyle]-木結他獨奏",
+      "name": "側田 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "側田 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "劉若英-林宥嘉-[fingerstyle]-木結他獨奏",
+      "name": "劉若英 林宥嘉 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "劉若英 林宥嘉 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "古天樂-[fingerstyle]-木結他獨奏",
+      "name": "古天樂 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "古天樂 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "周杰倫-[fingerstyle]",
+      "name": "周杰倫 [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "周杰倫",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "周杰倫-[fingerstyle]-木結他獨奏",
+      "name": "周杰倫 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "周杰倫 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "周杰倫-[拍線fingerstyle]-木結他獨奏",
+      "name": "周杰倫 [拍線Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "周杰倫 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "容祖兒-[fingerstyle]-木結他獨奏",
+      "name": "容祖兒 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "容祖兒 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "岑寧兒-[fingerstyle]",
+      "name": "岑寧兒 [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "岑寧兒",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "張學友-[fingerstyle]-木結他獨奏",
+      "name": "張學友 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "張學友 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "方皓玟-[fingerstyle]-有譜",
+      "name": "方皓玟 [Fingerstyle] 有譜",
+      "tabCount": 0,
+      "cleanName": "方皓玟 有譜",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "李克勤-[fingerstyle]-木結他獨奏",
+      "name": "李克勤 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "李克勤 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "楊千嬅-[fingerstyle]-木結他獨奏",
+      "name": "楊千嬅 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "楊千嬅 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "盧廣仲-[fingerstyle]-木結他獨奏",
+      "name": "盧廣仲 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "盧廣仲 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "胡鴻鈞-[fingerstyle]-拍木-打板",
+      "name": "胡鴻鈞 [Fingerstyle] 拍木 打板",
+      "tabCount": 0,
+      "cleanName": "胡鴻鈞 拍木 打板",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "胡鴻鈞-[fingerstyle]-拍線打板",
+      "name": "胡鴻鈞 [Fingerstyle] 拍線打板",
+      "tabCount": 0,
+      "cleanName": "胡鴻鈞 拍線打板",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "胡鴻鈞-蔣志光-(電視劇-降魔的-片尾曲)-[fingerstyle]",
+      "name": "胡鴻鈞 蔣志光 (電視劇 降魔的 片尾曲) [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "胡鴻鈞 蔣志光",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "衛蘭-[fingerstyle]-木結他獨奏",
+      "name": "衛蘭 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "衛蘭 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "衛蘭-jw-[fingerstyle]-木結他獨奏",
+      "name": "衛蘭 JW [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "衛蘭 JW 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "謝霆鋒-[fingerstyle]-有結他譜",
+      "name": "謝霆鋒 [Fingerstyle] 有結他譜",
+      "tabCount": 0,
+      "cleanName": "謝霆鋒 有結他譜",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "陳奕迅-[fingerstyle]",
+      "name": "陳奕迅 [Fingerstyle]",
+      "tabCount": 0,
+      "cleanName": "陳奕迅",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "陳奕迅-[fingerstyle]-木結他獨奏",
+      "name": "陳奕迅 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "陳奕迅 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "陳柏宇-[fingerstyle]-木結他獨奏",
+      "name": "陳柏宇 [Fingerstyle] 木結他獨奏",
+      "tabCount": 0,
+      "cleanName": "陳柏宇 木結他獨奏",
+      "reason": "包含 Fingerstyle 標記"
+    },
+    {
+      "id": "陳柏宇-[fingerstyle]-結他譜",
+      "name": "陳柏宇 [Fingerstyle] 結他譜",
+      "tabCount": 0,
+      "cleanName": "陳柏宇 結他譜",
+      "reason": "包含 Fingerstyle 標記"
+    }
+  ],
+  "unknownArtists": []
+}

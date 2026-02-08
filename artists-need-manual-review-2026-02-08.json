@@ -1,0 +1,26 @@
+[
+  {
+    "artist": {
+      "id": "[karson-x-kermit]-流行曲歌唱技巧",
+      "name": "[Karson X Kermit] 流行曲歌唱技巧",
+      "normalizedName": "[karson-x-kermit]-流行曲歌唱技巧",
+      "createdAt": "2026-02-07T16:16:46.652Z",
+      "tabCount": 1
+    },
+    "action": "manual_review"
+  },
+  {
+    "artist": {
+      "id": "《一個人行街》me",
+      "name": "《一個人行街》ME",
+      "normalizedName": "《一個人行街》me",
+      "createdAt": "2026-02-07T16:16:13.669Z",
+      "tabCount": 1,
+      "wikiUrl": "https://zh.wikipedia.org/wiki/%E8%B7%B3%E8%88%9E%E8%A1%97",
+      "artistType": "female",
+      "wikiTitle": "跳舞街",
+      "updatedAt": "2026-02-07T16:19:10.634Z"
+    },
+    "action": "manual_review"
+  }
+]
