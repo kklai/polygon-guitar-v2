@@ -11,8 +11,8 @@
 | 項目 | 詳情 |
 |------|------|
 | 名稱 | Polygon Guitar v2 |
-| 網域 | polygon.guitars（已申請，未連結）|
-| 技術棧 | Next.js 14 + JavaScript + Tailwind CSS + Firebase (Firestore, Auth) + Cloudinary + Vercel |
+| 網域 | **polygon.guitars** ✅ 已上線 |
+| 技術棧 | Next.js 16 + JavaScript + Tailwind CSS + Firebase (Firestore, Auth) + Cloudinary + Vercel |
 | 目標 | 取代 Blogger (polygonguitar.blogspot.com)，遷移 3000-4000 份舊譜 |
 | 本地開發 | `npm run dev` → http://localhost:3000 |
 
@@ -212,6 +212,19 @@ const capo = (originalIndex - targetIndex + 12) % 12;
 9. **底部導航**（2026-02-07）
    - 修復為黃底 `#FFD700` + 黑字設計
 
+10. **SEO 優化**（2026-02-09）
+    - 每頁獨特 Title、Description、Canonical URL
+    - Open Graph & Twitter Card 社交分享標籤
+    - 結構化數據 Schema.org：MusicComposition、MusicGroup、BreadcrumbList
+    - 動態 Sitemap (`/api/sitemap.xml`)
+    - Robots.txt (`/api/robots.txt`)
+    - 網域已成功遷移至 `polygon.guitars`
+
+11. **社交功能**（2026-02-09）
+    - 樂譜留言系統 (`TabComments` component)
+    - 歌手頁面求譜功能 (`ArtistTabRequests`)
+    - 合唱歌曲支援 (collaborators 陣列)
+
 ---
 
 ## 待修復/進行中 🔄
@@ -231,9 +244,19 @@ const capo = (originalIndex - targetIndex + 12) % 12;
 3. ~~**Logo 上傳功能**~~ ✅ **已完成**（2026-02-07）
    - 後台 `/admin/logo` 頁面已可上傳 Logo
 
+4. ~~**域名遷移與 SEO 優化**~~ ✅ **已完成**（2026-02-09）
+   - 網域 `polygon.guitars` 已成功遷移並 SSL 自動配置
+   - DNS 設置：Namecheap nameservers → ns1.vercel-dns.com, ns2.vercel-dns.com
+   - SEO Meta Tags：每頁獨特 Title、Description、Canonical URL
+   - Open Graph & Twitter Card 標籤
+   - 結構化數據 JSON-LD (Schema.org)：MusicComposition、MusicGroup、WebSite、BreadcrumbList
+   - `/api/robots.txt` - 搜索引擎爬蟲規則
+   - `/api/sitemap.xml` - 動態網站地圖
+   - 等待設置：Firebase Admin SDK 環境變數以啟用完整 sitemap
+
 ### 中優先級
 
-4. **Blogger 遷移**（進行中 - 已完成 100 份）
+5. **Blogger 遷移**（進行中 - 已完成 100 份）
    - Blog ID: `7655351322076661979`
    - API Key: 已設置於環境變數 `BLOGGER_API_KEY`
    - 總量：約 3000-4000 篇文章
