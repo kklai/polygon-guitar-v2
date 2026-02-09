@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-02-07（Blogger 遷移完成 3246 份樂譜、歌手資料修復、編譜者顯示優化）
+> 最後更新：2026-02-09（SEO 優化完成、網域遷移、舊譜編輯權限修復）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -253,6 +253,11 @@ const capo = (originalIndex - targetIndex + 12) % 12;
    - `/api/robots.txt` - 搜索引擎爬蟲規則
    - `/api/sitemap.xml` - 動態網站地圖
    - 等待設置：Firebase Admin SDK 環境變數以啟用完整 sitemap
+
+5. ~~**舊譜編輯權限修復**~~ ✅ **已完成**（2026-02-09）
+   - 問題：Blogger 遷移的舊譜沒有 `createdBy` 欄位，導致無法編輯/刪除
+   - 解決：更新 Firebase Rules 和客戶端代碼，允許編輯沒有 `createdBy` 的舊譜
+   - 需要手動更新 Firebase Console 的 Rules
 
 ### 中優先級
 

@@ -12,9 +12,13 @@ service cloud.firestore {
       // 登入用戶可以建立
       allow create: if request.auth != null;
       
-      // 只有建立者可以更新和刪除
+      // 更新和刪除：如果是建立者、沒有 createdBy（舊譜）、或是管理員
       allow update, delete: if request.auth != null 
-        && request.auth.uid == resource.data.createdBy;
+        && (
+          resource.data.createdBy == request.auth.uid || 
+          !resource.data.keys().hasAny(['createdBy']) ||  // 舊譜沒有 createdBy
+          request.auth.token.admin == true
+        );
     }
     
     // Artists collection
