@@ -17,7 +17,7 @@ service cloud.firestore {
         && (
           resource.data.createdBy == request.auth.uid || 
           !resource.data.keys().hasAny(['createdBy']) ||  // 舊譜沒有 createdBy
-          request.auth.token.admin == true
+          request.auth.token.email == 'kermit.tam@gmail.com'  // Admin email
         );
     }
     
