@@ -1,418 +1,234 @@
-/**
- * 歌手資料整理工具
- * 處理以下問題：
- * 1. 找出沒有歌譜的歌手（孤兒歌手）
- * 2. 找出名字其實是歌名的歌手（誤判）
- * 3. 清理包含 "fingerstyle" 的歌手名
- */
-
+// 清理錯誤歌手名並修復相關樂譜
 const admin = require('firebase-admin');
 const serviceAccount = require('./firebase-service-account.json');
-const fs = require('fs');
 
-// 初始化 Firebase
 if (admin.apps.length === 0) {
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 }
 const db = admin.firestore();
 
-// 統計
-const stats = {
-  totalArtists: 0,
-  orphanArtists: 0,      // 沒有歌譜的歌手
-  songNameArtists: 0,    // 名字是歌名的歌手
-  fingerstyleArtists: 0, // 包含 fingerstyle 的歌手
-  unknownArtists: 0      // Unknown 歌手
+const WRITE_MODE = process.argv.includes('--write');
+
+// 常見錯誤歌手名模式（需要清理）
+const BAD_ARTIST_PATTERNS = [
+  /^\[/,                    // [開頭的（如 [12堂Ukulele）
+  /^\d+$/,                  // 純數字
+  /^[a-z]$/i,               // 單個字母（如 A, C）
+  /結他教室/i,               // 課程相關
+  /ukulele/i,               // 課程相關
+  /樂理小知識/i,             // 知識文
+  /書籍/i,                  // 書籍
+  /產品/i,                  // 產品
+  /band房/i,                // Band房目錄
+  /privacy/i,               // 隱私政策
+  /like|抽獎/i,             // 活動
+  /Other/i,                 // 其他分類
+];
+
+// 常見標題解析錯誤（歌手名其實是歌名的一部分）
+const KNOWN_MISPARSED = {
+  'A': { fix: 'delete', reason: '單個字母' },
+  'C': { fix: 'delete', reason: '單個字母' },
+  'Air': { fix: 'Air Supply', reason: '樂隊名不完整' },
+  'Ben.E.King Stand': { fix: 'Ben E. King', reason: '歌名混入' },
+  'Stand': { fix: 'delete', reason: '只是歌名單詞' },
+  'Me': { fix: 'delete', reason: '只是歌名單詞' },
+  'Adam Levine  Lost Stars': { fix: 'Adam Levine', reason: '歌名混入' },
+  'Lost Stars': { fix: 'delete', reason: '只是歌名' },
+  'Can': { fix: 'delete', reason: '只是歌名單詞' },
+  'T Be': { fix: 'delete', reason: '無效名稱' },
+  'Head': { fix: 'delete', reason: '無效名稱' },
+  'Blackout': { fix: 'delete', reason: '只是歌名' },
+  'Man': { fix: 'delete', reason: '無效名稱' },
+  'Good': { fix: 'delete', reason: '無效名稱' },
+  'Bye': { fix: 'delete', reason: '只是歌名單詞' },
+  'Alin': { fix: 'A-Lin', reason: '正確藝名' },
+  'At 17': { fix: 'at17', reason: '格式統一' },
+  'At17': { fix: 'at17', reason: '格式統一' },
+  'Busking': { fix: 'delete', reason: '活動名稱' },
+  'CHEERS': { fix: 'delete', reason: '無法確定歌手' },
+  'Concert YY': { fix: 'delete', reason: '演唱會名稱' },
+  'Do re mi': { fix: 'delete', reason: '課程名稱' },
+  'FFx': { fix: 'delete', reason: '無法確定' },
+  'Pick': { fix: 'delete', reason: '產品名稱' },
+  'SG110 Sole': { fix: 'delete', reason: '產品名稱' },
+  'Sole': { fix: 'delete', reason: '產品名稱' },
+  'Tuner': { fix: 'delete', reason: '產品名稱' },
+  'V': { fix: 'delete', reason: '單個字母' },
+  'Yellow': { fix: 'Yellow!', reason: '樂隊名不完整' },
+  'Avenged': { fix: 'Avenged Sevenfold', reason: '樂隊名不完整' },
+  'Avril': { fix: 'Avril Lavigne', reason: '藝名不完整' },
+  'Carly Rae Jepsen': { fix: 'Carly Rae Jepsen', reason: '正確，需補充資料' },
+  'Christina Perri': { fix: 'Christina Perri', reason: '正確，需補充資料' },
+  'Coldplay': { fix: 'Coldplay', reason: '正確，需補充資料' },
+  'Jason Mraz': { fix: 'Jason Mraz', reason: '正確，需補充資料' },
+  'John Lennon': { fix: 'John Lennon', reason: '正確，需補充資料' },
+  'Olivia Ong': { fix: 'Olivia Ong', reason: '正確，需補充資料' },
+  'Robbie Williams': { fix: 'Robbie Williams', reason: '正確，需補充資料' },
+  'The Carpenters': { fix: 'Carpenters', reason: '統一名稱' },
+  'Carpenters': { fix: 'Carpenters', reason: '正確，需補充資料' },
+  '[Kermit結他教室] LV 1': { fix: 'delete', reason: '課程名稱' },
+  '[12堂Ukulele': { fix: 'delete', reason: '課程名稱' },
+  '[Karson X Kermit] 流行曲歌唱技巧': { fix: 'delete', reason: '課程名稱' },
+  'Clown': { fix: 'delete', reason: '無法確定' },
+  'Closer': { fix: 'delete', reason: '無法確定' },
 };
 
-// 判斷是否為歌名（而非歌手名）的規則
-function isLikelySongName(name) {
-  if (!name || name.trim() === '') return false;
-  
-  const indicators = [
-    // 包含這些詞，很可能是歌名
-    /\[.*?\]/,           // [Fingerstyle], [Live] 等
-    /【.*?】/,           // 【特別版】等
-    /feat\./i,          // feat. 合作標記
-    /\(.*?版\)/,        // (現場版), (Remix版) 等
-    /\(.*?ver\)/i,      // (Acoustic Ver.) 等
-    /\-/,               // 包含 - 分隔
-    /《.*?》/,           // 書名號
-    /「.*?」/,           // 引號
-    /「.*?」/,           // 直角引號
-    /vs\./i,            // vs. 對唱
-    /x\s+/i,            // x 合作
-    /&/,                // & 合作
-    /\+/,               // + 合作
-    /\//,               // / 分隔（如 衛蘭/應昌佑）
-  ];
-  
-  return indicators.some(pattern => pattern.test(name));
-}
-
-// 判斷是否包含 fingerstyle
-function containsFingerstyle(name) {
-  if (!name) return false;
-  return /fingerstyle|木結他獨奏|結他獨奏/i.test(name);
-}
-
-// 提取乾淨的歌手名（移除 fingerstyle 標記）
-function extractCleanArtistName(name) {
-  if (!name) return name;
-  
-  // 移除 [Fingerstyle] 等標記
-  let clean = name
-    .replace(/\s*\[.*?\]\s*/gi, ' ')     // [xxx]
-    .replace(/\s*【.*?】\s*/gi, ' ')     // 【xxx】
-    .replace(/\s*\(.*?\)\s*/gi, ' ')     // (xxx)
-    .replace(/\s*[\-–—]\s*/g, ' ')       // - – —
-    .replace(/\s+/g, ' ')                // 多餘空格
-    .trim();
-  
-  return clean;
-}
-
-// 主程序
-async function analyzeArtists() {
-  console.log('🔍 歌手資料整理分析');
-  console.log('====================\n');
-  
-  // 讀取所有歌手
-  console.log('📖 讀取歌手資料...');
-  const artistsSnapshot = await db.collection('artists').get();
-  const artists = [];
-  
-  artistsSnapshot.forEach(doc => {
-    artists.push({
-      id: doc.id,
-      ...doc.data()
-    });
-  });
-  
-  stats.totalArtists = artists.length;
-  console.log(`找到 ${artists.length} 個歌手\n`);
-  
-  // 讀取所有歌譜
-  console.log('📖 讀取歌譜資料...');
-  const tabsSnapshot = await db.collection('tabs').get();
-  const tabs = [];
-  
-  tabsSnapshot.forEach(doc => {
-    tabs.push({
-      id: doc.id,
-      ...doc.data()
-    });
-  });
-  
-  console.log(`找到 ${tabs.length} 個歌譜\n`);
-  
-  // 統計每個歌手的歌譜數量
-  const artistTabCounts = {};
-  tabs.forEach(tab => {
-    const artistId = tab.artistId || tab.artist;
-    if (artistId) {
-      artistTabCounts[artistId] = (artistTabCounts[artistId] || 0) + 1;
-    }
-  });
-  
-  // 分析結果
-  const orphanArtists = [];      // 沒有歌譜的歌手
-  const songNameArtists = [];    // 名字是歌名的歌手
-  const fingerstyleArtists = []; // 包含 fingerstyle 的歌手
-  const unknownArtists = [];     // Unknown 歌手
-  
-  artists.forEach(artist => {
-    const name = artist.name || '';
-    const tabCount = artistTabCounts[artist.id] || 0;
-    
-    // 1. 檢查是否沒有歌譜
-    if (tabCount === 0) {
-      orphanArtists.push({
-        id: artist.id,
-        name: name,
-        reason: '沒有歌譜'
-      });
-      stats.orphanArtists++;
-    }
-    
-    // 2. 檢查名字是否為歌名
-    if (isLikelySongName(name)) {
-      songNameArtists.push({
-        id: artist.id,
-        name: name,
-        tabCount: tabCount,
-        cleanName: extractCleanArtistName(name),
-        reason: '名字格式似歌名'
-      });
-      stats.songNameArtists++;
-    }
-    
-    // 3. 檢查是否包含 fingerstyle
-    if (containsFingerstyle(name)) {
-      fingerstyleArtists.push({
-        id: artist.id,
-        name: name,
-        tabCount: tabCount,
-        cleanName: extractCleanArtistName(name),
-        reason: '包含 Fingerstyle 標記'
-      });
-      stats.fingerstyleArtists++;
-    }
-    
-    // 4. 檢查是否為 Unknown
-    if (name.toLowerCase() === 'unknown' || name === '未知' || name === '') {
-      unknownArtists.push({
-        id: artist.id,
-        name: name || '(空)',
-        tabCount: tabCount,
-        reason: 'Unknown 歌手'
-      });
-      stats.unknownArtists++;
-    }
-  });
-  
-  // 生成報告
-  console.log('📊 分析報告');
-  console.log('='.repeat(50));
-  console.log(`總歌手數：${stats.totalArtists}`);
-  console.log(`總歌譜數：${tabs.length}`);
+async function main() {
+  console.log('🧹 歌手資料清理工具');
+  console.log('====================');
+  console.log(`模式: ${WRITE_MODE ? '⚠️ 寫入模式' : '🔍 測試模式'}`);
   console.log('');
-  console.log('問題統計：');
-  console.log(`  ❌ 沒有歌譜的歌手：${stats.orphanArtists} 個 (${((stats.orphanArtists/stats.totalArtists)*100).toFixed(1)}%)`);
-  console.log(`  ⚠️  名字似歌名的歌手：${stats.songNameArtists} 個 (${((stats.songNameArtists/stats.totalArtists)*100).toFixed(1)}%)`);
-  console.log(`  🎸 包含 Fingerstyle：${stats.fingerstyleArtists} 個 (${((stats.fingerstyleArtists/stats.totalArtists)*100).toFixed(1)}%)`);
-  console.log(`  ❓ Unknown 歌手：${stats.unknownArtists} 個 (${((stats.unknownArtists/stats.totalArtists)*100).toFixed(1)}%)`);
   
-  // 顯示詳細清單
-  console.log('\n\n📋 詳細清單');
-  console.log('='.repeat(50));
+  const snapshot = await db.collection('artists').get();
+  const artists = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   
-  // 1. 沒有歌譜的歌手
-  if (orphanArtists.length > 0) {
-    console.log(`\n❌ 沒有歌譜的歌手（前 10 個）：`);
-    orphanArtists.slice(0, 10).forEach((a, i) => {
-      console.log(`  ${i + 1}. ${a.name}`);
-    });
-    if (orphanArtists.length > 10) {
-      console.log(`  ... 還有 ${orphanArtists.length - 10} 個`);
-    }
-  }
+  console.log(`總歌手數: ${artists.length}\n`);
   
-  // 2. 名字似歌名的歌手
-  if (songNameArtists.length > 0) {
-    console.log(`\n⚠️  名字似歌名的歌手（前 10 個）：`);
-    songNameArtists.slice(0, 10).forEach((a, i) => {
-      console.log(`  ${i + 1}. "${a.name}"`);
-      console.log(`      建議改為: "${a.cleanName}"`);
-      console.log(`      有 ${a.tabCount} 個歌譜`);
-    });
-    if (songNameArtists.length > 10) {
-      console.log(`  ... 還有 ${songNameArtists.length - 10} 個`);
-    }
-  }
+  // 1. 找出問題歌手
+  const badArtists = [];
+  const fixableArtists = [];
   
-  // 3. 包含 Fingerstyle 的歌手
-  if (fingerstyleArtists.length > 0) {
-    console.log(`\n🎸 包含 Fingerstyle 的歌手（前 10 個）：`);
-    fingerstyleArtists.slice(0, 10).forEach((a, i) => {
-      console.log(`  ${i + 1}. "${a.name}"`);
-      console.log(`      建議改為: "${a.cleanName}"`);
-      console.log(`      有 ${a.tabCount} 個歌譜`);
-    });
-    if (fingerstyleArtists.length > 10) {
-      console.log(`  ... 還有 ${fingerstyleArtists.length - 10} 個`);
-    }
-  }
-  
-  // 4. Unknown 歌手
-  if (unknownArtists.length > 0) {
-    console.log(`\n❓ Unknown 歌手（前 10 個）：`);
-    unknownArtists.slice(0, 10).forEach((a, i) => {
-      console.log(`  ${i + 1}. "${a.name}" - ${a.tabCount} 個歌譜`);
-    });
-    if (unknownArtists.length > 10) {
-      console.log(`  ... 還有 ${unknownArtists.length - 10} 個`);
-    }
-  }
-  
-  // 保存詳細報告
-  const report = {
-    generatedAt: new Date().toISOString(),
-    stats,
-    orphanArtists,
-    songNameArtists,
-    fingerstyleArtists,
-    unknownArtists
-  };
-  
-  const filename = `artist-cleanup-report-${new Date().toISOString().split('T')[0]}.json`;
-  fs.writeFileSync(filename, JSON.stringify(report, null, 2));
-  console.log(`\n\n💾 詳細報告已保存：${filename}`);
-  
-  // 建議操作
-  console.log('\n\n🔧 建議操作');
-  console.log('='.repeat(50));
-  
-  if (orphanArtists.length > 0) {
-    console.log(`\n1. 刪除沒有歌譜的歌手`);
-    console.log(`   運行: node scripts/cleanup-artists.js --delete-orphan`);
-  }
-  
-  if (fingerstyleArtists.length > 0) {
-    console.log(`\n2. 清理 Fingerstyle 標記`);
-    console.log(`   運行: node scripts/cleanup-artists.js --clean-fingerstyle`);
-  }
-  
-  if (songNameArtists.length > 0) {
-    console.log(`\n3. 修復歌名誤判為歌手名的問題`);
-    console.log(`   需要手動檢查後運行修復腳本`);
-  }
-  
-  console.log('\n4. 查看所有選項');
-  console.log('   運行: node scripts/cleanup-artists.js --help');
-  
-  return {
-    orphanArtists,
-    songNameArtists,
-    fingerstyleArtists,
-    unknownArtists
-  };
-}
-
-// 刪除沒有歌譜的歌手
-async function deleteOrphanArtists(orphanList) {
-  console.log(`\n🗑️  刪除 ${orphanList.length} 個沒有歌譜的歌手...\n`);
-  
-  let deleted = 0;
-  let failed = 0;
-  
-  for (const artist of orphanList) {
-    try {
-      await db.collection('artists').doc(artist.id).delete();
-      console.log(`  ✅ 已刪除: ${artist.name}`);
-      deleted++;
-    } catch (err) {
-      console.error(`  ❌ 刪除失敗: ${artist.name} - ${err.message}`);
-      failed++;
-    }
-  }
-  
-  console.log(`\n✅ 完成：成功 ${deleted} 個，失敗 ${failed} 個`);
-}
-
-// 清理 Fingerstyle 標記
-async function cleanFingerstyleMarkers(artistList) {
-  console.log(`\n🧹 清理 ${artistList.length} 個歌手的 Fingerstyle 標記...\n`);
-  
-  let updated = 0;
-  let failed = 0;
-  
-  for (const artist of artistList) {
-    const cleanName = extractCleanArtistName(artist.name);
+  for (const artist of artists) {
+    const name = artist.name;
     
-    if (cleanName !== artist.name && cleanName.trim() !== '') {
-      try {
-        // 檢查是否已有同名歌手
-        const existing = await db.collection('artists')
-          .where('name', '==', cleanName)
+    // 檢查是否匹配已知錯誤模式
+    if (KNOWN_MISPARSED[name]) {
+      badArtists.push({ artist, action: KNOWN_MISPARSED[name] });
+      continue;
+    }
+    
+    // 檢查是否匹配bad patterns
+    if (BAD_ARTIST_PATTERNS.some(p => p.test(name))) {
+      badArtists.push({ artist, action: { fix: 'delete', reason: '匹配錯誤模式' } });
+      continue;
+    }
+    
+    // 檢查是否需要資料補充
+    if (!artist.artistType || artist.artistType === 'unknown' || !artist.bio) {
+      fixableArtists.push(artist);
+    }
+  }
+  
+  console.log(`問題歌手: ${badArtists.length} 個`);
+  console.log(`需要補充資料: ${fixableArtists.length} 個\n`);
+  
+  // 2. 顯示問題歌手
+  console.log('📋 問題歌手列表（前30個）：');
+  badArtists.slice(0, 30).forEach(({ artist, action }) => {
+    console.log(`  - ${artist.name} → ${action.fix} (${action.reason}, tabs: ${artist.tabCount || 0})`);
+  });
+  
+  if (!WRITE_MODE) {
+    console.log('\n💡 測試模式。要執行清理，加上 --write 參數');
+    console.log('這將會：');
+    console.log('1. 刪除/合併錯誤歌手條目');
+    console.log('2. 將相關樂譜的歌手改為 Unknown 或正確歌手');
+    console.log('3. 對有效歌手運行維基百科搜尋補充資料');
+    return;
+  }
+  
+  // 3. 執行修復
+  console.log('\n🔧 開始修復...\n');
+  
+  let deletedCount = 0;
+  let fixedCount = 0;
+  
+  for (const { artist, action } of badArtists) {
+    console.log(`處理: ${artist.name} (${action.fix})`);
+    
+    if (action.fix === 'delete') {
+      // 先更新相關樂譜的歌手為 Unknown
+      const tabsSnapshot = await db.collection('tabs')
+        .where('artistId', '==', artist.id)
+        .get();
+      
+      console.log(`  找到 ${tabsSnapshot.size} 個相關樂譜`);
+      
+      for (const tabDoc of tabsSnapshot.docs) {
+        await tabDoc.ref.update({
+          artist: 'Unknown',
+          artistId: 'unknown',
+          updatedAt: new Date().toISOString()
+        });
+      }
+      
+      // 刪除歌手
+      await db.collection('artists').doc(artist.id).delete();
+      deletedCount++;
+      console.log('  ✓ 已刪除');
+      
+    } else {
+      // 重命名/合併歌手
+      // 檢查目標歌手是否已存在
+      const newId = action.fix.toLowerCase().replace(/\s+/g, '-');
+      const existingDoc = await db.collection('artists').doc(newId).get();
+      
+      if (existingDoc.exists) {
+        // 合併到現有歌手
+        const targetArtist = existingDoc.data();
+        console.log(`  合併到現有歌手: ${targetArtist.name}`);
+        
+        // 更新樂譜
+        const tabsSnapshot = await db.collection('tabs')
+          .where('artistId', '==', artist.id)
           .get();
         
-        if (!existing.empty) {
-          // 有同名歌手，需要合併
-          console.log(`  ⚠️  "${artist.name}" 與 "${cleanName}" 重複，需要合併`);
-          console.log(`      請使用 /admin/merge-artists 頁面手動合併`);
-        } else {
-          // 直接改名
-          await db.collection('artists').doc(artist.id).update({
-            name: cleanName,
-            originalName: artist.name,
-            cleanedAt: new Date().toISOString()
+        for (const tabDoc of tabsSnapshot.docs) {
+          await tabDoc.ref.update({
+            artist: targetArtist.name,
+            artistId: newId,
+            updatedAt: new Date().toISOString()
           });
-          console.log(`  ✅ "${artist.name}" → "${cleanName}"`);
-          updated++;
         }
-      } catch (err) {
-        console.error(`  ❌ 更新失敗: ${artist.name} - ${err.message}`);
-        failed++;
+        
+        // 更新目標歌手的 tabCount
+        await existingDoc.ref.update({
+          tabCount: (targetArtist.tabCount || 0) + (artist.tabCount || 0),
+          updatedAt: new Date().toISOString()
+        });
+        
+        // 刪除原歌手
+        await db.collection('artists').doc(artist.id).delete();
+        
+      } else {
+        // 重命名歌手
+        console.log(`  重命名為: ${action.fix}`);
+        
+        // 創建新歌手
+        await db.collection('artists').doc(newId).set({
+          name: action.fix,
+          normalizedName: newId,
+          tabCount: artist.tabCount || 0,
+          createdAt: new Date().toISOString()
+        });
+        
+        // 更新樂譜
+        const tabsSnapshot = await db.collection('tabs')
+          .where('artistId', '==', artist.id)
+          .get();
+        
+        for (const tabDoc of tabsSnapshot.docs) {
+          await tabDoc.ref.update({
+            artist: action.fix,
+            artistId: newId,
+            updatedAt: new Date().toISOString()
+          });
+        }
+        
+        // 刪除原歌手
+        await db.collection('artists').doc(artist.id).delete();
       }
+      
+      fixedCount++;
+      console.log('  ✓ 已修復');
     }
+    
+    // 延遲避免限制
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
-  console.log(`\n✅ 完成：成功 ${updated} 個，失敗 ${failed} 個`);
+  console.log(`\n✅ 完成！刪除: ${deletedCount}, 修復: ${fixedCount}`);
 }
 
-// 顯示幫助
-function showHelp() {
-  console.log('歌手資料整理工具');
-  console.log('================\n');
-  console.log('使用方法:');
-  console.log('  node scripts/cleanup-artists.js           (分析模式，不修改資料)');
-  console.log('  node scripts/cleanup-artists.js --delete-orphan    (刪除沒有歌譜的歌手)');
-  console.log('  node scripts/cleanup-artists.js --clean-fingerstyle (清理 Fingerstyle 標記)');
-  console.log('  node scripts/cleanup-artists.js --help    (顯示幫助)');
-  console.log('');
-  console.log('選項:');
-  console.log('  --dry-run    預覽模式（不實際刪除/修改）');
-}
-
-// 主程序
-async function main() {
-  const args = process.argv.slice(2);
-  
-  if (args.includes('--help')) {
-    showHelp();
-    process.exit(0);
-  }
-  
-  const dryRun = args.includes('--dry-run');
-  const deleteOrphan = args.includes('--delete-orphan');
-  const cleanFingerstyle = args.includes('--clean-fingerstyle');
-  
-  if (dryRun) {
-    console.log('👁️  預覽模式（不會修改資料）\n');
-  }
-  
-  // 執行分析
-  const result = await analyzeArtists();
-  
-  // 根據參數執行清理
-  if (deleteOrphan && !dryRun) {
-    if (result.orphanArtists.length > 0) {
-      const confirm = await question(`\n確認刪除 ${result.orphanArtists.length} 個沒有歌譜的歌手？(yes/no) `);
-      if (confirm.toLowerCase() === 'yes') {
-        await deleteOrphanArtists(result.orphanArtists);
-      }
-    }
-  }
-  
-  if (cleanFingerstyle && !dryRun) {
-    if (result.fingerstyleArtists.length > 0) {
-      const confirm = await question(`\n確認清理 ${result.fingerstyleArtists.length} 個歌手的 Fingerstyle 標記？(yes/no) `);
-      if (confirm.toLowerCase() === 'yes') {
-        await cleanFingerstyleMarkers(result.fingerstyleArtists);
-      }
-    }
-  }
-  
-  process.exit(0);
-}
-
-function question(prompt) {
-  const readline = require('readline');
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  
-  return new Promise(resolve => {
-    rl.question(prompt, answer => {
-      rl.close();
-      resolve(answer);
-    });
-  });
-}
-
-main().catch(err => {
-  console.error('程序錯誤：', err);
-  process.exit(1);
-});
+main().catch(console.error);

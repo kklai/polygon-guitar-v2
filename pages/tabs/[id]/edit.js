@@ -33,6 +33,8 @@ export default function EditTab() {
     producer: '',
     album: '',
     bpm: '',
+    // 上傳者資料
+    uploaderPenName: '', // 上傳者筆名
     // YouTube
     youtubeUrl: '',
     youtubeVideoId: '',
@@ -97,6 +99,7 @@ export default function EditTab() {
         youtubeVideoId: data.youtubeVideoId || '',
         strummingPattern: data.strummingPattern || '',
         fingeringTips: data.fingeringTips || '',
+        uploaderPenName: data.uploaderPenName || data.arrangedBy || '', // 兼容舊資料的 arrangedBy
         viewCount: data.viewCount || 0,
         createdAt: data.createdAt
       })
@@ -491,6 +494,13 @@ export default function EditTab() {
               <div>
                 <label htmlFor="producer" className="block text-sm font-medium text-white mb-1">監製</label>
                 <input type="text" id="producer" name="producer" value={formData.producer} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+              </div>
+              
+              {/* 上傳者筆名 */}
+              <div className="sm:col-span-2">
+                <label htmlFor="uploaderPenName" className="block text-sm font-medium text-white mb-1">上傳者筆名</label>
+                <input type="text" id="uploaderPenName" name="uploaderPenName" value={formData.uploaderPenName} onChange={handleChange} placeholder="例如：Kermit、結他小王子（顯示為『編譜：xxx』）" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <p className="mt-1 text-sm text-[#B3B3B3]">這份譜是由誰編寫的，會顯示在樂譜頁面</p>
               </div>
             </div>
 

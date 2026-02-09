@@ -7,6 +7,8 @@ import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
+import Head from 'next/head'
+import { siteConfig, generateBreadcrumbSchema } from '@/lib/seo'
 
 // 歌手分類預設資料
 const DEFAULT_CATEGORIES = [
@@ -155,8 +157,21 @@ export default function Home() {
       // 獲取所有歌手
       const allArtists = await getAllArtists()
       
-      // 按瀏覽量排序，並按性別分類
-      const sortedByViews = allArtists.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      // 按瀏覽量排序（同分按評分、歌曲數），並按性別分類
+      const sortedByViews = allArtists.sort((a, b) => {
+        // 主要：瀏覽量
+        const viewsA = a.viewCount || 0
+        const viewsB = b.viewCount || 0
+        if (viewsB !== viewsA) return viewsB - viewsA
+        
+        // 次要：評分
+        const scoreA = a.adminScore || 0
+        const scoreB = b.adminScore || 0
+        if (scoreB !== scoreA) return scoreB - scoreA
+        
+        // 第三：歌曲數量
+        return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+      })
       
       // 分類熱門歌手
       setHotArtists({
@@ -296,9 +311,63 @@ export default function Home() {
     )
   }
 
+  // SEO 配置
+  const seoTitle = siteConfig.name
+  const seoDescription = siteConfig.description
+  const seoUrl = siteConfig.url
+  
+  // 結構化數據 - 網站主頁
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteConfig.name,
+    url: siteConfig.url,
+    description: siteConfig.description,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${siteConfig.url}/search?q={search_term_string}`,
+      'query-input': 'required name=search_term_string'
+    }
+  }
+  
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: '首頁', url: siteConfig.url }
+  ])
+
   return (
-    <Layout fullWidth>
-      <div className="min-h-screen bg-black pb-24">
+    <>
+      <Head>
+        {/* 基本 Meta */}
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <link rel="canonical" href={seoUrl} />
+        
+        {/* Open Graph */}
+        <meta property="og:url" content={seoUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:image" content={`${siteConfig.url}/og-image.jpg`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Polygon Guitar - 香港最大結他譜庫" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        <meta name="twitter:image" content={`${siteConfig.url}/og-image.jpg`} />
+        
+        {/* 結構化數據 JSON-LD */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([websiteSchema, breadcrumbSchema])
+          }}
+        />
+      </Head>
+      <Layout fullWidth>
+        <div className="min-h-screen bg-black pb-24">
         {/* Logo Header */}
         <div className="px-6 py-4">
           <h1 className="text-xl font-bold text-white">
@@ -344,8 +413,12 @@ export default function Home() {
                   className="flex-shrink-0 flex flex-col items-center group"
                 >
                   <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {artist.photo ? (
-                      <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
+                    {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
+                      <img 
+                        src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
+                        alt={artist.name} 
+                        className="w-full h-full object-cover" 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">👨‍🎤</div>
                     )}
@@ -670,5 +743,6 @@ export default function Home() {
         }
       `}</style>
     </Layout>
+    </>
   )
 }

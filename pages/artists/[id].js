@@ -2,10 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { getTabsByArtist, getAllArtists } from '@/lib/tabs'
+import { getArtistTabsWithCollabs } from '@/lib/collaborations'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistSongsList from '@/components/ArtistSongsList'
 import { ArtistHeroImage } from '@/components/ArtistImage'
+import ArtistTabRequests from '@/components/ArtistTabRequests'
+import Head from 'next/head'
+import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
 const KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
@@ -17,8 +21,11 @@ export default function ArtistDetail() {
   const [artist, setArtist] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showBioPopover, setShowBioPopover] = useState(false)
+  const [sortBy, setSortBy] = useState('default')
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
   const popoverRef = useRef(null)
   const infoButtonRef = useRef(null)
+  const sortDropdownRef = useRef(null)
   
   // Debug 狀態
   const [debugInfo, setDebugInfo] = useState({
@@ -29,9 +36,52 @@ export default function ArtistDetail() {
     error: null
   })
 
-  // 點擊外部關閉 popover
+  // 排序選項
+  const SORT_OPTIONS = [
+    { value: 'default', label: '預設（最新上架）' },
+    { value: 'views', label: '瀏覽最多' },
+    { value: 'strokes', label: '筆畫少→多' },
+    { value: 'difficulty', label: '難度易→難', disabled: true, hint: '即將推出' },
+    { value: 'year', label: '年份新→舊', disabled: true, hint: '即將推出' },
+  ]
+
+  // 排序函數
+  const getSortedTabs = () => {
+    const sorted = [...tabs]
+    
+    switch (sortBy) {
+      case 'views':
+        return sorted.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      
+      case 'strokes':
+        // 使用中文筆畫排序
+        return sorted.sort((a, b) => {
+          return a.title.localeCompare(b.title, 'zh-HK', { sensitivity: 'base' })
+        })
+      
+      // TODO: 待補 difficulty 欄位
+      // case 'difficulty':
+      //   return sorted.sort((a, b) => (a.difficulty || 0) - (b.difficulty || 0))
+      
+      // TODO: 待補 year 欄位
+      // case 'year':
+      //   return sorted.sort((a, b) => (b.year || 0) - (a.year || 0))
+      
+      case 'default':
+      default:
+        // 最新上架 - 按創建時間排序
+        return sorted.sort((a, b) => {
+          const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0)
+          const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0)
+          return dateB - dateA
+        })
+    }
+  }
+
+  // 點擊外部關閉 popover 和 dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // 關閉 bio popover
       if (
         showBioPopover &&
         popoverRef.current &&
@@ -41,11 +91,20 @@ export default function ArtistDetail() {
       ) {
         setShowBioPopover(false)
       }
+      
+      // 關閉 sort dropdown
+      if (
+        showSortDropdown &&
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(event.target)
+      ) {
+        setShowSortDropdown(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showBioPopover])
+  }, [showBioPopover, showSortDropdown])
 
   useEffect(() => {
     if (id) {
@@ -74,8 +133,8 @@ export default function ArtistDetail() {
 
       setArtist(currentArtist)
 
-      // Get tabs for this artist - 使用歌手ID和名字一起查詢
-      const artistTabs = await getTabsByArtist(currentArtist.name, currentArtist.id)
+      // Get tabs for this artist - 包括合唱歌曲
+      const artistTabs = await getArtistTabsWithCollabs(currentArtist.id, currentArtist.name)
       setTabs(artistTabs)
       
       setDebugInfo(prev => ({ 
@@ -194,9 +253,52 @@ export default function ArtistDetail() {
     )
   }
 
+  // SEO 配置
+  const seoTitle = artist ? generateArtistTitle(artist.name, tabs.length) : ''
+  const seoDescription = artist ? generateArtistDescription(artist.name, tabs.length) : ''
+  const seoUrl = artist ? `${siteConfig.url}/artists/${id}` : ''
+  
+  // 結構化數據
+  const artistSchema = artist ? generateArtistSchema(artist, tabs) : null
+  const breadcrumbSchema = artist ? generateBreadcrumbSchema([
+    { name: '首頁', url: siteConfig.url },
+    { name: '歌手', url: `${siteConfig.url}/artists` },
+    { name: artist.name, url: seoUrl }
+  ]) : null
+
   return (
-    <Layout fullWidth>
-      <div className="min-h-screen bg-black">
+    <>
+      {artist && (
+        <Head>
+          {/* 基本 Meta */}
+          <title>{seoTitle}</title>
+          <meta name="description" content={seoDescription} />
+          <link rel="canonical" href={seoUrl} />
+          
+          {/* Open Graph */}
+          <meta property="og:url" content={seoUrl} />
+          <meta property="og:type" content="profile" />
+          <meta property="og:title" content={seoTitle} />
+          <meta property="og:description" content={seoDescription} />
+          <meta property="og:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
+          
+          {/* Twitter Card */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={seoTitle} />
+          <meta name="twitter:description" content={seoDescription} />
+          <meta name="twitter:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
+          
+          {/* 結構化數據 JSON-LD */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify([artistSchema, breadcrumbSchema])
+            }}
+          />
+        </Head>
+      )}
+      <Layout fullWidth>
+        <div className="min-h-screen bg-black">
         {/* Hero Section */}
         <div className="relative">
           {/* 網頁版：全闊 Hero 圖片 */}
@@ -289,7 +391,12 @@ export default function ArtistDetail() {
             )}
             
             <p className="text-lg text-gray-300 drop-shadow">
-              {tabs.length} 首結他譜
+              {tabs.filter(t => t.isPrimary !== false).length} 首結他譜
+              {tabs.filter(t => t.isPrimary === false).length > 0 && (
+                <span className="text-blue-400">
+                  {' '}({tabs.filter(t => t.isPrimary === false).length} 首合唱)
+                </span>
+              )}
               {artist?.birthYear && ` • ${artist.birthYear}年出生`}
               {artist?.debutYear && ` • ${artist.debutYear}年出道`}
             </p>
@@ -299,20 +406,90 @@ export default function ArtistDetail() {
         {/* Hot Songs Section */}
         {tabs.length > 0 && (
           <div className="px-3 md:px-6 pt-6">
-            <h2 className="text-xl font-bold text-white mb-3">熱門</h2>
+            {/* 標題列：歌手名 + 排序選項 */}
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-bold text-white">熱門</h2>
+              
+              {/* 排序 Dropdown */}
+              <div className="relative" ref={sortDropdownRef}>
+                {/* Dropdown Button */}
+                <button
+                  onClick={() => setShowSortDropdown(!showSortDropdown)}
+                  className="flex items-center gap-2 bg-[#121212] text-white text-sm px-3 py-1.5 rounded-lg border border-gray-700 hover:border-[#FFD700] transition"
+                >
+                  <span>排序</span>
+                  <svg 
+                    className={`w-4 h-4 text-gray-400 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Dropdown Menu - 靠右對齊，闊度 200px */}
+                {showSortDropdown && (
+                  <div className="absolute right-0 top-full mt-1 w-[200px] bg-[#121212] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                    {SORT_OPTIONS.map((option, index) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          if (!option.disabled) {
+                            setSortBy(option.value)
+                            setShowSortDropdown(false)
+                          }
+                        }}
+                        disabled={option.disabled}
+                        className={`
+                          w-full text-left px-4 py-2.5 text-sm transition
+                          ${option.disabled 
+                            ? 'text-gray-500 cursor-not-allowed bg-[#0a0a0a]' 
+                            : sortBy === option.value
+                              ? 'text-[#FFD700] bg-[#1a1a1a]'
+                              : 'text-white hover:bg-[#1a1a1a]'
+                          }
+                          ${index !== SORT_OPTIONS.length - 1 ? 'border-b border-gray-800' : ''}
+                        `}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{option.label}</span>
+                          {option.disabled && (
+                            <span className="text-[10px] text-gray-600">即將推出</span>
+                          )}
+                          {sortBy === option.value && !option.disabled && (
+                            <svg className="w-4 h-4 text-[#FFD700]" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             
             <div className="space-y-1">
-              {tabs.map((song, index) => (
+              {getSortedTabs().map((song, index) => (
                 <div
                   key={song.id}
                   onClick={() => handleSongClick(song.id)}
                   className="group py-2 px-2 rounded-md hover:bg-white/10 transition cursor-pointer"
                 >
-                  {/* 第一行：歌名 + 瀏覽 + 讚好 */}
+                  {/* 第一行：歌名 + 合唱標記 + 瀏覽 + 讚好 */}
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-white font-semibold text-sm truncate flex-1 pr-3 group-hover:text-[#FFD700] transition">
-                      {song.title}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-1 pr-3">
+                      <h3 className="text-white font-semibold text-sm truncate group-hover:text-[#FFD700] transition">
+                        {song.title}
+                      </h3>
+                      {/* 合唱標記 */}
+                      {song.isPrimary === false && (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-900/50 text-blue-400 text-[9px] rounded">
+                          合唱
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-[10px] text-gray-400 flex-shrink-0">
                       <span className="flex items-center gap-0.5">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,28 +523,34 @@ export default function ArtistDetail() {
                       </span>
                     </div>
                     
-                    {/* 縮圖 - 縮細 w-8 h-8，使用 YouTube 縮圖 */}
-                    <div className="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-gray-800">
+                    {/* 縮圖 - 優先次序：YouTube縮圖 > 歌手相 > fallback */}
+                    <div className="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-[#121212]">
                       {getYouTubeThumbnail(song) ? (
                         <img
                           src={getYouTubeThumbnail(song)}
                           alt={song.title}
                           className="w-full h-full object-cover"
                         />
+                      ) : artist?.photoURL || artist?.wikiPhotoURL ? (
+                        <img
+                          src={artist?.photoURL || artist?.wikiPhotoURL}
+                          alt={artist?.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm">
+                        <div className="w-full h-full flex items-center justify-center text-sm bg-[#333]">
                           🎸
                         </div>
                       )}
                     </div>
                     
-                    {/* Key Selection - 新規格 w-7 h-7 */}
-                    <div className="flex-1 flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-hide">
+                    {/* Key Selection - 響應式規格 */}
+                    <div className="flex-1 flex flex-nowrap gap-1 md:gap-1.5 overflow-x-auto scrollbar-hide">
                       {KEYS.map((key) => (
                         <button
                           key={key}
                           onClick={(e) => handleKeyClick(e, song.id, key)}
-                          className={`flex-shrink-0 w-7 h-7 rounded-full text-[11px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
+                          className={`flex-shrink-0 w-5 h-5 md:w-7 md:h-7 rounded-full text-[10px] md:text-[11px] font-bold inline-flex items-center justify-center transition hover:scale-105 ${
                             key === song.originalKey
                               ? 'bg-black text-[#FFD700] border border-[#FFD700]'
                               : 'bg-[#FFD700] text-black'
@@ -400,7 +583,16 @@ export default function ArtistDetail() {
             </Link>
           </div>
         )}
+
+        {/* 求譜區 */}
+        <div className="px-3 md:px-6 pb-6">
+          <ArtistTabRequests 
+            artistId={artist?.id || id} 
+            artistName={artist?.name || ''}
+          />
+        </div>
       </div>
     </Layout>
+    </>
   )
 }

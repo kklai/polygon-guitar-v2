@@ -18,16 +18,33 @@ function parseKeys(content) {
   return Array.from(keys)
 }
 
-// 取得歌曲縮圖
+// 提取 YouTube Video ID
+function extractYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
+  return match ? match[1] : null
+}
+
+// 取得歌曲縮圖 - 順序：YouTube > 歌手相片 > Fallback
 function getSongThumbnail(tab) {
-  // 優先使用歌曲自己的縮圖
+  // 1. 優先使用 YouTube 縮圖
+  if (tab.youtubeUrl) {
+    const videoId = extractYouTubeId(tab.youtubeUrl)
+    if (videoId) {
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+    }
+  }
+  
+  // 2. 其次使用歌曲自己的縮圖
   if (tab.thumbnail) return tab.thumbnail
   if (tab.coverImage) return tab.coverImage
   
-  // 其次使用歌手圖片
+  // 3. 使用歌手圖片
   if (tab.artistPhoto) return tab.artistPhoto
+  if (tab.artistPhotoURL) return tab.artistPhotoURL
+  if (tab.wikiPhotoURL) return tab.wikiPhotoURL
   
-  // 預設 fallback
+  // 4. 預設 fallback
   return null
 }
 

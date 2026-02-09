@@ -69,7 +69,8 @@ function parseContentV2(content) {
     capo: null, 
     youtubeUrl: '',
     composer: '',
-    lyricist: ''
+    lyricist: '',
+    arrangedBy: ''
   };
   
   // 先用原始內容提取資訊（未處理 HTML 前）
@@ -120,6 +121,28 @@ function parseContentV2(content) {
       // 清理常見多餘文字
       lyricist = lyricist.replace(/(作)?曲.*$/, '').trim();
       if (lyricist && lyricist.length <= 50) break;
+    }
+  }
+  
+  // ========== 提取 Arranged By ==========
+  let arrangedBy = '';
+  // 先嘗試匹配 "Arranged By XXX" 格式（最常見）
+  const arrangedByMatch = rawText.match(/Arranged\s+By\s+([A-Za-z\s\u4e00-\u9fa5]+?)(?:\s+(?:Key|Capo|曲|詞|>|\n|\r|$))/i);
+  if (arrangedByMatch && arrangedByMatch[1]) {
+    arrangedBy = arrangedByMatch[1].trim().replace(/\s+/g, ' ');
+  }
+  // 備用模式
+  if (!arrangedBy) {
+    const backupPatterns = [
+      /編曲[：:]\s*([A-Za-z\s\u4e00-\u9fa5]{2,20})/,
+      /Chord\s+By\s+([A-Za-z\s\u4e00-\u9fa5]{2,20})/i
+    ];
+    for (const pattern of backupPatterns) {
+      const match = rawText.match(pattern);
+      if (match && match[1] && match[1].trim().length > 1) {
+        arrangedBy = match[1].trim();
+        break;
+      }
     }
   }
   
@@ -239,7 +262,8 @@ function parseContentV2(content) {
     playKey,      // 樂譜實際彈奏嘅調（用於 Capo 格式）
     youtubeUrl,
     composer,
-    lyricist
+    lyricist,
+    arrangedBy
   };
 }
 
@@ -365,7 +389,7 @@ async function fetchAllPosts() {
       console.log(`   ⏹️ 達到限制數量 ${LIMIT + OFFSET}，停止獲取`);
       break;
     }
-  } while (pageToken && pageCount < 20);
+  } while (pageToken && pageCount < 80); // 支持最多 4000 篇文章
   
   return allPosts;
 }
@@ -453,6 +477,7 @@ async function main() {
       console.log(keyDisplay);
       if (post.composer) console.log(`作曲: ${post.composer}`);
       if (post.lyricist) console.log(`填詞: ${post.lyricist}`);
+      if (post.arrangedBy) console.log(`編譜: ${post.arrangedBy}`);
       console.log(`內容長度: ${post.content.length} 字符`);
       console.log(`內容預覽（前 300 字符）：`);
       console.log('---');
@@ -477,6 +502,8 @@ async function main() {
     parsedPosts.forEach(p => {
       artistCounts[p.artist] = (artistCounts[p.artist] || 0) + 1;
     });
+    console.log(`有編譜者資料: ${parsedPosts.filter(p => p.arrangedBy).length}`);
+    
     console.log(`\n歌手分佈（前 10）：`);
     Object.entries(artistCounts)
       .sort((a, b) => b[1] - a[1])
@@ -525,6 +552,7 @@ async function main() {
             playKey: post.playKey || null,  // 樂譜實際彈奏嘅調（Capo 格式用）
             composer: post.composer || '',
             lyricist: post.lyricist || '',
+            arrangedBy: post.arrangedBy || '',  // 編譜者
             youtubeUrl: post.youtubeUrl,
             bloggerId: post.id, // 記錄 blogger ID
             createdAt: new Date(post.published),

@@ -465,9 +465,10 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   const chordTokens = tokens.filter(t => t.isChord);
   
   // 檢查和弦數量是否匹配括號數量
-  if (chordTokens.length !== bracketPositions.length) {
-    return { chordLine, lyricLine, error: true };
-  }
+  const mismatch = chordTokens.length !== bracketPositions.length;
+  
+  // 即使不匹配，也嘗試對齊（取最小值）
+  const minCount = Math.min(chordTokens.length, bracketPositions.length);
 
   // 計算每個 token 應該對齊嘅位置
   // 和弦對齊括號，延長符號平均分布在前後和弦之間
@@ -479,7 +480,14 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
     const token = tokens[idx];
     
     if (token.isChord) {
-      tokenPositions.push(bracketPositions[chordIdx]);
+      // 如果還有括號位置，對齊；否則放在最後
+      if (chordIdx < minCount) {
+        tokenPositions.push(bracketPositions[chordIdx]);
+      } else {
+        // 多餘的和弦，放喺最後一個位置後面
+        const lastPos = bracketPositions.length > 0 ? bracketPositions[bracketPositions.length - 1] : 0;
+        tokenPositions.push(lastPos + 6 * (chordIdx - minCount + 1));
+      }
       chordIdx++;
     } else {
       // 延長符號：找前後和弦，然後平均分布
@@ -596,7 +604,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   }
   if (buffer) parts.push({ text: buffer, isInside: inBracket });
 
-  return { chordLine: newChordLine, lyricParts: parts, error: false };
+  return { chordLine: newChordLine, lyricParts: parts, error: mismatch };
 }
 
 // ============ 主組件 ============
@@ -752,6 +760,34 @@ const TabContent = ({
       const nextChineseRatio = nextChineseChars.length / nextLine.length;
       const nextIsChord = nextHasChordPattern && nextChineseRatio < 0.3;
       const isMixed = isMixedLine(line);
+      const isSectionMarker = isSectionMarkerLine(line);
+      
+      // 處理 Section Marker 單獨一行
+      if (isSectionMarker && !isChord && !isMixed) {
+        const sectionInfo = extractSectionMarker(line);
+        if (sectionInfo.hasMarker) {
+          // Section Marker 單獨一行 - 白色、底線、粗體
+          elements.push(
+            <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+              <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+                {sectionInfo.marker}
+              </span>
+            </div>
+          );
+          // 如果有剩餘內容（如和弦），顯示在下一行
+          const restLine = sectionInfo.rest.trim();
+          if (restLine) {
+            const transposedRest = transposeChordLine(restLine, transposeSemitones);
+            elements.push(
+              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+                {transposedRest}
+              </div>
+            );
+          }
+          i++;
+          continue;
+        }
+      }
       
       // 處理混合行（chord + lyric 在同一行）
       if (isMixed) {
@@ -771,14 +807,14 @@ const TabContent = ({
           if (result.sectionMarker) {
             elements.push(
               <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                {/* Section Marker 單獨一行 */}
-                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
+                {/* Section Marker 單獨一行 - 白色、底線、粗體 */}
+                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.sectionMarker}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </span>
                 {/* 和弦行 */}
-                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
+                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
                   {result.chordPart}
                 </div>
                 {/* 歌詞行 */}
@@ -795,7 +831,7 @@ const TabContent = ({
             elements.push(
               <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
                 {/* 和弦行 */}
-                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
+                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordPart}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -827,20 +863,27 @@ const TabContent = ({
           const result = processPair(cleanLine, lyricLine, transposeSemitones);
           
           if (result.error) {
+            // 即使 mismatch 也使用對齊後的結果
             elements.push(
               <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <div style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
+                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordLine}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </div>
-                <div style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>{result.lyricLine}</div>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  {result.lyricParts.map((part, idx) => (
+                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
               </div>
             );
           } else {
             elements.push(
               <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2' }}>
+                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
                   {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordLine}
                   {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -861,10 +904,10 @@ const TabContent = ({
           const sectionInfo = extractSectionMarker(line);
           
           if (sectionInfo.hasMarker) {
-            // Section Marker 單獨一行
+            // Section Marker 單獨一行 - 白色、底線、粗體
             elements.push(
               <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold' }}>
+                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
                   {sectionInfo.marker}
                 </span>
               </div>
@@ -946,9 +989,10 @@ const TabContent = ({
           </div>
         )}
         
-        <div className="flex flex-wrap gap-1 sm:gap-1.5 pb-1 sm:pb-2">
-          {/* 根據基準調類型顯示對應的 Key：Major 歌只顯示 Major Keys，Minor 歌只顯示 Minor Keys */}
-          {(baseKey?.endsWith('m') ? MINOR_KEYS : MAJOR_KEYS).map((key) => {
+        {/* Key Selector - 響應式：手機 375px 顯示 12 個 Key */}
+        <div className="flex flex-wrap gap-[2px] sm:gap-1.5 pb-1 sm:pb-2">
+          {/* 只顯示 12 個基本 Key（移除 Gb 避免重複）*/}
+          {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => k !== 'Ebm' && k !== 'G#m' && k !== 'A#m') : MAJOR_KEYS.filter(k => k !== 'Gb' && k !== 'Ab' && k !== 'Bb' && k !== 'Db')).map((key) => {
             const isCurrent = key === currentKey;
             return (
               <button
@@ -959,13 +1003,13 @@ const TabContent = ({
                 }}
                 className={`
                   flex-shrink-0
-                  w-6 h-6 sm:w-7 sm:h-7
+                  w-5 h-5 sm:w-8 sm:h-8 md:w-9 md:h-9
                   rounded-full 
                   flex items-center justify-center 
-                  text-[10px] sm:text-[11px] font-bold
+                  text-[10px] sm:text-xs md:text-sm font-bold
                   transition hover:scale-105
                   ${isCurrent
-                    ? 'bg-black text-[#FFD700] border border-[#FFD700]'
+                    ? 'bg-black text-[#FFD700] ring-1 sm:ring-2 ring-[#FFD700]'
                     : 'bg-[#FFD700] text-black'
                   }
                 `}

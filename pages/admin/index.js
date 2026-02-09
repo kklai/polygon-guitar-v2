@@ -18,6 +18,20 @@ export default function AdminIndex() {
       color: 'bg-blue-600'
     },
     {
+      href: '/admin/artists-region',
+      title: '歌手地區設定',
+      description: '批次設定歌手所屬地區（香港、台灣、中國、外國）',
+      icon: '🌏',
+      color: 'bg-cyan-600'
+    },
+    {
+      href: '/admin/artists-score',
+      title: '歌手評分管理',
+      description: '設定歌手推薦分數（0-1000），控制排序優先級',
+      icon: '⭐',
+      color: 'bg-yellow-600'
+    },
+    {
       href: '/admin/category-images',
       title: '分類封面管理',
       description: '自動更新首頁男歌手/女歌手/組合封面',

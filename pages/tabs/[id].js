@@ -8,6 +8,10 @@ import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import LikeButton from '@/components/LikeButton'
 import TabContent from '@/components/TabContent'
+import TabComments from '@/components/TabComments'
+import Head from 'next/head'
+import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema } from '@/lib/seo'
+import { siteConfig } from '@/lib/seo'
 
 // Barre 和弦定義
 const BARRE_CHORDS = ['B', 'Bm', 'Bb', 'Bbm', 'B7', 'Bm7', 'Bb7', 'C#', 'C#m', 'C#7', 'C#m7', 'Db', 'Dbm', 'F', 'Fm', 'F7', 'Fm7', 'F#', 'F#m', 'F#7', 'F#m7', 'Gb', 'Gbm', 'G#', 'G#m', 'G#7', 'G#m7', 'Ab', 'Abm'];
@@ -113,11 +117,58 @@ export default function TabDetail() {
 
   if (!tab) return null
 
-  const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album
+  const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
+
+  // SEO 配置
+  const seoTitle = generateTabTitle(tab.title, tab.artist)
+  const seoDescription = generateTabDescription(tab.title, tab.artist, tab.originalKey || 'C')
+  const seoUrl = `${siteConfig.url}/tabs/${tab.id}`
+  
+  // 結構化數據
+  const tabSchema = generateTabSchema(tab, { name: tab.artist, photoURL: tab.thumbnail })
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: '首頁', url: siteConfig.url },
+    { name: tab.artist, url: `${siteConfig.url}/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}` },
+    { name: tab.title, url: seoUrl }
+  ])
 
   return (
-    <Layout>
-      <div className="w-full">
+    <>
+      <Head>
+        {/* 基本 Meta */}
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <link rel="canonical" href={seoUrl} />
+        
+        {/* Open Graph */}
+        <meta property="og:url" content={seoUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:image" content={tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
+        <meta property="article:published_time" content={tab.createdAt} />
+        <meta property="article:modified_time" content={tab.updatedAt} />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        <meta name="twitter:image" content={tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
+        
+        {/* 結構化數據 JSON-LD */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([tabSchema, breadcrumbSchema])
+          }}
+        />
+      </Head>
+      
+      <Layout>
+        <div className="w-full">
         {/* Header - 全寬 - v21 */}
         <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
           {/* 頂部：標題 + 歌手 */}
@@ -157,6 +208,16 @@ export default function TabDetail() {
                   )}
                 </span>
               </span>
+              
+              {/* 編譜者 - 顯示在 Header 更明顯 */}
+              {(tab.uploaderPenName || tab.arrangedBy) && (
+                <>
+                  <span className="text-gray-600 hidden sm:inline">|</span>
+                  <span className="text-[#FFD700] font-medium">
+                    編譜：{tab.uploaderPenName || tab.arrangedBy}
+                  </span>
+                </>
+              )}
               
               {/* 和弦統計 */}
               {chordStats && (
@@ -259,7 +320,13 @@ export default function TabDetail() {
           onKeyChange={setCurrentKey}
           fullWidth
         />
+
+        {/* 留言區 */}
+        <div className="max-w-4xl mx-auto px-4">
+          <TabComments tabId={id} />
+        </div>
       </div>
     </Layout>
+    </>
   )
 }

@@ -35,5 +35,51 @@ service cloud.firestore {
       allow write: if request.auth != null 
         && request.auth.uid == userId;
     }
+    
+    // Comments collection（樂譜留言）
+    match /comments/{commentId} {
+      // 所有人可以讀取
+      allow read: if true;
+      
+      // 登入用戶可以建立
+      allow create: if request.auth != null;
+      
+      // 只有留言者自己可以刪除
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+    }
+    
+    // TabRequests collection（求譜）
+    match /tabRequests/{requestId} {
+      // 所有人可以讀取
+      allow read: if true;
+      
+      // 登入用戶可以建立
+      allow create: if request.auth != null;
+      
+      // 只有管理員或建立者可以更新狀態
+      allow update: if request.auth != null;
+    }
+    
+    // Playlists collection（歌單）
+    match /playlists/{playlistId} {
+      // 所有人可以讀取
+      allow read: if true;
+      
+      // 登入用戶可以建立和更新（管理員功能）
+      allow create, update: if request.auth != null;
+      
+      // 只有管理員可以刪除
+      allow delete: if request.auth != null;
+    }
+    
+    // Settings collection（網站設定，包括 Logo）
+    match /settings/{settingId} {
+      // 所有人可以讀取
+      allow read: if true;
+      
+      // 登入用戶可以更新（管理員功能）
+      allow write: if request.auth != null;
+    }
   }
 }
