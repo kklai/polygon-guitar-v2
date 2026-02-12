@@ -4,6 +4,10 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
 
 // 獲取 Spotify Token
 async function getSpotifyToken() {
+  console.log('Getting Spotify token...')
+  console.log('Client ID exists:', !!SPOTIFY_CLIENT_ID)
+  console.log('Client Secret exists:', !!SPOTIFY_CLIENT_SECRET)
+  
   const response = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
@@ -14,16 +18,26 @@ async function getSpotifyToken() {
   })
   
   const data = await response.json()
+  
+  if (!response.ok) {
+    console.error('Spotify token error:', data)
+    throw new Error(data.error_description || 'Failed to get token')
+  }
+  
+  console.log('Token received:', data.access_token ? 'Yes' : 'No')
   return data.access_token
 }
 
 export default async function handler(req, res) {
+  console.log('Spotify search API called')
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
   
   try {
     const { query } = req.body
+    console.log('Search query:', query)
     
     if (!query) {
       return res.status(400).json({ error: 'Missing query' })
@@ -31,6 +45,7 @@ export default async function handler(req, res) {
     
     const token = await getSpotifyToken()
     const cleanName = query.replace(/\s*[\(\（].*?[\)\）]\s*/g, '').trim()
+    console.log('Clean name:', cleanName)
     
     const response = await fetch(
       `https://api.spotify.com/v1/search?q=${encodeURIComponent(cleanName)}&type=artist&limit=1`,
@@ -40,11 +55,22 @@ export default async function handler(req, res) {
     )
     
     const data = await response.json()
+    console.log('Spotify response status:', response.status)
+    
+    if (data.error) {
+      console.error('Spotify API error:', data.error)
+      return res.status(500).json({ error: data.error.message })
+    }
+    
     const artist = data.artists?.items?.[0]
     
     if (!artist) {
+      console.log('No artist found')
       return res.status(404).json({ error: 'Artist not found' })
     }
+    
+    console.log('Found artist:', artist.name)
+    console.log('Images count:', artist.images?.length || 0)
     
     const spotifyName = artist.name.toLowerCase()
     const searchName = cleanName.toLowerCase()
@@ -57,6 +83,7 @@ export default async function handler(req, res) {
       })
     }
     
+    console.log('Name mismatch:', spotifyName, 'vs', searchName)
     return res.status(404).json({ error: 'No match' })
     
   } catch (error) {
