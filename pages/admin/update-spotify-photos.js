@@ -15,56 +15,29 @@ export default function UpdateSpotifyPhotos() {
   const [batchSize, setBatchSize] = useState(100)
   const [startIndex, setStartIndex] = useState(0)
 
-  // Spotify API 配置
-  const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
-  const SPOTIFY_CLIENT_SECRET = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET
-
-  // 獲取 Spotify Token
-  const getSpotifyToken = async () => {
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET)
-      },
-      body: 'grant_type=client_credentials'
-    })
-    const data = await response.json()
-    return data.access_token
-  }
-
-  // 搜索 Spotify 歌手
-  const searchSpotifyArtist = async (artistName, token) => {
+  // 搜索 Spotify 歌手（通過後端 API）
+  const searchSpotifyArtist = async (artistName) => {
     try {
       const cleanName = artistName.replace(/\s*[\(\（].*?[\)\）]\s*/g, '').trim()
       
-      const response = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(cleanName)}&type=artist&limit=1`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      )
+      const response = await fetch('/api/spotify/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: cleanName })
+      })
       
-      const data = await response.json()
-      const artist = data.artists?.items?.[0]
-      
-      if (!artist) return null
-      
-      const spotifyName = artist.name.toLowerCase()
-      const searchName = cleanName.toLowerCase()
-      
-      if (spotifyName.includes(searchName) || searchName.includes(spotifyName)) {
-        return {
-          id: artist.id,
-          name: artist.name,
-          images: artist.images
-        }
+      if (!response.ok) {
+        if (response.status === 404) return null
+        const error = await response.json()
+        throw new Error(error.error || 'Search failed')
       }
       
-      return null
+      return await response.json()
     } catch (error) {
       console.error(`搜索 ${artistName} 失敗:`, error)
-      return null
+      throw error
     }
   }
 
@@ -90,7 +63,6 @@ export default function UpdateSpotifyPhotos() {
     setResults({ success: 0, failed: 0, skipped: 0 })
     
     try {
-      const token = await getSpotifyToken()
       const batchArtists = artists.slice(startIndex, startIndex + batchSize)
       
       setProgress({ current: 0, total: batchArtists.length, artist: '' })
@@ -112,7 +84,7 @@ export default function UpdateSpotifyPhotos() {
         }
         
         // 搜索 Spotify
-        const spotifyArtist = await searchSpotifyArtist(artist.name, token)
+        const spotifyArtist = await searchSpotifyArtist(artist.name)
         
         if (spotifyArtist && spotifyArtist.images.length > 0) {
           const largestImage = spotifyArtist.images[0]
