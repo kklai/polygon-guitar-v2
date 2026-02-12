@@ -136,7 +136,7 @@ export function ArtistHeroImage({ artist, className = '' }) {
     <img
       src={imageUrl}
       alt={artist?.name || '歌手'}
-      className={`w-full h-full object-cover ${className}`}
+      className={`w-full h-full object-cover object-top ${className}`}
       onError={() => setError(true)}
     />
   )
