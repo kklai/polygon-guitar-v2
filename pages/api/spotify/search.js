@@ -1,32 +1,4 @@
 // Spotify API 代理 - 避免 CORS
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
-
-// 獲取 Spotify Token
-async function getSpotifyToken() {
-  console.log('Getting Spotify token...')
-  console.log('Client ID exists:', !!SPOTIFY_CLIENT_ID)
-  console.log('Client Secret exists:', !!SPOTIFY_CLIENT_SECRET)
-  
-  const response = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + Buffer.from(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET).toString('base64')
-    },
-    body: 'grant_type=client_credentials'
-  })
-  
-  const data = await response.json()
-  
-  if (!response.ok) {
-    console.error('Spotify token error:', data)
-    throw new Error(data.error_description || 'Failed to get token')
-  }
-  
-  console.log('Token received:', data.access_token ? 'Yes' : 'No')
-  return data.access_token
-}
 
 export default async function handler(req, res) {
   console.log('Spotify search API called')
@@ -43,7 +15,49 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing query' })
     }
     
-    const token = await getSpotifyToken()
+    const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
+    const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
+    
+    console.log('Client ID length:', SPOTIFY_CLIENT_ID?.length)
+    console.log('Client Secret length:', SPOTIFY_CLIENT_SECRET?.length)
+    
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+      return res.status(500).json({ 
+        error: 'Missing Spotify credentials',
+        clientIdExists: !!SPOTIFY_CLIENT_ID,
+        secretExists: !!SPOTIFY_CLIENT_SECRET
+      })
+    }
+    
+    // 獲取 Spotify Token
+    console.log('Getting token...')
+    const authString = Buffer.from(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET).toString('base64')
+    
+    const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + authString
+      },
+      body: 'grant_type=client_credentials'
+    })
+    
+    const tokenData = await tokenResponse.json()
+    console.log('Token response status:', tokenResponse.status)
+    
+    if (!tokenResponse.ok) {
+      console.error('Token error:', tokenData)
+      return res.status(500).json({ 
+        error: 'Spotify auth failed', 
+        details: tokenData.error,
+        description: tokenData.error_description 
+      })
+    }
+    
+    const token = tokenData.access_token
+    console.log('Token received')
+    
+    // 搜索歌手
     const cleanName = query.replace(/\s*[\(\（].*?[\)\）]\s*/g, '').trim()
     console.log('Clean name:', cleanName)
     
@@ -55,10 +69,10 @@ export default async function handler(req, res) {
     )
     
     const data = await response.json()
-    console.log('Spotify response status:', response.status)
+    console.log('Search response status:', response.status)
     
     if (data.error) {
-      console.error('Spotify API error:', data.error)
+      console.error('Search error:', data.error)
       return res.status(500).json({ error: data.error.message })
     }
     
@@ -70,7 +84,6 @@ export default async function handler(req, res) {
     }
     
     console.log('Found artist:', artist.name)
-    console.log('Images count:', artist.images?.length || 0)
     
     const spotifyName = artist.name.toLowerCase()
     const searchName = cleanName.toLowerCase()
