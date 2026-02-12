@@ -154,11 +154,38 @@ export default function Home() {
 
   const loadHomeData = async () => {
     try {
+      // 獲取所有譜（先獲取用於計算歌手瀏覽量）
+      const allTabs = await getAllTabs()
+      
+      // 計算每個歌手嘅總瀏覽量（基於所有歌嘅瀏覽量總和）
+      const artistViewCounts = {}
+      allTabs.forEach(tab => {
+        const artistId = tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')
+        if (artistId) {
+          if (!artistViewCounts[artistId]) {
+            artistViewCounts[artistId] = 0
+          }
+          artistViewCounts[artistId] += (tab.viewCount || 0)
+        }
+      })
+      
       // 獲取所有歌手
       const allArtists = await getAllArtists()
       
+      // 為每個歌手添加計算出嘅總瀏覽量
+      const artistsWithViews = allArtists.map(artist => {
+        const artistId = artist.normalizedName || artist.id
+        // 優先使用計算嘅總瀏覽量，其次使用歌手本身嘅 viewCount
+        const calculatedViews = artistViewCounts[artistId] || 0
+        const storedViews = artist.viewCount || 0
+        return {
+          ...artist,
+          viewCount: calculatedViews || storedViews // 使用計算值或存儲值
+        }
+      })
+      
       // 按瀏覽量排序（同分按評分、歌曲數），並按性別分類
-      const sortedByViews = allArtists.sort((a, b) => {
+      const sortedByViews = artistsWithViews.sort((a, b) => {
         // 主要：瀏覽量
         const viewsA = a.viewCount || 0
         const viewsB = b.viewCount || 0
@@ -182,9 +209,6 @@ export default function Home() {
       
       // 保留原來的總熱門歌手（向後兼容）
       setArtists(sortedByViews.slice(0, 10))
-
-      // 獲取所有譜
-      const allTabs = await getAllTabs()
       
       // 獲取最新歌曲
       const sortedTabs = allTabs
