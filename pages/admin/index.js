@@ -86,6 +86,13 @@ export default function AdminIndex() {
       description: '管理網站 Logo 和圖標',
       icon: '🎨',
       color: 'bg-red-600'
+    },
+    {
+      href: '/admin/bulk-youtube',
+      title: '批量添加 YouTube',
+      description: '自動為舊譜添加 YouTube 連結（3000+份）',
+      icon: '▶️',
+      color: 'bg-red-700'
     }
   ]
 
