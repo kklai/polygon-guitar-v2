@@ -53,6 +53,7 @@ export default function EditTab() {
   
   // YouTube Modal 狀態
   const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false)
+  const [youTubeAutoSelect, setYouTubeAutoSelect] = useState(false) // 自動選擇第一個結果
 
   useEffect(() => {
     if (id && isAuthenticated) {
@@ -507,10 +508,14 @@ export default function EditTab() {
             {/* YouTube */}
             <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">YouTube 連結</h3>
-              <div className="flex gap-2 mb-3">
-                <button type="button" onClick={() => setIsYouTubeModalOpen(true)} disabled={!formData.artist || !formData.title} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 text-sm">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button type="button" onClick={() => { setYouTubeAutoSelect(false); setIsYouTubeModalOpen(true); }} disabled={!formData.artist || !formData.title} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 text-sm">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
                   喺站內搜尋 YouTube
+                </button>
+                <button type="button" onClick={() => { setYouTubeAutoSelect(true); setIsYouTubeModalOpen(true); }} disabled={!formData.artist || !formData.title} className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition disabled:opacity-50 text-sm font-medium">
+                  <span>⚡</span>
+                  快速添加（自動選第一個）
                 </button>
               </div>
               <input type="url" id="youtubeUrl" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="貼上 YouTube 連結..." className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
@@ -677,6 +682,7 @@ export default function EditTab() {
         onClose={() => setIsYouTubeModalOpen(false)}
         artistName={formData.artist}
         songTitle={formData.title}
+        autoSelectFirst={youTubeAutoSelect}
         onSelect={(url) => {
           const videoId = extractYouTubeVideoId(url);
           setFormData(prev => ({

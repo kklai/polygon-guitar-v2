@@ -5,7 +5,8 @@ export default function YouTubeSearchModal({
   onClose, 
   artistName, 
   songTitle, 
-  onSelect 
+  onSelect,
+  autoSelectFirst = false // 自動選擇第一個結果
 }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -62,6 +63,15 @@ export default function YouTubeSearchModal({
       const data = await response.json();
       
       if (data.items && data.items.length > 0) {
+        // 如果啟用自動選擇，直接選第一個結果
+        if (autoSelectFirst) {
+          const firstVideo = data.items[0];
+          const url = `https://www.youtube.com/watch?v=${firstVideo.id.videoId}`;
+          onSelect(url);
+          onClose();
+          return;
+        }
+        
         // 獲取影片詳細資訊（包括時長）
         const videoIds = data.items.map(item => item.id.videoId).join(',');
         const detailsResponse = await fetch(
