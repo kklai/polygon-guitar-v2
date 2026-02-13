@@ -37,7 +37,8 @@ function calculateFontSize(text, containerWidth = 800) {
 
 // ============ 常數定義 ============
 // 根據原調類型顯示對應的 Key 選項（Major 只顯示 Major，Minor 只顯示 Minor）
-const MAJOR_KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+// 顯示用 Key 列表（優先使用 sharp，避免重複）
+const MAJOR_KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const MINOR_KEYS = ['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
 // 兼容舊代碼
 const KEYS = [...MAJOR_KEYS, ...MINOR_KEYS];
@@ -1100,7 +1101,7 @@ const TabContent = ({
         {/* Key Selector - 響應式：手機 375px 顯示 12 個 Key */}
         <div className="flex flex-wrap gap-[2px] sm:gap-1.5 pb-1 sm:pb-2">
           {/* 只顯示 12 個基本 Key（移除 Gb 避免重複）*/}
-          {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => k !== 'Ebm' && k !== 'G#m' && k !== 'A#m') : MAJOR_KEYS.filter(k => k !== 'Gb' && k !== 'Ab' && k !== 'Bb' && k !== 'Db')).map((key) => {
+          {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm', 'G#m', 'A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
             const isCurrent = key === currentKey;
             return (
               <button
