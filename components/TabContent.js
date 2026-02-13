@@ -644,7 +644,9 @@ const TabContent = ({
   showControls = true,
   className = '',
   initialKey,
-  fullWidth = false
+  fullWidth = false,
+  theme: externalTheme,
+  setTheme: externalSetTheme
 }) => {
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
@@ -654,7 +656,11 @@ const TabContent = ({
   const [scrollSpeed, setScrollSpeed] = useState(3);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
-  const [theme, setTheme] = useState('night'); // 'night' | 'day'
+  const [internalTheme, setInternalTheme] = useState('night'); // 'night' | 'day'
+  
+  // 優先使用外部傳入的 theme，否則使用內部 state
+  const theme = externalTheme !== undefined ? externalTheme : internalTheme;
+  const setTheme = externalSetTheme !== undefined ? externalSetTheme : setInternalTheme;
   
   const autoScrollRef = useRef(null);
   const containerRef = useRef(null);
@@ -1207,33 +1213,6 @@ const TabContent = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* 主題切換按鈕 */}
-          <button
-            onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
-            className={`flex items-center gap-1 px-2 py-1 rounded transition text-xs ${
-              theme === 'day'
-                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                : 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
-            }`}
-            title={theme === 'night' ? '切換日間模式' : '切換夜間模式'}
-          >
-            {theme === 'night' ? (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                <span className="hidden sm:inline">日間</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-                <span className="hidden sm:inline">夜間</span>
-              </>
-            )}
-          </button>
-
           <button
             onClick={handleCopy}
             className={`p-1.5 sm:px-3 sm:py-1.5 transition ${
