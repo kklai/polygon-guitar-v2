@@ -110,9 +110,10 @@ function EditArtist() {
     try {
       const newNormalizedName = formData.name.toLowerCase().replace(/\s+/g, '-')
       
-      // 如果歌手名變更，同時更新所有相關歌曲
-      if (updateSongsWithNewName && originalName && formData.name !== originalName) {
-        await handleFixSongsData()
+      // 如果歌手名變更，自動更新所有相關歌曲（強制同步）
+      if (originalName && formData.name !== originalName) {
+        console.log('歌手名變更，自動更新相關歌曲...')
+        await handleFixSongsData(true) // true = 靜默模式（唔顯示確認對話框）
       }
       
       // 使用實際嘅 document ID（處理簡繁體問題）
@@ -215,8 +216,8 @@ function EditArtist() {
   }
 
   // 修復歌曲數據（更新 artist 和 artistId）
-  const handleFixSongsData = async () => {
-    if (!confirm('確定要修復所有相關歌曲的數據嗎？這會更新歌曲的歌手名稱和 artistId。')) return
+  const handleFixSongsData = async (silent = false) => {
+    if (!silent && !confirm('確定要修復所有相關歌曲的數據嗎？這會更新歌曲的歌手名稱和 artistId。')) return
     
     setIsFixingSongs(true)
     setFixMessage(null)
@@ -279,20 +280,27 @@ function EditArtist() {
         await batch.commit()
       }
       
-      setFixMessage({
-        type: 'success',
-        text: `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料`
-      })
+      // 非靜默模式先顯示成功消息
+      if (!silent) {
+        setFixMessage({
+          type: 'success',
+          text: `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料`
+        })
+      } else {
+        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料`)
+      }
       
       // 更新相關歌曲計數
       await checkRelatedSongs(formData.name, newArtistId)
       
     } catch (error) {
       console.error('Fix songs error:', error)
-      setFixMessage({
-        type: 'error',
-        text: '❌ 修復失敗：' + error.message
-      })
+      if (!silent) {
+        setFixMessage({
+          type: 'error',
+          text: '❌ 修復失敗：' + error.message
+        })
+      }
     } finally {
       setIsFixingSongs(false)
     }
