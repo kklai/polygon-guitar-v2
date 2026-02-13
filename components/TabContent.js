@@ -248,6 +248,32 @@ function getCapoSuggestion(capo) {
   return { capo: null, status: 'invalid', message: '', alternative: null };
 }
 
+// 檢查是否為簡譜行（數字譜，如 (6.)6.13312）
+function isNumericNotationLine(line) {
+  if (!line || !line.includes('(')) return false;
+  
+  // 簡譜特徵：
+  // 1. 包含括號內的數字 (6.)、(2) 等
+  // 2. 大量數字和點號
+  // 3. 很少或沒有中文字符
+  
+  const numericBracketPattern = /\(\d+\.?\)/g;
+  const numericBrackets = line.match(numericBracketPattern) || [];
+  
+  // 如果有 2+ 個數字括號模式，可能是簡譜
+  if (numericBrackets.length >= 2) {
+    const digits = (line.match(/\d/g) || []).length;
+    const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
+    
+    // 數字多、中文字少 = 簡譜
+    if (digits > 5 && chineseChars < 3) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 // 檢查是否為混合行（同時包含和弦和歌詞）
 function isMixedLine(line) {
   // 必須包含括號（歌詞標記）
@@ -628,10 +654,37 @@ const TabContent = ({
   const [scrollSpeed, setScrollSpeed] = useState(3);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
+  const [theme, setTheme] = useState('night'); // 'night' | 'day'
   
   const autoScrollRef = useRef(null);
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
+
+  // 主題顏色配置
+  const themeColors = {
+    night: {
+      bg: '#121212',
+      text: '#FFFFFF',
+      lyricNormal: '#A0A0A0',
+      lyricInside: '#FFFFFF',
+      chord: '#FFD700',
+      sectionMarker: '#FFFFFF',
+      numericNotation: '#A0A0A0',
+      prefixSuffix: '#808080'
+    },
+    day: {
+      bg: '#FFFFFF',
+      text: '#000000',
+      lyricNormal: '#333333',
+      lyricInside: '#000000',
+      chord: '#8B5CF6', // 紫色
+      sectionMarker: '#000000',
+      numericNotation: '#555555',
+      prefixSuffix: '#666666'
+    }
+  };
+
+  const colors = themeColors[theme];
 
   // 轉調計算：內容轉調以 baseKey 為準
   const transposeSemitones = calculateTransposeSemitones(baseKey, currentKey);
@@ -769,7 +822,7 @@ const TabContent = ({
           // Section Marker 單獨一行 - 白色、底線、粗體
           elements.push(
             <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+              <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
                 {sectionInfo.marker}
               </span>
             </div>
@@ -779,7 +832,7 @@ const TabContent = ({
           if (restLine) {
             const transposedRest = transposeChordLine(restLine, transposeSemitones);
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+              <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
                 {transposedRest}
               </div>
             );
@@ -797,9 +850,9 @@ const TabContent = ({
         if (result.error) {
           elements.push(
             <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px`, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
-              {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-              <span style={{ color: '#A0A0A0' }}>{cleanLine}</span>
-              {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+              {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+              <span style={{ color: colors.lyricNormal }}>{cleanLine}</span>
+              {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
             </div>
           );
         } else {
@@ -808,19 +861,22 @@ const TabContent = ({
             elements.push(
               <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
                 {/* Section Marker 單獨一行 - 白色、底線、粗體 */}
-                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+                  {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.sectionMarker}
-                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                  {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </span>
                 {/* 和弦行 */}
-                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
+                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
                   {result.chordPart}
                 </div>
                 {/* 歌詞行 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                    <span key={idx} style={{ 
+                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                    }}>
                       {part.text}
                     </span>
                   ))}
@@ -831,15 +887,18 @@ const TabContent = ({
             elements.push(
               <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
                 {/* 和弦行 */}
-                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
+                  {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordPart}
-                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                  {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </div>
                 {/* 歌詞行 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
+                    <span key={idx} style={{ 
+                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                    }}>
                       {part.text}
                     </span>
                   ))}
@@ -859,46 +918,85 @@ const TabContent = ({
         
         // 檢查係咪和弦行 + 歌詞行組合
         if (lyricLine && lyricLine.includes('(') && !lyricLine.match(/\|[\s]*[A-G][#b]?/)) {
-          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-          const result = processPair(cleanLine, lyricLine, transposeSemitones);
+          // 檢查是否為簡譜行（數字譜）
+          const isNumericNotation = isNumericNotationLine(lyricLine);
           
-          if (result.error) {
-            // 即使 mismatch 也使用對齊後的結果
+          if (isNumericNotation) {
+            // 簡譜行：直接顯示，不做對齊處理，用等寬字體
+            const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+            const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+            
             elements.push(
               <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                  {result.chordLine}
-                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                {/* 和弦行 */}
+                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
+                  {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                  {transposedChordLine}
+                  {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </div>
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                  {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
-                      {part.text}
-                    </span>
-                  ))}
+                {/* 簡譜行 - 用等寬字體，保持原樣 */}
+                <div style={{ 
+                  fontSize: `${lineFontSize}px`, 
+                  whiteSpace: 'pre-wrap', 
+                  overflowWrap: 'break-word', 
+                  lineHeight: '1.2',
+                  fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                  color: colors.numericNotation
+                }}>
+                  {lyricLine}
                 </div>
               </div>
             );
+            i = lyricLineIndex + 1;
           } else {
-            elements.push(
-              <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <div className="font-bold" style={{ color: '#FFD700', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                  {result.chordLine}
-                  {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+            // 中文歌詞行：使用對齊處理
+            const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+            const result = processPair(cleanLine, lyricLine, transposeSemitones);
+            
+            if (result.error) {
+              // 即使 mismatch 也使用對齊後的結果
+              elements.push(
+                <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+                  <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
+                    {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                    {result.chordLine}
+                    {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                  </div>
+                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                    {result.lyricParts.map((part, idx) => (
+                      <span key={idx} style={{ 
+                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                      }}>
+                        {part.text}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                  {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ color: part.isInside ? '#FFFFFF' : '#A0A0A0' }}>
-                      {part.text}
-                    </span>
-                  ))}
+              );
+            } else {
+              elements.push(
+                <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+                  <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
+                    {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                    {result.chordLine}
+                    {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                  </div>
+                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                    {result.lyricParts.map((part, idx) => (
+                      <span key={idx} style={{ 
+                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                      }}>
+                        {part.text}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            }
+            i = lyricLineIndex + 1;
           }
-          i = lyricLineIndex + 1;
         } else {
           // 冇歌詞行，當作單獨和弦行處理（包括 Section Marker）
           const sectionInfo = extractSectionMarker(line);
@@ -907,7 +1005,7 @@ const TabContent = ({
             // Section Marker 單獨一行 - 白色、底線、粗體
             elements.push(
               <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <span style={{ color: '#FFFFFF', fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+                <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
                   {sectionInfo.marker}
                 </span>
               </div>
@@ -916,7 +1014,7 @@ const TabContent = ({
             const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
             if (transposedChordLine.trim()) {
               elements.push(
-                <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+                <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
                   {transposedChordLine}
                 </div>
               );
@@ -926,10 +1024,10 @@ const TabContent = ({
             const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
             
             elements.push(
-              <div key={i} style={{ color: '#FFD700', fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-                {prefix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+              <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+                {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                 {transposedChordLine}
-                {suffix && <span style={{ color: '#808080', fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+                {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
             );
           }
@@ -937,7 +1035,7 @@ const TabContent = ({
         }
       } else {
         elements.push(
-          <div key={i} style={{ color: '#A0A0A0', fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
+          <div key={i} style={{ color: colors.lyricNormal, fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
         );
         i++;
       }
@@ -947,42 +1045,46 @@ const TabContent = ({
   };
 
   const ControlBar = () => (
-    <div className="flex flex-col gap-2 sm:gap-4 p-2 sm:p-4 bg-black border-b border-gray-800">
+    <div className={`flex flex-col gap-2 sm:gap-4 p-2 sm:p-4 border-b transition-colors ${
+      theme === 'day' 
+        ? 'bg-gray-100 border-gray-300' 
+        : 'bg-black border-gray-800'
+    }`}>
       <div>
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-          <span className="text-xs sm:text-sm text-gray-400">原調:</span>
-          <span className="text-xs sm:text-sm font-medium text-white">{originalKey}</span>
-          <span className="text-gray-600">→</span>
-          <span className="text-xs sm:text-sm text-gray-400">PLAY:</span>
-          <span className={`text-xs sm:text-sm font-bold ${currentKey !== originalKey ? 'text-[#FFD700]' : 'text-white'}`}>
+          <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>原調:</span>
+          <span className={`text-xs sm:text-sm font-medium ${theme === 'day' ? 'text-gray-900' : 'text-white'}`}>{originalKey}</span>
+          <span className={theme === 'day' ? 'text-gray-400' : 'text-gray-600'}>→</span>
+          <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>PLAY:</span>
+          <span className={`text-xs sm:text-sm font-bold ${currentKey !== originalKey ? (theme === 'day' ? 'text-purple-600' : 'text-[#FFD700]') : (theme === 'day' ? 'text-gray-900' : 'text-white')}`}>
             {currentKey}
           </span>
           
           {currentKey !== originalKey && (
             <>
               {capoSuggestion.status === 'none' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-800 text-gray-400 rounded">免Capo</span>
+                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-gray-200 text-gray-600' : 'bg-gray-800 text-gray-400'}`}>免Capo</span>
               )}
               {capoSuggestion.status === 'ok' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-green-900/50 text-green-400 rounded">Capo {displayCapo}</span>
+                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-green-100 text-green-700' : 'bg-green-900/50 text-green-400'}`}>Capo {displayCapo}</span>
               )}
               {capoSuggestion.status === 'high' && (
-                <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-orange-900/50 text-orange-400 rounded">Capo {displayCapo}太高</span>
+                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-orange-100 text-orange-700' : 'bg-orange-900/50 text-orange-400'}`}>Capo {displayCapo}太高</span>
               )}
             </>
           )}
         </div>
         
         {currentKey !== originalKey && capoSuggestion.alternative && (
-          <div className="mb-2 text-[10px] sm:text-xs text-gray-500">
-            <span className="text-orange-400">提示：</span>
+          <div className={`mb-2 text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-500' : 'text-gray-500'}`}>
+            <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>提示：</span>
             建議 Drop Tuning
             <button
               onClick={() => {
                 setCurrentKey('C')
                 onKeyChange?.('C')
               }}
-              className="ml-2 text-[#FFD700] hover:underline"
+              className={`ml-2 hover:underline ${theme === 'day' ? 'text-purple-600' : 'text-[#FFD700]'}`}
             >
               改用 C
             </button>
@@ -1009,8 +1111,12 @@ const TabContent = ({
                   text-[10px] sm:text-xs md:text-sm font-bold
                   transition hover:scale-105
                   ${isCurrent
-                    ? 'bg-black text-[#FFD700] ring-1 sm:ring-2 ring-[#FFD700]'
-                    : 'bg-[#FFD700] text-black'
+                    ? theme === 'day'
+                      ? 'bg-purple-600 text-white ring-1 sm:ring-2 ring-purple-600'
+                      : 'bg-black text-[#FFD700] ring-1 sm:ring-2 ring-[#FFD700]'
+                    : theme === 'day'
+                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                      : 'bg-[#FFD700] text-black'
                   }
                 `}
               >
@@ -1021,35 +1127,47 @@ const TabContent = ({
         </div>
       </div>
 
-      <div className="h-px bg-gray-700" />
+      <div className={`h-px ${theme === 'day' ? 'bg-gray-300' : 'bg-gray-700'}`} />
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 sm:gap-3">
           <div className="flex items-center gap-0.5 sm:gap-2">
             <button
               onClick={() => handleFontSize(-1)}
-              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-800 text-white rounded hover:bg-gray-700 transition text-[10px] sm:text-xs"
+              className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded transition text-[10px] sm:text-xs ${
+                theme === 'day'
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
             >
               A-
             </button>
-            <span className="w-6 sm:w-8 text-center text-xs text-gray-400">{fontSize}</span>
+            <span className={`w-6 sm:w-8 text-center text-xs ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>{fontSize}</span>
             <button
               onClick={() => handleFontSize(1)}
-              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-800 text-white rounded hover:bg-gray-700 transition text-xs sm:text-sm"
+              className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded transition text-xs sm:text-sm ${
+                theme === 'day'
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
             >
               A+
             </button>
           </div>
 
-          <div className="w-px h-4 sm:h-6 bg-gray-700" />
+          <div className={`w-px h-4 sm:h-6 ${theme === 'day' ? 'bg-gray-300' : 'bg-gray-700'}`} />
 
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsAutoScroll(!isAutoScroll)}
               className={`flex items-center gap-0.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded transition text-xs ${
                 isAutoScroll 
-                  ? 'bg-[#FFD700] text-black' 
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
+                  ? theme === 'day'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-[#FFD700] text-black'
+                  : theme === 'day'
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-gray-800 text-white hover:bg-gray-700'
               }`}
             >
               <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1062,15 +1180,23 @@ const TabContent = ({
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))}
-                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
+                  className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded text-[10px] sm:text-xs ${
+                    theme === 'day'
+                      ? 'bg-gray-200 text-gray-700'
+                      : 'bg-gray-700 text-white'
+                  }`}
                   disabled={scrollSpeed <= 1}
                 >
                   −
                 </button>
-                <span className="w-4 sm:w-5 text-center text-[10px] sm:text-xs text-gray-400">{scrollSpeed}</span>
+                <span className={`w-4 sm:w-5 text-center text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>{scrollSpeed}</span>
                 <button
                   onClick={() => setScrollSpeed(Math.min(5, scrollSpeed + 1))}
-                  className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center bg-gray-700 text-white rounded text-[10px] sm:text-xs"
+                  className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded text-[10px] sm:text-xs ${
+                    theme === 'day'
+                      ? 'bg-gray-200 text-gray-700'
+                      : 'bg-gray-700 text-white'
+                  }`}
                   disabled={scrollSpeed >= 5}
                 >
                   +
@@ -1080,40 +1206,79 @@ const TabContent = ({
           </div>
         </div>
 
-        <button
-          onClick={handleCopy}
-          className="p-1.5 sm:px-3 sm:py-1.5 text-[#FFD700] hover:opacity-80 transition"
-          title="複製譜內容"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* 主題切換按鈕 */}
+          <button
+            onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
+            className={`flex items-center gap-1 px-2 py-1 rounded transition text-xs ${
+              theme === 'day'
+                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                : 'bg-gray-800 text-yellow-400 hover:bg-gray-700'
+            }`}
+            title={theme === 'night' ? '切換日間模式' : '切換夜間模式'}
+          >
+            {theme === 'night' ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span className="hidden sm:inline">日間</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+                <span className="hidden sm:inline">夜間</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={handleCopy}
+            className={`p-1.5 sm:px-3 sm:py-1.5 transition ${
+              theme === 'day' ? 'text-purple-600 hover:text-purple-800' : 'text-[#FFD700] hover:opacity-80'
+            }`}
+            title="複製譜內容"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
 
   if (isEditing && editable) {
     return (
-      <div className={`bg-[#121212] rounded-xl border border-gray-800 ${className}`}>
+      <div className={`${theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
         {showControls && <ControlBar />}
         <div className="p-4">
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-96 bg-black text-gray-300 p-4 rounded-lg border border-gray-700 focus:border-[#FFD700] focus:outline-none resize-none font-mono text-sm"
+            className={`w-full h-96 p-4 rounded-lg border focus:outline-none resize-none font-mono text-sm ${
+              theme === 'day'
+                ? 'bg-gray-50 text-gray-800 border-gray-300 focus:border-purple-500'
+                : 'bg-black text-gray-300 border-gray-700 focus:border-[#FFD700]'
+            }`}
             placeholder="輸入譜內容..."
           />
           <div className="flex justify-end gap-3 mt-4">
             <button
               onClick={() => setIsEditing(false)}
-              className="px-4 py-2 text-gray-400 hover:text-white transition"
+              className={`px-4 py-2 transition ${theme === 'day' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-white'}`}
             >
               取消
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-[#FFD700] text-black rounded-lg hover:opacity-90 transition"
+              className={`px-4 py-2 rounded-lg transition ${
+                theme === 'day'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-[#FFD700] text-black hover:opacity-90'
+              }`}
             >
               保存
             </button>
@@ -1126,7 +1291,10 @@ const TabContent = ({
   // 顯示模式 - 確保高度自適應內容
   return (
     <div 
-      className={`${fullWidth ? '' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}
+      className={`${fullWidth 
+        ? (theme === 'day' ? 'bg-white' : 'bg-black') 
+        : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')
+      } ${className}`}
       style={{ 
         height: 'auto',
         minHeight: 'auto',
@@ -1136,7 +1304,7 @@ const TabContent = ({
       {showControls && <ControlBar />}
       <div 
         ref={containerRef}
-        className={fullWidth ? 'p-3' : 'p-3 sm:p-6 bg-[#121212]'}
+        className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`}
         style={{
           height: 'auto',
           minHeight: 'auto',
@@ -1148,7 +1316,8 @@ const TabContent = ({
           style={{
             height: 'auto',
             minHeight: 'auto',
-            maxHeight: 'none'
+            maxHeight: 'none',
+            fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
           }}
         >
           {renderContent()}

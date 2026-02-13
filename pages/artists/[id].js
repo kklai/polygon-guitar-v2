@@ -136,7 +136,7 @@ export default function ArtistDetail() {
       )}
       
       <Layout fullWidth>
-        <div className="min-h-screen bg-black pb-20">
+        <div className="min-h-screen bg-black pb-24">
           {/* 手機版 Hero - 3:2 比例 */}
           <div className="md:hidden relative w-full" style={{ aspectRatio: '3/2' }}>
             {/* 背景圖片 */}
@@ -151,8 +151,11 @@ export default function ArtistDetail() {
             />
             
             {/* 歌手資訊 - 左下角 */}
-            <div className="absolute bottom-0 left-0 p-4" style={{ width: '37%' }}>
-              <h1 className="text-white font-bold leading-tight" style={{ fontSize: '48px' }}>
+            <div className="absolute bottom-0 left-0 p-4" style={{ width: '60%' }}>
+              <h1 
+                className="text-white font-bold leading-tight" 
+                style={{ fontSize: '36px', whiteSpace: 'nowrap' }}
+              >
                 {artist?.name}
               </h1>
               <p className="mt-1" style={{ fontSize: '14px', color: '#aaa' }}>
@@ -237,8 +240,8 @@ export default function ArtistDetail() {
                       
                       {/* Key 圓圈 - 一行緊貼排列 */}
                       <div 
-                        className="flex gap-1 overflow-hidden mt-1"
-                        style={{ flexWrap: 'nowrap' }}
+                        className="flex overflow-hidden mt-1"
+                        style={{ flexWrap: 'nowrap', gap: '0px' }}
                       >
                         {KEYS.map((key) => (
                           <button
