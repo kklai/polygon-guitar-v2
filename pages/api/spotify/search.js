@@ -101,7 +101,10 @@ export default async function handler(req, res) {
       return res.status(200).json({
         id: artist.id,
         name: artist.name,
-        images: artist.images
+        images: artist.images,
+        followers: artist.followers?.total || 0,
+        popularity: artist.popularity || 0,
+        genres: artist.genres || []
       })
     }
     

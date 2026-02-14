@@ -25,6 +25,7 @@ const REGION_OPTIONS = [
 // 排序選項
 const SORT_OPTIONS = [
   { value: 'default', label: '預設（熱門）' },
+  { value: 'spotifyChoice', label: '🎵 Spotify Choice' },
   { value: 'polygonChoice', label: 'Polygon Choice' },
   { value: 'likes', label: '用戶讚好' },
   { value: 'songCount', label: '樂譜數目' },
@@ -132,6 +133,17 @@ export default function Artists() {
       
       case 'likes': // 用戶讚好 - likes desc
         result.sort((a, b) => (b.likes || 0) - (a.likes || 0))
+        break
+      
+      case 'spotifyChoice': // Spotify Choice - 按粉絲數排序
+        result.sort((a, b) => {
+          const followersA = a.spotifyFollowers || 0
+          const followersB = b.spotifyFollowers || 0
+          // 有粉絲數的優先，然後按數量排序
+          if (followersB !== followersA) return followersB - followersA
+          // 同分按瀏覽數
+          return (b.totalViewCount || b.viewCount || 0) - (a.totalViewCount || a.viewCount || 0)
+        })
         break
       
       case 'polygonChoice': // Polygon Choice - 1000分優先

@@ -95,10 +95,14 @@ function SpotifyManager() {
           await updateDoc(doc(db, 'artists', artist.id), {
             wikiPhotoURL: result.images[0].url,
             spotifyId: result.id,
+            spotifyFollowers: result.followers || 0,
+            spotifyPopularity: result.popularity || 0,
+            spotifyGenres: result.genres || [],
             updatedAt: new Date().toISOString()
           })
           
-          addLog(`✅ ${artist.name}: 已更新相片`, 'success')
+          const followerText = result.followers ? ` (${result.followers.toLocaleString()} 粉絲)` : ''
+          addLog(`✅ ${artist.name}: 已更新相片${followerText}`, 'success')
           setBulkProgress(prev => ({ ...prev, success: prev.success + 1 }))
         } else {
           addLog(`⚠️ ${artist.name}: 找不到 Spotify 資料`, 'warning')
