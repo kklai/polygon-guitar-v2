@@ -30,15 +30,19 @@ export default async function handler(req, res) {
       })
     }
     
-    // 獲取 Token（使用 Spotify 官方教學方法）
+    // 獲取 Token（使用 Spotify Client Credentials Flow - Basic Auth）
     console.log('Requesting token...')
+    
+    // Base64 encode client_id:client_secret
+    const credentials = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')
     
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`
       },
-      body: `grant_type=client_credentials&client_id=${SPOTIFY_CLIENT_ID}&client_secret=${SPOTIFY_CLIENT_SECRET}`
+      body: 'grant_type=client_credentials'
     })
     
     const tokenData = await tokenResponse.json()
