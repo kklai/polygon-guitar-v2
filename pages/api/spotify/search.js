@@ -15,12 +15,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing query' })
     }
     
-    // 獲取環境變數
-    const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
-    const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
+    // 獲取環境變數（確保冇空格）
+    const SPOTIFY_CLIENT_ID = (process.env.SPOTIFY_CLIENT_ID || '').trim()
+    const SPOTIFY_CLIENT_SECRET = (process.env.SPOTIFY_CLIENT_SECRET || '').trim()
     
-    console.log('SPOTIFY_CLIENT_ID exists:', !!SPOTIFY_CLIENT_ID)
-    console.log('SPOTIFY_CLIENT_SECRET exists:', !!SPOTIFY_CLIENT_SECRET)
+    console.log('SPOTIFY_CLIENT_ID length:', SPOTIFY_CLIENT_ID.length)
+    console.log('SPOTIFY_CLIENT_SECRET length:', SPOTIFY_CLIENT_SECRET.length)
     
     if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
       return res.status(500).json({ 
@@ -30,9 +30,9 @@ export default async function handler(req, res) {
       })
     }
     
-    // 獲取 Token
+    // 獲取 Token（手動 base64 編碼避免問題）
     const credentials = `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
-    const base64Credentials = Buffer.from(credentials).toString('base64')
+    const base64Credentials = Buffer.from(credentials, 'utf8').toString('base64')
     
     console.log('Requesting token...')
     
