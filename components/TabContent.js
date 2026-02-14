@@ -137,7 +137,7 @@ function normalizeChordSpacing(line) {
   result = result.replace(/\|([^\s])/g, '| $1');
   
   // 確保和弦之間至少有一個空格
-  // 方法：遍歷字符串，當發現 A-G 開頭嘅新和弦，而且前面係和弦字符，就加空格
+  // 方法：遍歷字符串，當發現 A-G 開頭嘅新和弦，而且前面係和弦字符（但不是 /），就加空格
   let output = '';
   for (let i = 0; i < result.length; i++) {
     const char = result[i];
@@ -146,10 +146,11 @@ function normalizeChordSpacing(line) {
     // 檢查是否係 A-G 開頭（可能係新和弦）
     if (/[A-G]/.test(char)) {
       // 檢查前面係咪和弦字符（# b m M 數字等）
-      // 注意：要排除空格同 |
-      if (prevChar && /[a-zA-Z0-9#b+\-\/]/.test(prevChar)) {
+      // 排除：空格、|、/（slash chord 如 G/B 唔應該分開）
+      if (prevChar && /[a-zA-Z0-9#b+\-]/.test(prevChar)) {
         output += ' ';
       }
+      // 注意：如果前面係 /，代表係 slash chord，唔加空格
     }
     output += char;
   }
