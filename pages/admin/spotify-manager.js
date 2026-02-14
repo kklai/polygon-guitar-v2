@@ -15,6 +15,7 @@ function SpotifyManager() {
   const [searchResults, setSearchResults] = useState(null)
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 })
   const [isBulkUpdating, setIsBulkUpdating] = useState(false)
+  const [forceUpdate, setForceUpdate] = useState(false)
   const [logs, setLogs] = useState([])
 
   // 載入數據
@@ -64,19 +65,22 @@ function SpotifyManager() {
 
   // 批量更新歌手
   const bulkUpdateArtists = async () => {
-    const artistsWithoutPhoto = artists.filter(a => !a.photoURL && !a.wikiPhotoURL)
+    // 如果強制更新，處理所有歌手；否則只處理冇相片的
+    const artistsToUpdate = forceUpdate 
+      ? artists 
+      : artists.filter(a => !a.photoURL && !a.wikiPhotoURL)
     
-    if (artistsWithoutPhoto.length === 0) {
-      addLog('所有歌手已有相片，無需更新', 'success')
+    if (artistsToUpdate.length === 0) {
+      addLog('沒有需要更新的歌手', 'success')
       return
     }
 
     setIsBulkUpdating(true)
-    setBulkProgress({ current: 0, total: artistsWithoutPhoto.length, success: 0, failed: 0 })
-    addLog(`開始批量更新 ${artistsWithoutPhoto.length} 個歌手...`, 'info')
+    setBulkProgress({ current: 0, total: artistsToUpdate.length, success: 0, failed: 0 })
+    addLog(`${forceUpdate ? '【強制更新模式】' : ''}開始批量更新 ${artistsToUpdate.length} 個歌手...`, 'info')
 
-    for (let i = 0; i < artistsWithoutPhoto.length; i++) {
-      const artist = artistsWithoutPhoto[i]
+    for (let i = 0; i < artistsToUpdate.length; i++) {
+      const artist = artistsToUpdate[i]
       setBulkProgress(prev => ({ ...prev, current: i + 1 }))
       
       try {
@@ -210,15 +214,34 @@ function SpotifyManager() {
         {/* 歌手管理分頁 */}
         {activeTab === 'artists' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-white">冇相片嘅歌手</h2>
-              <button
-                onClick={bulkUpdateArtists}
-                disabled={isBulkUpdating || stats.artistsWithoutPhoto === 0}
-                className="px-4 py-2 bg-[#1DB954] text-black rounded-lg font-medium hover:bg-[#1ed760] transition disabled:opacity-50"
-              >
-                {isBulkUpdating ? '更新緊...' : `批量更新 ${stats.artistsWithoutPhoto} 個`}
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-lg font-medium text-white">
+                  {forceUpdate ? '所有歌手（強制更新）' : '冇相片嘅歌手'}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {forceUpdate ? `將更新全部 ${stats.totalArtists} 個歌手` : `只更新 ${stats.artistsWithoutPhoto} 個冇相片的歌手`}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={forceUpdate}
+                    onChange={(e) => setForceUpdate(e.target.checked)}
+                    disabled={isBulkUpdating}
+                    className="w-4 h-4 rounded border-gray-600 text-[#1DB954] focus:ring-[#1DB954]"
+                  />
+                  強制更新所有歌手
+                </label>
+                <button
+                  onClick={bulkUpdateArtists}
+                  disabled={isBulkUpdating || (forceUpdate ? artists.length === 0 : stats.artistsWithoutPhoto === 0)}
+                  className="px-4 py-2 bg-[#1DB954] text-black rounded-lg font-medium hover:bg-[#1ed760] transition disabled:opacity-50"
+                >
+                  {isBulkUpdating ? '更新緊...' : `批量更新 ${forceUpdate ? stats.totalArtists : stats.artistsWithoutPhoto} 個`}
+                </button>
+              </div>
             </div>
 
             {isBulkUpdating && (
@@ -237,15 +260,25 @@ function SpotifyManager() {
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {artists
-                .filter(a => !a.photoURL && !a.wikiPhotoURL)
+              {(forceUpdate ? artists : artists.filter(a => !a.photoURL && !a.wikiPhotoURL))
                 .map(artist => (
                   <div key={artist.id} className="bg-[#121212] rounded-lg p-3 border border-gray-800">
-                    <div className="aspect-square rounded-lg bg-gray-800 mb-2 flex items-center justify-center text-2xl">
-                      🎤
+                    <div className="aspect-square rounded-lg bg-gray-800 mb-2 flex items-center justify-center text-2xl overflow-hidden">
+                      {artist.photoURL || artist.wikiPhotoURL ? (
+                        <img 
+                          src={artist.photoURL || artist.wikiPhotoURL} 
+                          alt={artist.name}
+                          className="w-full h-full object-cover opacity-50"
+                        />
+                      ) : (
+                        '🎤'
+                      )}
                     </div>
                     <p className="text-white text-sm truncate">{artist.name}</p>
                     <p className="text-gray-500 text-xs">{artist.songCount || 0} 首歌</p>
+                    {(artist.photoURL || artist.wikiPhotoURL) && (
+                      <p className="text-[#1DB954] text-xs">✓ 有相片</p>
+                    )}
                   </div>
                 ))}
             </div>
