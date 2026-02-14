@@ -472,7 +472,9 @@ function processMixedLine(line, transposeSemitones = 0) {
 }
 
 function processPair(chordLine, lyricLine, transposeSemitones = 0) {
-  const normalizedChord = normalizeInput(chordLine);
+  // 先確保和弦之間有空格，再處理
+  const chordWithSpacing = normalizeChordSpacing(chordLine);
+  const normalizedChord = normalizeInput(chordWithSpacing);
   const normalizedLyric = normalizeInput(lyricLine);
   const bracketPositions = findBracketPositions(normalizedLyric);
   
