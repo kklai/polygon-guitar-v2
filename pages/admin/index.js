@@ -93,6 +93,13 @@ export default function AdminIndex() {
       description: '自動為舊譜添加 YouTube 連結（3000+份）',
       icon: '▶️',
       color: 'bg-red-700'
+    },
+    {
+      href: '/admin/spotify-manager',
+      title: 'Spotify 管理',
+      description: '管理歌手相片、歌曲資訊、批量更新 Spotify 資料',
+      icon: '🎧',
+      color: 'bg-green-600'
     }
   ]
 
