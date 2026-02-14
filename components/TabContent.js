@@ -1011,7 +1011,7 @@ const TabContent = ({
                     {result.chordLine}
                     {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                   </div>
-                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2', paddingLeft: '0.5em' }}>
+                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                     {result.lyricParts.map((part, idx) => (
                       <span key={idx} style={{ 
                         color: part.isInside ? colors.lyricInside : colors.lyricNormal,
@@ -1031,7 +1031,7 @@ const TabContent = ({
                     {result.chordLine}
                     {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                   </div>
-                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2', paddingLeft: '0.5em' }}>
+                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                     {result.lyricParts.map((part, idx) => (
                       <span key={idx} style={{ 
                         color: part.isInside ? colors.lyricInside : colors.lyricNormal,
