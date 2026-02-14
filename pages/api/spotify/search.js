@@ -33,14 +33,23 @@ export default async function handler(req, res) {
     // 獲取 Token（使用 Spotify Client Credentials Flow - Basic Auth）
     console.log('Requesting token...')
     
-    // Base64 encode client_id:client_secret
-    const credentials = Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')
+    // Base64 encode client_id:client_secret（Spotify 官方做法）
+    const credentialsString = `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
+    const base64Credentials = Buffer.from(credentialsString).toString('base64')
+    
+    console.log('Credentials string length:', credentialsString.length)
+    console.log('Base64 credentials preview:', base64Credentials.substring(0, 30) + '...')
+    console.log('Base64 credentials length:', base64Credentials.length)
+    
+    // 驗證 decode 係咪正確
+    const decoded = Buffer.from(base64Credentials, 'base64').toString('utf8')
+    console.log('Decode match:', decoded === credentialsString)
     
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${credentials}`
+        'Authorization': `Basic ${base64Credentials}`
       },
       body: 'grant_type=client_credentials'
     })
