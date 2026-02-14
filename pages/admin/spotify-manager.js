@@ -16,6 +16,7 @@ function SpotifyManager() {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 })
   const [isBulkUpdating, setIsBulkUpdating] = useState(false)
   const [forceUpdate, setForceUpdate] = useState(false)
+  const [showAllArtists, setShowAllArtists] = useState(false)
   const [logs, setLogs] = useState([])
 
   // 載入數據
@@ -259,8 +260,21 @@ function SpotifyManager() {
               </div>
             )}
 
+            {/* 顯示切換 */}
+            <div className="flex items-center gap-4 mb-4">
+              <label className="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAllArtists}
+                  onChange={(e) => setShowAllArtists(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-600 text-[#1DB954] focus:ring-[#1DB954]"
+                />
+                顯示全部歌手（{artists.length} 個）
+              </label>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {(forceUpdate ? artists : artists.filter(a => !a.photoURL && !a.wikiPhotoURL))
+              {(showAllArtists ? artists : artists.filter(a => !a.photoURL && !a.wikiPhotoURL))
                 .map(artist => (
                   <div key={artist.id} className="bg-[#121212] rounded-lg p-3 border border-gray-800">
                     <div className="aspect-square rounded-lg bg-gray-800 mb-2 flex items-center justify-center text-2xl overflow-hidden">
@@ -268,7 +282,7 @@ function SpotifyManager() {
                         <img 
                           src={artist.photoURL || artist.wikiPhotoURL} 
                           alt={artist.name}
-                          className="w-full h-full object-cover opacity-50"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         '🎤'
@@ -276,8 +290,11 @@ function SpotifyManager() {
                     </div>
                     <p className="text-white text-sm truncate">{artist.name}</p>
                     <p className="text-gray-500 text-xs">{artist.songCount || 0} 首歌</p>
-                    {(artist.photoURL || artist.wikiPhotoURL) && (
-                      <p className="text-[#1DB954] text-xs">✓ 有相片</p>
+                    {artist.wikiPhotoURL && (
+                      <p className="text-[#1DB954] text-xs">✓ Spotify 相片</p>
+                    )}
+                    {artist.photoURL && !artist.wikiPhotoURL && (
+                      <p className="text-blue-400 text-xs">✓ 已上傳相片</p>
                     )}
                   </div>
                 ))}
