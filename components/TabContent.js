@@ -96,15 +96,21 @@ function transposeChord(chord, semitones) {
 }
 
 function transposeChordLine(line, semitones) {
-  if (!semitones || semitones === 0) return line;
+  if (!semitones || semitones === 0) {
+    // 即使唔轉調，都確保和弦之間至少有一個空格
+    return normalizeChordSpacing(line);
+  }
   
-  // 匹配：| + 和弦，或 空格 + 和弦，或 |，或獨立的 -
-  return line.replace(/(\|\s*|\s+)([A-G][#b]?[^\s|]*|-)|(\|)/g, (match, separator, chord, barOnly) => {
-    // 處理只有 | 的情況
-    if (barOnly === '|') return ' |';
+  // 先規範化間距，再轉調
+  const normalizedLine = normalizeChordSpacing(line);
+  
+  // 匹配：| 或 ｜ + 和弦，或 空格 + 和弦，或 | 或 ｜，或獨立的 -
+  return normalizedLine.replace(/([\|｜]\s*|\s+)([A-G][#b]?[^\s|｜]*|-)|([\|｜])/g, (match, separator, chord, barOnly) => {
+    // 處理只有 | 或 ｜ 的情況
+    if (barOnly === '|' || barOnly === '｜') return ' |';
     
-    // 判斷是否有 | 
-    const hasBar = separator && separator.includes('|');
+    // 判斷是否有 | 或 ｜
+    const hasBar = separator && (/[\|｜]/.test(separator));
     const leadingSpace = separator && separator.match(/\s*$/)?.[0] || '';
     
     // 處理獨立的延長符號（只是 -）
@@ -119,6 +125,17 @@ function transposeChordLine(line, semitones) {
     const result = hasDash ? transposed + '-' : transposed;
     return (hasBar ? ' |' : leadingSpace || ' ') + result;
   });
+}
+
+// 確保和弦之間至少有一個空格
+function normalizeChordSpacing(line) {
+  // 將全角豎線轉為半角
+  let result = line.replace(/｜/g, '|');
+  // 確保 | 後面至少有一個空格
+  result = result.replace(/\|([^\s])/g, '| $1');
+  // 確保和弦之間至少有一個空格
+  result = result.replace(/([A-G][#b]?[^\s|]*)\s*([A-G][#b]?)/g, '$1 $2');
+  return result;
 }
 
 // ============ 字寬計算工具 ============
@@ -802,11 +819,13 @@ const TabContent = ({
       const lineFontSize = getLineFontSize(line);
       
       // 更精確的和弦行檢測：必須包含和弦模式，且不能主要是中文字
-      const chordPattern = /(\|[\s]*[A-G][#b]?|[\s/]*[A-G][#b]?)(m|maj|min|sus|dim|aug|add|[0-9])*/g;
+      // 支援 | 和 ｜ 兩種豎線
+      const chordPattern = /([\|｜][\s]*[A-G][#b]?|[\s/]*[A-G][#b]?)(m|maj|min|sus|dim|aug|add|[0-9])*/g;
       const chordMatches = line.match(chordPattern) || [];
       // 只計算真正有和弦字母嘅匹配（避免匹配到空字符串）
       const validChordMatches = chordMatches.filter(m => /[A-G]/.test(m));
-      const hasChordPattern = validChordMatches.length >= 2 || /\|[\s]*[A-G]/.test(line);
+      // 只要有 1 個或以上和弦就認為係和弦行（修復單個和弦如 ｜F 嘅問題）
+      const hasChordPattern = validChordMatches.length >= 1 || /[\|｜][\s]*[A-G]/.test(line);
       // 檢查中文字比例，如果超過 30% 就不是和弦行
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const chineseRatio = chineseChars.length / line.length;
@@ -969,7 +988,7 @@ const TabContent = ({
                     {result.chordLine}
                     {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                   </div>
-                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2', paddingLeft: '0.5em' }}>
                     {result.lyricParts.map((part, idx) => (
                       <span key={idx} style={{ 
                         color: part.isInside ? colors.lyricInside : colors.lyricNormal,
@@ -989,7 +1008,7 @@ const TabContent = ({
                     {result.chordLine}
                     {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                   </div>
-                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2', paddingLeft: '0.5em' }}>
                     {result.lyricParts.map((part, idx) => (
                       <span key={idx} style={{ 
                         color: part.isInside ? colors.lyricInside : colors.lyricNormal,
