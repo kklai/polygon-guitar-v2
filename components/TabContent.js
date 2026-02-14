@@ -133,9 +133,25 @@ function normalizeChordSpacing(line) {
   let result = line.replace(/｜/g, '|');
   // 確保 | 後面至少有一個空格
   result = result.replace(/\|([^\s])/g, '| $1');
+  
   // 確保和弦之間至少有一個空格
-  result = result.replace(/([A-G][#b]?[^\s|]*)\s*([A-G][#b]?)/g, '$1 $2');
-  return result;
+  // 方法：遍歷字符串，當發現 A-G 開頭嘅新和弦，而且前面係和弦字符，就加空格
+  let output = '';
+  for (let i = 0; i < result.length; i++) {
+    const char = result[i];
+    const prevChar = result[i - 1];
+    
+    // 檢查是否係 A-G 開頭（可能係新和弦）
+    if (/[A-G]/.test(char)) {
+      // 檢查前面係咪和弦字符（# b m M 數字等）
+      if (prevChar && /[a-zA-Z0-9#b\-\/]/.test(prevChar)) {
+        output += ' ';
+      }
+    }
+    output += char;
+  }
+  
+  return output;
 }
 
 // ============ 字寬計算工具 ============
