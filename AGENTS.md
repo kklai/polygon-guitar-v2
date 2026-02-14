@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-02-09（SEO 優化完成、網域遷移、舊譜編輯權限修復）
+> 最後更新：2026-02-13（Spotify 資料擴展 - 第一階段：粉絲數排名、Spotify Choice）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -98,11 +98,16 @@ pages/
   gender: 'male'|'female'|'group'|'other',
   photoURL: string,       // Cloudinary 用戶上傳
   wikiPhotoURL: string,   // 維基百科備份
-  bio: string,            // 簡介
-  songCount: number,      // 歌曲數量
-  viewCount: number,      // 瀏覽次數
+  bio: string,              // 簡介
+  songCount: number,        // 歌曲數量
+  viewCount: number,        // 瀏覽次數
   isActive: boolean,
-  createdAt: timestamp
+  createdAt: timestamp,
+  // Spotify 資料（2026-02-13 新增）
+  spotifyId: string,        // Spotify 歌手 ID
+  spotifyFollowers: number, // 粉絲數
+  spotifyPopularity: number,// 人氣度 0-100
+  spotifyGenres: array      // 音樂類型
 }
 
 // songs 集合
@@ -224,6 +229,12 @@ const capo = (originalIndex - targetIndex + 12) % 12;
     - 樂譜留言系統 (`TabComments` component)
     - 歌手頁面求譜功能 (`ArtistTabRequests`)
     - 合唱歌曲支援 (collaborators 陣列)
+
+12. **Spotify 資料擴展**（2026-02-13 - 第一階段）
+    - **粉絲數追蹤**：從 Spotify API 獲取 `followers` 數據
+    - **Spotify Choice 排名**：歌手列表新增「🎵 Spotify Choice」排序選項，按粉絲數排名
+    - **擴展資料欄位**：`spotifyPopularity` (人氣度 0-100)、`spotifyGenres` (音樂類型陣列)
+    - **後台更新**：`/admin/spotify-manager` 批量更新時自動儲存粉絲數
 
 ---
 
@@ -368,6 +379,30 @@ bg-[#282828] text-white hover:bg-[#3E3E3E]
 /* 文字 */
 text-white / text-[#B3B3B3] / text-[#FFD700]
 ```
+
+---
+
+## Spotify 資料擴展計劃 📊
+
+分階段實現 Spotify API 數據整合，用於歌手排名和資料豐富化。
+
+### 第一階段 ✅ 已完成（2026-02-13）
+- **粉絲數 (`spotifyFollowers`)**：用於「Spotify Choice」排名
+- **人氣度 (`spotifyPopularity`)**：0-100 分
+- **音樂類型 (`spotifyGenres`)**：如 Cantopop、Mandopop
+- **應用**：歌手列表排序選項「🎵 Spotify Choice」
+
+### 第二階段 🔄 進行中
+- **多尺寸相片**：儲存 640px (Hero)、300px (卡片)、64px (列表)
+- **歌手頁面顯示**：粉絲數、音樂類型標籤
+
+### 第三階段 📋 待定
+- **熱門歌曲 Top 10**：顯示歌手熱門歌曲
+- **專輯資料**：專輯封面、發行年份
+
+### 第四階段 📋 待定
+- **歌曲詳情**：BPM、調性 (Key)、試聽連結
+- **應用於譜頁面**：顯示歌曲 BPM、原調驗證
 
 ---
 
