@@ -129,6 +129,8 @@ function transposeChordLine(line, semitones) {
 
 // 確保和弦之間至少有一個空格
 function normalizeChordSpacing(line) {
+  if (!line) return line;
+  
   // 將全角豎線轉為半角
   let result = line.replace(/｜/g, '|');
   // 確保 | 後面至少有一個空格
@@ -144,7 +146,8 @@ function normalizeChordSpacing(line) {
     // 檢查是否係 A-G 開頭（可能係新和弦）
     if (/[A-G]/.test(char)) {
       // 檢查前面係咪和弦字符（# b m M 數字等）
-      if (prevChar && /[a-zA-Z0-9#b\-\/]/.test(prevChar)) {
+      // 注意：要排除空格同 |
+      if (prevChar && /[a-zA-Z0-9#b+\-\/]/.test(prevChar)) {
         output += ' ';
       }
     }
@@ -394,7 +397,9 @@ function extractChordPart(segment) {
 
 // 處理混合行 - 將交替出現的和弦與歌詞分開
 function processMixedLine(line, transposeSemitones = 0) {
-  const normalizedLine = normalizeInput(line);
+  // 先確保和弦之間有空格
+  const lineWithSpacing = normalizeChordSpacing(line);
+  const normalizedLine = normalizeInput(lineWithSpacing);
   
   // 先檢查是否有 Section Marker
   const sectionInfo = extractSectionMarker(normalizedLine);
