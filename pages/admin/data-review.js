@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { getAllArtists, getAllTabs } from '@/lib/tabs'
-import { deleteDoc, doc } from 'firebase/firestore'
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 // 可疑模式定義
@@ -102,17 +102,21 @@ function DataReview() {
     return issues
   }
 
-  // 獲取可疑歌手
-  const suspiciousArtists = artists.map(artist => ({
-    ...artist,
-    issues: checkArtistSuspicious(artist)
-  })).filter(artist => artist.issues.length > 0)
+  // 獲取可疑歌手（排除已審查的）
+  const suspiciousArtists = artists
+    .filter(artist => !artist.reviewedAt && !artist.isReviewed) // 排除已審查
+    .map(artist => ({
+      ...artist,
+      issues: checkArtistSuspicious(artist)
+    })).filter(artist => artist.issues.length > 0)
 
-  // 獲取可疑歌曲
-  const suspiciousTabs = tabs.map(tab => ({
-    ...tab,
-    issues: checkTabSuspicious(tab)
-  })).filter(tab => tab.issues.length > 0)
+  // 獲取可疑歌曲（排除已審查的）
+  const suspiciousTabs = tabs
+    .filter(tab => !tab.reviewedAt && !tab.isReviewed) // 排除已審查
+    .map(tab => ({
+      ...tab,
+      issues: checkTabSuspicious(tab)
+    })).filter(tab => tab.issues.length > 0)
 
   // 過濾後的項目
   const filteredArtists = selectedFilters.length === 0 
@@ -134,6 +138,25 @@ function DataReview() {
     return Array.from(filters)
   }
 
+  // 標記為已審查（Approve）
+  const approveItem = async (type, id, name) => {
+    try {
+      await updateDoc(doc(db, type, id), {
+        reviewedAt: new Date().toISOString(),
+        isReviewed: true
+      })
+      // 從本地 state 移除，不重新載入
+      if (type === 'artists') {
+        setArtists(prev => prev.filter(a => a.id !== id))
+      } else {
+        setTabs(prev => prev.filter(t => t.id !== id))
+      }
+    } catch (error) {
+      console.error('Approve error:', error)
+      alert('❌ 標記失敗：' + error.message)
+    }
+  }
+
   // 刪除單個項目
   const deleteItem = async (type, id, name) => {
     if (!confirm(`確定要刪除「${name}」嗎？\n\n⚠️ 此操作無法撤銷！`)) {
@@ -142,8 +165,12 @@ function DataReview() {
 
     try {
       await deleteDoc(doc(db, type, id))
-      alert(`✅ 已刪除「${name}」`)
-      loadData() // 重新載入
+      // 從本地 state 移除，不重新載入，保持捲動位置
+      if (type === 'artists') {
+        setArtists(prev => prev.filter(a => a.id !== id))
+      } else {
+        setTabs(prev => prev.filter(t => t.id !== id))
+      }
     } catch (error) {
       console.error('Delete error:', error)
       alert('❌ 刪除失敗：' + error.message)
@@ -180,8 +207,21 @@ function DataReview() {
 
     setIsDeleting(false)
     setSelectedItems(new Set())
-    alert(`刪除完成：成功 ${success} 個，失敗 ${failed} 個`)
-    loadData()
+    
+    // 從本地 state 移除已刪除的項目，不重新載入
+    if (activeTab === 'artists') {
+      const deletedIds = new Set(selected.map(s => s.id))
+      setArtists(prev => prev.filter(a => !deletedIds.has(a.id)))
+    } else {
+      const deletedIds = new Set(selected.map(s => s.id))
+      setTabs(prev => prev.filter(t => !deletedIds.has(t.id)))
+    }
+    
+    if (failed === 0) {
+      // 不彈 alert，避免打斷操作流
+    } else {
+      alert(`刪除完成：成功 ${success} 個，失敗 ${failed} 個`)
+    }
   }
 
   // 切換選擇
@@ -229,7 +269,7 @@ function DataReview() {
         </div>
 
         {/* 統計卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <p className="text-gray-400 text-sm">歌手總數</p>
             <p className="text-2xl font-bold text-white">{artists.length}</p>
@@ -246,6 +286,23 @@ function DataReview() {
             <p className="text-gray-400 text-sm">可疑歌曲</p>
             <p className="text-2xl font-bold text-[#FFD700]">{suspiciousTabs.length}</p>
           </div>
+          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+            <p className="text-gray-400 text-sm">已審查</p>
+            <p className="text-2xl font-bold text-green-400">
+              {artists.filter(a => a.reviewedAt || a.isReviewed).length + tabs.filter(t => t.reviewedAt || t.isReviewed).length}
+            </p>
+          </div>
+        </div>
+
+        {/* 使用說明 */}
+        <div className="bg-[#1a1a2e] rounded-xl p-4 border border-blue-900/50 mb-6">
+          <p className="text-sm text-blue-300">
+            <span className="font-medium">💡 使用提示：</span>
+            <span className="text-gray-400 ml-2">
+              「✓ 正確」按鈕會標記項目為已審查，以後不再顯示在此列表。
+              刪除或標記後頁面不會重新載入，保持捲動位置。
+            </span>
+          </p>
         </div>
 
         {/* 分頁標籤 */}
@@ -421,6 +478,13 @@ function DataReview() {
                         查看
                       </button>
                       <button
+                        onClick={() => approveItem('artists', artist.id, artist.name)}
+                        className="px-3 py-1.5 bg-green-600/20 text-green-400 rounded text-sm hover:bg-green-600 hover:text-white transition"
+                        title="標記為正確，不再顯示"
+                      >
+                        ✓ 正確
+                      </button>
+                      <button
                         onClick={() => deleteItem('artists', artist.id, artist.name)}
                         className="px-3 py-1.5 bg-red-600/20 text-red-400 rounded text-sm hover:bg-red-600 hover:text-white transition"
                       >
@@ -495,6 +559,13 @@ function DataReview() {
                         className="px-3 py-1.5 bg-[#282828] text-white rounded text-sm hover:bg-[#3E3E3E] transition"
                       >
                         查看
+                      </button>
+                      <button
+                        onClick={() => approveItem('tabs', tab.id, tab.title)}
+                        className="px-3 py-1.5 bg-green-600/20 text-green-400 rounded text-sm hover:bg-green-600 hover:text-white transition"
+                        title="標記為正確，不再顯示"
+                      >
+                        ✓ 正確
                       </button>
                       <button
                         onClick={() => deleteItem('tabs', tab.id, tab.title)}
