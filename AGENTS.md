@@ -208,6 +208,7 @@ const capo = (originalIndex - targetIndex + 12) % 12;
    - **合併重複歌手** `/admin/merge-artists` - 自動檢測並合併中英文重複歌手
    - **Logo 上傳** `/admin/logo` - 上傳網站 Logo
    - **數據審查工具** `/admin/data-review` - 找出可疑歌手/歌曲、批量刪除
+   - **歌手名修復工具** `/admin/fix-artist` - 快速修復 UNKNOWN 歌手（如新青年理髮廳）
    - 維基百科搜尋整合 - 編輯樂譜時可直接搜尋歌手中文名
    - 多選批量操作 - 支援批量設置歌手分類
 
@@ -432,6 +433,7 @@ text-white / text-[#B3B3B3] / text-[#FFD700]
 | `pages/admin/artists-v2.js` | **歌手管理 V2**（統一管理、多選批量設置分類） |
 | `pages/admin/merge-artists.js` | **合併重複歌手**（自動檢測中英文重複、手動合併） |
 | `pages/admin/data-review.js` | **數據審查工具**（找出可疑歌手/歌曲、✓正確標記、批量刪除） |
+| `pages/admin/fix-artist.js` | **歌手名修復工具**（修復 UNKNOWN 歌手，如「新青年理髮廳」） |
 
 ### 標題解析邏輯
 ```javascript
@@ -595,6 +597,23 @@ node scripts/migrate-blogger.js --write --all
 - **原理**：類似 Google Analytics，每次 `page_view` 都記錄
 - **優點**：準確反映實際訪問量，用戶多次練習同一首歌都會計
 - **Firestore 規則**：允許任何人更新 `viewCount` 欄位，無需登入
+
+#### 新增歌手名修復工具 `/admin/fix-artist`
+用於快速修復被錯誤標記為 UNKNOWN 的歌手：
+
+**預設快速修復：**
+| 按鈕 | 搜尋關鍵字 | 修復後歌手名 |
+|------|------------|--------------|
+| 新青年理髮廳 | 新青年、理髮廳 | 新青年理髮廳 |
+| per se | per se | per se |
+| Serrini | serrini、樹妮妮 | Serrini |
+| Ian 陳卓賢 | iii、ian chan | Ian 陳卓賢 |
+
+**功能：**
+- 一鍵搜尋所有相關歌曲（包括標題或歌手名包含關鍵字）
+- 自動創建歌手（如果不存在）
+- 批量修復所有歌曲的 `artist`、`artistId`、`artistSlug`
+- 也可逐個歌曲單獨修復
 
 #### 數據審查工具 `/admin/data-review`
 
