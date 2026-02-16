@@ -93,15 +93,8 @@ export default function TabDetail() {
         // 初始化 currentKey：URL參數 > PlayKey > OriginalKey
         const initialKey = queryKey || data.playKey || data.originalKey || 'C'
         setCurrentKey(initialKey)
-        // 記錄瀏覽數（現在所有人都可更新 viewCount）
-        // 使用 sessionStorage 防止同一 session 內重複計數
-        if (id && typeof window !== 'undefined') {
-          const viewedKey = `viewed_${id}`
-          if (!sessionStorage.getItem(viewedKey)) {
-            incrementViewCount(id)
-            sessionStorage.setItem(viewedKey, '1')
-          }
-        }
+        // 記錄瀏覽數（每次頁面載入都計，包括刷新）
+        if (id) incrementViewCount(id)
         if (data.createdBy) {
           const userDoc = await getDoc(doc(db, 'users', data.createdBy))
           if (userDoc.exists()) {
