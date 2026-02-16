@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { getTab, deleteTab } from '@/lib/tabs'
+import { getTab, deleteTab, incrementViewCount } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -93,13 +93,14 @@ export default function TabDetail() {
         // 初始化 currentKey：URL參數 > PlayKey > OriginalKey
         const initialKey = queryKey || data.playKey || data.originalKey || 'C'
         setCurrentKey(initialKey)
-        if (id) {
-          // Use API endpoint to bypass Firestore rules for unauthenticated users
-          fetch('/api/increment-view', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tabId: id })
-          }).catch(err => console.error('View count error:', err))
+        // 記錄瀏覽數（現在所有人都可更新 viewCount）
+        // 使用 sessionStorage 防止同一 session 內重複計數
+        if (id && typeof window !== 'undefined') {
+          const viewedKey = `viewed_${id}`
+          if (!sessionStorage.getItem(viewedKey)) {
+            incrementViewCount(id)
+            sessionStorage.setItem(viewedKey, '1')
+          }
         }
         if (data.createdBy) {
           const userDoc = await getDoc(doc(db, 'users', data.createdBy))
