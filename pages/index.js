@@ -397,17 +397,6 @@ export default function Home() {
       </Head>
       <Layout fullWidth>
         <div className="min-h-screen bg-black pb-24">
-        {/* Logo Header + 總瀏覽量 */}
-        <div className="px-6 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">
-            <span className="text-[#FFD700]">Polygon</span> 結他譜
-          </h1>
-          <div className="text-right">
-            <span className="text-2xl font-bold text-[#FFD700]">{totalViewCount.toLocaleString()}</span>
-            <span className="text-xs text-gray-500 block">總瀏覽量</span>
-          </div>
-        </div>
-
         {/* 搜尋 Bar */}
         <div className="px-6 pb-4">
           <button
@@ -472,10 +461,6 @@ export default function Home() {
                         🎸
                       </div>
                     )}
-                    {/* View Count Badge */}
-                    <div className="absolute top-2 right-2 bg-black/60 text-[#FFD700] text-xs px-2 py-0.5 rounded">
-                      {song.viewCount || 0} 瀏覽
-                    </div>
                   </div>
                   {/* Song Info */}
                   <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
@@ -555,9 +540,6 @@ export default function Home() {
                   <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
                     {artist.name}
                   </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {artist.viewCount || 0} 瀏覽
-                  </span>
                 </button>
               ))}
             </div>
@@ -585,9 +567,6 @@ export default function Home() {
                   <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
                     {artist.name}
                   </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {artist.viewCount || 0} 瀏覽
-                  </span>
                 </button>
               ))}
             </div>
@@ -614,9 +593,6 @@ export default function Home() {
                   </div>
                   <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
                     {artist.name}
-                  </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    {artist.viewCount || 0} 瀏覽
                   </span>
                 </button>
               ))}
