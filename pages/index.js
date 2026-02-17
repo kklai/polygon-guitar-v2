@@ -164,9 +164,14 @@ export default function Home() {
   const loadHomeData = async () => {
     try {
       // 獲取首頁設置
-      const settingsDoc = await getDoc(doc(db, 'settings', 'home'))
-      const settings = settingsDoc.exists() ? settingsDoc.data() : {}
-      setHomeSettings(prev => ({ ...prev, ...settings }))
+      let settings = {}
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'home'))
+        settings = settingsDoc.exists() ? settingsDoc.data() : {}
+        setHomeSettings(prev => ({ ...prev, ...settings }))
+      } catch (settingsError) {
+        console.error('Error loading home settings:', settingsError)
+      }
       
       // 獲取所有譜（先獲取用於計算歌手瀏覽量）
       const allTabs = await getAllTabs()
@@ -315,7 +320,18 @@ export default function Home() {
         if (categoryImages) {
           // 更新分類圖片（維基圖片裁剪為頭像）
           setCategories(prev => prev.map(cat => {
-            let imageUrl = categoryImages[cat.id]?.image || cat.image
+            const catData = categoryImages[cat.id]
+            let imageUrl = cat.image
+            
+            if (catData) {
+              // 處理新格式（對象）或舊格式（字符串）
+              if (typeof catData === 'string') {
+                imageUrl = catData
+              } else if (catData.image) {
+                imageUrl = catData.image
+              }
+            }
+            
             // 如果是維基百科圖片，添加裁剪參數顯示頭部
             if (imageUrl && imageUrl.includes('wikipedia.org')) {
               imageUrl = getCroppedWikiImage(imageUrl)
