@@ -18,7 +18,8 @@ function EditPlaylist() {
     description: '',
     manualType: 'theme',
     curatedBy: '',
-    coverImage: ''
+    coverImage: '',
+    viewMode: 'list'
   })
   const [selectedSongs, setSelectedSongs] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -59,7 +60,8 @@ function EditPlaylist() {
         description: playlist.description || '',
         manualType: playlist.manualType || 'theme',
         curatedBy: playlist.curatedBy || user?.displayName || '',
-        coverImage: playlist.coverImage || ''
+        coverImage: playlist.coverImage || '',
+        viewMode: playlist.viewMode || 'list'
       })
       
       // 載入所有歌曲
@@ -346,6 +348,45 @@ function EditPlaylist() {
                   placeholder="你的名字"
                   className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  顯示模式
+                </label>
+                <div className="flex bg-black border border-gray-800 rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, viewMode: 'list' }))}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded transition ${
+                      formData.viewMode === 'list'
+                        ? 'bg-[#FFD700] text-black'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    列表
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, viewMode: 'grid' }))}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded transition ${
+                      formData.viewMode === 'grid'
+                        ? 'bg-[#FFD700] text-black'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    網格
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  網格模式會以卡片形式橫向滾動顯示歌曲
+                </p>
               </div>
             </div>
 

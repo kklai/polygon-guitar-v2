@@ -10,6 +10,7 @@ export default function PlaylistDetail() {
   const [playlist, setPlaylist] = useState(null)
   const [songs, setSongs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [viewMode, setViewMode] = useState('list') // 'list' | 'grid'
 
   useEffect(() => {
     if (id) {
@@ -46,6 +47,11 @@ export default function PlaylistDetail() {
       }
       
       setPlaylist(playlistData)
+      
+      // 如果歌單有設置默認視圖模式，使用它
+      if (playlistData.viewMode) {
+        setViewMode(playlistData.viewMode)
+      }
       
       // 獲取歌曲詳情
       if (playlistData.songIds && playlistData.songIds.length > 0) {
@@ -183,38 +189,70 @@ export default function PlaylistDetail() {
           </div>
         </div>
 
-        {/* Play All Button */}
+        {/* Play All Button + View Mode Toggle */}
         {songs.length > 0 && (
-          <div className="px-6 py-4 flex items-center gap-4">
-            <button
-              onClick={() => handleSongClick(songs[0].id)}
-              className="w-14 h-14 bg-[#FFD700] rounded-full flex items-center justify-center hover:scale-105 transition shadow-lg"
-            >
-              <svg className="w-7 h-7 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </button>
-            
-            {/* Share Button */}
-            <button
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({
-                    title: playlist.title,
-                    text: playlist.description,
-                    url: window.location.href
-                  })
-                } else {
-                  navigator.clipboard.writeText(window.location.href)
-                  alert('連結已複製到剪貼簿')
-                }
-              }}
-              className="p-3 text-gray-400 hover:text-white transition"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-            </button>
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleSongClick(songs[0].id)}
+                className="w-14 h-14 bg-[#FFD700] rounded-full flex items-center justify-center hover:scale-105 transition shadow-lg"
+              >
+                <svg className="w-7 h-7 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+              
+              {/* Share Button */}
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: playlist.title,
+                      text: playlist.description,
+                      url: window.location.href
+                    })
+                  } else {
+                    navigator.clipboard.writeText(window.location.href)
+                    alert('連結已複製到剪貼簿')
+                  }
+                }}
+                className="p-3 text-gray-400 hover:text-white transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex bg-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded transition ${
+                  viewMode === 'list' 
+                    ? 'bg-[#FFD700] text-black' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="列表視圖"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded transition ${
+                  viewMode === 'grid' 
+                    ? 'bg-[#FFD700] text-black' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="網格視圖"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 
@@ -230,54 +268,97 @@ export default function PlaylistDetail() {
           </div>
         )}
 
-        {/* Songs List */}
-        <div className="px-6">
-          {songs.map((song, index) => (
-            <button
-              key={song.id}
-              onClick={() => handleSongClick(song.id)}
-              className="w-full flex items-center gap-4 py-3 hover:bg-white/5 transition group"
-            >
-              {/* Number */}
-              <span className="text-gray-500 w-8 text-center text-sm">
-                {index + 1}
-              </span>
+        {/* Songs List / Grid */}
+        {viewMode === 'list' ? (
+          /* 列表視圖 */
+          <div className="px-6">
+            {songs.map((song, index) => (
+              <button
+                key={song.id}
+                onClick={() => handleSongClick(song.id)}
+                className="w-full flex items-center gap-4 py-3 hover:bg-white/5 transition group"
+              >
+                {/* Number */}
+                <span className="text-gray-500 w-8 text-center text-sm">
+                  {index + 1}
+                </span>
 
-              {/* Thumbnail */}
-              <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-                {getThumbnail(song) ? (
-                  <img
-                    src={getThumbnail(song)}
-                    alt={song.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl">🎸</span>
+                {/* Thumbnail */}
+                <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {getThumbnail(song) ? (
+                    <img
+                      src={getThumbnail(song)}
+                      alt={song.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xl">🎸</span>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                    {song.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 truncate">{song.artist}</p>
+                </div>
+
+                {/* Key */}
+                <span className="text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-1 rounded">
+                  {song.originalKey || 'C'}
+                </span>
+
+                {/* Views - 只在自動歌單顯示 */}
+                {playlist.source === 'auto' && (
+                  <span className="text-xs text-gray-600 hidden sm:block">
+                    {(song.viewCount || 0).toLocaleString()} 瀏覽
+                  </span>
                 )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 text-left min-w-0">
-                <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">
+              </button>
+            ))}
+          </div>
+        ) : (
+          /* 網格視圖 - 似首頁熱門譜咁 */
+          <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4 pb-4">
+            {songs.map((song, index) => (
+              <button
+                key={song.id}
+                onClick={() => handleSongClick(song.id)}
+                className="flex-shrink-0 flex flex-col group text-left w-32"
+              >
+                {/* Square Cover */}
+                <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative">
+                  {getThumbnail(song) ? (
+                    <img
+                      src={getThumbnail(song)}
+                      alt={song.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                      🎸
+                    </div>
+                  )}
+                  
+                  {/* Number Badge */}
+                  <div className="absolute top-2 left-2 bg-black/60 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-medium">
+                    {index + 1}
+                  </div>
+                </div>
+                
+                {/* Song Info */}
+                <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
                   {song.title}
                 </h3>
-                <p className="text-sm text-gray-500 truncate">{song.artist}</p>
-              </div>
-
-              {/* Key */}
-              <span className="text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-1 rounded">
-                {song.originalKey || 'C'}
-              </span>
-
-              {/* Views - 只在自動歌單顯示 */}
-              {playlist.source === 'auto' && (
-                <span className="text-xs text-gray-600 hidden sm:block">
-                  {(song.viewCount || 0).toLocaleString()} 瀏覽
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+                <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                <p className="text-xs text-[#FFD700] mt-1">
+                  {song.originalKey || 'C'} Key
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
         {songs.length === 0 && (
@@ -294,6 +375,17 @@ export default function PlaylistDetail() {
           </div>
         )}
       </div>
+
+      {/* Custom Styles for scrollbar-hide */}
+      <style jsx global>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </Layout>
   )
 }
