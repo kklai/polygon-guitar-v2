@@ -271,76 +271,97 @@ export default function Home() {
       setArtists(sortedByViews.slice(0, 10))
       
       // 獲取最新歌曲（顯示40個）
-      const sortedTabs = allTabs
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 40)
-      setLatestSongs(sortedTabs)
+      try {
+        const sortedTabs = allTabs
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 40)
+        console.log('Latest songs:', sortedTabs.length)
+        setLatestSongs(sortedTabs)
+      } catch (e) {
+        console.error('Error setting latest songs:', e)
+        setLatestSongs([])
+      }
       
       // 獲取最近一個月熱門譜（按瀏覽量排序，顯示40個）
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-      
-      const recentHotTabs = allTabs
-        .filter(tab => new Date(tab.createdAt) >= oneMonthAgo || tab.viewCount > 0)
-        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-        .slice(0, 40)
-      setHotTabs(recentHotTabs)
+      try {
+        const oneMonthAgo = new Date()
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+        
+        const recentHotTabs = allTabs
+          .filter(tab => {
+            try {
+              const createdDate = tab.createdAt?.toDate ? tab.createdAt.toDate() : new Date(tab.createdAt)
+              return createdDate >= oneMonthAgo || (tab.viewCount || 0) > 0
+            } catch (dateError) {
+              // 如果日期解析失敗，只檢查 viewCount
+              return (tab.viewCount || 0) > 0
+            }
+          })
+          .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+          .slice(0, 40)
+        console.log('Hot tabs:', recentHotTabs.length)
+        setHotTabs(recentHotTabs)
+      } catch (e) {
+        console.error('Error setting hot tabs:', e)
+        setHotTabs([])
+      }
 
       // 獲取自動歌單（熱門歌單區）
-      let auto = []
       try {
-        auto = await getAutoPlaylists()
-        console.log('Auto playlists loaded:', auto)
+        const auto = await getAutoPlaylists()
+        console.log('Auto playlists loaded:', auto?.length || 0)
+        setAutoPlaylists(auto?.length > 0 ? auto : FALLBACK_AUTO_PLAYLISTS)
       } catch (e) {
-        console.log('Error loading auto playlists, using fallback:', e)
+        console.error('Error loading auto playlists:', e)
+        setAutoPlaylists(FALLBACK_AUTO_PLAYLISTS)
       }
-      // 如果 Firestore 冇數據，使用靜態備用數據
-      if (!auto || auto.length === 0) {
-        auto = FALLBACK_AUTO_PLAYLISTS
-      }
-      setAutoPlaylists(auto)
 
       // 獲取精選手動歌單（編輯精選區）
-      let manual = []
       try {
-        manual = await getManualPlaylists(8)
-        console.log('Manual playlists loaded:', manual)
+        const manual = await getManualPlaylists(8)
+        console.log('Manual playlists loaded:', manual?.length || 0)
+        setManualPlaylists(manual?.length > 0 ? manual : FALLBACK_MANUAL_PLAYLISTS)
       } catch (e) {
-        console.log('Error loading manual playlists, using fallback:', e)
+        console.error('Error loading manual playlists:', e)
+        setManualPlaylists(FALLBACK_MANUAL_PLAYLISTS)
       }
-      // 如果 Firestore 冇數據，使用靜態備用數據
-      if (!manual || manual.length === 0) {
-        manual = FALLBACK_MANUAL_PLAYLISTS
-      }
-      setManualPlaylists(manual)
 
       // 獲取自定義分類圖片（使用熱門歌手相片）
+      // 注意：呢個係獨立嘅 try-catch，唔會影響其他數據載入
       try {
+        console.log('Loading category images...')
         const categoryImages = await getCategoryImages()
+        console.log('Category images loaded:', categoryImages)
+        
         if (categoryImages) {
           // 更新分類圖片（維基圖片裁剪為頭像）
-          setCategories(prev => prev.map(cat => {
-            const catData = categoryImages[cat.id]
-            let imageUrl = cat.image
-            
-            if (catData) {
-              // 處理新格式（對象）或舊格式（字符串）
-              if (typeof catData === 'string') {
-                imageUrl = catData
-              } else if (catData.image) {
-                imageUrl = catData.image
+          setCategories(prev => {
+            const updated = prev.map(cat => {
+              const catData = categoryImages[cat.id]
+              let imageUrl = cat.image
+              
+              if (catData) {
+                // 處理新格式（對象）或舊格式（字符串）
+                if (typeof catData === 'string') {
+                  imageUrl = catData
+                } else if (catData.image) {
+                  imageUrl = catData.image
+                }
               }
-            }
-            
-            // 如果是維基百科圖片，添加裁剪參數顯示頭部
-            if (imageUrl && imageUrl.includes('wikipedia.org')) {
-              imageUrl = getCroppedWikiImage(imageUrl)
-            }
-            return { ...cat, image: imageUrl }
-          }))
+              
+              // 如果是維基百科圖片，添加裁剪參數顯示頭部
+              if (imageUrl && imageUrl.includes('wikipedia.org')) {
+                imageUrl = getCroppedWikiImage(imageUrl)
+              }
+              return { ...cat, image: imageUrl }
+            })
+            console.log('Categories updated:', updated)
+            return updated
+          })
         }
       } catch (e) {
-        console.log('Error loading category images:', e)
+        console.error('Error loading category images (non-critical):', e)
+        // 唔會影響其他數據，繼續執行
       }
     } catch (error) {
       console.error('Error loading home data:', error)
