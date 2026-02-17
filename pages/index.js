@@ -282,25 +282,39 @@ export default function Home() {
         setLatestSongs([])
       }
       
-      // 獲取最近一個月熱門譜（按瀏覽量排序，顯示40個）
+      // 獲取熱門譜（支持手動揀選或按瀏覽量自動排序）
       try {
-        const oneMonthAgo = new Date()
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+        const hotTabsDisplayCount = settings.hotTabs?.displayCount || 20
         
-        const recentHotTabs = allTabs
-          .filter(tab => {
-            try {
-              const createdDate = tab.createdAt?.toDate ? tab.createdAt.toDate() : new Date(tab.createdAt)
-              return createdDate >= oneMonthAgo || (tab.viewCount || 0) > 0
-            } catch (dateError) {
-              // 如果日期解析失敗，只檢查 viewCount
-              return (tab.viewCount || 0) > 0
-            }
-          })
-          .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-          .slice(0, 40)
-        console.log('Hot tabs:', recentHotTabs.length)
-        setHotTabs(recentHotTabs)
+        // 檢查是否啟用手動揀選
+        if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
+          // 使用手動揀選
+          const manualIds = settings.hotTabs.manualSelection.map(t => t.id)
+          const manualTabs = manualIds
+            .map(id => allTabs.find(t => t.id === id))
+            .filter(Boolean)
+          console.log('Hot tabs (manual):', manualTabs.length)
+          setHotTabs(manualTabs.slice(0, hotTabsDisplayCount))
+        } else {
+          // 自動排序：最近一個月熱門譜（按瀏覽量排序）
+          const oneMonthAgo = new Date()
+          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+          
+          const recentHotTabs = allTabs
+            .filter(tab => {
+              try {
+                const createdDate = tab.createdAt?.toDate ? tab.createdAt.toDate() : new Date(tab.createdAt)
+                return createdDate >= oneMonthAgo || (tab.viewCount || 0) > 0
+              } catch (dateError) {
+                // 如果日期解析失敗，只檢查 viewCount
+                return (tab.viewCount || 0) > 0
+              }
+            })
+            .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+            .slice(0, hotTabsDisplayCount)
+          console.log('Hot tabs (auto):', recentHotTabs.length)
+          setHotTabs(recentHotTabs)
+        }
       } catch (e) {
         console.error('Error setting hot tabs:', e)
         setHotTabs([])
