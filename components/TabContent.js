@@ -773,8 +773,8 @@ const TabContent = ({
   // 自動滾動 - 成個頁面一齊滾動
   useEffect(() => {
     if (isAutoScroll) {
-      // 速度：10 個選項，由 0 到 1
-      const speeds = [0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0];
+      // 速度：6 個選項（0-5），由慢到快
+      const speeds = [0, 0.3, 0.5, 0.7, 0.9, 1.2];
       autoScrollRef.current = setInterval(() => {
         window.scrollBy({ top: speeds[scrollSpeed] || 0.4, behavior: 'auto' });
       }, 50);
@@ -1223,31 +1223,31 @@ const TabContent = ({
               <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
-              <span className="hidden sm:inline">{isAutoScroll ? '停止' : '自動滾動'}</span>
+              <span>{isAutoScroll ? '停止' : '自動滾動'}</span>
             </button>
             
             {isAutoScroll && (
               <div className="flex items-center gap-0.5">
                 <button
-                  onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))}
+                  onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
                   className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded text-[10px] sm:text-xs ${
                     theme === 'day'
                       ? 'bg-gray-200 text-gray-700'
                       : 'bg-gray-700 text-white'
                   }`}
-                  disabled={scrollSpeed <= 1}
+                  disabled={scrollSpeed <= 0}
                 >
                   −
                 </button>
                 <span className={`w-4 sm:w-5 text-center text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>{scrollSpeed}</span>
                 <button
-                  onClick={() => setScrollSpeed(Math.min(8, scrollSpeed + 1))}
+                  onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
                   className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded text-[10px] sm:text-xs ${
                     theme === 'day'
                       ? 'bg-gray-200 text-gray-700'
                       : 'bg-gray-700 text-white'
                   }`}
-                  disabled={scrollSpeed >= 8}
+                  disabled={scrollSpeed >= 4}
                 >
                   +
                 </button>
