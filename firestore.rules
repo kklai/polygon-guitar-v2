@@ -107,5 +107,26 @@ service cloud.firestore {
       // 登入用戶可以更新（管理員功能）
       allow write: if request.auth != null;
     }
+    
+    // Page Views collection（頁面瀏覽統計）
+    match /pageViews/{viewId} {
+      // 允許任何人創建（用於記錄瀏覽）
+      allow create: if true;
+      
+      // 只有管理員可以讀取統計數據
+      allow read: if request.auth != null 
+        && request.auth.token.email == 'kermit.tam@gmail.com';
+      
+      // 不允許更新或刪除
+      allow update, delete: if false;
+    }
+    
+    // Daily Stats collection（每日統計摘要）
+    match /dailyStats/{dateId} {
+      allow read: if request.auth != null 
+        && request.auth.token.email == 'kermit.tam@gmail.com';
+      allow write: if request.auth != null 
+        && request.auth.token.email == 'kermit.tam@gmail.com';
+    }
   }
 }

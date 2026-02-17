@@ -2,8 +2,46 @@ import '@/styles/globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import Head from 'next/head'
 import { siteConfig } from '@/lib/seo'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { recordPageView, getPageType } from '@/lib/analytics'
 
 export default function App({ Component, pageProps }) {
+  const router = useRouter()
+
+  // 全站頁面瀏覽追蹤
+  useEffect(() => {
+    const handleRouteChange = (url) => {
+      // 延遲一點執行，等待頁面標題更新
+      setTimeout(() => {
+        const pageType = getPageType(url)
+        const pageTitle = document.title
+        
+        // 從 URL 提取 ID（如適用）
+        let pageId = null
+        if (url.startsWith('/tabs/')) {
+          pageId = url.split('/')[2]
+        } else if (url.startsWith('/artists/') && url !== '/artists') {
+          pageId = url.split('/')[2]
+        } else if (url.startsWith('/playlist/')) {
+          pageId = url.split('/')[2]
+        }
+
+        recordPageView(pageType, pageId, pageTitle)
+      }, 100)
+    }
+
+    // 初始頁面加載
+    handleRouteChange(router.asPath)
+
+    // 路由變化時追蹤
+    router.events.on('routeChangeComplete', handleRouteChange)
+    
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange)
+    }
+  }, [router])
+
   return (
     <AuthProvider>
       <Head>

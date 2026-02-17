@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-02-13（瀏覽數統計改為每次載入都計數）
+> 最後更新：2026-02-13（新增全站頁面瀏覽統計系統）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -209,6 +209,7 @@ const capo = (originalIndex - targetIndex + 12) % 12;
    - **Logo 上傳** `/admin/logo` - 上傳網站 Logo
    - **數據審查工具** `/admin/data-review` - 找出可疑歌手/歌曲、批量刪除
    - **歌手名修復工具** `/admin/fix-artist` - 快速修復 UNKNOWN 歌手（如新青年理髮廳）
+   - **全站瀏覽統計** `/admin/analytics` - 類似 Google Analytics，追蹤所有頁面瀏覽
    - 維基百科搜尋整合 - 編輯樂譜時可直接搜尋歌手中文名
    - 多選批量操作 - 支援批量設置歌手分類
 
@@ -434,6 +435,7 @@ text-white / text-[#B3B3B3] / text-[#FFD700]
 | `pages/admin/merge-artists.js` | **合併重複歌手**（自動檢測中英文重複、手動合併） |
 | `pages/admin/data-review.js` | **數據審查工具**（找出可疑歌手/歌曲、✓正確標記、批量刪除） |
 | `pages/admin/fix-artist.js` | **歌手名修復工具**（修復 UNKNOWN 歌手，如「新青年理髮廳」） |
+| `pages/admin/analytics.js` | **全站瀏覽統計**（類似 GA，追蹤所有頁面） |
 
 ### 標題解析邏輯
 ```javascript
@@ -614,6 +616,36 @@ node scripts/migrate-blogger.js --write --all
 - 自動創建歌手（如果不存在）
 - 批量修復所有歌曲的 `artist`、`artistId`、`artistSlug`
 - 也可逐個歌曲單獨修復
+
+#### 新增全站頁面瀏覽統計 `/admin/analytics`
+類似 Google Analytics 的全站瀏覽追蹤系統：
+
+**功能：**
+- **全站追蹤**：每個頁面（樂譜、歌手、首頁、搜尋等）都會記錄
+- **實時更新**：今日瀏覽數實時顯示
+- **時間統計**：今日、昨日、近7天、近30天、總瀏覽
+- **頁面分布**：按頁面類型統計（樂譜頁、歌手頁、首頁等）
+- **熱門頁面**：瀏覽量最高的頁面排行
+- **最近訪問**：實時顯示最近的訪問記錄
+
+**技術實現：**
+- 在 `_app.js` 使用 `routeChangeComplete` 事件追蹤所有路由變化
+- 數據儲存在 Firestore `pageViews` 集合
+- 記錄信息：頁面類型、ID、標題、路徑、時間、屏幕分辨率、語言等
+- **包含所有訪客**（包括未登入用戶）
+- **自動過濾機器人**（檢查 User Agent）
+
+**頁面類型：**
+| 類型 | 說明 |
+|------|------|
+| `tab` | 樂譜頁面 |
+| `artist` | 歌手詳情頁 |
+| `artists-list` | 歌手列表頁 |
+| `home` | 首頁 |
+| `search` | 搜尋頁 |
+| `library` | 樂譜庫 |
+| `playlist` | 歌單頁 |
+| `admin` | 後台頁面 |
 
 #### 數據審查工具 `/admin/data-review`
 
