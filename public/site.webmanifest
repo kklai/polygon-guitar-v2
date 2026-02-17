@@ -1,0 +1,19 @@
+{
+  "name": "Polygon Guitar - 香港最大結他譜庫",
+  "short_name": "Polygon Guitar",
+  "description": "超過 3000 份香港廣東歌、國語歌結他譜，支援轉調、自動滾動",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FFD700",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "zh-HK",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
