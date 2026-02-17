@@ -148,6 +148,14 @@ export default function Home() {
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
   const [isLoading, setIsLoading] = useState(true)
   const [totalViewCount, setTotalViewCount] = useState(0)
+  
+  // 首頁設置
+  const [homeSettings, setHomeSettings] = useState({
+    manualSelection: { male: [], female: [], group: [] },
+    useManualSelection: { male: false, female: false, group: false },
+    hotArtistSortBy: 'viewCount',
+    displayCount: 20
+  })
 
   useEffect(() => {
     loadHomeData()
@@ -155,6 +163,11 @@ export default function Home() {
 
   const loadHomeData = async () => {
     try {
+      // 獲取首頁設置
+      const settingsDoc = await getDoc(doc(db, 'settings', 'home'))
+      const settings = settingsDoc.exists() ? settingsDoc.data() : {}
+      setHomeSettings(prev => ({ ...prev, ...settings }))
+      
       // 獲取所有譜（先獲取用於計算歌手瀏覽量）
       const allTabs = await getAllTabs()
       
@@ -189,27 +202,64 @@ export default function Home() {
         }
       })
       
-      // 按瀏覽量排序（同分按評分、歌曲數），並按性別分類
-      const sortedByViews = artistsWithViews.sort((a, b) => {
-        // 主要：瀏覽量
-        const viewsA = a.viewCount || 0
-        const viewsB = b.viewCount || 0
-        if (viewsB !== viewsA) return viewsB - viewsA
-        
-        // 次要：評分
-        const scoreA = a.adminScore || 0
-        const scoreB = b.adminScore || 0
-        if (scoreB !== scoreA) return scoreB - scoreA
-        
-        // 第三：歌曲數量
-        return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+      // 根據設置排序
+      const displayCount = settings.displayCount || 20
+      const sortBy = settings.hotArtistSortBy || 'viewCount'
+      
+      const sortedArtists = artistsWithViews.sort((a, b) => {
+        if (sortBy === 'tabCount') {
+          // 按譜數排序
+          return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+        } else if (sortBy === 'adminScore') {
+          // 按 adminScore 排序
+          return (b.adminScore || 0) - (a.adminScore || 0)
+        } else if (sortBy === 'mixed') {
+          // 混合排序：瀏覽量(50%) + 譜數(30%) + 評分(20%)
+          const scoreA = (a.viewCount || 0) * 0.5 + 
+                        (a.songCount || a.tabCount || 0) * 30 + 
+                        (a.adminScore || 0) * 200
+          const scoreB = (b.viewCount || 0) * 0.5 + 
+                        (b.songCount || b.tabCount || 0) * 30 + 
+                        (b.adminScore || 0) * 200
+          return scoreB - scoreA
+        } else {
+          // 默認：按瀏覽量排序（同分按評分、歌曲數）
+          const viewsA = a.viewCount || 0
+          const viewsB = b.viewCount || 0
+          if (viewsB !== viewsA) return viewsB - viewsA
+          
+          const scoreA = a.adminScore || 0
+          const scoreB = b.adminScore || 0
+          if (scoreB !== scoreA) return scoreB - scoreA
+          
+          return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+        }
       })
       
-      // 分類熱門歌手（顯示40個）
+      // 分類熱門歌手（根據設置決定手動或自動）
+      const getCategoryArtists = (category) => {
+        const useManual = settings.useManualSelection?.[category]
+        const manualList = settings.manualSelection?.[category] || []
+        
+        if (useManual && manualList.length > 0) {
+          // 使用手動揀選，並補充自動排序至指定數量
+          const manualIds = new Set(manualList.map(a => a.id))
+          const autoFill = sortedArtists
+            .filter(a => (a.artistType || a.gender) === category && !manualIds.has(a.id))
+            .slice(0, displayCount - manualList.length)
+          return [...manualList, ...autoFill].slice(0, displayCount)
+        } else {
+          // 自動排序
+          return sortedArtists
+            .filter(a => (a.artistType || a.gender) === category)
+            .slice(0, displayCount)
+        }
+      }
+      
       setHotArtists({
-        male: sortedByViews.filter(a => (a.artistType || a.gender) === 'male').slice(0, 40),
-        female: sortedByViews.filter(a => (a.artistType || a.gender) === 'female').slice(0, 40),
-        group: sortedByViews.filter(a => (a.artistType || a.gender) === 'group').slice(0, 40)
+        male: getCategoryArtists('male'),
+        female: getCategoryArtists('female'),
+        group: getCategoryArtists('group')
       })
       
       // 保留原來的總熱門歌手（向後兼容）
@@ -397,17 +447,26 @@ export default function Home() {
       </Head>
       <Layout fullWidth>
         <div className="min-h-screen bg-black pb-24">
-        {/* 搜尋 Bar */}
-        <div className="px-6 pb-4">
+        {/* 搜尋 Bar + Admin 設置 */}
+        <div className="px-6 pb-4 flex gap-3">
           <button
             onClick={() => router.push('/search')}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#121212] border border-gray-800 rounded-full text-left hover:border-[#FFD700]/50 transition"
+            className="flex-1 flex items-center gap-3 px-4 py-3 bg-[#121212] border border-gray-800 rounded-full text-left hover:border-[#FFD700]/50 transition"
           >
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <span className="text-gray-500">搜尋歌手、歌名...</span>
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => router.push('/admin/home-settings')}
+              className="px-4 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
+              title="首頁設置"
+            >
+              ⚙️
+            </button>
+          )}
         </div>
 
         {/* 第一區：歌手分類 */}
@@ -476,46 +535,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第三區：最新上架 */}
-        {latestSongs.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-2xl font-bold text-white px-6 py-4">最新上架</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {latestSongs.map((song) => (
-                <button
-                  key={song.id}
-                  onClick={() => handleSongClick(song.id)}
-                  className="flex-shrink-0 flex flex-col group text-left w-32"
-                >
-                  {/* Square Cover */}
-                  <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {getThumbnail(song) ? (
-                      <img
-                        src={getThumbnail(song)}
-                        alt={song.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        🎸
-                      </div>
-                    )}
-                  </div>
-                  {/* Song Info */}
-                  <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {song.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {song.originalKey || 'C'} Key
-                  </p>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 第五區：熱門男歌手 */}
+        {/* 第四區：熱門男歌手 */}
         {hotArtists.male.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門男歌手</h2>
@@ -546,7 +566,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第六區：熱門女歌手 */}
+        {/* 第五區：熱門女歌手 */}
         {hotArtists.female.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門女歌手</h2>
@@ -573,7 +593,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第七區：熱門組合 */}
+        {/* 第六區：熱門組合 */}
         {hotArtists.group.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門組合</h2>
@@ -600,7 +620,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第八區：熱門歌單（數據驅動 - Auto） */}
+        {/* 第七區：熱門歌單（數據驅動 - Auto） */}
         {autoPlaylists.length > 0 && (
           <section className="mb-8">
             <div className="px-6 py-4">
@@ -664,7 +684,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第九區：編輯精選（人工策劃 - Manual） */}
+        {/* 第八區：編輯精選（人工策劃 - Manual） */}
         {manualPlaylists.length > 0 && (
           <section className="mb-8">
             <div className="px-6 py-4">
@@ -721,6 +741,45 @@ export default function Home() {
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
                     {playlist.songIds?.length || 0} 首 • By {playlist.curatedBy || 'Polygon'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 最新上架（移到底部） */}
+        {latestSongs.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-white px-6 py-4">最新上架</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {latestSongs.map((song) => (
+                <button
+                  key={song.id}
+                  onClick={() => handleSongClick(song.id)}
+                  className="flex-shrink-0 flex flex-col group text-left w-32"
+                >
+                  {/* Square Cover */}
+                  <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                    {getThumbnail(song) ? (
+                      <img
+                        src={getThumbnail(song)}
+                        alt={song.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">
+                        🎸
+                      </div>
+                    )}
+                  </div>
+                  {/* Song Info */}
+                  <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                    {song.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {song.originalKey || 'C'} Key
                   </p>
                 </button>
               ))}
