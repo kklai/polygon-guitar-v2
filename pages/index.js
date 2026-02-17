@@ -268,7 +268,7 @@ export default function Home() {
       })
       
       // 保留原來的總熱門歌手（向後兼容）
-      setArtists(sortedByViews.slice(0, 10))
+      setArtists(sortedArtists.slice(0, 10))
       
       // 獲取最新歌曲（顯示40個）
       try {
