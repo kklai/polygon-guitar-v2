@@ -844,21 +844,43 @@ const TabContent = ({
       
       // 更精確的和弦行檢測：必須包含和弦模式，且不能主要是中文字
       // 支援 | 和 ｜ 兩種豎線
-      const chordPattern = /([\|｜][\s]*[A-G][#b]?|[\s/]*[A-G][#b]?)(m|maj|min|sus|dim|aug|add|[0-9])*/g;
-      const chordMatches = line.match(chordPattern) || [];
+      // 嚴格和弦模式：A-G 開頭，後面可選 #/b/m/maj/min/sus/dim/aug/add/數字
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\b/g;
+      const chordMatches = line.match(strictChordPattern) || [];
+      
       // 只計算真正有和弦字母嘅匹配（避免匹配到空字符串）
-      const validChordMatches = chordMatches.filter(m => /[A-G]/.test(m));
-      // 只要有 1 個或以上和弦就認為係和弦行（修復單個和弦如 ｜F 嘅問題）
-      const hasChordPattern = validChordMatches.length >= 1 || /[\|｜][\s]*[A-G]/.test(line);
+      const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
+      
+      // 檢測行首的 | 或 ｜（這通常是和弦行的強信號）
+      const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
+      
+      // 判斷是否為和弦行：
+      // 1. 有 | 開頭 且 有至少 1 個和弦；或
+      // 2. 沒有 | 開頭 但 有至少 2 個和弦（避免誤判英文歌詞）
+      const hasChordPattern = hasBarLineStart 
+        ? validChordMatches.length >= 1 
+        : validChordMatches.length >= 2;
+      
       // 檢查中文字比例，如果超過 30% 就不是和弦行
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const chineseRatio = chineseChars.length / line.length;
+      
       // 如果高中文比例且有括號歌詞，視為歌詞行
       const hasLyricBrackets = chineseRatio > 0.3 && /\([^A-G#b\)]{1,3}\)/.test(line);
-      const isChord = hasChordPattern && chineseRatio < 0.3 && !hasLyricBrackets;
+      
+      // 檢查是否為純英文歌詞行（長單詞、小寫字母比例高）
+      const words = line.trim().split(/\s+/);
+      const longWords = words.filter(w => w.length > 3 && /^[a-zA-Z]+$/.test(w));
+      const looksLikeLyrics = longWords.length >= 2;
+      
+      const isChord = hasChordPattern && chineseRatio < 0.3 && !hasLyricBrackets && !looksLikeLyrics;
       // 同樣檢查下一行
-      const nextChordMatches = nextLine.match(chordPattern) || [];
-      const nextHasChordPattern = nextChordMatches.length >= 2 || nextLine.includes('|') || nextLine.includes('｜');
+      const nextChordMatches = nextLine.match(strictChordPattern) || [];
+      const nextValidChordMatches = nextChordMatches.filter(m => /^[A-G]/.test(m.trim()));
+      const nextHasBarLineStart = /^[\s]*[\|｜]/.test(nextLine);
+      const nextHasChordPattern = nextHasBarLineStart 
+        ? nextValidChordMatches.length >= 1 
+        : nextValidChordMatches.length >= 2;
       const nextChineseChars = nextLine.match(/[\u4e00-\u9fff]/g) || [];
       const nextChineseRatio = nextChineseChars.length / nextLine.length;
       const nextIsChord = nextHasChordPattern && nextChineseRatio < 0.3;
