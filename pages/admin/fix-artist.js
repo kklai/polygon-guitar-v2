@@ -286,6 +286,70 @@ function FixArtistPage() {
       setBatchResults([])
     }, 2000)
   }
+  
+  // 批量刪除選中的項目
+  const executeBatchDelete = async () => {
+    const toDelete = batchResults.filter(r => r.selected)
+    if (toDelete.length === 0) {
+      alert('請至少選擇一項進行刪除')
+      return
+    }
+    
+    if (!confirm(`⚠️ 警告：確定要刪除 ${toDelete.length} 首歌曲嗎？\n此操作不可撤銷！`)) return
+    
+    setIsBatchProcessing(true)
+    setBatchStats({ total: toDelete.length, success: 0, failed: 0 })
+    
+    let success = 0, failed = 0
+    const deletedIds = new Set()
+    
+    for (const item of toDelete) {
+      try {
+        await deleteDoc(doc(db, 'tabs', item.tabId))
+        success++
+        deletedIds.add(item.tabId)
+        addLog(`🗑️ 已刪除：${item.originalTitle}`, 'warning')
+      } catch (error) {
+        failed++
+        addLog(`❌ 刪除失敗：${item.originalTitle} - ${error.message}`, 'error')
+      }
+      
+      setBatchStats({ total: toDelete.length, success, failed })
+    }
+    
+    // 從列表移除已刪除的
+    setUnknownTabs(prev => prev.filter(t => !deletedIds.has(t.id)))
+    setIsBatchProcessing(false)
+    
+    addLog(`\n批量刪除完成！成功：${success}，失敗：${failed}`, 'success')
+    
+    // 更新 batchResults
+    setBatchResults(prev => prev.filter(r => !deletedIds.has(r.tabId)))
+    
+    if (success === toDelete.length) {
+      setTimeout(() => {
+        setShowBatchPreview(false)
+        setBatchResults([])
+      }, 1500)
+    }
+  }
+  
+  // 單個刪除（在預覽中）
+  const deleteSingleFromBatch = async (index) => {
+    const item = batchResults[index]
+    if (!confirm(`確定要刪除「${item.originalTitle}」嗎？`)) return
+    
+    try {
+      await deleteDoc(doc(db, 'tabs', item.tabId))
+      addLog(`🗑️ 已刪除：${item.originalTitle}`, 'warning')
+      
+      // 從列表移除
+      setBatchResults(prev => prev.filter((_, i) => i !== index))
+      setUnknownTabs(prev => prev.filter(t => t.id !== item.tabId))
+    } catch (error) {
+      addLog(`❌ 刪除失敗：${error.message}`, 'error')
+    }
+  }
 
   // ========== 單個編輯功能 ==========
   
@@ -503,6 +567,13 @@ function FixArtistPage() {
                         取消
                       </button>
                       <button
+                        onClick={executeBatchDelete}
+                        disabled={isBatchProcessing || batchResults.filter(r => r.selected).length === 0}
+                        className="px-4 py-1.5 bg-red-900/70 text-red-400 rounded-lg font-medium hover:bg-red-900 transition disabled:opacity-50"
+                      >
+                        🗑️ 刪除 ({batchResults.filter(r => r.selected).length})
+                      </button>
+                      <button
                         onClick={executeBatchFix}
                         disabled={isBatchProcessing || batchResults.filter(r => r.selected).length === 0}
                         className="px-6 py-1.5 bg-[#FFD700] text-black rounded-lg font-medium hover:bg-yellow-400 transition disabled:opacity-50"
@@ -609,13 +680,22 @@ function FixArtistPage() {
                                 </button>
                               </div>
                             ) : (
-                              <button
-                                onClick={() => startEditBatchItem(index)}
-                                className="text-[#FFD700] hover:text-yellow-300 text-xs"
-                                disabled={!item.parsedArtist}
-                              >
-                                編輯
-                              </button>
+                              <div className="flex gap-2 justify-center">
+                                <button
+                                  onClick={() => startEditBatchItem(index)}
+                                  className="text-[#FFD700] hover:text-yellow-300 text-xs"
+                                  disabled={!item.parsedArtist}
+                                >
+                                  編輯
+                                </button>
+                                <button
+                                  onClick={() => deleteSingleFromBatch(index)}
+                                  className="text-red-400 hover:text-red-300 text-xs"
+                                  title="刪除此項目"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -836,6 +916,7 @@ function FixArtistPage() {
             <li><b>勾選/取消</b>：使用 checkbox 選擇要修復的譜，點「全選」「全不選」「反選」快速操作</li>
             <li><b>即時編輯</b>：點擊「編輯」可以直接修改解析出來的歌手名和歌名</li>
             <li><b>確認修復</b>：確認無誤後點擊「確認修復(n)」批量更新</li>
+            <li><b>批量刪除</b>：選中垃圾數據後，點「刪除(n)」批量刪除，或點 🗑️ 單個刪除</li>
           </ul>
         </div>
       </div>
