@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
-import { searchSongInfo } from '@/lib/musicapi'
+import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 
 export default function EditTab() {
@@ -47,9 +47,8 @@ export default function EditTab() {
   const [errors, setErrors] = useState({})
   const [isAuthorized, setIsAuthorized] = useState(false)
   
-  // 歌曲搜尋狀態
-  const [isSearchingSong, setIsSearchingSong] = useState(false)
-  const [songPreview, setSongPreview] = useState(null)
+  // Spotify 歌曲搜尋狀態
+  const [isSpotifyModalOpen, setIsSpotifyModalOpen] = useState(false)
   
   // YouTube Modal 狀態
   const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false)
@@ -184,41 +183,32 @@ export default function EditTab() {
     }))
   }
 
-  // 搜尋歌曲資訊
-  const handleSearchSongInfo = async () => {
-    if (!formData.artist?.trim() || !formData.title?.trim()) {
-      alert('請先輸入歌手名同歌名')
+  // 開啟 Spotify 搜尋
+  const handleSearchSpotify = () => {
+    if (!formData.artist?.trim() && !formData.title?.trim()) {
+      alert('請先輸入歌手名或歌名')
       return
     }
-    
-    setIsSearchingSong(true)
-    setSongPreview(null)
-    
-    const data = await searchSongInfo(formData.artist, formData.title)
-    
-    if (data) {
-      setSongPreview(data)
-    } else {
-      alert('搵唔到歌曲資料（可能維基百科未有呢首歌）')
-    }
-    
-    setIsSearchingSong(false)
+    setIsSpotifyModalOpen(true)
   }
 
-  // 使用歌曲資料
-  const handleUseSongInfo = () => {
-    if (songPreview) {
-      setFormData(prev => ({
-        ...prev,
-        songYear: songPreview.year || prev.songYear,
-        composer: songPreview.composer || prev.composer,
-        lyricist: songPreview.lyricist || prev.lyricist,
-        arranger: songPreview.arranger || prev.arranger,
-        producer: songPreview.producer || prev.producer,
-        album: songPreview.album || prev.album
-      }))
-      setSongPreview(null)
-    }
+  // 使用 Spotify 歌曲資料
+  const handleUseSpotifyTrack = (trackData) => {
+    setFormData(prev => ({
+      ...prev,
+      // 更新歌手和歌名（如果用戶選擇了不同的）
+      artist: trackData.artist || prev.artist,
+      title: trackData.title || prev.title,
+      // 歌曲資訊
+      songYear: trackData.songYear || prev.songYear,
+      album: trackData.album || prev.album,
+      // Spotify 資訊
+      spotifyTrackId: trackData.spotifyTrackId || null,
+      spotifyAlbumId: trackData.spotifyAlbumId || null,
+      spotifyArtistId: trackData.spotifyArtistId || null,
+      spotifyUrl: trackData.spotifyUrl || null,
+      albumImage: trackData.albumImage || null
+    }))
   }
 
   if (isLoading) {
@@ -407,60 +397,44 @@ export default function EditTab() {
               )}
             </div>
 
-            {/* Song Info Search */}
+            {/* Song Info Search - Spotify */}
             <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
-              <h3 className="text-sm font-medium text-[#FFD700] mb-3">歌曲資訊（自動搜尋 Wikipedia）</h3>
+              <h3 className="text-sm font-medium text-[#FFD700] mb-3">歌曲資訊（Spotify 搜尋）</h3>
+              <p className="text-xs text-gray-500 mb-3">
+                自動從 Spotify 獲取歌曲資訊，包括專輯封面、發行年份等
+              </p>
               <button
                 type="button"
-                onClick={handleSearchSongInfo}
-                disabled={isSearchingSong || !formData.artist || !formData.title}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50"
+                onClick={handleSearchSpotify}
+                disabled={!formData.artist && !formData.title}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-lg hover:bg-[#1ed760] transition disabled:opacity-50"
               >
-                {isSearchingSong ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>搜尋緊...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <span>搵歌曲資料</span>
-                  </>
-                )}
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                </svg>
+                <span>從 Spotify 搜尋</span>
               </button>
-
-              {/* 歌曲資料預覽 */}
-              {songPreview && (
-                <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#FFD700] rounded-lg">
-                  <h4 className="text-[#FFD700] font-medium mb-3">搵到歌曲資料：</h4>
+              
+              {/* 顯示已選擇的歌曲資訊 */}
+              {formData.spotifyTrackId && (
+                <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#1DB954] rounded-lg">
+                  <h4 className="text-[#1DB954] font-medium mb-3">✓ 已從 Spotify 獲取：</h4>
+                  {formData.albumImage && (
+                    <img 
+                      src={formData.albumImage} 
+                      alt={formData.album}
+                      className="w-24 h-24 rounded object-cover mb-3"
+                    />
+                  )}
                   <div className="space-y-2 text-sm">
-                    {songPreview.year && <p><span className="text-gray-500">年份：</span><span className="text-white">{songPreview.year}</span></p>}
-                    {songPreview.composer && <p><span className="text-gray-500">作曲：</span><span className="text-white">{songPreview.composer}</span></p>}
-                    {songPreview.lyricist && <p><span className="text-gray-500">填詞：</span><span className="text-white">{songPreview.lyricist}</span></p>}
-                    {songPreview.arranger && <p><span className="text-gray-500">編曲：</span><span className="text-white">{songPreview.arranger}</span></p>}
-                    {songPreview.producer && <p><span className="text-gray-500">監製：</span><span className="text-white">{songPreview.producer}</span></p>}
-                    {songPreview.album && <p><span className="text-gray-500">專輯：</span><span className="text-white">{songPreview.album}</span></p>}
-                  </div>
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      type="button"
-                      onClick={handleUseSongInfo}
-                      className="px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition"
-                    >
-                      使用呢個資料
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSongPreview(null)}
-                      className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
-                    >
-                      取消
-                    </button>
+                    <p><span className="text-gray-500">歌手：</span><span className="text-white">{formData.artist}</span></p>
+                    <p><span className="text-gray-500">歌名：</span><span className="text-white">{formData.title}</span></p>
+                    {formData.album && (
+                      <p><span className="text-gray-500">專輯：</span><span className="text-white">{formData.album}</span></p>
+                    )}
+                    {formData.songYear && (
+                      <p><span className="text-gray-500">年份：</span><span className="text-white">{formData.songYear}</span></p>
+                    )}
                   </div>
                 </div>
               )}
@@ -698,6 +672,15 @@ export default function EditTab() {
             youtubeVideoId: videoId
           }));
         }}
+      />
+      
+      {/* Spotify 歌曲搜尋 Modal */}
+      <SpotifyTrackSearch
+        isOpen={isSpotifyModalOpen}
+        onClose={() => setIsSpotifyModalOpen(false)}
+        artistName={formData.artist}
+        songTitle={formData.title}
+        onSelect={handleUseSpotifyTrack}
       />
     </Layout>
   )
