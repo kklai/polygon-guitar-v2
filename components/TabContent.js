@@ -274,13 +274,47 @@ function getCapoSuggestion(capo) {
   if (capo >= 1 && capo <= 8) {
     return { capo: capo, status: 'ok', message: `建議 Capo: ${capo}`, alternative: null };
   }
-  if (capo >= 9 && capo <= 11) {
-    const dropTuningCapo = capo - 2;
+  // Capo 9-11: 建議 Drop Tuning 替代方案
+  if (capo === 11) {
     return { 
       capo: capo, 
       status: 'high',
       message: `Capo ${capo} 位置過高`,
-      alternative: { type: 'dropTuning', capo: dropTuningCapo }
+      alternative: { 
+        type: 'dropTuning', 
+        tuning: 'Eb Tuning',
+        tuningDesc: '降半音調音 (Eb Ab Db Gb Bb Eb)',
+        newCapo: 1,
+        message: '改用 Eb Tuning，Capo 1'
+      }
+    };
+  }
+  if (capo === 10) {
+    return { 
+      capo: capo, 
+      status: 'high',
+      message: `Capo ${capo} 位置過高`,
+      alternative: { 
+        type: 'dropTuning', 
+        tuning: 'D Tuning',
+        tuningDesc: '降全音調音 (D G C F A D)',
+        newCapo: 0,
+        message: '改用 D Tuning，免 Capo'
+      }
+    };
+  }
+  if (capo === 9) {
+    return { 
+      capo: capo, 
+      status: 'high',
+      message: `Capo ${capo} 位置過高`,
+      alternative: { 
+        type: 'dropTuning', 
+        tuning: 'Db Tuning',
+        tuningDesc: '降一個半音調音 (Db Gb B E Ab Db)',
+        newCapo: 0,
+        message: '改用 Db Tuning，免 Capo'
+      }
     };
   }
   return { capo: null, status: 'invalid', message: '', alternative: null };
@@ -1149,17 +1183,35 @@ const TabContent = ({
         
         {currentKey !== originalKey && capoSuggestion.alternative && (
           <div className={`mb-2 text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-500' : 'text-gray-500'}`}>
-            <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>提示：</span>
-            建議 Drop Tuning
-            <button
-              onClick={() => {
-                setCurrentKey('C')
-                onKeyChange?.('C')
-              }}
-              className={`ml-2 hover:underline ${theme === 'day' ? 'text-purple-600' : 'text-[#FFD700]'}`}
-            >
-              改用 C
-            </button>
+            <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>💡 提示：</span>
+            <span className="ml-1 text-white">{capoSuggestion.alternative.message}</span>
+            <span className="ml-2 text-gray-400">({capoSuggestion.alternative.tuningDesc})</span>
+            {capoSuggestion.alternative.newCapo > 0 ? (
+              <button
+                onClick={() => {
+                  // 根據調音建議調整 Key
+                  const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
+                  const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
+                  setCurrentKey(targetKey)
+                  onKeyChange?.(targetKey)
+                }}
+                className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
+              >
+                試試 {capoSuggestion.alternative.tuning}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
+                  const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
+                  setCurrentKey(targetKey)
+                  onKeyChange?.(targetKey)
+                }}
+                className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
+              >
+                試試 {capoSuggestion.alternative.tuning}
+              </button>
+            )}
           </div>
         )}
         
