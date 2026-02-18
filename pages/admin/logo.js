@@ -10,7 +10,8 @@ function LogoSettings() {
   const { user, isAdmin } = useAuth()
   const [settings, setSettings] = useState({
     logoUrl: null,
-    siteName: 'Polygon 結他譜'
+    siteName: 'Polygon 結他譜',
+    appIconUrl: null
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
@@ -21,15 +22,21 @@ function LogoSettings() {
     loadSettings()
   }, [])
 
+  const [appIconPreview, setAppIconPreview] = useState(null)
+
   const loadSettings = async () => {
     try {
       const data = await getGlobalSettings()
       setSettings({
         logoUrl: data.logoUrl || null,
-        siteName: data.siteName || 'Polygon 結他譜'
+        siteName: data.siteName || 'Polygon 結他譜',
+        appIconUrl: data.appIconUrl || null
       })
       if (data.logoUrl) {
         setPreviewUrl(data.logoUrl)
+      }
+      if (data.appIconUrl) {
+        setAppIconPreview(data.appIconUrl)
       }
     } catch (error) {
       console.error('Error loading settings:', error)
@@ -106,6 +113,70 @@ function LogoSettings() {
       setPreviewUrl(null)
 
       showMessage('Logo 已移除', 'success')
+    } catch (error) {
+      console.error('Remove error:', error)
+      showMessage('移除失敗：' + error.message, 'error')
+    }
+  }
+
+  // App Icon 上傳處理
+  const handleAppIconSelect = async (file) => {
+    if (!file) return
+
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      showMessage(validation.error, 'error')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAppIconPreview(reader.result)
+    }
+    reader.readAsDataURL(file)
+
+    setIsUploading(true)
+
+    try {
+      const result = await uploadToCloudinary(file, 'app-icon')
+      
+      await updateGlobalSettings({
+        appIconUrl: result.url
+      }, user?.uid)
+
+      setSettings(prev => ({
+        ...prev,
+        appIconUrl: result.url
+      }))
+
+      showMessage(
+        `App Icon 上傳成功！${result.width}×${result.height}`,
+        'success'
+      )
+    } catch (error) {
+      console.error('Upload error:', error)
+      showMessage('上傳失敗：' + error.message, 'error')
+      setAppIconPreview(settings.appIconUrl)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleRemoveAppIcon = async () => {
+    if (!confirm('確定要移除 App Icon 嗎？')) return
+
+    try {
+      await updateGlobalSettings({
+        appIconUrl: null
+      }, user?.uid)
+
+      setSettings(prev => ({
+        ...prev,
+        appIconUrl: null
+      }))
+      setAppIconPreview(null)
+
+      showMessage('App Icon 已移除', 'success')
     } catch (error) {
       console.error('Remove error:', error)
       showMessage('移除失敗：' + error.message, 'error')
@@ -231,13 +302,98 @@ function LogoSettings() {
           )}
         </div>
 
+        {/* App Icon Settings Card */}
+        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-white mb-2">App Icon（手機桌面圖示）</h2>
+          <p className="text-gray-400 text-sm mb-6">用戶將網站加入手機主屏幕時顯示的圖示</p>
+
+          {/* Preview Area */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-400 mb-3">
+              目前 App Icon
+            </label>
+            <div className="flex items-center gap-6">
+              <div className="bg-black rounded-lg p-4 flex items-center justify-center border border-gray-800">
+                {appIconPreview ? (
+                  <img 
+                    src={appIconPreview} 
+                    alt="App Icon"
+                    className="w-24 h-24 object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-24 h-24 bg-[#FFD700] rounded-lg flex items-center justify-center">
+                    <span className="text-4xl font-bold text-black">P</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-gray-400">
+                <p>預覽效果</p>
+                <p className="text-xs mt-1">建議尺寸：512×512px</p>
+                <p className="text-xs">建議格式：PNG（透明背景）</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Area */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-400 mb-3">
+              上傳新 App Icon
+            </label>
+            <div 
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition ${
+                isUploading 
+                  ? 'border-[#FFD700] bg-[#FFD700]/5' 
+                  : 'border-gray-700 hover:border-gray-500'
+              }`}
+            >
+              {isUploading ? (
+                <div className="space-y-3">
+                  <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full mx-auto"></div>
+                  <p className="text-[#FFD700]">上傳中...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">📱</div>
+                  <p className="text-white mb-2">拖曳圖片到這裡，或點擊選擇檔案</p>
+                  <p className="text-gray-500 text-sm mb-4">
+                    支援 JPG、PNG、WEBP · 最大 5MB · 建議正方形 512×512px
+                  </p>
+                  <label className="inline-block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAppIconSelect(e.target.files[0])}
+                      className="hidden"
+                    />
+                    <span className="px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
+                      選擇檔案
+                    </span>
+                  </label>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Remove Button */}
+          {settings.appIconUrl && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleRemoveAppIcon}
+                className="px-4 py-2 text-red-400 border border-red-700 rounded-lg hover:bg-red-900/20 transition"
+              >
+                移除 App Icon
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Usage Info */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
           <h3 className="text-lg font-bold text-white mb-4">使用說明</h3>
           <ul className="space-y-2 text-gray-400 text-sm">
             <li>• Logo 會顯示在網站導航欄左上角</li>
+            <li>• App Icon 會在用戶加入主屏幕時顯示</li>
             <li>• 建議使用透明背景的 PNG 格式</li>
-            <li>• 建議高度 40-50px，寬度不超過 200px</li>
             <li>• 上傳後會自動同步到所有頁面</li>
           </ul>
         </div>
