@@ -94,8 +94,8 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  // 管理員檢查
-  const isAdmin = user?.email === 'kermit.tam@gmail.com'
+  // 管理員檢查 - 從 Firestore user 資料讀取
+  const isAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com'
 
   const value = {
     user,

@@ -100,6 +100,20 @@ export default function AdminIndex() {
       description: '管理歌手相片、歌曲資訊、批量更新 Spotify 資料',
       icon: '🎧',
       color: 'bg-green-600'
+    },
+    {
+      href: '/admin/home-settings',
+      title: '首頁設置',
+      description: '管理熱門歌手、熱門歌曲、排序方式',
+      icon: '🏠',
+      color: 'bg-orange-500'
+    },
+    {
+      href: '/admin/admins',
+      title: '管理員設置',
+      description: '設置其他用戶為管理員',
+      icon: '👑',
+      color: 'bg-yellow-500'
     }
   ]
 
