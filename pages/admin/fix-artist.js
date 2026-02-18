@@ -65,66 +65,128 @@ function FixArtistPage() {
 
   // ========== 解析標題功能 ==========
   
-  const parseTitle = (title) => {
+  const parseTitle = (title, knownArtists = []) => {
     if (!title) return { artist: '', title: '', confidence: 0 }
     
+    // 先清理常見後綴
+    const cleanTitle = title.replace(/\s*(cover|結他譜|guitar|tab|chord|ukulele|視譜|audio).*$/i, '').trim()
+    const workingTitle = cleanTitle || title
+    
     // 格式 1: "歌手 - 歌名" （最常見）
-    let match = title.match(/^(.+?)\s*[-–—]\s*(.+)$/)
+    let match = workingTitle.match(/^(.+?)\s*[-–—]\s*(.+)$/)
     if (match) {
       const artist = match[1].trim()
       const songTitle = match[2].trim()
-      // 如果歌手部分太短，可能是格式反了
       if (artist.length >= 2) {
         return { artist, title: songTitle, confidence: 90 }
       }
     }
     
     // 格式 2: "歌手 | 歌名"
-    match = title.match(/^(.+?)\s*\|\s*(.+)$/)
+    match = workingTitle.match(/^(.+?)\s*\|\s*(.+)$/)
     if (match) {
       return { artist: match[1].trim(), title: match[2].trim(), confidence: 85 }
     }
     
     // 格式 3: "歌名 by 歌手"
-    match = title.match(/^(.+?)\s+by\s+(.+)$/i)
+    match = workingTitle.match(/^(.+?)\s+by\s+(.+)$/i)
     if (match) {
       return { artist: match[2].trim(), title: match[1].trim(), confidence: 80 }
     }
     
-    // 格式 4: 包含 "cover" 或 "結他譜" 等關鍵詞
-    const cleanTitle = title.replace(/\s*(cover|結他譜|guitar|tab|chord).*$/i, '').trim()
-    if (cleanTitle !== title && cleanTitle.length > 0) {
-      // 嘗試重新解析清理後的標題
-      const retry = parseTitle(cleanTitle)
-      if (retry.confidence > 0) return retry
+    // 格式 4: "歌手 歌名" 或 "歌名 歌手" （空格分隔，無其他符號）
+    // 檢查是否純粹用空格分隔（沒有其他分隔符）
+    if (!workingTitle.match(/[-–—|]/)) {
+      const spaceParts = workingTitle.split(/\s+/)
+      
+      if (spaceParts.length >= 2) {
+        // 嘗試 1: 檢查第一部分是否匹配已知歌手
+        const firstPart = spaceParts[0]
+        const secondPart = spaceParts[1]
+        const restParts = spaceParts.slice(2)
+        
+        // 檢查已知歌手列表
+        const matchedArtist = knownArtists.find(a => 
+          a.name === firstPart || 
+          a.name.includes(firstPart) ||
+          firstPart.includes(a.name)
+        )
+        
+        if (matchedArtist) {
+          // 格式: "歌手 歌名"
+          const songTitle = [secondPart, ...restParts].join(' ')
+          return { artist: matchedArtist.name, title: songTitle, confidence: 85 }
+        }
+        
+        // 嘗試 2: 檢查第二部分是否匹配已知歌手（歌名在前）
+        const matchedArtist2 = knownArtists.find(a => 
+          a.name === secondPart || 
+          a.name.includes(secondPart) ||
+          secondPart.includes(a.name)
+        )
+        
+        if (matchedArtist2) {
+          // 格式: "歌名 歌手"
+          return { artist: matchedArtist2.name, title: firstPart, confidence: 75 }
+        }
+        
+        // 嘗試 3: 智能推斷 - 如果第一部分短（2-4個中文字）且第二部分較長，可能是「歌手 歌名」
+        const firstCharCount = (firstPart.match(/[\u4e00-\u9fa5]/g) || []).length
+        const secondCharCount = (secondPart.match(/[\u4e00-\u9fa5]/g) || []).length
+        
+        if (firstCharCount >= 2 && firstCharCount <= 4 && secondCharCount >= 1) {
+          // 假設是「歌手 歌名」
+          return { 
+            artist: firstPart, 
+            title: [secondPart, ...restParts].join(' '), 
+            confidence: 70 
+          }
+        }
+        
+        // 嘗試 4: 如果第二部分短（2-4個中文字），可能是「歌名 歌手」
+        if (secondCharCount >= 2 && secondCharCount <= 4) {
+          return { 
+            artist: [secondPart, ...restParts].join(' '), 
+            title: firstPart, 
+            confidence: 65 
+          }
+        }
+        
+        // 嘗試 5: 默認假設第一部分是歌手（最後手段）
+        if (firstPart.length >= 2) {
+          return { 
+            artist: firstPart, 
+            title: [secondPart, ...restParts].join(' '), 
+            confidence: 50 
+          }
+        }
+      }
     }
     
-    // 格式 5: "歌名 - 歌手" （反過來的格式）
-    // 如果只有一個 -，且後面部分看起來像歌手（較短）
-    const parts = title.split(/\s*[-–—]\s/)
+    // 格式 5: "歌名 - 歌手" （反過來的格式，有分隔符）
+    const parts = workingTitle.split(/\s*[-–—]\s/)
     if (parts.length === 2) {
       const [part1, part2] = parts
-      // 如果第二部分比第一部分短，可能是歌手
       if (part2.length < part1.length && part2.length >= 2 && part2.length <= 20) {
         return { artist: part2.trim(), title: part1.trim(), confidence: 60 }
       }
     }
     
-    return { artist: '', title: title, confidence: 0 }
+    return { artist: '', title: workingTitle, confidence: 0 }
   }
 
   // ========== 批量自動解析 ==========
   
   const runBatchParse = () => {
     const results = unknownTabs.map(tab => {
-      const parsed = parseTitle(tab.title)
+      const parsed = parseTitle(tab.title, artists)
       return {
         tabId: tab.id,
         originalTitle: tab.title,
         parsedArtist: parsed.artist,
         parsedTitle: parsed.title,
         confidence: parsed.confidence,
-        willFix: parsed.confidence >= 60 && parsed.artist.length >= 2
+        willFix: parsed.confidence >= 50 && parsed.artist.length >= 2
       }
     })
     
@@ -215,7 +277,7 @@ function FixArtistPage() {
   
   const startEditTab = (tab) => {
     setEditingTab(tab)
-    const parsed = parseTitle(tab.title)
+    const parsed = parseTitle(tab.title, artists)
     setEditForm({
       artist: parsed.artist || '',
       title: parsed.title || tab.title || ''
@@ -229,7 +291,7 @@ function FixArtistPage() {
   
   const autoParse = () => {
     if (!editingTab) return
-    const parsed = parseTitle(editingTab.title)
+    const parsed = parseTitle(editingTab.title, artists)
     setEditForm({
       artist: parsed.artist || '',
       title: parsed.title || editingTab.title || ''
@@ -407,7 +469,7 @@ function FixArtistPage() {
                       <h3 className="text-[#FFD700] font-medium mb-1">批量解析預覽</h3>
                       <p className="text-sm text-gray-400">
                         將修復 {batchResults.filter(r => r.willFix).length} / {batchResults.length} 首歌曲
-                        （信心度 ≥60% 才會自動修復）
+                        （信心度 ≥50% 才會自動修復）
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -691,8 +753,8 @@ function FixArtistPage() {
           <h3 className="text-blue-300 font-medium mb-2">💡 使用說明</h3>
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
             <li><b>批量自動解析</b>：點擊按鈕，系統會嘗試從所有標題自動分出歌手和歌名</li>
-            <li>信心度 ≥60% 的譜會標記為「將修復」，其餘的需要手動處理</li>
-            <li>支援格式：「歌手 - 歌名」、「歌手 | 歌名」、「歌名 by 歌手」</li>
+            <li>信心度 ≥50% 的譜會標記為「將修復」，其餘的需要手動處理</li>
+            <li>支援格式：「歌手 - 歌名」、「歌手 歌名」、「歌手 | 歌名」、「歌名 by 歌手」</li>
             <li>預覽後點擊「確認批量修復」才會真正更新數據庫</li>
           </ul>
         </div>
