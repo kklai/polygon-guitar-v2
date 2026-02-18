@@ -95,7 +95,10 @@ export function AuthProvider({ children }) {
   }
 
   // 管理員檢查 - 從 Firestore user 資料讀取
-  const isAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com'
+  const isAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com' || !!user?.role
+  
+  // 獲取用戶角色
+  const userRole = user?.role || (user?.email === 'kermit.tam@gmail.com' ? 'super_admin' : null)
 
   const value = {
     user,
@@ -103,7 +106,8 @@ export function AuthProvider({ children }) {
     signInWithGoogle,
     logout,
     isAuthenticated: !!user,
-    isAdmin
+    isAdmin,
+    userRole
   }
 
   return (

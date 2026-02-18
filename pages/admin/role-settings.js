@@ -14,8 +14,8 @@ import {
 import Link from 'next/link'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getRoleLabel, getRoleColor } from '@/lib/roles'
 
-function AdminManagement() {
-  const { user } = useAuth()
+function RoleSettings() {
+  const { user, userRole } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState(null)
@@ -55,10 +55,11 @@ function AdminManagement() {
       const userRef = doc(db, 'users', userId)
       await updateDoc(userRef, {
         role: newRole,
-        isAdmin: !!newRole,
+        isAdmin: !!newRole,  // 如果有角色，也是管理員
         updatedAt: new Date().toISOString()
       })
       
+      // Update local state
       setUsers(prev => prev.map(u => 
         u.id === userId ? { ...u, role: newRole, isAdmin: !!newRole } : u
       ))
@@ -83,7 +84,7 @@ function AdminManagement() {
         u.id === userId ? { ...u, role: null, isAdmin: false } : u
       ))
       
-      showMessage('已移除管理員權限')
+      showMessage('已移除角色')
     } catch (error) {
       console.error('Error removing role:', error)
       showMessage('移除失敗', 'error')
@@ -95,7 +96,7 @@ function AdminManagement() {
     u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // 分組
+  // 按角色分組
   const superAdmins = filteredUsers.filter(u => u.email === 'kermit.tam@gmail.com')
   const usersWithRoles = filteredUsers.filter(u => u.role && u.email !== 'kermit.tam@gmail.com')
   const usersWithoutRoles = filteredUsers.filter(u => !u.role && u.email !== 'kermit.tam@gmail.com')
@@ -118,34 +119,17 @@ function AdminManagement() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span>👑</span> 管理員設置
+                <span>🎭</span> 角色權限設置
               </h1>
-              <p className="text-sm text-[#B3B3B3]">設置用戶為管理員（傳統方式）</p>
+              <p className="text-sm text-[#B3B3B3]">設置用戶角色權限</p>
             </div>
-            <div className="flex gap-2">
-              <Link
-                href="/admin/role-settings"
-                className="px-3 py-1.5 bg-[#FFD700] text-black rounded text-sm font-medium hover:opacity-90"
-              >
-                🎭 角色設置
-              </Link>
-              <Link
-                href="/admin"
-                className="text-[#B3B3B3] hover:text-white transition"
-              >
-                返回後台
-              </Link>
-            </div>
+            <Link
+              href="/admin"
+              className="text-[#B3B3B3] hover:text-white transition"
+            >
+              返回後台
+            </Link>
           </div>
-        </div>
-
-        {/* Warning */}
-        <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
-          <p className="text-yellow-400 text-sm">
-            ⚠️ <span className="font-medium">建議使用新的角色系統</span> - 
-            請前往 <Link href="/admin/role-settings" className="underline hover:text-yellow-300">角色權限設置</Link> 
-            設置 Art Director、Score Checker 或 Playlist Maker 角色
-          </p>
         </div>
 
         {message && (
@@ -157,6 +141,34 @@ function AdminManagement() {
             {message.text}
           </div>
         )}
+
+        {/* Role Legend */}
+        <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 mb-6">
+          <h2 className="text-sm font-medium text-gray-400 mb-3">角色說明</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="flex items-center gap-2 p-2 bg-gray-900 rounded">
+              <span className="w-3 h-3 rounded-full bg-pink-500"></span>
+              <div>
+                <span className="text-white text-sm font-medium">Art Director</span>
+                <p className="text-xs text-gray-500">Logo、相片、封面管理</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-gray-900 rounded">
+              <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+              <div>
+                <span className="text-white text-sm font-medium">Score Checker</span>
+                <p className="text-xs text-gray-500">編輯樂譜、歌手資料</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-gray-900 rounded">
+              <span className="w-3 h-3 rounded-full bg-green-500"></span>
+              <div>
+                <span className="text-white text-sm font-medium">Playlist Maker</span>
+                <p className="text-xs text-gray-500">創建特色歌單</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Search */}
         <div className="mb-6">
@@ -171,7 +183,7 @@ function AdminManagement() {
 
         {/* Super Admin */}
         <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <div className="p-4 border-b border-gray-800">
             <h2 className="text-lg font-medium text-white">👑 超級管理員</h2>
           </div>
           <div className="divide-y divide-gray-800">
@@ -194,45 +206,55 @@ function AdminManagement() {
           </div>
         </div>
 
-        {/* Users with Admin Role */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-medium text-white">🎭 已設置角色 ({usersWithRoles.length})</h2>
-          </div>
-          
-          {usersWithRoles.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              暫時沒有設置角色的用戶
+        {/* Users with Roles */}
+        {usersWithRoles.length > 0 && (
+          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
+            <div className="p-4 border-b border-gray-800">
+              <h2 className="text-lg font-medium text-white">🎭 已設置角色 ({usersWithRoles.length})</h2>
             </div>
-          ) : (
             <div className="divide-y divide-gray-800">
-              {usersWithRoles.map(admin => (
-                <div key={admin.id} className="p-4 flex items-center gap-4">
+              {usersWithRoles.map(u => (
+                <div key={u.id} className="p-4 flex items-center gap-4">
                   <img 
-                    src={admin.photoURL || '/default-avatar.png'} 
-                    alt={admin.displayName}
+                    src={u.photoURL || '/default-avatar.png'} 
+                    alt={u.displayName}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">{admin.displayName || '未知用戶'}</p>
-                    <p className="text-sm text-gray-500 truncate">{admin.email}</p>
+                    <p className="text-white font-medium truncate">{u.displayName || '未知用戶'}</p>
+                    <p className="text-sm text-gray-500 truncate">{u.email}</p>
                   </div>
-                  <span className={`px-2 py-1 ${getRoleColor(admin.role)} text-white text-xs font-bold rounded`}>
-                    {getRoleLabel(admin.role)}
-                  </span>
-                  <button
-                    onClick={() => removeRole(admin.id)}
-                    className="px-3 py-1.5 text-red-400 border border-red-700 rounded hover:bg-red-900/20 transition text-sm"
-                  >
-                    取消權限
-                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 ${getRoleColor(u.role)} text-white text-xs font-bold rounded`}>
+                      {getRoleLabel(u.role)}
+                    </span>
+                    
+                    <select
+                      value={u.role || ''}
+                      onChange={(e) => updateUserRole(u.id, e.target.value || null)}
+                      className="px-2 py-1 bg-gray-800 text-white text-sm rounded border border-gray-700"
+                    >
+                      <option value="">選擇角色...</option>
+                      <option value={ROLES.ART_DIRECTOR}>Art Director</option>
+                      <option value={ROLES.SCORE_CHECKER}>Score Checker</option>
+                      <option value={ROLES.PLAYLIST_MAKER}>Playlist Maker</option>
+                    </select>
+                    
+                    <button
+                      onClick={() => removeRole(u.id)}
+                      className="px-2 py-1 text-red-400 hover:bg-red-900/20 rounded text-sm"
+                    >
+                      移除
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* All Users */}
+        {/* Users without Roles */}
         <div className="bg-[#121212] rounded-xl border border-gray-800">
           <div className="p-4 border-b border-gray-800">
             <h2 className="text-lg font-medium text-white">👥 普通用戶 ({usersWithoutRoles.length})</h2>
@@ -240,7 +262,7 @@ function AdminManagement() {
           
           {usersWithoutRoles.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
-              {searchTerm ? '找不到符合的用戶' : '暫時沒有其他用戶'}
+              {searchTerm ? '找不到符合的用戶' : '暫時沒有普通用戶'}
             </div>
           ) : (
             <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
@@ -261,16 +283,18 @@ function AdminManagement() {
                     )}
                   </div>
                   
-                  <select
-                    value=""
-                    onChange={(e) => e.target.value && updateUserRole(u.id, e.target.value)}
-                    className="px-3 py-1.5 bg-[#FFD700] text-black rounded text-sm font-medium cursor-pointer"
-                  >
-                    <option value="">+ 設為管理員</option>
-                    <option value={ROLES.ART_DIRECTOR}>Art Director</option>
-                    <option value={ROLES.SCORE_CHECKER}>Score Checker</option>
-                    <option value={ROLES.PLAYLIST_MAKER}>Playlist Maker</option>
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value=""
+                      onChange={(e) => e.target.value && updateUserRole(u.id, e.target.value)}
+                      className="px-3 py-1.5 bg-[#FFD700] text-black text-sm rounded font-medium cursor-pointer"
+                    >
+                      <option value="">+ 設置角色</option>
+                      <option value={ROLES.ART_DIRECTOR}>Art Director</option>
+                      <option value={ROLES.SCORE_CHECKER}>Score Checker</option>
+                      <option value={ROLES.PLAYLIST_MAKER}>Playlist Maker</option>
+                    </select>
+                  </div>
                 </div>
               ))}
             </div>
@@ -281,9 +305,11 @@ function AdminManagement() {
         <div className="mt-6 p-4 bg-gray-900 rounded-lg text-sm text-gray-400">
           <p className="mb-2">💡 <span className="text-white">說明：</span></p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>設置為管理員後，該用戶可以進入後台並根據角色獲得不同權限</li>
-            <li>用戶需要重新登入權限才會生效</li>
-            <li>建議使用 <Link href="/admin/role-settings" className="text-[#FFD700] hover:underline">角色權限設置</Link> 進行更詳細的權限管理</li>
+            <li>設置角色後，用戶可以進入後台並根據角色獲得不同權限</li>
+            <li>用戶需要重新登入權限才會完全生效</li>
+            <li>Art Director：管理 Logo、App Icon、歌手相片、分類封面</li>
+            <li>Score Checker：編輯樂譜內容、歌手資料、修復數據</li>
+            <li>Playlist Maker：創建和編輯精選歌單</li>
           </ul>
         </div>
       </div>
@@ -291,10 +317,10 @@ function AdminManagement() {
   )
 }
 
-export default function AdminManagementGuard() {
+export default function RoleSettingsGuard() {
   return (
     <AdminGuard>
-      <AdminManagement />
+      <RoleSettings />
     </AdminGuard>
   )
 }

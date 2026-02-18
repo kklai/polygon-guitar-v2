@@ -1,16 +1,22 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
+import { hasPermission } from '@/lib/roles'
 
-export default function AdminGuard({ children }) {
+export default function AdminGuard({ children, requiredRole }) {
   const { user, loading, isAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push('/')
+    if (!loading) {
+      // 檢查是否有權限訪問此頁面
+      const hasAccess = hasPermission(user, router.pathname)
+      
+      if (!hasAccess) {
+        router.push('/admin')
+      }
     }
-  }, [loading, isAdmin, router])
+  }, [loading, user, router])
 
   if (loading) {
     return (
@@ -36,11 +42,21 @@ export default function AdminGuard({ children }) {
     )
   }
 
-  if (!isAdmin) {
+  // 檢查權限
+  const hasAccess = hasPermission(user, router.pathname)
+
+  if (!hasAccess) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white mb-4">您沒有權限訪問此頁面</p>
+          <p className="text-white mb-2">您沒有權限訪問此頁面</p>
+          <p className="text-gray-500 text-sm mb-4">請聯繫超級管理員獲取權限</p>
+          <button 
+            onClick={() => router.push('/admin')}
+            className="px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium mr-2"
+          >
+            返回管理台
+          </button>
           <button 
             onClick={() => router.push('/')}
             className="px-4 py-2 bg-gray-800 text-white rounded-lg font-medium"

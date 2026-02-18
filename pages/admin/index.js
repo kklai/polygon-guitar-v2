@@ -1,121 +1,193 @@
 import Head from 'next/head'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
+import { ROLES, ROLE_LABELS, ROLE_COLORS, hasPermission } from '@/lib/roles'
 
 export default function AdminIndex() {
-  const adminLinks = [
+  const { user, userRole } = useAuth()
+
+  // 所有可用鏈接
+  const allAdminLinks = [
     {
       href: '/admin/playlists',
       title: '歌單管理',
       description: '管理精選歌單、編輯歌單內容',
       icon: '🎵',
-      color: 'bg-purple-600'
+      color: 'bg-purple-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.PLAYLIST_MAKER]
     },
     {
       href: '/admin/artists-v2',
       title: '歌手管理 V2',
       description: '統一管理歌手資料、分類和照片',
       icon: '🎤',
-      color: 'bg-blue-600'
+      color: 'bg-blue-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER, ROLES.ART_DIRECTOR]
     },
     {
       href: '/admin/artists-region',
       title: '歌手地區設定',
       description: '批次設定歌手所屬地區（香港、台灣、中國、外國）',
       icon: '🌏',
-      color: 'bg-cyan-600'
+      color: 'bg-cyan-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
       href: '/admin/artists-score',
       title: '歌手評分管理',
       description: '設定歌手推薦分數（0-1000），控制排序優先級',
       icon: '⭐',
-      color: 'bg-yellow-600'
+      color: 'bg-yellow-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
       href: '/admin/category-images',
       title: '分類封面管理',
       description: '自動更新首頁男歌手/女歌手/組合封面',
       icon: '🖼️',
-      color: 'bg-green-600'
+      color: 'bg-green-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
+    },
+    {
+      href: '/admin/category-covers',
+      title: '分類封面設定',
+      description: '手動設定首頁分類封面圖片',
+      icon: '🎨',
+      color: 'bg-teal-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
       href: '/admin/hero-photos',
       title: 'Hero 圖片管理',
       description: '管理首頁輪播圖片',
       icon: '📸',
-      color: 'bg-pink-600'
+      color: 'bg-pink-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
       href: '/admin/import-tabs',
       title: '批量導入譜',
       description: '從 Blogger 導入結他譜',
       icon: '📥',
-      color: 'bg-orange-600'
+      color: 'bg-orange-600',
+      roles: [ROLES.SUPER_ADMIN]
     },
     {
       href: '/admin/migrated-tabs',
       title: '遷移樂譜管理',
       description: '管理已遷移的樂譜，修復顯示問題',
       icon: '🔧',
-      color: 'bg-amber-600'
+      color: 'bg-amber-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
       href: '/admin/merge-artists',
       title: '合併重複歌手',
       description: '檢測並合併中英文名的重複歌手檔案',
       icon: '🔀',
-      color: 'bg-rose-600'
+      color: 'bg-rose-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
       href: '/admin/analyze',
       title: '數據分析',
       description: '分析結他譜數據、和弦統計',
       icon: '📊',
-      color: 'bg-indigo-600'
+      color: 'bg-indigo-600',
+      roles: [ROLES.SUPER_ADMIN]
     },
     {
       href: '/admin/migrate',
       title: '數據遷移',
       description: '執行數據庫遷移和修復',
       icon: '🔄',
-      color: 'bg-teal-600'
+      color: 'bg-teal-600',
+      roles: [ROLES.SUPER_ADMIN]
     },
     {
       href: '/admin/logo',
-      title: 'Logo 管理',
-      description: '管理網站 Logo 和圖標',
+      title: 'Logo & 圖標管理',
+      description: '管理網站 Logo、App Icon 和圖標',
       icon: '🎨',
-      color: 'bg-red-600'
+      color: 'bg-red-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
       href: '/admin/bulk-youtube',
       title: '批量添加 YouTube',
       description: '自動為舊譜添加 YouTube 連結（3000+份）',
       icon: '▶️',
-      color: 'bg-red-700'
+      color: 'bg-red-700',
+      roles: [ROLES.SUPER_ADMIN]
     },
     {
       href: '/admin/spotify-manager',
       title: 'Spotify 管理',
       description: '管理歌手相片、歌曲資訊、批量更新 Spotify 資料',
       icon: '🎧',
-      color: 'bg-green-600'
+      color: 'bg-green-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
       href: '/admin/home-settings',
       title: '首頁設置',
       description: '管理熱門歌手、熱門歌曲、排序方式',
       icon: '🏠',
-      color: 'bg-orange-500'
+      color: 'bg-orange-500',
+      roles: [ROLES.SUPER_ADMIN]
     },
     {
-      href: '/admin/admins',
-      title: '管理員設置',
-      description: '設置其他用戶為管理員',
-      icon: '👑',
-      color: 'bg-yellow-500'
+      href: '/admin/data-review',
+      title: '數據審查',
+      description: '找出可疑歌手/歌曲，批量刪除或標記',
+      icon: '🔍',
+      color: 'bg-slate-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
+      href: '/admin/fix-artist',
+      title: '歌手名修復',
+      description: '快速修復錯誤的歌手名稱',
+      icon: '✏️',
+      color: 'bg-violet-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
+      href: '/admin/analytics',
+      title: '瀏覽統計',
+      description: '查看全站頁面瀏覽統計',
+      icon: '📈',
+      color: 'bg-cyan-600',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/role-settings',
+      title: '角色權限設置',
+      description: '設置用戶角色權限（僅限超級管理員）',
+      icon: '🎭',
+      color: 'bg-red-500',
+      roles: [ROLES.SUPER_ADMIN]
     }
   ]
+
+  // 根據用戶角色過濾鏈接
+  const visibleLinks = allAdminLinks.filter(link => {
+    if (user?.email === 'kermit.tam@gmail.com') return true
+    return link.roles.includes(userRole)
+  })
+
+  // 獲取用戶角色顯示
+  const getRoleDisplay = () => {
+    if (user?.email === 'kermit.tam@gmail.com') {
+      return { label: '超級管理員', color: 'bg-red-500' }
+    }
+    return { 
+      label: ROLE_LABELS[userRole] || '管理員', 
+      color: ROLE_COLORS[userRole] || 'bg-gray-500' 
+    }
+  }
+
+  const roleDisplay = getRoleDisplay()
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6">
@@ -126,7 +198,15 @@ export default function AdminIndex() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">管理員中心</h1>
+          <div>
+            <h1 className="text-3xl font-bold">管理員中心</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <span className={`px-2 py-0.5 ${roleDisplay.color} text-white text-xs font-bold rounded`}>
+                {roleDisplay.label}
+              </span>
+              <span className="text-slate-400 text-sm">{user?.email}</span>
+            </div>
+          </div>
           <Link
             href="/"
             className="text-slate-400 hover:text-white transition-colors"
@@ -135,9 +215,32 @@ export default function AdminIndex() {
           </Link>
         </div>
 
+        {/* Role Info */}
+        {userRole === ROLES.ART_DIRECTOR && (
+          <div className="mb-6 p-4 bg-pink-900/20 border border-pink-700 rounded-lg">
+            <p className="text-pink-400 text-sm">
+              🎨 <span className="font-medium">Art Director</span> - 你可以管理 Logo、相片、封面等視覺內容
+            </p>
+          </div>
+        )}
+        {userRole === ROLES.SCORE_CHECKER && (
+          <div className="mb-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+            <p className="text-blue-400 text-sm">
+              📝 <span className="font-medium">Score Checker</span> - 你可以編輯樂譜內容和歌手資料
+            </p>
+          </div>
+        )}
+        {userRole === ROLES.PLAYLIST_MAKER && (
+          <div className="mb-6 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+            <p className="text-green-400 text-sm">
+              🎵 <span className="font-medium">Playlist Maker</span> - 你可以創建和管理精選歌單
+            </p>
+          </div>
+        )}
+
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {adminLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -153,6 +256,14 @@ export default function AdminIndex() {
             </Link>
           ))}
         </div>
+
+        {/* Empty State */}
+        {visibleLinks.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-slate-400">暫時沒有可用的管理功能</p>
+            <p className="text-slate-500 text-sm mt-2">請聯繫超級管理員獲取權限</p>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="mt-12 text-center text-slate-500 text-sm">
