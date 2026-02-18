@@ -154,7 +154,8 @@ function FixArtistPage() {
         parsedArtist: parsed.artist,
         parsedTitle: parsed.title,
         confidence: parsed.confidence,
-        selected: parsed.confidence >= 50 && parsed.artist.length >= 2 // 默認選中
+        selected: parsed.confidence >= 50 && parsed.artist.length >= 2, // 默認選中
+        content: tab.content || '' // 加入內容預覽
       }
     })
     
@@ -591,10 +592,11 @@ function FixArtistPage() {
                       <tr>
                         <th className="text-center p-3 text-gray-400 font-medium w-12">選</th>
                         <th className="text-left p-3 text-gray-400 font-medium">原始標題</th>
+                        <th className="text-left p-3 text-gray-400 font-medium max-w-xs">內容預覽</th>
                         <th className="text-left p-3 text-gray-400 font-medium">歌手</th>
                         <th className="text-left p-3 text-gray-400 font-medium">歌名</th>
                         <th className="text-center p-3 text-gray-400 font-medium w-20">信心度</th>
-                        <th className="text-center p-3 text-gray-400 font-medium w-20">操作</th>
+                        <th className="text-center p-3 text-gray-400 font-medium w-24">操作</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -613,6 +615,16 @@ function FixArtistPage() {
                           {/* 原始標題 */}
                           <td className="p-3 text-white max-w-xs truncate" title={item.originalTitle}>
                             {item.originalTitle}
+                          </td>
+                          
+                          {/* 內容預覽 */}
+                          <td className="p-3 max-w-xs">
+                            <div 
+                              className="text-gray-500 text-xs line-clamp-2" 
+                              title={item.content?.substring(0, 200)}
+                            >
+                              {item.content ? item.content.substring(0, 80).replace(/\n/g, ' ') : '(無內容)'}
+                            </div>
                           </td>
                           
                           {/* 歌手 - 可編輯 */}
@@ -913,6 +925,7 @@ function FixArtistPage() {
           <h3 className="text-blue-300 font-medium mb-2">💡 使用說明</h3>
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
             <li><b>批量自動解析</b>：點擊按鈕後，在預覽中勾選要修復的項目</li>
+            <li><b>內容預覽</b>：表格顯示每份譜的頭 80 個字，方便判斷係咪垃圾數據</li>
             <li><b>勾選/取消</b>：使用 checkbox 選擇要修復的譜，點「全選」「全不選」「反選」快速操作</li>
             <li><b>即時編輯</b>：點擊「編輯」可以直接修改解析出來的歌手名和歌名</li>
             <li><b>確認修復</b>：確認無誤後點擊「確認修復(n)」批量更新</li>
