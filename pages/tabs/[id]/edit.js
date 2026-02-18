@@ -541,9 +541,16 @@ export default function EditTab() {
                 onChange={handleChange}
                 className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
               >
-                {['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'].map((key) => (
-                  <option key={key} value={key}>{key}</option>
-                ))}
+                <optgroup label="Major (大調)">
+                  {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Minor (小調)">
+                  {['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'].map((key) => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
