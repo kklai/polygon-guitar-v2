@@ -57,9 +57,14 @@ service cloud.firestore {
       // 所有人可以讀取
       allow read: if true;
       
-      // 只有自己可以寫入自己嘅資料
+      // 寫入權限：
+      // 1. 自己可以修改自己的資料
+      // 2. 超級管理員可以修改任何用戶的資料（用於設置角色）
       allow write: if request.auth != null 
-        && request.auth.uid == userId;
+        && (
+          request.auth.uid == userId 
+          || request.auth.token.email == 'kermit.tam@gmail.com'
+        );
     }
     
     // Comments collection（樂譜留言）
