@@ -110,10 +110,10 @@ service cloud.firestore {
     
     // Page Views collection（頁面瀏覽統計）
     match /pageViews/{viewId} {
-      // 允許任何人創建（用於記錄瀏覽）
+      // 允許任何人創建（用於記錄瀏覽，包括未登入用戶）
       allow create: if true;
       
-      // 允許任何人讀取（用於測試）
+      // 允許任何人讀取（讓 analytics 頁面可以顯示數據）
       allow read: if true;
       
       // 不允許更新或刪除

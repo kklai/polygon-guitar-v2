@@ -522,24 +522,34 @@ export default function Home() {
 
         {/* 第一區：歌手分類 */}
         <section className="mb-8">
-          <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+          <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
             {categories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => handleCategoryClick(category.id)}
-                className="flex-shrink-0 relative w-[40vw] md:w-[30vw] h-[25vh] rounded-xl overflow-hidden group"
+                className="flex-shrink-0 flex flex-col group"
               >
-                {/* Background Image */}
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                />
-                {/* Gradient Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-t ${category.color}`} />
-                {/* Text */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white text-xl font-bold">{category.name}</h3>
+                {/* 正方形圖片卡片 */}
+                <div className="relative w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] aspect-square rounded-[4px] overflow-hidden">
+                  {/* Background Image - 保持原相自然色，無遮罩 */}
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* 文字置中底部 */}
+                  <div className="absolute bottom-4 left-0 right-0 text-center">
+                    <h3 className="text-white font-bold text-2xl tracking-wider"
+                        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                      {category.name}
+                    </h3>
+                  </div>
+                </div>
+                {/* 熱門歌手名單 */}
+                <div className="w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] mt-2 px-1">
+                  <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
+                    {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+                  </p>
                 </div>
               </button>
             ))}
