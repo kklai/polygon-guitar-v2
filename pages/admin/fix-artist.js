@@ -34,7 +34,8 @@ function FixArtistPage() {
   const [batchResults, setBatchResults] = useState([])
   const [showBatchPreview, setShowBatchPreview] = useState(false)
   const [isBatchProcessing, setIsBatchProcessing] = useState(false)
-  const [batchStats, setBatchStats] = useState({ total: 0, success: 0, failed: 0, skipped: 0 })
+  const [batchStats, setBatchStats] = useState({ total: 0, success: 0, failed: 0 })
+  const [editingBatchItem, setEditingBatchItem] = useState(null) // 正在編輯的批量項目
 
   useEffect(() => {
     loadData()
@@ -68,102 +69,69 @@ function FixArtistPage() {
   const parseTitle = (title, knownArtists = []) => {
     if (!title) return { artist: '', title: '', confidence: 0 }
     
-    // 先清理常見後綴
     const cleanTitle = title.replace(/\s*(cover|結他譜|guitar|tab|chord|ukulele|視譜|audio).*$/i, '').trim()
     const workingTitle = cleanTitle || title
     
-    // 格式 1: "歌手 - 歌名" （最常見）
+    // 格式 1: "歌手 - 歌名"
     let match = workingTitle.match(/^(.+?)\s*[-–—]\s*(.+)$/)
     if (match) {
       const artist = match[1].trim()
       const songTitle = match[2].trim()
-      if (artist.length >= 2) {
-        return { artist, title: songTitle, confidence: 90 }
-      }
+      if (artist.length >= 2) return { artist, title: songTitle, confidence: 90 }
     }
     
     // 格式 2: "歌手 | 歌名"
     match = workingTitle.match(/^(.+?)\s*\|\s*(.+)$/)
-    if (match) {
-      return { artist: match[1].trim(), title: match[2].trim(), confidence: 85 }
-    }
+    if (match) return { artist: match[1].trim(), title: match[2].trim(), confidence: 85 }
     
     // 格式 3: "歌名 by 歌手"
     match = workingTitle.match(/^(.+?)\s+by\s+(.+)$/i)
-    if (match) {
-      return { artist: match[2].trim(), title: match[1].trim(), confidence: 80 }
-    }
+    if (match) return { artist: match[2].trim(), title: match[1].trim(), confidence: 80 }
     
-    // 格式 4: "歌手 歌名" 或 "歌名 歌手" （空格分隔，無其他符號）
-    // 檢查是否純粹用空格分隔（沒有其他分隔符）
+    // 格式 4: 空格分隔（無其他符號）
     if (!workingTitle.match(/[-–—|]/)) {
       const spaceParts = workingTitle.split(/\s+/)
       
       if (spaceParts.length >= 2) {
-        // 嘗試 1: 檢查第一部分是否匹配已知歌手
         const firstPart = spaceParts[0]
         const secondPart = spaceParts[1]
         const restParts = spaceParts.slice(2)
         
-        // 檢查已知歌手列表
+        // 嘗試 1: 檢查已知歌手列表
         const matchedArtist = knownArtists.find(a => 
-          a.name === firstPart || 
-          a.name.includes(firstPart) ||
-          firstPart.includes(a.name)
+          a.name === firstPart || a.name.includes(firstPart) || firstPart.includes(a.name)
         )
-        
         if (matchedArtist) {
-          // 格式: "歌手 歌名"
-          const songTitle = [secondPart, ...restParts].join(' ')
-          return { artist: matchedArtist.name, title: songTitle, confidence: 85 }
+          return { artist: matchedArtist.name, title: [secondPart, ...restParts].join(' '), confidence: 85 }
         }
         
-        // 嘗試 2: 檢查第二部分是否匹配已知歌手（歌名在前）
+        // 嘗試 2: 第二部分匹配已知歌手
         const matchedArtist2 = knownArtists.find(a => 
-          a.name === secondPart || 
-          a.name.includes(secondPart) ||
-          secondPart.includes(a.name)
+          a.name === secondPart || a.name.includes(secondPart) || secondPart.includes(a.name)
         )
-        
         if (matchedArtist2) {
-          // 格式: "歌名 歌手"
           return { artist: matchedArtist2.name, title: firstPart, confidence: 75 }
         }
         
-        // 嘗試 3: 智能推斷 - 如果第一部分短（2-4個中文字）且第二部分較長，可能是「歌手 歌名」
+        // 嘗試 3: 智能推斷
         const firstCharCount = (firstPart.match(/[\u4e00-\u9fa5]/g) || []).length
         const secondCharCount = (secondPart.match(/[\u4e00-\u9fa5]/g) || []).length
         
         if (firstCharCount >= 2 && firstCharCount <= 4 && secondCharCount >= 1) {
-          // 假設是「歌手 歌名」
-          return { 
-            artist: firstPart, 
-            title: [secondPart, ...restParts].join(' '), 
-            confidence: 70 
-          }
+          return { artist: firstPart, title: [secondPart, ...restParts].join(' '), confidence: 70 }
         }
         
-        // 嘗試 4: 如果第二部分短（2-4個中文字），可能是「歌名 歌手」
         if (secondCharCount >= 2 && secondCharCount <= 4) {
-          return { 
-            artist: [secondPart, ...restParts].join(' '), 
-            title: firstPart, 
-            confidence: 65 
-          }
+          return { artist: [secondPart, ...restParts].join(' '), title: firstPart, confidence: 65 }
         }
         
-        // 嘗試 5: 默認假設第一部分是歌手（最後手段）
         if (firstPart.length >= 2) {
-          return { 
-            artist: firstPart, 
-            title: [secondPart, ...restParts].join(' '), 
-            confidence: 50 
-          }
+          return { artist: firstPart, title: [secondPart, ...restParts].join(' '), confidence: 50 }
         }
       }
     }
     
-    // 格式 5: "歌名 - 歌手" （反過來的格式，有分隔符）
+    // 格式 5: "歌名 - 歌手"
     const parts = workingTitle.split(/\s*[-–—]\s/)
     if (parts.length === 2) {
       const [part1, part2] = parts
@@ -186,23 +154,70 @@ function FixArtistPage() {
         parsedArtist: parsed.artist,
         parsedTitle: parsed.title,
         confidence: parsed.confidence,
-        willFix: parsed.confidence >= 50 && parsed.artist.length >= 2
+        selected: parsed.confidence >= 50 && parsed.artist.length >= 2 // 默認選中
       }
     })
     
     setBatchResults(results)
     setShowBatchPreview(true)
-    
-    const willFixCount = results.filter(r => r.willFix).length
-    addLog(`批量解析完成：${willFixCount}/${results.length} 首可以自動修復`, 'info')
+    addLog(`批量解析完成：${results.filter(r => r.selected).length}/${results.length} 首默認選中`, 'info')
+  }
+  
+  // 切換選中狀態
+  const toggleSelection = (index) => {
+    setBatchResults(prev => prev.map((item, i) => 
+      i === index ? { ...item, selected: !item.selected } : item
+    ))
+  }
+  
+  // 全選
+  const selectAll = () => {
+    setBatchResults(prev => prev.map(item => ({ ...item, selected: true })))
+  }
+  
+  // 全不選
+  const deselectAll = () => {
+    setBatchResults(prev => prev.map(item => ({ ...item, selected: false })))
+  }
+  
+  // 反選
+  const invertSelection = () => {
+    setBatchResults(prev => prev.map(item => ({ ...item, selected: !item.selected })))
+  }
+  
+  // 開始編輯批量項目
+  const startEditBatchItem = (index) => {
+    setEditingBatchItem(index)
+  }
+  
+  // 更新批量項目的歌手/歌名
+  const updateBatchItem = (index, field, value) => {
+    setBatchResults(prev => prev.map((item, i) => 
+      i === index ? { ...item, [field]: value } : item
+    ))
+  }
+  
+  // 保存批量項目編輯
+  const saveBatchItemEdit = () => {
+    setEditingBatchItem(null)
+  }
+  
+  // 取消批量項目編輯
+  const cancelBatchItemEdit = () => {
+    setEditingBatchItem(null)
   }
   
   const executeBatchFix = async () => {
-    const toFix = batchResults.filter(r => r.willFix)
-    if (toFix.length === 0) return
+    const toFix = batchResults.filter(r => r.selected)
+    if (toFix.length === 0) {
+      alert('請至少選擇一項進行修復')
+      return
+    }
+    
+    if (!confirm(`確定要修復 ${toFix.length} 首歌曲嗎？`)) return
     
     setIsBatchProcessing(true)
-    setBatchStats({ total: toFix.length, success: 0, failed: 0, skipped: 0 })
+    setBatchStats({ total: toFix.length, success: 0, failed: 0 })
     
     let success = 0, failed = 0
     const fixedIds = new Set()
@@ -256,12 +271,11 @@ function FixArtistPage() {
         addLog(`❌ 失敗：${item.originalTitle} - ${error.message}`, 'error')
       }
       
-      setBatchStats(prev => ({ ...prev, success, failed }))
+      setBatchStats({ total: toFix.length, success, failed })
     }
     
     // 從列表移除已修復的
     setUnknownTabs(prev => prev.filter(t => !fixedIds.has(t.id)))
-    setBatchStats({ total: toFix.length, success, failed, skipped: 0 })
     setIsBatchProcessing(false)
     
     addLog(`\n批量修復完成！成功：${success}，失敗：${failed}`, 'success')
@@ -444,7 +458,7 @@ function FixArtistPage() {
                   <div>
                     <h3 className="text-blue-300 font-medium mb-1">⚡ 批量自動解析</h3>
                     <p className="text-sm text-gray-400">
-                      系統會嘗試從標題自動分出歌手和歌名（支援「歌手 - 歌名」、「歌名 by 歌手」等格式）
+                      系統會嘗試從標題自動分出歌手和歌名，你可以在預覽中勾選要修復的項目
                     </p>
                   </div>
                   <button
@@ -460,81 +474,147 @@ function FixArtistPage() {
               </div>
             )}
             
-            {/* 批量預覽 */}
+            {/* 批量預覽 - 全新設計 */}
             {showBatchPreview && (
               <div className="mb-6 bg-[#121212] rounded-xl border border-[#FFD700] overflow-hidden">
+                {/* Header */}
                 <div className="p-4 border-b border-gray-800 bg-[#FFD700]/5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h3 className="text-[#FFD700] font-medium mb-1">批量解析預覽</h3>
                       <p className="text-sm text-gray-400">
-                        將修復 {batchResults.filter(r => r.willFix).length} / {batchResults.length} 首歌曲
-                        （信心度 ≥50% 才會自動修復）
+                        已選中 {batchResults.filter(r => r.selected).length} / {batchResults.length} 首歌曲
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={selectAll} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                        全選
+                      </button>
+                      <button onClick={deselectAll} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                        全不選
+                      </button>
+                      <button onClick={invertSelection} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                        反選
+                      </button>
                       <button
                         onClick={() => setShowBatchPreview(false)}
-                        className="px-4 py-2 text-gray-400 hover:text-white transition"
+                        className="px-4 py-1.5 text-gray-400 hover:text-white transition"
                       >
                         取消
                       </button>
                       <button
                         onClick={executeBatchFix}
-                        disabled={isBatchProcessing || batchResults.filter(r => r.willFix).length === 0}
-                        className="px-6 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:bg-yellow-400 transition disabled:opacity-50"
+                        disabled={isBatchProcessing || batchResults.filter(r => r.selected).length === 0}
+                        className="px-6 py-1.5 bg-[#FFD700] text-black rounded-lg font-medium hover:bg-yellow-400 transition disabled:opacity-50"
                       >
-                        {isBatchProcessing ? `處理中... ${batchStats.success}/${batchStats.total}` : '確認批量修復'}
+                        {isBatchProcessing ? `處理中... ${batchStats.success}/${batchStats.total}` : `確認修復 (${batchResults.filter(r => r.selected).length})`}
                       </button>
                     </div>
                   </div>
                 </div>
                 
+                {/* 表格 */}
                 <div className="max-h-[60vh] overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-black sticky top-0">
+                    <thead className="bg-black sticky top-0 z-10">
                       <tr>
+                        <th className="text-center p-3 text-gray-400 font-medium w-12">選</th>
                         <th className="text-left p-3 text-gray-400 font-medium">原始標題</th>
-                        <th className="text-left p-3 text-gray-400 font-medium">解析結果</th>
-                        <th className="text-center p-3 text-gray-400 font-medium">信心度</th>
-                        <th className="text-center p-3 text-gray-400 font-medium">操作</th>
+                        <th className="text-left p-3 text-gray-400 font-medium">歌手</th>
+                        <th className="text-left p-3 text-gray-400 font-medium">歌名</th>
+                        <th className="text-center p-3 text-gray-400 font-medium w-20">信心度</th>
+                        <th className="text-center p-3 text-gray-400 font-medium w-20">操作</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
                       {batchResults.map((item, index) => (
-                        <tr key={item.tabId} className={item.willFix ? 'bg-green-900/10' : 'bg-red-900/5'}>
-                          <td className="p-3 text-white max-w-xs truncate">{item.originalTitle}</td>
+                        <tr key={item.tabId} className={`${item.selected ? 'bg-green-900/10' : 'bg-gray-900/30'} hover:bg-gray-800/50 transition`}>
+                          {/* 勾選框 */}
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={item.selected}
+                              onChange={() => toggleSelection(index)}
+                              className="w-4 h-4 accent-[#FFD700] cursor-pointer"
+                            />
+                          </td>
+                          
+                          {/* 原始標題 */}
+                          <td className="p-3 text-white max-w-xs truncate" title={item.originalTitle}>
+                            {item.originalTitle}
+                          </td>
+                          
+                          {/* 歌手 - 可編輯 */}
                           <td className="p-3">
-                            {item.willFix ? (
-                              <div>
-                                <div className="text-green-400 font-medium">{item.parsedArtist}</div>
-                                <div className="text-gray-400 text-xs">{item.parsedTitle}</div>
-                              </div>
+                            {editingBatchItem === index ? (
+                              <input
+                                type="text"
+                                value={item.parsedArtist}
+                                onChange={(e) => updateBatchItem(index, 'parsedArtist', e.target.value)}
+                                className="w-full px-2 py-1 bg-black border border-[#FFD700] rounded text-white text-sm"
+                                autoFocus
+                              />
                             ) : (
-                              <span className="text-red-400 text-xs">無法自動解析</span>
+                              <div className={`${item.parsedArtist ? 'text-green-400' : 'text-red-400'} font-medium`}>
+                                {item.parsedArtist || '(未識別)'}
+                              </div>
                             )}
                           </td>
+                          
+                          {/* 歌名 - 可編輯 */}
+                          <td className="p-3">
+                            {editingBatchItem === index ? (
+                              <input
+                                type="text"
+                                value={item.parsedTitle}
+                                onChange={(e) => updateBatchItem(index, 'parsedTitle', e.target.value)}
+                                className="w-full px-2 py-1 bg-black border border-[#FFD700] rounded text-white text-sm"
+                              />
+                            ) : (
+                              <div className="text-gray-400 text-xs">
+                                {item.parsedTitle}
+                              </div>
+                            )}
+                          </td>
+                          
+                          {/* 信心度 */}
                           <td className="p-3 text-center">
                             <span className={`px-2 py-1 rounded text-xs ${
                               item.confidence >= 80 ? 'bg-green-900/50 text-green-400' :
                               item.confidence >= 60 ? 'bg-yellow-900/50 text-yellow-400' :
+                              item.confidence > 0 ? 'bg-orange-900/50 text-orange-400' :
                               'bg-red-900/50 text-red-400'
                             }`}>
                               {item.confidence}%
                             </span>
                           </td>
+                          
+                          {/* 操作 */}
                           <td className="p-3 text-center">
-                            {item.willFix ? (
-                              <span className="text-green-400 text-xs">✓ 將修復</span>
+                            {editingBatchItem === index ? (
+                              <div className="flex gap-1 justify-center">
+                                <button
+                                  onClick={saveBatchItemEdit}
+                                  className="text-green-400 hover:text-green-300 text-xs px-1"
+                                  title="保存"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={cancelBatchItemEdit}
+                                  className="text-red-400 hover:text-red-300 text-xs px-1"
+                                  title="取消"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             ) : (
                               <button
-                                onClick={() => {
-                                  const tab = unknownTabs.find(t => t.id === item.tabId)
-                                  if (tab) startEditTab(tab)
-                                }}
-                                className="text-[#FFD700] text-xs hover:underline"
+                                onClick={() => startEditBatchItem(index)}
+                                className="text-[#FFD700] hover:text-yellow-300 text-xs"
+                                disabled={!item.parsedArtist}
                               >
-                                手動編輯
+                                編輯
                               </button>
                             )}
                           </td>
@@ -752,10 +832,10 @@ function FixArtistPage() {
         <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-blue-900/50">
           <h3 className="text-blue-300 font-medium mb-2">💡 使用說明</h3>
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
-            <li><b>批量自動解析</b>：點擊按鈕，系統會嘗試從所有標題自動分出歌手和歌名</li>
-            <li>信心度 ≥50% 的譜會標記為「將修復」，其餘的需要手動處理</li>
-            <li>支援格式：「歌手 - 歌名」、「歌手 歌名」、「歌手 | 歌名」、「歌名 by 歌手」</li>
-            <li>預覽後點擊「確認批量修復」才會真正更新數據庫</li>
+            <li><b>批量自動解析</b>：點擊按鈕後，在預覽中勾選要修復的項目</li>
+            <li><b>勾選/取消</b>：使用 checkbox 選擇要修復的譜，點「全選」「全不選」「反選」快速操作</li>
+            <li><b>即時編輯</b>：點擊「編輯」可以直接修改解析出來的歌手名和歌名</li>
+            <li><b>確認修復</b>：確認無誤後點擊「確認修復(n)」批量更新</li>
           </ul>
         </div>
       </div>
