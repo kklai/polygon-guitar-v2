@@ -54,6 +54,7 @@ function AnalyticsDashboard() {
       },
       (error) => {
         console.error('Realtime stats error:', error)
+        alert('實時統計監聽失敗：' + error.message)
       }
     )
     
@@ -63,6 +64,7 @@ function AnalyticsDashboard() {
   const loadStats = async () => {
     setIsLoading(true)
     try {
+      console.log('Loading analytics stats...')
       // 計算各時間段
       const now = new Date()
       const today = new Date(now)
@@ -155,6 +157,7 @@ function AnalyticsDashboard() {
 
     } catch (error) {
       console.error('Error loading stats:', error)
+      alert('載入統計數據失敗：' + error.message)
     } finally {
       setIsLoading(false)
     }
