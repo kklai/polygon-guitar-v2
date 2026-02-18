@@ -88,16 +88,21 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
-                {user.photoURL && (
-                  <img 
-                    src={user.photoURL} 
-                    alt={user.displayName}
-                    className="w-8 h-8 rounded-full border-2 border-[#FFD700]"
-                  />
-                )}
-                <span className="text-black font-medium">
-                  {user.displayName}
-                </span>
+                <Link 
+                  href={`/profile/${user.uid}`}
+                  className="flex items-center space-x-2 hover:opacity-80 transition"
+                >
+                  {user.photoURL && (
+                    <img 
+                      src={user.photoURL} 
+                      alt={user.displayName}
+                      className="w-8 h-8 rounded-full border-2 border-[#FFD700]"
+                    />
+                  )}
+                  <span className="text-black font-medium">
+                    {user.displayName}
+                  </span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-black/70 hover:text-black font-medium transition"
@@ -162,7 +167,11 @@ export default function Navbar() {
             )}
             {isAuthenticated ? (
               <>
-                <div className="flex items-center space-x-2 px-3 py-2">
+                <Link 
+                  href={`/profile/${user.uid}`}
+                  className="flex items-center space-x-2 px-3 py-2 hover:bg-yellow-400/20 rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   {user.photoURL && (
                     <img 
                       src={user.photoURL} 
@@ -171,9 +180,9 @@ export default function Navbar() {
                     />
                   )}
                   <span className="text-black font-medium">
-                    {user.displayName}
+                    我的主頁
                   </span>
-                </div>
+                </Link>
                 <button
                   onClick={() => {
                     handleLogout()

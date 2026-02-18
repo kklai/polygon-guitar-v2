@@ -1,8 +1,34 @@
 import Link from 'next/link'
 
-export default function TabCard({ tab }) {
+export default function TabCard({ tab, compact = false }) {
   // 計算歌手的 normalizedName 用于链接
   const artistNormalizedName = tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')
+
+  if (compact) {
+    // 簡潔模式 - 用於個人主頁列表
+    return (
+      <Link href={`/tabs/${tab.id}`}>
+        <div className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer">
+          {tab.thumbnail && (
+            <img 
+              src={tab.thumbnail} 
+              alt={tab.title}
+              className="w-14 h-10 rounded object-cover"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-medium truncate">{tab.title}</h3>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-[#FFD700]">{tab.artist}</span>
+              {tab.originalKey && (
+                <span className="text-gray-500">· Key: {tab.originalKey}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </Link>
+    )
+  }
 
   return (
     <div className="bg-[#121212] rounded-lg shadow-md hover:shadow-xl transition-shadow p-5 border border-gray-800 hover:border-[#FFD700]">
