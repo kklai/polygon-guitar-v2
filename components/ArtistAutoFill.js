@@ -8,7 +8,8 @@ export default function ArtistAutoFill({
   onFill, 
   className = '',
   skipIfExists = true, // 如果歌手已存在且有資料，跳過搜尋
-  autoApply = false // 自動應用搜尋結果（無需確認）
+  autoApply = false, // 自動應用搜尋結果（無需確認）
+  disabled = false // 完全停用搜尋（當用戶已選擇現有歌手時）
 }) {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -20,6 +21,12 @@ export default function ArtistAutoFill({
   // 檢查歌手是否已存在
   useEffect(() => {
     const checkExistingArtist = async () => {
+      if (disabled) {
+        setExistingArtist(null);
+        setHasChecked(true);
+        return;
+      }
+      
       if (!artistName?.trim() || !skipIfExists) {
         setExistingArtist(null);
         setHasChecked(true);
@@ -61,6 +68,7 @@ export default function ArtistAutoFill({
 
   // 自動搜尋模式：當歌手不存在且有輸入時自動搜尋
   useEffect(() => {
+    if (disabled) return;
     if (!autoApply || !hasChecked || !artistName?.trim()) return;
     if (existingArtist) return; // 已存在，不搜尋
     
@@ -69,7 +77,7 @@ export default function ArtistAutoFill({
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [artistName, hasChecked, existingArtist, autoApply]);
+  }, [artistName, hasChecked, existingArtist, autoApply, disabled]);
 
   const handleSearch = async () => {
     if (!artistName?.trim()) return;

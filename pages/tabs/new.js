@@ -57,6 +57,9 @@ export default function NewTab() {
   
   // 相似歌手檢查
   const [similarArtists, setSimilarArtists] = useState([])
+  
+  // 是否從現有歌手列表中選擇（停用維基自動搜尋）
+  const [useExistingArtistSelected, setUseExistingArtistSelected] = useState(false)
 
   // Redirect if not logged in
   if (!isAuthenticated && !user) {
@@ -107,6 +110,11 @@ export default function NewTab() {
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+    
+    // 如果用戶手動修改歌手名，重置「已選擇現有歌手」狀態
+    if (name === 'artist') {
+      setUseExistingArtistSelected(false)
     }
     
     // YouTube URL 處理
@@ -169,6 +177,7 @@ export default function NewTab() {
       artistYear: artist.year || ''
     }))
     setSimilarArtists([])
+    setUseExistingArtistSelected(true) // 標記已選擇現有歌手，停用維基搜尋
   }
   
   // 處理 Wikipedia 自動填入的歌手資料
@@ -332,6 +341,7 @@ E|----------------------------------------------------------------|
                   artistName={formData.artist}
                   onFill={handleArtistFill}
                   autoApply={true} // 自動應用搜尋結果（無需確認）
+                  disabled={useExistingArtistSelected} // 如果用戶已選擇現有歌手，停用自動搜尋
                 />
               </div>
             </div>
