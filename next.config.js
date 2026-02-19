@@ -30,10 +30,10 @@ const nextConfig = {
   // 壓縮設定
   compress: true,
 
-  // 實驗性功能（加速）
-  experimental: {
-    optimizeCss: true,
-  },
+  // 實驗性功能
+  // experimental: {
+  //   optimizeCss: true, // 需要 critters 套件
+  // },
 }
 
 module.exports = nextConfig
