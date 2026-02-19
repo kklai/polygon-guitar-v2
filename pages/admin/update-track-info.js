@@ -172,6 +172,8 @@ function UpdateTrackInfoPage() {
     setProgress({ current: 0, total: toUpdate.length })
     
     let success = 0, failed = 0
+    const successIds = new Set()
+    const failedIds = new Set()
     
     for (let i = 0; i < toUpdate.length; i++) {
       const item = toUpdate[i]
@@ -215,9 +217,11 @@ function UpdateTrackInfoPage() {
         await updateDoc(doc(db, 'tabs', item.tabId), updateData)
         
         success++
+        successIds.add(item.tabId)
         addLog(`✅ 已更新：${item.tabArtist} - ${item.tabTitle} ${details?.bpm ? `(BPM: ${details.bpm})` : ''}`, 'success')
       } catch (error) {
         failed++
+        failedIds.add(item.tabId)
         addLog(`❌ 失敗：${item.tabTitle} - ${error.message}`, 'error')
       }
     }
@@ -226,25 +230,43 @@ function UpdateTrackInfoPage() {
     addLog(`\n========== 批量更新完成 ==========`, 'success')
     addLog(`✅ 成功：${success} 首，❌ 失敗：${failed} 首`, success > failed ? 'success' : 'warning')
     
-    // 從預覽中移除已更新的項目
-    const updatedIds = new Set(toUpdate.map(item => item.tabId))
-    setPreviewResults(prev => prev.filter(r => !updatedIds.has(r.tabId)))
+    // 標記成功/失敗狀態
+    setPreviewResults(prev => prev.map(item => {
+      if (successIds.has(item.tabId)) {
+        return { ...item, updateStatus: 'success', selected: false }
+      }
+      if (failedIds.has(item.tabId)) {
+        return { ...item, updateStatus: 'failed', selected: true } // 失敗的保持選中，方便重試
+      }
+      return item
+    }))
     
-    // 顯示成功提示
+    // 2秒後移除成功的項目，保留失敗的
     setTimeout(() => {
-      if (success > 0) {
-        alert(`✅ 更新完成！\n\n成功：${success} 首\n失敗：${failed} 首\n\n已成功更新的歌曲已從列表中移除。`)
+      setPreviewResults(prev => {
+        const remaining = prev.filter(r => r.updateStatus !== 'success')
+        addLog(`ℹ️ 已移除 ${success} 個成功項目，剩餘 ${remaining.length} 個（含失敗和未選中）`, 'info')
+        return remaining
+      })
+    }, 2000)
+    
+    // 顯示提示
+    setTimeout(() => {
+      if (failed > 0) {
+        alert(`⚠️ 更新完成！\n\n✅ 成功：${success} 首（已從列表移除）\n❌ 失敗：${failed} 首（已保留在列表中）\n\n失敗的項目已自動勾選，可以直接點「確認更新」重試。`)
+      } else if (success > 0) {
+        alert(`✅ 全部更新成功！\n\n共更新：${success} 首`)
       } else {
-        alert(`❌ 更新失敗\n\n沒有歌曲被更新，請檢查日誌了解詳情。`)
+        alert(`❌ 全部更新失敗\n\n請檢查日誌了解詳情。`)
       }
     }, 100)
     
-    // 如果全部更新完成，關閉預覽
-    if (success === toUpdate.length && success > 0) {
+    // 如果全部成功，3秒後關閉預覽
+    if (failed === 0 && success > 0) {
       setTimeout(() => {
         setShowPreview(false)
         setPreviewResults([])
-      }, 500)
+      }, 3000)
     }
     
     // 刷新數據
@@ -411,15 +433,21 @@ function UpdateTrackInfoPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {previewResults.map((item, index) => (
-                    <tr key={item.tabId} className={`${item.selected ? 'bg-green-900/10' : 'bg-gray-900/30'}`}>
+                    <tr key={item.tabId} className={`${
+                      item.updateStatus === 'success' ? 'bg-green-900/30 border-l-4 border-green-500' : 
+                      item.updateStatus === 'failed' ? 'bg-red-900/30 border-l-4 border-red-500' :
+                      item.selected ? 'bg-green-900/10' : 'bg-gray-900/30'
+                    }`}>
                       <td className="p-3 text-center">
                         <input
                           type="checkbox"
                           checked={item.selected}
                           onChange={() => toggleSelection(index)}
-                          disabled={!item.found}
+                          disabled={!item.found || item.updateStatus === 'success'}
                           className="w-4 h-4 accent-[#1DB954] cursor-pointer"
                         />
+                        {item.updateStatus === 'success' && <div className="text-green-500 text-xs mt-1">✓</div>}
+                        {item.updateStatus === 'failed' && <div className="text-red-500 text-xs mt-1">✗</div>}
                       </td>
                       <td className="p-3">
                         <div className="text-white font-medium">{item.tabTitle}</div>
@@ -501,6 +529,7 @@ function UpdateTrackInfoPage() {
             <li>點擊「搜尋 Spotify」批量搜尋歌曲資訊</li>
             <li>預覽結果中可以看到 Spotify 匹配的資訊、BPM、作曲填詞等</li>
             <li>勾選要更新的項目，點「確認更新」寫入資料庫</li>
+            <li><b>失敗項目自動保留：</b>更新失敗的歌曲會保留在列表中（紅色標記），並自動勾選方便重試</li>
           </ul>
         </div>
       </div>
