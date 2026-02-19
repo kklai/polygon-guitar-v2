@@ -48,8 +48,12 @@ function HeroPhotosAdmin() {
   }
 
   const handleFileUpload = async (artistId, file) => {
-    if (!file) return
+    if (!file) {
+      console.log('No file selected')
+      return
+    }
 
+    console.log('Starting upload for artist:', artistId, 'file:', file.name, 'size:', file.size)
     setUploadingId(artistId)
     setMessage('')
 
@@ -69,19 +73,28 @@ function HeroPhotosAdmin() {
 
     // 轉換為 base64（使用 Promise 包裝）
     try {
+      console.log('Converting to base64...')
       const base64String = await new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result)
-        reader.onerror = () => reject(new Error('讀取檔案失敗'))
+        reader.onloadend = () => {
+          console.log('FileReader completed, result length:', reader.result?.length)
+          resolve(reader.result)
+        }
+        reader.onerror = (e) => {
+          console.error('FileReader error:', e)
+          reject(new Error('讀取檔案失敗'))
+        }
         reader.readAsDataURL(file)
       })
 
+      console.log('Updating Firestore for artist:', artistId)
       // 更新 Firestore
       const artistRef = doc(db, 'artists', artistId)
       await updateDoc(artistRef, {
         heroPhoto: base64String,
         updatedAt: new Date().toISOString()
       })
+      console.log('Firestore update successful')
 
       // 更新本地狀態
       setArtists(prev => prev.map(a => 
@@ -92,7 +105,9 @@ function HeroPhotosAdmin() {
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
       console.error('Upload error:', error)
-      alert('上傳失敗：' + error.message)
+      console.error('Error code:', error.code)
+      console.error('Error message:', error.message)
+      alert('上傳失敗：' + error.message + ' (請檢查 Console 獲取詳細錯誤)')
     } finally {
       setUploadingId(null)
     }
