@@ -9,6 +9,7 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import Head from 'next/head'
 import { siteConfig, generateBreadcrumbSchema } from '@/lib/seo'
+import RecentItems from '@/components/RecentItems'
 
 // 歌手分類預設資料
 const DEFAULT_CATEGORIES = [
@@ -467,29 +468,23 @@ export default function Home() {
       </Head>
       <Layout fullWidth>
         <div className="min-h-screen bg-black pb-24">
-        {/* 搜尋 Bar + Admin 設置 */}
-        <div className="px-6 pb-4 flex gap-3">
-          <button
-            onClick={() => router.push('/search')}
-            className="flex-1 flex items-center gap-3 px-4 py-3 bg-[#121212] border border-gray-800 rounded-full text-left hover:border-[#FFD700]/50 transition"
-          >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <span className="text-gray-500">搜尋歌手、歌名...</span>
-          </button>
-          {isAdmin && (
+        {/* Admin 設置按鈕（右上角） */}
+        {isAdmin && (
+          <div className="px-6 pb-2 flex justify-end">
             <button
               onClick={() => router.push('/admin/home-settings')}
-              className="px-4 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
+              className="px-3 py-2 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition text-sm"
               title="首頁設置"
             >
-              ⚙️
+              ⚙️ 首頁設置
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* 第一區：歌手分類 */}
+        {/* 第一區：最近瀏覽 */}
+        <RecentItems />
+
+        {/* 第二區：歌手分類 */}
         <section className="mb-8">
           <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
             {categories.map((category) => (
@@ -525,7 +520,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 第二區：熱門結他譜（最近一個月最多瀏覽） */}
+        {/* 第三區：熱門結他譜（最近一個月最多瀏覽） */}
         {hotTabs.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門結他譜 🔥</h2>
@@ -565,7 +560,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第四區：熱門男歌手 */}
+        {/* 第四區：熱門男歌手（圓形大頭） */}
         {hotArtists.male.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門男歌手</h2>
@@ -596,7 +591,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第五區：熱門女歌手 */}
+        {/* 第五區：熱門女歌手（圓形大頭） */}
         {hotArtists.female.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門女歌手</h2>
@@ -623,7 +618,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第六區：熱門組合 */}
+        {/* 第六區：熱門組合（圓形大頭） */}
         {hotArtists.group.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門組合</h2>
@@ -650,7 +645,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第七區：熱門歌單（數據驅動 - Auto） */}
+        {/* 第七區：熱門歌單 */}
         {autoPlaylists.length > 0 && (
           <section className="mb-8">
             <div className="px-6 py-4">
