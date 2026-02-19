@@ -94,34 +94,3 @@ export default function RatingSystem({ tabId, averageRating = 0, ratingCount = 0
     </div>
   );
 }
-
-/**
- * 簡化版評分顯示（只讀）
- */
-export function RatingDisplay({ rating, count, size = 'sm' }) {
-  const sizeClasses = {
-    sm: 'w-3 h-3',
-    md: 'w-4 h-4',
-    lg: 'w-5 h-5'
-  };
-
-  return (
-    <div className="flex items-center gap-1">
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <svg
-            key={star}
-            className={`${sizeClasses[size]} ${rating >= star ? 'text-[#FFD700] fill-[#FFD700]' : 'text-[#3E3E3E]'}`}
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        ))}
-      </div>
-      {count !== undefined && count > 0 && (
-        <span className="text-xs text-[#B3B3B3]">({count})</span>
-      )}
-    </div>
-  );
-}
