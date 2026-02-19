@@ -2,19 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ==================== 輔助函數 ====================
-    
-    // 檢查是否為超級管理員（支援多位）
+    // ==================== Super Admin 列表 ====================
+    // 喺下面 [] 入面加其他 Super Admin 嘅 email，用逗號分隔
     function isSuperAdmin() {
-      return request.auth != null && (
-        request.auth.token.email in [
+      return request.auth != null 
+        && request.auth.token.email in [
           'kermit.tam@gmail.com'
-          // 喺呢度添加其他 Super Admin email
-          // 例如：, 'friend@example.com'
-        ]
-        || exists(/databases/$(database)/documents/users/$(request.auth.uid))
-           && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'
-      );
+        ];
     }
     
     // 檢查是否為資源擁有者
@@ -27,13 +21,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null;
       allow update: if request.auth != null && (
-        // Super Admin 可以更新所有欄位
         isSuperAdmin()
         ||
-        // 創建者可以更新自己的譜
         (resource.data.keys().hasAny(['createdBy']) && resource.data.createdBy == request.auth.uid)
         ||
-        // 任何人可以更新評分統計欄位
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['averageRating', 'ratingCount', 'totalRating', 'likes', 'viewCount'])
       );
