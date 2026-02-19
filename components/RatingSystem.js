@@ -46,9 +46,9 @@ export default function RatingSystem({
 
     // 獲取用戶評分
     if (user) {
-      const userRate = await getUserRating(songId)
-      if (userRate.exists) {
-        setUserRating(userRate.rating)
+      const rating = await getUserRating(user.uid, songId)
+      if (rating) {
+        setUserRating(rating)
       }
     }
   }
@@ -59,17 +59,19 @@ export default function RatingSystem({
     setLoading(true)
     setMessage('')
 
-    const result = await submitRating(songId, rating)
-    
-    if (result.success) {
-      setUserRating(rating)
-      // 重新載入統計
-      const songStats = await getSongStats(songId)
-      setStats(songStats)
-      setMessage(result.message)
-      setTimeout(() => setMessage(''), 2000)
-    } else {
-      setMessage(result.message)
+    try {
+      const result = await submitRating(user.uid, songId, rating)
+      
+      if (result.success) {
+        setUserRating(rating)
+        // 重新載入統計
+        const songStats = await getSongStats(songId)
+        setStats(songStats)
+        setMessage(result.action === 'removed' ? '評分已取消' : '評分已提交')
+        setTimeout(() => setMessage(''), 2000)
+      }
+    } catch (error) {
+      setMessage('提交失敗: ' + error.message)
     }
 
     setLoading(false)
@@ -79,16 +81,19 @@ export default function RatingSystem({
     if (!user) return
     
     setLoading(true)
-    const result = await deleteRating(songId)
     
-    if (result.success) {
-      setUserRating(0)
-      const songStats = await getSongStats(songId)
-      setStats(songStats)
-      setMessage(result.message)
-      setTimeout(() => setMessage(''), 2000)
-    } else {
-      setMessage(result.message)
+    try {
+      const result = await deleteRating(user.uid, songId)
+      
+      if (result.success) {
+        setUserRating(0)
+        const songStats = await getSongStats(songId)
+        setStats(songStats)
+        setMessage('評分已刪除')
+        setTimeout(() => setMessage(''), 2000)
+      }
+    } catch (error) {
+      setMessage('刪除失敗: ' + error.message)
     }
     
     setLoading(false)
