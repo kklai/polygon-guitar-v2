@@ -204,9 +204,9 @@ function UpdateTrackInfoPage() {
           updatedAt: new Date().toISOString()
         }
         
-        // 移除 null 值
+        // 移除 null 和 undefined 值
         Object.keys(updateData).forEach(key => {
-          if (updateData[key] === null) delete updateData[key]
+          if (updateData[key] === null || updateData[key] === undefined) delete updateData[key]
         })
         
         await updateDoc(doc(db, 'tabs', item.tabId), updateData)
