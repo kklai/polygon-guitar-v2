@@ -129,6 +129,14 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
+      href: '/admin/update-track-info',
+      title: '批量更新歌曲資訊',
+      description: '從 Spotify 獲取 BPM、作曲、填詞、專輯封面等',
+      icon: '🎼',
+      color: 'bg-emerald-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
       href: '/admin/home-settings',
       title: '首頁設置',
       description: '管理熱門歌手、熱門歌曲、排序方式',
