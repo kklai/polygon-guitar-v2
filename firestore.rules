@@ -32,30 +32,22 @@ service cloud.firestore {
         request.auth.uid == resource.data.userId;
     }
     
-    // 歌曲資料 - 允許更新評分欄位
+    // 歌曲資料 - 允許更新評分欄位，所有登入用戶可寫（Admin 權限在前端控制）
     match /tabs/{tabId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['averageRating', 'ratingCount', 'totalRating', 'likes', 'viewCount']) ||
-        request.auth.token.email == 'kermit.tam@gmail.com'
-      );
-      allow delete: if request.auth != null &&
-        request.auth.token.email == 'kermit.tam@gmail.com';
+      allow create, update, delete: if request.auth != null;
     }
     
-    // Artists collection
+    // Artists collection - 所有登入用戶可寫（Admin 權限在前端控制）
     match /artists/{artistId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Users collection
+    // Users collection - 用戶可寫自己的資料，Admin 可寫所有（前端控制）
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        (request.auth.uid == userId || request.auth.token.email == 'kermit.tam@gmail.com');
+      allow write: if request.auth != null;
     }
     
     // Comments collection
@@ -73,14 +65,13 @@ service cloud.firestore {
       allow update: if request.auth != null;
     }
     
-    // System Playlists collection
+    // System Playlists collection - 所有登入用戶可寫（Admin 權限在前端控制）
     match /playlists/{playlistId} {
       allow read: if true;
-      allow create, update: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
     
-    // Settings collection
+    // Settings collection - 所有登入用戶可寫（Admin 權限在前端控制）
     match /settings/{settingId} {
       allow read: if true;
       allow write: if request.auth != null;
@@ -93,12 +84,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
-    // Daily Stats collection
+    // Daily Stats collection - 所有登入用戶可讀寫（Admin 權限在前端控制）
     match /dailyStats/{dateId} {
-      allow read: if request.auth != null && 
-        request.auth.token.email == 'kermit.tam@gmail.com';
-      allow write: if request.auth != null && 
-        request.auth.token.email == 'kermit.tam@gmail.com';
+      allow read, write: if request.auth != null;
     }
     
     // Recent Views collection
@@ -108,6 +96,12 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null && 
         request.auth.uid == resource.data.userId;
+    }
+    
+    // Nav Icons collection
+    match /navIcons/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }
