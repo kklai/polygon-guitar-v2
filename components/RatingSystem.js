@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { submitRating, getUserRating, getSongStats, deleteRating } from '@/lib/ratingApi'
+import { submitRating, getUserRating, getTabStats } from '@/lib/ratingApi'
 
 /**
  * 星星評分組件
- * @param {string} songId - 歌曲 ID
+ * @param {string} tabId - 樂譜 ID
  * @param {boolean} showStats - 是否顯示統計
  * @param {string} size - 尺寸 'sm' | 'md' | 'lg'
  * @param {boolean} readonly - 是否只讀
  */
 export default function RatingSystem({ 
-  songId, 
+  tabId, 
   showStats = true, 
   size = 'md',
   readonly = false 
@@ -35,18 +35,18 @@ export default function RatingSystem({
 
   // 載入評分數據
   useEffect(() => {
-    if (!songId) return
+    if (!tabId) return
     loadRatingData()
-  }, [songId, user])
+  }, [tabId, user])
 
   const loadRatingData = async () => {
-    // 獲取歌曲統計
-    const songStats = await getSongStats(songId)
-    setStats(songStats)
+    // 獲取樂譜統計
+    const tabStats = await getTabStats(tabId)
+    setStats(tabStats)
 
     // 獲取用戶評分
     if (user) {
-      const rating = await getUserRating(user.uid, songId)
+      const rating = await getUserRating(user.uid, tabId)
       if (rating) {
         setUserRating(rating)
       }
@@ -60,13 +60,13 @@ export default function RatingSystem({
     setMessage('')
 
     try {
-      const result = await submitRating(user.uid, songId, rating)
+      const result = await submitRating(user.uid, tabId, rating)
       
       if (result.success) {
-        setUserRating(rating)
+        setUserRating(result.userRating)
         // 重新載入統計
-        const songStats = await getSongStats(songId)
-        setStats(songStats)
+        const tabStats = await getTabStats(tabId)
+        setStats(tabStats)
         setMessage(result.action === 'removed' ? '評分已取消' : '評分已提交')
         setTimeout(() => setMessage(''), 2000)
       }
@@ -74,28 +74,6 @@ export default function RatingSystem({
       setMessage('提交失敗: ' + error.message)
     }
 
-    setLoading(false)
-  }
-
-  const handleDeleteRating = async () => {
-    if (!user) return
-    
-    setLoading(true)
-    
-    try {
-      const result = await deleteRating(user.uid, songId)
-      
-      if (result.success) {
-        setUserRating(0)
-        const songStats = await getSongStats(songId)
-        setStats(songStats)
-        setMessage('評分已刪除')
-        setTimeout(() => setMessage(''), 2000)
-      }
-    } catch (error) {
-      setMessage('刪除失敗: ' + error.message)
-    }
-    
     setLoading(false)
   }
 
@@ -160,17 +138,6 @@ export default function RatingSystem({
             className="text-gray-500 hover:text-white text-xs transition"
           >
             {showDetails ? '收起' : '詳情'}
-          </button>
-        )}
-
-        {/* 刪除評分按鈕 */}
-        {userRating > 0 && user && !readonly && (
-          <button
-            onClick={handleDeleteRating}
-            disabled={loading}
-            className="text-gray-500 hover:text-red-400 text-xs transition"
-          >
-            清除
           </button>
         )}
       </div>
