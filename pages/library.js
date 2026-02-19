@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import { 
   getUserPlaylists, 
-  getUserLikedSongIds, 
+  getUserLikedSongs, 
   createPlaylist,
-  deletePlaylist 
+  deletePlaylist,
+  toggleLikeSong
 } from '@/lib/playlistApi'
 import { RatingDisplay } from '@/components/RatingSystem'
 
@@ -35,12 +36,12 @@ export default function Library() {
       
       // 獲取喜愛的歌曲 ID
       if (user) {
-        const likedIds = await getUserLikedSongIds()
+        const likedIds = await getUserLikedSongs(user.uid)
         const liked = allTabs.filter(tab => likedIds.includes(tab.id))
         setLikedSongs(liked)
 
         // 獲取用戶歌單
-        const userPlaylists = await getUserPlaylists()
+        const userPlaylists = await getUserPlaylists(user.uid)
         setPlaylists(userPlaylists)
       }
       
@@ -57,25 +58,43 @@ export default function Library() {
   }
 
   const handleCreatePlaylist = async () => {
-    if (!newPlaylistTitle.trim()) return
+    if (!newPlaylistTitle.trim() || !user) return
     
-    const result = await createPlaylist(newPlaylistTitle, newPlaylistDesc)
-    if (result.success) {
+    try {
+      const result = await createPlaylist(user.uid, newPlaylistTitle, newPlaylistDesc)
       setNewPlaylistTitle('')
       setNewPlaylistDesc('')
       setShowCreateModal(false)
       // 重新載入歌單
-      const userPlaylists = await getUserPlaylists()
+      const userPlaylists = await getUserPlaylists(user.uid)
       setPlaylists(userPlaylists)
+    } catch (error) {
+      console.error('Error creating playlist:', error)
+      alert('創建歌單失敗: ' + error.message)
     }
   }
 
   const handleDeletePlaylist = async (playlistId) => {
-    if (!confirm('確定要刪除這個歌單嗎？')) return
+    if (!confirm('確定要刪除這個歌單嗎？') || !user) return
     
-    const result = await deletePlaylist(playlistId)
-    if (result.success) {
+    try {
+      await deletePlaylist(playlistId, user.uid)
       setPlaylists(playlists.filter(p => p.id !== playlistId))
+    } catch (error) {
+      console.error('Error deleting playlist:', error)
+      alert('刪除失敗: ' + error.message)
+    }
+  }
+
+  const handleUnlikeSong = async (songId) => {
+    if (!user) return
+    
+    try {
+      await toggleLikeSong(user.uid, songId)
+      // 從列表中移除
+      setLikedSongs(likedSongs.filter(s => s.id !== songId))
+    } catch (error) {
+      console.error('Error unliking song:', error)
     }
   }
 
@@ -169,38 +188,50 @@ export default function Library() {
             {likedSongs.length > 0 ? (
               <div className="space-y-2">
                 {likedSongs.map((song, index) => (
-                  <button
+                  <div
                     key={song.id}
-                    onClick={() => handleSongClick(song.id)}
                     className="w-full flex items-center gap-4 p-3 hover:bg-white/10 rounded-lg transition group"
                   >
-                    <span className="text-gray-500 w-6 text-center">{index + 1}</span>
-                    <div className="w-14 h-14 rounded bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {getThumbnail(song) ? (
-                        <img
-                          src={getThumbnail(song)}
-                          alt={song.title}
-                          className="w-full h-full object-cover"
+                    <button
+                      onClick={() => handleSongClick(song.id)}
+                      className="flex-1 flex items-center gap-4 min-w-0"
+                    >
+                      <span className="text-gray-500 w-6 text-center">{index + 1}</span>
+                      <div className="w-14 h-14 rounded bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {getThumbnail(song) ? (
+                          <img
+                            src={getThumbnail(song)}
+                            alt={song.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-700" />
+                        )}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <h3 className="text-white font-medium group-hover:text-[#FFD700] transition truncate">
+                          {song.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 truncate">{song.artist}</p>
+                        <RatingDisplay 
+                          rating={song.averageRating || 0} 
+                          count={song.ratingCount}
+                          size="sm"
                         />
-                      ) : (
-                        <div className="w-full h-full bg-gray-700" />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <h3 className="text-white font-medium group-hover:text-[#FFD700] transition truncate">
-                        {song.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 truncate">{song.artist}</p>
-                      <RatingDisplay 
-                        rating={song.averageRating || 0} 
-                        count={song.ratingCount}
-                        size="sm"
-                      />
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-xs text-[#FFD700]">{song.originalKey || 'C'}</p>
-                    </div>
-                  </button>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs text-[#FFD700]">{song.originalKey || 'C'}</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleUnlikeSong(song.id)}
+                      className="p-2 text-red-400 hover:bg-red-400/10 rounded-full transition"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -248,7 +279,7 @@ export default function Library() {
                           {playlist.title}
                         </h3>
                         <p className="text-sm text-gray-500 truncate">
-                          {playlist.songCount || 0} 首歌
+                          {(playlist.songIds || []).length} 首歌
                         </p>
                       </a>
                       <button
