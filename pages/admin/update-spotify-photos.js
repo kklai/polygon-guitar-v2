@@ -107,8 +107,8 @@ export default function UpdateSpotifyPhotos() {
           setResults(r => ({ ...r, failed }))
         }
         
-        // 延遲避免 rate limit
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // 延遲避免 rate limit（開發模式限額很低，需要較長間隔）
+        await new Promise(resolve => setTimeout(resolve, 2000))
       }
       
       setLog(prev => [...prev, { name: '完成！', status: 'success', msg: `成功: ${success}, 失敗: ${failed}, 跳過: ${skipped}` }])

@@ -109,8 +109,8 @@ function SpotifyManager() {
           setBulkProgress(prev => ({ ...prev, failed: prev.failed + 1 }))
         }
         
-        // 避免 API 限制
-        await new Promise(r => setTimeout(r, 1000))
+        // 避免 API 限制（開發模式限額很低，需要較長間隔）
+        await new Promise(r => setTimeout(r, 2000))
         
       } catch (error) {
         addLog(`❌ ${artist.name}: ${error.message}`, 'error')

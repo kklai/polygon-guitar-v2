@@ -131,8 +131,8 @@ function UpdateTrackInfoPage() {
       // 更新預覽（即時顯示）
       setPreviewResults([...results])
       
-      // 延遲避免 rate limit
-      await new Promise(r => setTimeout(r, 200))
+      // 延遲避免 rate limit（開發模式限額很低，需要較長間隔）
+      await new Promise(r => setTimeout(r, 1500))
     }
     
     setIsProcessing(false)
