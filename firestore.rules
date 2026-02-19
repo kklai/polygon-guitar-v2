@@ -33,7 +33,7 @@ service cloud.firestore {
     }
     
     // 歌曲資料 - 允許更新評分欄位
-    match /songs/{songId} {
+    match /tabs/{tabId} {
       allow read: if true;
       allow create: if request.auth != null;
       allow update: if request.auth != null && (
@@ -43,14 +43,6 @@ service cloud.firestore {
       );
       allow delete: if request.auth != null &&
         request.auth.token.email == 'kermit.tam@gmail.com';
-    }
-    
-    // Tabs collection (legacy)
-    match /tabs/{tabId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
     }
     
     // Artists collection
