@@ -183,6 +183,14 @@ export default function AdminIndex() {
       icon: '',
       color: 'bg-gray-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
+    },
+    {
+      href: '/admin/test-rating',
+      title: '評分功能測試',
+      description: '測試評分系統 API',
+      icon: '',
+      color: 'bg-orange-600',
+      roles: [ROLES.SUPER_ADMIN]
     }
   ]
 
