@@ -285,32 +285,53 @@ export default function Home() {
         console.log('Loading category images...')
         const categoryImages = await getCategoryImages()
         console.log('Category images loaded:', categoryImages)
-        
+
         if (categoryImages) {
-          // 更新分類圖片（維基圖片裁剪為頭像）
-          setCategories(prev => {
-            const updated = prev.map(cat => {
+          // 對於有 artistId 嘅分類，實時獲取歌手最新圖片
+          const updatedCategories = await Promise.all(
+            DEFAULT_CATEGORIES.map(async (cat) => {
               const catData = categoryImages[cat.id]
-              let imageUrl = cat.image
-              
+              let imageUrl = cat.image // 默認圖片
+
               if (catData) {
-                // 處理新格式（對象）或舊格式（字符串）
-                if (typeof catData === 'string') {
-                  imageUrl = catData
+                // 如果有 artistId，實時獲取歌手最新圖片
+                if (catData.artistId) {
+                  try {
+                    const artistDoc = await getDoc(doc(db, 'artists', catData.artistId))
+                    if (artistDoc.exists()) {
+                      const artistData = artistDoc.data()
+                      // 按優先順序獲取最新圖片
+                      imageUrl = artistData.photoURL || 
+                                 artistData.wikiPhotoURL || 
+                                 artistData.photo || 
+                                 catData.image || // 後備：存儲的圖片
+                                 cat.image
+                      console.log(`[${cat.name}] 動態獲取歌手圖片:`, artistData.name, imageUrl?.substring(0, 50))
+                    } else {
+                      // 歌手不存在，使用存儲的圖片
+                      imageUrl = catData.image || cat.image
+                    }
+                  } catch (err) {
+                    console.error(`[${cat.name}] 獲取歌手圖片失敗:`, err)
+                    imageUrl = catData.image || cat.image
+                  }
                 } else if (catData.image) {
+                  // 沒有 artistId，使用存儲的靜態圖片
                   imageUrl = catData.image
                 }
               }
-              
+
               // 如果是維基百科圖片，添加裁剪參數顯示頭部
               if (imageUrl && imageUrl.includes('wikipedia.org')) {
                 imageUrl = getCroppedWikiImage(imageUrl)
               }
+
               return { ...cat, image: imageUrl }
             })
-            console.log('Categories updated:', updated)
-            return updated
-          })
+          )
+
+          setCategories(updatedCategories)
+          console.log('Categories updated with dynamic images:', updatedCategories)
         }
       } catch (e) {
         console.error('Error loading category images (non-critical):', e)
