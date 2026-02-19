@@ -54,56 +54,32 @@ export default async function handler(req, res) {
     
     const accessToken = tokenData.access_token
     
-    // 並行獲取歌曲詳情和 Audio Features
-    const [trackRes, audioFeaturesRes] = await Promise.all([
-      // 歌曲基本資訊
-      fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      }),
-      // Audio Features (BPM、調性等)
-      fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      })
-    ])
+    // 只獲取歌曲基本資訊（減少 API 請求避免 rate limit）
+    const trackRes = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    })
     
     // 檢查 rate limit（返回純文本時）
-    const trackData = await (async () => {
-      if (!trackRes.ok) return null
-      const ct = trackRes.headers.get('content-type')
-      if (!ct?.includes('application/json')) {
-        console.error('Track response (non-JSON):', await trackRes.text())
-        return null
-      }
-      return await trackRes.json()
-    })()
-    
-    const audioFeatures = await (async () => {
-      if (!audioFeaturesRes.ok) return null
-      const ct = audioFeaturesRes.headers.get('content-type')
-      if (!ct?.includes('application/json')) {
-        console.error('Audio features response (non-JSON):', await audioFeaturesRes.text())
-        return null
-      }
-      return await audioFeaturesRes.json()
-    })()
-    
-    // 嘗試獲取 Credits（作曲、填詞等）
-    let credits = null
-    try {
-      const creditsRes = await fetch(`https://api.spotify.com/v1/tracks/${trackId}/credits`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
+    const ct = trackRes.headers.get('content-type')
+    if (!ct?.includes('application/json')) {
+      const text = await trackRes.text()
+      console.error('Track response (non-JSON):', text)
+      return res.status(429).json({ 
+        error: 'Rate limited',
+        message: 'Spotify API rate limit reached. Please try again later.'
       })
-      if (creditsRes.ok) {
-        const ct = creditsRes.headers.get('content-type')
-        if (ct?.includes('application/json')) {
-          credits = await creditsRes.json()
-        }
-      }
-    } catch (e) {
-      // Credits API 可能未開放，忽略錯誤
     }
     
-    // 格式化結果
+    if (!trackRes.ok) {
+      return res.status(trackRes.status).json({ 
+        error: 'Track not found',
+        status: trackRes.status 
+      })
+    }
+    
+    const trackData = await trackRes.json()
+    
+    // 格式化結果（只包含基本資料）
     const result = {
       // 基本資訊
       id: trackData?.id,
@@ -119,29 +95,13 @@ export default async function handler(req, res) {
       popularity: trackData?.popularity,
       previewUrl: trackData?.preview_url,
       spotifyUrl: trackData?.external_urls?.spotify,
-      
-      // Audio Features（BPM、調性等）
-      bpm: audioFeatures?.tempo ? Math.round(audioFeatures.tempo) : null,
-      key: audioFeatures?.key !== undefined ? audioFeatures.key : null,
-      mode: audioFeatures?.mode,
-      timeSignature: audioFeatures?.time_signature,
-      danceability: audioFeatures?.danceability,
-      energy: audioFeatures?.energy,
-      valence: audioFeatures?.valence,
-      acousticness: audioFeatures?.acousticness,
-      instrumentalness: audioFeatures?.instrumentalness,
-      
-      // Credits（作曲、填詞等）- 如果有
-      composers: credits?.composers?.map(c => c.name).join(', ') || null,
-      lyricists: credits?.lyricists?.map(c => c.name).join(', ') || null,
-      producers: credits?.producers?.map(c => c.name).join(', ') || null,
-      performers: credits?.performers?.map(c => c.name).join(', ') || null,
     }
     
     return res.status(200).json({
       result,
-      hasCredits: !!credits,
-      hasAudioFeatures: !!audioFeatures
+      hasCredits: false,
+      hasAudioFeatures: false,
+      message: 'Basic info only (BPM/credits excluded to avoid rate limit)'
     })
     
   } catch (error) {
