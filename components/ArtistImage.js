@@ -27,27 +27,27 @@ export default function ArtistImage({
   // 獲取圖片 URL（按優先順序）
   const getImageUrl = () => {
     if (!artist) return null
-    
-    // 1. 優先使用用戶上傳的 photoURL（非 Spotify）
-    if (artist.photoURL && !artist.photoURL.includes('spotify') && !error) {
+
+    // 1. 優先使用用戶上傳的 photoURL（用戶上傳優先於所有其他來源）
+    if (artist.photoURL && !error) {
       return artist.photoURL
     }
-    
+
     // 2. 其次使用 Spotify 相片
     if (artist.spotifyPhotoURL && !error) {
       return artist.spotifyPhotoURL
     }
-    
+
     // 3. 再其次使用維基百科相片
     if (artist.wikiPhotoURL && !error) {
       return artist.wikiPhotoURL
     }
-    
+
     // 4. 兼容舊資料的 photo 欄位
     if (artist.photo && !error) {
       return artist.photo
     }
-    
+
     return null
   }
 
@@ -106,22 +106,22 @@ export function ArtistHeroImage({ artist, className = '' }) {
 
   const getImageUrl = () => {
     if (!artist) return null
-    
+
     // 1. 優先使用 heroPhoto（用戶上傳的 Hero 圖片）
     if (artist.heroPhoto && !error) return artist.heroPhoto
-    
-    // 2. 其次使用 Spotify 相片（高質素）
-    if (artist.spotifyPhotoURL && !error) return artist.spotifyPhotoURL
-    
-    // 3. 再其次使用用戶上傳 photoURL
+
+    // 2. 其次使用用戶上傳 photoURL（用戶上傳優先於 Spotify）
     if (artist.photoURL && !error) return artist.photoURL
-    
+
+    // 3. 再其次使用 Spotify 相片
+    if (artist.spotifyPhotoURL && !error) return artist.spotifyPhotoURL
+
     // 4. 再其次使用維基百科相片
     if (artist.wikiPhotoURL && !error) return artist.wikiPhotoURL
-    
+
     // 5. 兼容舊資料
     if (artist.photo && !error) return artist.photo
-    
+
     return null
   }
 
