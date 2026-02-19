@@ -220,7 +220,29 @@ function UpdateTrackInfoPage() {
     }
     
     setIsProcessing(false)
-    addLog(`\n批量更新完成！成功：${success}，失敗：${failed}`, 'success')
+    addLog(`\n========== 批量更新完成 ==========`, 'success')
+    addLog(`✅ 成功：${success} 首，❌ 失敗：${failed} 首`, success > failed ? 'success' : 'warning')
+    
+    // 從預覽中移除已更新的項目
+    const updatedIds = new Set(toUpdate.map(item => item.tabId))
+    setPreviewResults(prev => prev.filter(r => !updatedIds.has(r.tabId)))
+    
+    // 顯示成功提示
+    setTimeout(() => {
+      if (success > 0) {
+        alert(`✅ 更新完成！\n\n成功：${success} 首\n失敗：${failed} 首\n\n已成功更新的歌曲已從列表中移除。`)
+      } else {
+        alert(`❌ 更新失敗\n\n沒有歌曲被更新，請檢查日誌了解詳情。`)
+      }
+    }, 100)
+    
+    // 如果全部更新完成，關閉預覽
+    if (success === toUpdate.length && success > 0) {
+      setTimeout(() => {
+        setShowPreview(false)
+        setPreviewResults([])
+      }, 500)
+    }
     
     // 刷新數據
     loadData()
