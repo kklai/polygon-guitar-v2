@@ -1,4 +1,7 @@
 import { useRouter } from 'next/router'
+import { useState, useEffect } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
 
@@ -6,6 +9,25 @@ export default function Layout({ children, fullWidth = false }) {
   const router = useRouter()
   const { isAdmin } = useAuth()
   const currentPath = router.pathname
+  
+  // 自訂導航 icon
+  const [navIcons, setNavIcons] = useState({})
+
+  // 獲取自訂導航 icon
+  useEffect(() => {
+    const loadNavIcons = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'navIcons')
+        const docSnap = await getDoc(docRef)
+        if (docSnap.exists()) {
+          setNavIcons(docSnap.data())
+        }
+      } catch (error) {
+        console.error('Error loading nav icons:', error)
+      }
+    }
+    loadNavIcons()
+  }, [])
 
   // 檢查當前頁面是否激活
   const isActive = (path) => {
@@ -43,8 +65,13 @@ export default function Layout({ children, fullWidth = false }) {
     return items
   }
 
-  // Icon 組件
-  const Icon = ({ name, className }) => {
+  // Icon 組件（支援自訂圖片）
+  const Icon = ({ name, className, iconUrl }) => {
+    // 如果有自訂 icon URL，顯示圖片
+    if (iconUrl) {
+      return <img src={iconUrl} alt="" className={`${className} object-contain`} />
+    }
+    
     const icons = {
       home: (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,6 +144,7 @@ export default function Layout({ children, fullWidth = false }) {
             >
               <Icon 
                 name={item.icon} 
+                iconUrl={navIcons[item.icon]}
                 className={`w-6 h-6 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`}
               />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
@@ -141,6 +169,7 @@ export default function Layout({ children, fullWidth = false }) {
               >
                 <Icon 
                   name={item.icon} 
+                  iconUrl={navIcons[item.icon]}
                   className={`w-6 h-6 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`}
                 />
                 <span className="text-xs mt-1 font-medium">{item.label}</span>

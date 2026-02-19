@@ -107,8 +107,22 @@ export default function RecentItems() {
     );
   }
 
+  // 未登入或冇數據時顯示提示
   if (recentItems.length === 0) {
-    return null;
+    return (
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3 px-4">
+          <h2 className="text-white text-lg font-bold">最近瀏覽</h2>
+        </div>
+        <div className="px-4">
+          <div className="bg-[#121212] rounded-lg p-4 text-center">
+            <p className="text-gray-500 text-sm">
+              {user ? '開始瀏覽歌曲同歌手，呢度會顯示你最近睇過嘅內容' : '登入後可以睇到最近瀏覽記錄'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

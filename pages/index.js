@@ -175,8 +175,22 @@ export default function Home() {
         console.error('Error loading home settings:', settingsError)
       }
 
-      // 獲取熱門樂譜（限制數量，提升性能）
-      const hotTabsData = await getHotTabs(12)
+      // 獲取熱門樂譜（支援手動揀選或自動排序）
+      let hotTabsData = []
+      if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
+        // 使用手動揀選
+        const manualIds = settings.hotTabs.manualSelection.map(t => t.id)
+        const allTabs = await getRecentTabs(100) // 獲取足夠數量嚟匹配
+        hotTabsData = manualIds
+          .map(id => allTabs.find(t => t.id === id))
+          .filter(Boolean)
+          .slice(0, settings.hotTabs.displayCount || 12)
+        console.log('Hot tabs (manual):', hotTabsData.length)
+      } else {
+        // 自動排序：按瀏覽量
+        hotTabsData = await getHotTabs(12)
+        console.log('Hot tabs (auto):', hotTabsData.length)
+      }
       setHotTabs(hotTabsData)
 
       // 獲取熱門歌手（限制數量，提升性能）
@@ -520,11 +534,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 第三區：熱門結他譜（最近一個月最多瀏覽） */}
+        {/* 第三區：熱門結他譜 */}
         {hotTabs.length > 0 && (
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white px-6 py-4">熱門結他譜 🔥</h2>
-            <p className="text-sm text-gray-500 px-6 -mt-3 mb-3">過去 30 天最多人瀏覽</p>
+            <p className="text-sm text-gray-500 px-6 -mt-3 mb-3">
+              {homeSettings.hotTabs?.useManual ? '編輯精選' : '過去 30 天最多人瀏覽'}
+            </p>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {hotTabs.map((song) => (
                 <button
