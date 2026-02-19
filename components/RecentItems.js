@@ -1,146 +1,37 @@
+// components/RecentItems.js
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
+import { User, Music, BookmarkPlus } from 'lucide-react';
 
-export default function RecentItems() {
+export default function RecentItems({ items = [] }) {
   const router = useRouter();
-  const { user } = useAuth();
-  const [recentItems, setRecentItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchRecentViews = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          // 取最近10個，按時間排序
-          const sorted = (data.recentViews || [])
-            .sort((a, b) => {
-              const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
-              const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
-              return timeB - timeA;
-            })
-            .slice(0, 10);
-          setRecentItems(sorted);
-        }
-      } catch (error) {
-        console.error('Error fetching recent views:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecentViews();
-  }, [user]);
 
   const handleClick = (item) => {
-    if (item.type === 'song' || item.type === 'tab') {
-      router.push(`/tabs/${item.itemId}`);
+    if (item.type === 'tab') {
+      router.push(`/tabs/${item.id}`);
     } else if (item.type === 'artist') {
-      router.push(`/artists/${item.itemId}`);
+      router.push(`/artists/${item.slug || item.id}`);
     } else if (item.type === 'playlist') {
-      router.push(`/playlist/${item.itemId}`);
+      router.push(`/playlist/${item.id}`);
     }
   };
 
-  // 獲取項目圖標
-  const getIcon = (type) => {
-    switch (type) {
-      case 'artist':
-        return (
-          <svg className="w-8 h-8 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        );
-      case 'playlist':
-        return (
-          <svg className="w-8 h-8 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-          </svg>
-        );
-      default:
-        return (
-          <svg className="w-8 h-8 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-          </svg>
-        );
-    }
-  };
-
-  // 獲取類型標籤
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case 'artist': return '歌手';
-      case 'playlist': return '收藏';
-      case 'song':
-      case 'tab':
-      default: return '歌曲';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-3 px-4">
-          <h2 className="text-white text-lg font-bold">最近瀏覽</h2>
-        </div>
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex space-x-4 px-4 pb-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex-shrink-0 animate-pulse" style={{ width: '100px' }}>
-                <div className="aspect-square rounded-[4px] bg-gray-800 mb-2" />
-                <div className="h-4 bg-gray-800 rounded w-3/4 mx-auto" />
-                <div className="h-3 bg-gray-800 rounded w-1/2 mx-auto mt-1" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 未登入或冇數據時顯示提示
-  if (recentItems.length === 0) {
-    return (
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-3 px-4">
-          <h2 className="text-white text-lg font-bold">最近瀏覽</h2>
-        </div>
-        <div className="px-4">
-          <div className="bg-[#121212] rounded-lg p-4 text-center">
-            <p className="text-gray-500 text-sm">
-              {user ? '開始瀏覽歌曲同歌手，呢度會顯示你最近睇過嘅內容' : '登入後可以睇到最近瀏覽記錄'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (items.length === 0) return null;
 
   return (
     <div className="mb-6">
       <div className="flex justify-between items-center mb-3 px-4">
         <h2 className="text-white text-lg font-bold">最近瀏覽</h2>
         <button 
-          onClick={() => router.push('/library')}
+          onClick={() => router.push('/history')}
           className="text-[#B3B3B3] text-sm hover:text-white"
         >
           瀏覽全部
         </button>
       </div>
       
-      {/* 橫向滾動容器 */}
       <div className="overflow-x-auto scrollbar-hide">
         <div className="flex space-x-4 px-4 pb-2">
-          {recentItems.map((item, index) => (
+          {items.map((item, index) => (
             <div 
               key={index}
               onClick={() => handleClick(item)}
@@ -152,36 +43,51 @@ export default function RecentItems() {
                 relative overflow-hidden mb-2 bg-[#121212]
                 ${item.type === 'artist' ? 'rounded-full aspect-square' : 'rounded-[4px] aspect-square'}
               `}>
-                {item.thumbnail ? (
-                  <img
-                    src={item.thumbnail}
+                {item.image ? (
+                  <img 
+                    src={item.image} 
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    {getIcon(item.type)}
+                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
+                    {item.type === 'artist' ? (
+                      <User className="w-8 h-8 text-[#3E3E3E]" />
+                    ) : item.type === 'playlist' ? (
+                      <BookmarkPlus className="w-8 h-8 text-[#3E3E3E]" />
+                    ) : (
+                      <Music className="w-8 h-8 text-[#3E3E3E]" />
+                    )}
                   </div>
                 )}
                 
-                {/* 收藏標記（歌單/喜愛歌曲） */}
+                {/* 喜愛結他譜特殊標記 */}
                 {item.type === 'playlist' && item.isLikedSongs && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <svg className="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                    </svg>
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center">
+                    <BookmarkPlus className="w-10 h-10 text-white fill-white" />
+                  </div>
+                )}
+                
+                {/* 歌單2x2預覽 */}
+                {item.type === 'playlist' && item.covers && item.covers.length > 0 && !item.isLikedSongs && (
+                  <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-[#121212]">
+                    {item.covers.map((cover, i) => (
+                      <img key={i} src={cover} className="w-full h-full object-cover" alt="" />
+                    ))}
+                    {Array(4 - item.covers.length).fill(0).map((_, i) => (
+                      <div key={`empty-${i}`} className="bg-[#282828] w-full h-full" />
+                    ))}
                   </div>
                 )}
               </div>
               
               {/* 文字資訊 */}
               <div className="text-center">
-                <p className="text-white text-sm font-medium truncate">
+                <p className="text-white text-sm font-medium truncate leading-tight">
                   {item.title}
                 </p>
                 <p className="text-[#B3B3B3] text-xs truncate mt-0.5">
-                  {item.type === 'artist' ? '歌手' : item.subtitle || getTypeLabel(item.type)}
+                  {item.type === 'artist' ? '歌手' : item.subtitle || item.artistName || '收藏'}
                 </p>
               </div>
             </div>

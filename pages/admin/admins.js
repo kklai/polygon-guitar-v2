@@ -96,8 +96,8 @@ function AdminManagement() {
   )
 
   // 分組
-  const superAdmins = filteredUsers.filter(u => u.email === 'kermit.tam@gmail.com')
-  const usersWithRoles = filteredUsers.filter(u => u.role && u.email !== 'kermit.tam@gmail.com')
+  const superAdmins = filteredUsers.filter(u => u.email === 'kermit.tam@gmail.com' || u.role === ROLES.SUPER_ADMIN)
+  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN && u.email !== 'kermit.tam@gmail.com')
   const usersWithoutRoles = filteredUsers.filter(u => !u.role && u.email !== 'kermit.tam@gmail.com')
 
   if (loading) {
@@ -267,6 +267,7 @@ function AdminManagement() {
                     className="px-3 py-1.5 bg-[#FFD700] text-black rounded text-sm font-medium cursor-pointer"
                   >
                     <option value="">+ 設為管理員</option>
+                    <option value={ROLES.SUPER_ADMIN}>Super Admin</option>
                     <option value={ROLES.ART_DIRECTOR}>Art Director</option>
                     <option value={ROLES.SCORE_CHECKER}>Score Checker</option>
                     <option value={ROLES.PLAYLIST_MAKER}>Playlist Maker</option>

@@ -1,325 +1,366 @@
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
-import Link from 'next/link'
-import { getTabsByArtist, getAllArtists } from '@/lib/tabs'
-import { getArtistTabsWithCollabs } from '@/lib/collaborations'
-import { useAuth } from '@/contexts/AuthContext'
-import Layout from '@/components/Layout'
-import { ArtistHeroImage } from '@/components/ArtistImage'
-import ArtistTabRequests from '@/components/ArtistTabRequests'
-import { recordArtistView } from '@/lib/recentViews'
-import { RatingDisplay } from '@/components/RatingSystem'
-import Head from 'next/head'
-import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
+// pages/artists/[id].js
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { auth, db } from '../../lib/firebase';
+import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { ArrowLeft, MoreVertical, Share2, BookmarkPlus, ChevronDown, Music } from 'lucide-react';
+import Layout from '@/components/Layout';
+import RatingSystem from '../../components/RatingSystem';
+import { getUserPlaylists, addSongToPlaylist } from '../../lib/playlistApi';
 
-const KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+export default function ArtistPage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const [artist, setArtist] = useState(null);
+  const [hotTabs, setHotTabs] = useState([]);
+  const [allTabs, setAllTabs] = useState([]);
+  const [sortBy, setSortBy] = useState('year'); // year, strokes, views
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [selectedTab, setSelectedTab] = useState(null);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [userPlaylists, setUserPlaylists] = useState([]);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
 
-export default function ArtistDetail() {
-  const router = useRouter()
-  const { id } = router.query
-  const { user, isAdmin } = useAuth()
-  const [tabs, setTabs] = useState([])
-  const [artist, setArtist] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [sortBy, setSortBy] = useState('views')
-  const [selectedKeys, setSelectedKeys] = useState({})
-
-  // 獲取 YouTube 縮圖
-  const getYouTubeThumbnail = (song) => {
-    if (song.thumbnail) return song.thumbnail
-    if (song.youtubeUrl) {
-      const match = song.youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)
-      if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
-    }
-    return null
-  }
-
-  // 排序函數
-  const getSortedTabs = () => {
-    const sorted = [...tabs]
-    switch (sortBy) {
-      case 'views':
-        return sorted.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-      case 'default':
-      default:
-        return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    }
-  }
-
-  // 加載數據
   useEffect(() => {
-    if (!id) return
-    
-    const loadArtistData = async () => {
-      setIsLoading(true)
-      try {
-        // 獲取所有歌手
-        const allArtists = await getAllArtists()
-        const foundArtist = allArtists.find(a => 
-          a.normalizedName === id || 
-          a.id === id || 
-          a.slug === id
-        )
-        
-        if (foundArtist) {
-          // 調試：檢查 artist 對象
-          console.log('Artist data:', {
-            id: foundArtist.id,
-            name: foundArtist.name,
-            photoURL: foundArtist.photoURL,
-            wikiPhotoURL: foundArtist.wikiPhotoURL,
-            spotifyPhotoURL: foundArtist.spotifyPhotoURL,
-            photo: foundArtist.photo,
-            heroPhoto: foundArtist.heroPhoto ? 'exists' : 'null'
-          })
-          setArtist(foundArtist)
-          // 記錄歌手瀏覽
-          if (user) {
-            recordArtistView(user.uid, foundArtist)
-          }
-          // 獲取歌手歌曲（包括合作歌曲）
-          const artistTabs = await getArtistTabsWithCollabs(foundArtist.id, foundArtist.name)
-          setTabs(artistTabs)
+    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (id) loadArtistData();
+  }, [id]);
+
+  const loadArtistData = async () => {
+    setLoading(true);
+    try {
+      // 獲取歌手資料
+      const artistDoc = await getDoc(doc(db, 'artists', id));
+      if (!artistDoc.exists()) {
+        // 嘗試用 slug 查找
+        const q = query(collection(db, 'artists'), where('slug', '==', id));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          router.push('/artists');
+          return;
         }
-      } catch (error) {
-        console.error('Error loading artist:', error)
-      } finally {
-        setIsLoading(false)
+        setArtist({ id: snap.docs[0].id, ...snap.docs[0].data() });
+      } else {
+        setArtist({ id: artistDoc.id, ...artistDoc.data() });
       }
+
+      // 獲取歌曲（包含評分資料）
+      const tabsQuery = query(
+        collection(db, 'tabs'),
+        where('artistId', '==', id),
+        orderBy('viewCount', 'desc')
+      );
+      const tabsSnap = await getDocs(tabsQuery);
+      const tabs = tabsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // 前5首為熱門
+      setHotTabs(tabs.slice(0, 5));
+      setAllTabs(tabs.slice(5));
+    } catch (error) {
+      console.error('載入歌手資料失敗:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    loadArtistData()
-  }, [id])
+  };
 
-  // 處理歌曲點擊
-  const handleSongClick = (songId, key) => {
-    const url = key ? `/tabs/${songId}?key=${key}` : `/tabs/${songId}`
-    router.push(url)
-  }
+  // 分組顯示（按年份）
+  const groupByYear = (tabs) => {
+    const groups = {};
+    tabs.forEach(tab => {
+      const year = tab.uploadYear || new Date(tab.createdAt?.toDate?.() || Date.now()).getFullYear();
+      const range = getYearRange(year);
+      if (!groups[range]) groups[range] = [];
+      groups[range].push({ ...tab, year });
+    });
+    return groups;
+  };
 
-  // 處理 Key 選擇
-  const handleKeyClick = (e, songId, key) => {
-    e.stopPropagation()
-    setSelectedKeys(prev => ({
-      ...prev,
-      [songId]: key
-    }))
-  }
+  const getYearRange = (year) => {
+    if (year >= 2021) return '2021-2026';
+    if (year >= 2016) return '2016-2020';
+    if (year >= 2011) return '2011-2015';
+    if (year >= 2006) return '2006-2010';
+    return '2000-2005';
+  };
 
-  // SEO 配置
-  const seoTitle = artist ? generateArtistTitle(artist.name, tabs.length) : ''
-  const seoDescription = artist ? generateArtistDescription(artist.name, tabs.length) : ''
-  const seoUrl = artist ? `${siteConfig.url}/artists/${id}` : ''
-  
-  const artistSchema = artist ? generateArtistSchema(artist, tabs) : null
-  const breadcrumbSchema = artist ? generateBreadcrumbSchema([
-    { name: '首頁', url: siteConfig.url },
-    { name: '歌手', url: `${siteConfig.url}/artists` },
-    { name: artist.name, url: seoUrl }
-  ]) : null
+  const handleMoreClick = async (e, tab) => {
+    e.stopPropagation();
+    setSelectedTab(tab);
+    if (user) {
+      const playlists = await getUserPlaylists(user.uid);
+      setUserPlaylists(playlists);
+    }
+    setShowActionModal(true);
+  };
 
-  if (isLoading) {
+  const handleShare = async () => {
+    const url = `${window.location.origin}/tabs/${selectedTab.id}`;
+    if (navigator.share) {
+      await navigator.share({
+        title: `${selectedTab.title} - ${artist.name}`,
+        url
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+    }
+    setShowActionModal(false);
+  };
+
+  const handleAddToPlaylistClick = () => {
+    setShowActionModal(false);
+    setShowAddToPlaylist(true);
+  };
+
+  const addToPlaylist = async (playlistId) => {
+    if (!selectedTab) return;
+    try {
+      await addSongToPlaylist(playlistId, selectedTab.id);
+      setShowAddToPlaylist(false);
+      alert('已加入歌單');
+    } catch (error) {
+      alert('加入失敗：' + error.message);
+    }
+  };
+
+  const sortedTabs = () => {
+    let tabs = [...allTabs];
+    if (sortBy === 'year') {
+      tabs.sort((a, b) => (b.uploadYear || 0) - (a.uploadYear || 0));
+    } else if (sortBy === 'views') {
+      tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+    } else if (sortBy === 'strokes') {
+      tabs.sort((a, b) => a.title.localeCompare(b.title, 'zh-HK'));
+    }
+    return tabs;
+  };
+
+  const groupedTabs = groupByYear(sortedTabs());
+
+  if (loading || !artist) {
     return (
-      <Layout fullWidth>
-        <div className="min-h-screen bg-black flex items-center justify-center">
-          <div className="text-[#FFD700] text-xl">載入中...</div>
-        </div>
+      <Layout>
+        <div className="min-h-screen bg-black" />
       </Layout>
-    )
+    );
   }
-
-  const sortedTabs = getSortedTabs()
 
   return (
-    <>
-      {artist && (
-        <Head>
-          <title>{seoTitle}</title>
-          <meta name="description" content={seoDescription} />
-          <link rel="canonical" href={seoUrl} />
-          <meta property="og:url" content={seoUrl} />
-          <meta property="og:type" content="profile" />
-          <meta property="og:title" content={seoTitle} />
-          <meta property="og:description" content={seoDescription} />
-          <meta property="og:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify([artistSchema, breadcrumbSchema])
-            }}
+    <Layout>
+      <div className="min-h-screen bg-black pb-20">
+        {/* Hero */}
+        <div className="relative h-[45vh] w-full">
+          <img 
+            src={artist.photoURL || artist.wikiPhotoURL || '/default-artist.jpg'} 
+            alt={artist.name}
+            className="w-full h-full object-cover"
           />
-        </Head>
-      )}
-      
-      <Layout fullWidth>
-        <div className="min-h-screen bg-black pb-24">
-          {/* 手機版 Hero - 3:2 比例 */}
-          <div className="md:hidden relative w-full" style={{ aspectRatio: '3/2' }}>
-            {/* 背景圖片 */}
-            <ArtistHeroImage artist={artist} size="hero" />
-            
-            {/* 底部漸變遮罩 */}
-            <div 
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, transparent 70%)'
-              }}
-            />
-            
-            {/* 歌手資訊 - 左下角 */}
-            <div className="absolute bottom-0 left-0 p-4" style={{ width: '60%' }}>
-              <h1 
-                className="text-white font-bold leading-tight" 
-                style={{ fontSize: '36px', whiteSpace: 'nowrap' }}
-              >
-                {artist?.name}
-              </h1>
-              <p className="mt-1" style={{ fontSize: '14px', color: '#aaa' }}>
-                {tabs.length} 首歌
-              </p>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+          
+          {/* 返回按鈕 */}
+          <button 
+            onClick={() => router.back()}
+            className="absolute top-6 left-4 p-2 bg-black/30 backdrop-blur-sm rounded-full text-white hover:bg-black/50"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
 
-          {/* 網頁版 Hero - 保持原有設計 */}
-          <div className="hidden md:block relative h-[45vh]">
-            <ArtistHeroImage artist={artist} size="hero" />
-            
-            {/* 圖片來源標示（僅 Admin 可見）*/}
-            {isAdmin && (
-              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                {artist.heroPhoto ? 'Hero 圖片' : 
-                 artist.spotifyPhotoURL ? 'Spotify' : 
-                 artist.photoURL ? '用戶上傳' : 
-                 artist.wikiPhotoURL ? '維基' : '預設'}
-              </div>
-            )}
-            <div 
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 70%)'
-              }}
-            />
-            <div className="absolute bottom-0 left-0 right-0 p-8">
-              <h1 className="text-5xl font-bold text-white mb-2">{artist?.name}</h1>
-              <p className="text-gray-300">{tabs.length} 首結他譜</p>
-            </div>
-          </div>
-
-          {/* 歌曲列表區域 */}
-          <div className="px-4 pt-6">
-            {/* 標題 */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-white" style={{ fontSize: '18px' }}>熱門</h2>
-            </div>
-
-            {/* 歌曲列表 */}
-            <div className="space-y-3">
-              {sortedTabs.map((song, index) => {
-                const selectedKey = selectedKeys[song.id] || song.originalKey || 'C'
-                
-                return (
-                  <div
-                    key={song.id}
-                    className="flex items-center gap-3 cursor-pointer group"
-                    onClick={() => handleSongClick(song.id, selectedKey)}
-                  >
-                    {/* 排名 */}
-                    <div 
-                      className="flex-shrink-0 flex items-center justify-center text-gray-500"
-                      style={{ width: '20px', fontSize: '14px' }}
-                    >
-                      {index + 1}
-                    </div>
-
-                    {/* 縮圖 */}
-                    <div 
-                      className="flex-shrink-0 overflow-hidden bg-gray-800"
-                      style={{ width: '60px', height: '60px', borderRadius: '4px' }}
-                    >
-                      {getYouTubeThumbnail(song) ? (
-                        <img
-                          src={getYouTubeThumbnail(song)}
-                          alt={song.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-700" />
-                      )}
-                    </div>
-
-                    {/* 歌曲資訊 */}
-                    <div className="flex-1 min-w-0" style={{ minWidth: 0 }}>
-                      {/* 歌名 */}
-                      <h3 
-                        className="font-bold text-white truncate group-hover:text-[#f8e119] transition"
-                        style={{ fontSize: '16px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                      >
-                        {song.title}
-                      </h3>
-                      
-                      {/* 瀏覽次數和評分 */}
-                      <div className="flex items-center gap-3">
-                        <p style={{ fontSize: '12px', color: '#888' }}>
-                          {song.viewCount || 0} 瀏覽
-                        </p>
-                        {song.averageRating > 0 && (
-                          <RatingDisplay 
-                            rating={song.averageRating} 
-                            count={song.ratingCount}
-                            size="sm"
-                          />
-                        )}
-                      </div>
-                      
-                      {/* Key 圓圈 - 一行緊貼排列 */}
-                      <div 
-                        className="flex overflow-hidden mt-1"
-                        style={{ flexWrap: 'nowrap', gap: '0px' }}
-                      >
-                        {KEYS.map((key) => (
-                          <button
-                            key={key}
-                            onClick={(e) => handleKeyClick(e, song.id, key)}
-                            className="flex-shrink-0 rounded-full flex items-center justify-center transition"
-                            style={{
-                              width: '15px',
-                              height: '15px',
-                              backgroundColor: key === selectedKey ? '#f8e119' : '#645f0f',
-                              color: 'black',
-                              fontSize: '10px',
-                              fontWeight: 400,
-                              border: 'none',
-                              padding: 0,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {key}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* 無歌曲時 */}
-            {tabs.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">暫時冇歌曲</p>
-              </div>
-            )}
-          </div>
-
-          {/* 求譜區 */}
-          <div className="px-4 mt-8">
-            <ArtistTabRequests 
-              artistId={artist?.id || id} 
-              artistName={artist?.name || ''}
-            />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h1 className="text-4xl font-bold text-white mb-2">{artist.name}</h1>
+            <p className="text-[#B3B3B3] text-sm">
+              {artist.songCount || hotTabs.length + allTabs.length} 首歌曲
+            </p>
           </div>
         </div>
-      </Layout>
-    </>
-  )
+
+        {/* 熱門歌曲（前5首 - 有相片） */}
+        <section className="px-4 mt-6">
+          <h2 className="text-white text-xl font-bold mb-4">熱門</h2>
+          <div className="space-y-2">
+            {hotTabs.map((tab, index) => (
+              <div 
+                key={tab.id}
+                onClick={() => router.push(`/tabs/${tab.id}`)}
+                className="flex items-center p-2 hover:bg-[#1a1a1a] rounded-lg cursor-pointer group"
+              >
+                <span className="text-[#B3B3B3] w-6 text-center text-sm font-medium mr-2">
+                  {index + 1}
+                </span>
+                
+                {/* 歌曲封面 */}
+                <div className="w-14 h-14 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
+                  {tab.thumbnail ? (
+                    <img src={tab.thumbnail} alt={tab.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#3E3E3E] text-xl">♪</div>
+                  )}
+                </div>
+                
+                {/* 歌曲資訊 */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-medium truncate mb-1">{tab.title}</h3>
+                  <p className="text-[#B3B3B3] text-xs">{tab.viewCount?.toLocaleString() || 0} 瀏覽</p>
+                </div>
+                
+                {/* 三點按鈕（無Key波波） */}
+                <button 
+                  onClick={(e) => handleMoreClick(e, tab)}
+                  className="p-2 text-[#B3B3B3] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 所有歌曲（第6首起 - 無相片，有評分） */}
+        <section className="px-4 mt-8">
+          {/* 標題 + 排序 */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-white text-xl font-bold">所有歌曲</h2>
+            
+            <div className="relative group">
+              <button className="flex items-center space-x-1 text-[#B3B3B3] text-sm hover:text-white bg-[#1a1a1a] px-3 py-1.5 rounded-full">
+                <span>{sortBy === 'year' ? '按年份' : sortBy === 'strokes' ? '按筆畫' : '按瀏覽'}</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              
+              <div className="absolute right-0 top-full mt-2 bg-[#282828] rounded-lg shadow-xl py-1 min-w-[120px] hidden group-hover:block z-20">
+                {['year', 'strokes', 'views'].map((type) => (
+                  <button 
+                    key={type}
+                    onClick={() => setSortBy(type)}
+                    className={`block w-full text-left px-4 py-2 text-sm ${sortBy === type ? 'text-[#FFD700]' : 'text-white hover:bg-[#3E3E3E]'}`}
+                  >
+                    {type === 'year' ? '按年份' : type === 'strokes' ? '按筆畫' : '按瀏覽'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 年份分組 */}
+          {Object.entries(groupedTabs).map(([yearRange, tabs]) => (
+            <div key={yearRange} className="mb-6">
+              <h3 className="text-[#FFD700] text-sm font-medium mb-3 sticky top-0 bg-black/95 py-2 z-10">{yearRange}</h3>
+              <div className="space-y-1">
+                {tabs.map((tab) => (
+                  <div 
+                    key={tab.id}
+                    onClick={() => router.push(`/tabs/${tab.id}`)}
+                    className="flex items-center py-3 border-b border-[#282828] hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
+                  >
+                    {/* 歌曲名稱 */}
+                    <div className="flex-1 min-w-0 pr-4">
+                      <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                    </div>
+                    
+                    {/* 評分（中間） */}
+                    <div className="flex items-center px-4 flex-shrink-0">
+                      <RatingSystem 
+                        tabId={tab.id} 
+                        averageRating={tab.averageRating} 
+                        ratingCount={tab.ratingCount}
+                        size="sm"
+                        showCount={false}
+                      />
+                      <span className="text-[#B3B3B3] text-xs ml-2">({tab.ratingCount || 0})</span>
+                    </div>
+                    
+                    {/* 出譜者（靠右） */}
+                    <div className="w-24 text-right flex-shrink-0">
+                      <span className="text-[#B3B3B3] text-sm truncate block">
+                        {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Action Modal（分享/收藏） */}
+        {showActionModal && selectedTab && (
+          <>
+            <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionModal(false)} />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 animate-slide-up">
+              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+              
+              <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
+                <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-[#282828]">
+                  {selectedTab.thumbnail ? (
+                    <img src={selectedTab.thumbnail} alt={selectedTab.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#3E3E3E]">♪</div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-white font-medium truncate">{selectedTab.title}</h4>
+                  <p className="text-[#B3B3B3] text-sm">{artist.name}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                  <Share2 className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">分享</span>
+                </button>
+                
+                <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                  <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">加入歌單</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 加入歌單 Modal */}
+        {showAddToPlaylist && (
+          <>
+            <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowAddToPlaylist(false)} />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 max-h-[70vh] overflow-y-auto">
+              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+              <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
+              
+              <div className="space-y-2">
+                {userPlaylists.map((pl) => (
+                  <button
+                    key={pl.id}
+                    onClick={() => addToPlaylist(pl.id)}
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left"
+                  >
+                    <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center">
+                      <Music className="w-6 h-6 text-[#3E3E3E]" />
+                    </div>
+                    <span className="text-white font-medium">{pl.title}</span>
+                  </button>
+                ))}
+                
+                {userPlaylists.length === 0 && (
+                  <p className="text-[#B3B3B3] text-center py-4">還沒有歌單，先去創建一個吧</p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        <style jsx>{`
+          @keyframes slide-up {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
+          .animate-slide-up {
+            animation: slide-up 0.2s ease-out;
+          }
+        `}</style>
+      </div>
+    </Layout>
+  );
 }
