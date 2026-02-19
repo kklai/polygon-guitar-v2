@@ -32,6 +32,17 @@ export default async function handler(req, res) {
       body: 'grant_type=client_credentials'
     })
     
+    // 檢查是否為 rate limit 錯誤
+    const contentType = tokenResponse.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
+      const text = await tokenResponse.text()
+      console.error('Token error (non-JSON):', text)
+      return res.status(429).json({ 
+        error: 'Rate limited',
+        message: 'Spotify API rate limit reached. Please try again later.'
+      })
+    }
+    
     const tokenData = await tokenResponse.json()
     
     if (!tokenResponse.ok) {
@@ -55,8 +66,26 @@ export default async function handler(req, res) {
       })
     ])
     
-    const trackData = trackRes.ok ? await trackRes.json() : null
-    const audioFeatures = audioFeaturesRes.ok ? await audioFeaturesRes.json() : null
+    // 檢查 rate limit（返回純文本時）
+    const trackData = await (async () => {
+      if (!trackRes.ok) return null
+      const ct = trackRes.headers.get('content-type')
+      if (!ct?.includes('application/json')) {
+        console.error('Track response (non-JSON):', await trackRes.text())
+        return null
+      }
+      return await trackRes.json()
+    })()
+    
+    const audioFeatures = await (async () => {
+      if (!audioFeaturesRes.ok) return null
+      const ct = audioFeaturesRes.headers.get('content-type')
+      if (!ct?.includes('application/json')) {
+        console.error('Audio features response (non-JSON):', await audioFeaturesRes.text())
+        return null
+      }
+      return await audioFeaturesRes.json()
+    })()
     
     // 嘗試獲取 Credits（作曲、填詞等）
     let credits = null
@@ -65,7 +94,10 @@ export default async function handler(req, res) {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       })
       if (creditsRes.ok) {
-        credits = await creditsRes.json()
+        const ct = creditsRes.headers.get('content-type')
+        if (ct?.includes('application/json')) {
+          credits = await creditsRes.json()
+        }
       }
     } catch (e) {
       // Credits API 可能未開放，忽略錯誤

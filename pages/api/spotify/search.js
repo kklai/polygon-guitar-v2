@@ -54,6 +54,17 @@ export default async function handler(req, res) {
       body: 'grant_type=client_credentials'
     })
     
+    // 檢查是否為 rate limit 錯誤
+    const contentType = tokenResponse.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
+      const text = await tokenResponse.text()
+      console.error('Token error (non-JSON):', text)
+      return res.status(429).json({ 
+        error: 'Rate limited',
+        message: 'Spotify API rate limit reached. Please try again later.'
+      })
+    }
+    
     const tokenData = await tokenResponse.json()
     
     console.log('Token status:', tokenResponse.status)
@@ -77,6 +88,17 @@ export default async function handler(req, res) {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
       }
     )
+    
+    // 檢查是否為 rate limit 錯誤
+    const searchContentType = searchResponse.headers.get('content-type')
+    if (!searchContentType?.includes('application/json')) {
+      const text = await searchResponse.text()
+      console.error('Search error (non-JSON):', text)
+      return res.status(429).json({ 
+        error: 'Rate limited',
+        message: 'Spotify API rate limit reached. Please try again later.'
+      })
+    }
     
     const searchData = await searchResponse.json()
     
