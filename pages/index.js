@@ -175,20 +175,35 @@ export default function Home() {
         console.error('Error loading home settings:', settingsError)
       }
 
-      // 獲取熱門樂譜（支援手動揀選或自動排序）
+      // 獲取熱門樂譜（支援手動揀選+自動補充）
       let hotTabsData = []
+      const targetCount = settings.hotTabs?.displayCount || 20
+      
       if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
-        // 使用手動揀選
+        // 使用手動揀選，並自動補充至指定數量
         const manualIds = settings.hotTabs.manualSelection.map(t => t.id)
         const allTabs = await getRecentTabs(100) // 獲取足夠數量嚟匹配
-        hotTabsData = manualIds
+        
+        // 手動揀選的歌曲
+        const manualTabs = manualIds
           .map(id => allTabs.find(t => t.id === id))
           .filter(Boolean)
-          .slice(0, settings.hotTabs.displayCount || 12)
-        console.log('Hot tabs (manual):', hotTabsData.length)
+        
+        // 如果手動揀選唔夠，自動補充熱門歌曲
+        if (manualTabs.length < targetCount) {
+          const manualIdsSet = new Set(manualIds)
+          const hotTabs = await getHotTabs(targetCount + 10) // 獲取多啲用嚟補充
+          const autoFill = hotTabs
+            .filter(t => !manualIdsSet.has(t.id)) // 排除已揀選嘅
+            .slice(0, targetCount - manualTabs.length)
+          hotTabsData = [...manualTabs, ...autoFill]
+        } else {
+          hotTabsData = manualTabs.slice(0, targetCount)
+        }
+        console.log('Hot tabs (manual + auto-fill):', hotTabsData.length)
       } else {
         // 自動排序：按瀏覽量
-        hotTabsData = await getHotTabs(12)
+        hotTabsData = await getHotTabs(targetCount)
         console.log('Hot tabs (auto):', hotTabsData.length)
       }
       setHotTabs(hotTabsData)
@@ -490,7 +505,7 @@ export default function Home() {
               className="px-3 py-2 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition text-sm"
               title="首頁設置"
             >
-              ⚙️ 首頁設置
+              首頁設置
             </button>
           </div>
         )}
@@ -537,7 +552,7 @@ export default function Home() {
         {/* 第三區：熱門結他譜 */}
         {hotTabs.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-white px-6 py-4">熱門結他譜 🔥</h2>
+            <h2 className="text-2xl font-bold text-white px-6 py-4">熱門結他譜</h2>
             <p className="text-sm text-gray-500 px-6 -mt-3 mb-3">
               {homeSettings.hotTabs?.useManual ? '編輯精選' : '過去 30 天最多人瀏覽'}
             </p>
@@ -558,7 +573,7 @@ export default function Home() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        🎸
+                        
                       </div>
                     )}
                   </div>
@@ -595,7 +610,7 @@ export default function Home() {
                         className="w-full h-full object-cover" 
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">👨‍🎤</div>
+                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                     )}
                   </div>
                   <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
@@ -622,7 +637,7 @@ export default function Home() {
                     {artist.photo ? (
                       <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">👩‍🎤</div>
+                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                     )}
                   </div>
                   <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
@@ -666,7 +681,7 @@ export default function Home() {
           <section className="mb-8">
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-2xl font-bold text-white">熱門歌單 🔥</h2>
+                <h2 className="text-2xl font-bold text-white">熱門歌單</h2>
               </div>
               <p className="text-sm text-gray-500">根據瀏覽數據自動更新</p>
             </div>
@@ -688,7 +703,7 @@ export default function Home() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        📊
+                        
                       </div>
                     )}
                     
@@ -730,7 +745,7 @@ export default function Home() {
           <section className="mb-8">
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-2xl font-bold text-white">編輯精選 ✨</h2>
+                <h2 className="text-2xl font-bold text-white">編輯精選</h2>
               </div>
               <p className="text-sm text-gray-500">精心策劃的音樂旅程</p>
             </div>
@@ -752,7 +767,7 @@ export default function Home() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        ✨
+                        
                       </div>
                     )}
                     

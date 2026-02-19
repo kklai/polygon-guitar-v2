@@ -175,6 +175,14 @@ export default function AdminIndex() {
       icon: '🎭',
       color: 'bg-red-500',
       roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/nav-icons',
+      title: '導航圖標設置',
+      description: '自定義底部導航欄圖標',
+      icon: '⚙️',
+      color: 'bg-gray-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     }
   ]
 

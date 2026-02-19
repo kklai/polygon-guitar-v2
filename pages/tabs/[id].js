@@ -9,6 +9,7 @@ import Layout from '@/components/Layout'
 import LikeButton from '@/components/LikeButton'
 import TabContent from '@/components/TabContent'
 import TabComments from '@/components/TabComments'
+import { recordSongView } from '@/lib/recentViews'
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema } from '@/lib/seo'
 import { siteConfig } from '@/lib/seo'
@@ -95,6 +96,10 @@ export default function TabDetail() {
         setCurrentKey(initialKey)
         // 記錄瀏覽數（每次頁面載入都計，包括刷新）
         if (id) incrementViewCount(id)
+        // 記錄到最近瀏覽
+        if (user) {
+          recordSongView(user.uid, data)
+        }
         if (data.createdBy) {
           const userDoc = await getDoc(doc(db, 'users', data.createdBy))
           if (userDoc.exists()) {

@@ -41,24 +41,24 @@ export default function Layout({ children, fullWidth = false }) {
     { path: '/', label: '首頁', icon: 'home' },
     { path: '/search', label: '搜尋', icon: 'search' },
     { path: '/artists', label: '歌手', icon: 'artists' },
-    { path: '/tabs/new', label: '上傳', icon: 'upload' },
     { path: '/library', label: '收藏', icon: 'library' },
+    { path: '/tabs/new', label: '上傳', icon: 'upload' },
   ]
 
   // 底部導航項目 - 桌面版（根據是否 Admin 動態生成）
   const getDesktopNavItems = () => {
     const items = [
       { path: '/', label: '首頁', icon: 'home' },
+      { path: '/search', label: '搜尋', icon: 'search' },
       { path: '/artists', label: '歌手', icon: 'artists' },
+      { path: '/library', label: '收藏', icon: 'library' },
       { path: '/tabs/new', label: '上傳', icon: 'upload' },
     ]
     
     // 只有 Admin 先顯示管理項目
     if (isAdmin) {
       items.push(
-        { path: '/admin', label: '管理', icon: 'admin' },
-        { path: '/admin/hero-photos', label: 'Hero', icon: 'hero' },
-        { path: '/admin/playlists', label: '歌單', icon: 'playlist' }
+        { path: '/admin', label: '管理', icon: 'admin' }
       )
     }
     

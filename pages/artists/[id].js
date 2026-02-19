@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import { ArtistHeroImage } from '@/components/ArtistImage'
 import ArtistTabRequests from '@/components/ArtistTabRequests'
+import { recordArtistView } from '@/lib/recentViews'
 import Head from 'next/head'
 import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
@@ -15,7 +16,7 @@ const KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 export default function ArtistDetail() {
   const router = useRouter()
   const { id } = router.query
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [tabs, setTabs] = useState([])
   const [artist, setArtist] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -71,6 +72,10 @@ export default function ArtistDetail() {
             heroPhoto: foundArtist.heroPhoto ? 'exists' : 'null'
           })
           setArtist(foundArtist)
+          // 記錄歌手瀏覽
+          if (user) {
+            recordArtistView(user.uid, foundArtist)
+          }
           // 獲取歌手歌曲（包括合作歌曲）
           const artistTabs = await getArtistTabsWithCollabs(foundArtist.id, foundArtist.name)
           setTabs(artistTabs)
