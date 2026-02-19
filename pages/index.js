@@ -664,7 +664,7 @@ export default function Home() {
                     {artist.photo ? (
                       <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🎸</div>
+                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                     )}
                   </div>
                   <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
@@ -825,7 +825,7 @@ export default function Home() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        🎸
+                        
                       </div>
                     )}
                   </div>

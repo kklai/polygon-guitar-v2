@@ -141,7 +141,7 @@ export default function ArtistAutoFill({
           )}
           <div className="flex-1">
             <p className="text-green-400 text-sm font-medium">
-              ✅ 歌手資料已存在
+              歌手資料已存在
             </p>
             <p className="text-gray-400 text-xs">
               {existingArtist.name} • {existingArtist.year || '無年份'} • 

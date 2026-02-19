@@ -164,7 +164,7 @@ export default function SpotifyTrackSearch({
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div>
             <h2 className="text-lg font-bold text-white">
-              🎵 歌曲資訊搜尋
+              歌曲資訊搜尋
             </h2>
             <p className="text-sm text-gray-400">
               從 Spotify 自動獲取歌曲資訊，或手動輸入
@@ -190,7 +190,7 @@ export default function SpotifyTrackSearch({
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            🔍 Spotify 搜尋
+            Spotify 搜尋
           </button>
           <button
             onClick={switchToManualMode}
@@ -200,7 +200,7 @@ export default function SpotifyTrackSearch({
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            ✏️ 手動輸入
+            手動輸入
           </button>
         </div>
 
@@ -370,7 +370,7 @@ export default function SpotifyTrackSearch({
                       {formatDuration(track.duration)}
                     </span>
                     {selectedTrack?.id === track.id && (
-                      <div className="text-[#1DB954] text-xs mt-1">✓ 已選擇</div>
+                      <div className="text-[#1DB954] text-xs mt-1">已選擇</div>
                     )}
                   </div>
                 </button>

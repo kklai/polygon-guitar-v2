@@ -7,11 +7,11 @@ import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
 const CATEGORY_LABELS = {
-  male: { label: '男歌手', emoji: '👨‍🎤' },
-  female: { label: '女歌手', emoji: '👩‍🎤' },
-  group: { label: '組合', emoji: '🎸' },
-  soundtrack: { label: '劇集電影動漫', emoji: '🎬' },
-  other: { label: '其他', emoji: '🎵' }
+  male: { label: '男歌手', emoji: '' },
+  female: { label: '女歌手', emoji: '' },
+  group: { label: '組合', emoji: '' },
+  soundtrack: { label: '劇集電影動漫', emoji: '' },
+  other: { label: '其他', emoji: '' }
 }
 
 const REGION_OPTIONS = [
@@ -25,7 +25,7 @@ const REGION_OPTIONS = [
 // 排序選項
 const SORT_OPTIONS = [
   { value: 'default', label: '預設（熱門）' },
-  { value: 'spotifyChoice', label: '🎵 Spotify Choice' },
+  { value: 'spotifyChoice', label: 'Spotify Choice' },
   { value: 'polygonChoice', label: 'Polygon Choice' },
   { value: 'likes', label: '用戶讚好' },
   { value: 'songCount', label: '樂譜數目' },
@@ -486,7 +486,7 @@ export default function Artists() {
           </div>
         ) : (
           <div className="text-center py-12 bg-[#121212] rounded-xl shadow-md border border-gray-800">
-            <span className="text-4xl mb-4 block">🎤</span>
+            <span className="text-4xl mb-4 block"></span>
             <h3 className="text-lg font-medium text-white mb-2">
               暫時冇歌手
             </h3>

@@ -5,13 +5,13 @@ import { useState } from 'react'
  */
 
 const STYLE_TAGS = [
-  { id: 'original', label: '原汁原味', desc: '跟足原曲編配', icon: '🎵' },
-  { id: 'simple', label: '簡單版', desc: '初學者適用，和弦簡化', icon: '🟢' },
-  { id: 'advanced', label: '進階版', desc: '加花/轉調/技巧', icon: '🔴' },
-  { id: 'fingerstyle', label: '指彈版', desc: 'Fingerstyle 獨奏', icon: '🎸' },
-  { id: 'busking', label: 'Busking版', desc: '容易帶動氣氛', icon: '🔥' },
-  { id: 'solo', label: '獨奏版', desc: 'Solo arrangement', icon: '🎤' },
-  { id: 'duet', label: '合唱版', desc: '適合彈唱', icon: '👥' },
+  { id: 'original', label: '原汁原味', desc: '跟足原曲編配', icon: '' },
+  { id: 'simple', label: '簡單版', desc: '初學者適用，和弦簡化', icon: '' },
+  { id: 'advanced', label: '進階版', desc: '加花/轉調/技巧', icon: '' },
+  { id: 'fingerstyle', label: '指彈版', desc: 'Fingerstyle 獨奏', icon: '' },
+  { id: 'busking', label: 'Busking版', desc: '容易帶動氣氛', icon: '' },
+  { id: 'solo', label: '獨奏版', desc: 'Solo arrangement', icon: '' },
+  { id: 'duet', label: '合唱版', desc: '適合彈唱', icon: '' },
 ]
 
 const AUDIENCE_TAGS = [
@@ -21,11 +21,11 @@ const AUDIENCE_TAGS = [
 ]
 
 const MOOD_TAGS = [
-  { id: 'happy', label: '輕快', icon: '😊' },
-  { id: 'emotional', label: '抒情', icon: '😢' },
-  { id: 'rock', label: '搖滾', icon: '🤘' },
-  { id: 'romantic', label: '浪漫', icon: '❤️' },
-  { id: 'sad', label: '傷感', icon: '🌧️' },
+  { id: 'happy', label: '輕快', icon: '' },
+  { id: 'emotional', label: '抒情', icon: '' },
+  { id: 'rock', label: '搖滾', icon: '' },
+  { id: 'romantic', label: '浪漫', icon: '' },
+  { id: 'sad', label: '傷感', icon: '' },
 ]
 
 export default function TabTagsSelector({ value = {}, onChange }) {
@@ -45,7 +45,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
       {/* 風格類型 */}
       <div>
         <label className="block text-white font-medium mb-3">
-          🎨 風格類型（可多選）
+          風格類型（可多選）
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {STYLE_TAGS.map(tag => (
@@ -76,7 +76,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
       {/* 適合對象 */}
       <div>
         <label className="block text-white font-medium mb-3">
-          👥 適合對象（建議選一個最適合嘅）
+          適合對象（建議選一個最適合嘅）
         </label>
         <div className="flex flex-wrap gap-3">
           {AUDIENCE_TAGS.map(tag => (
@@ -100,7 +100,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
       {/* 情緒/氣氛 */}
       <div>
         <label className="block text-white font-medium mb-3">
-          🎭 情緒/氣氛（可選）
+          情緒/氣氛（可選）
         </label>
         <div className="flex flex-wrap gap-2">
           {MOOD_TAGS.map(tag => (
@@ -130,7 +130,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
               const tag = STYLE_TAGS.find(t => t.id === id)
               return (
                 <span key={id} className="px-2 py-1 bg-[#FFD700]/20 text-[#FFD700] rounded text-sm">
-                  {tag?.icon} {tag?.label}
+                  {tag?.label}
                 </span>
               )
             })}
@@ -146,7 +146,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
               const tag = MOOD_TAGS.find(t => t.id === id)
               return (
                 <span key={id} className="px-2 py-1 bg-purple-900/50 text-purple-300 rounded text-sm">
-                  {tag?.icon} {tag?.label}
+                  {tag?.label}
                 </span>
               )
             })}

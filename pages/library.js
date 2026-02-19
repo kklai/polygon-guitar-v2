@@ -122,7 +122,7 @@ export default function Library() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        🎸
+                        
                       </div>
                     )}
                   </div>
@@ -156,7 +156,7 @@ export default function Library() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      '🎸'
+                      ''
                     )}
                   </div>
                   <div className="flex-1 text-left">

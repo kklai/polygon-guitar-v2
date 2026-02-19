@@ -53,7 +53,7 @@ export default function TabVersionComparison({ versions }) {
       <div className="p-4 border-b border-gray-800">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h3 className="text-lg font-bold text-white">
-            🎸 多個版本（{versions.length}）
+            多個版本（{versions.length}）
           </h3>
           
           {/* 篩選器 */}
@@ -64,9 +64,9 @@ export default function TabVersionComparison({ versions }) {
               className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm border border-gray-700"
             >
               <option value="all">全部難度</option>
-              <option value="beginner">🟢 初階</option>
-              <option value="intermediate">🟡 中級</option>
-              <option value="advanced">🔴 進階</option>
+              <option value="beginner">初階</option>
+              <option value="intermediate">中級</option>
+              <option value="advanced">進階</option>
             </select>
             
             <select
@@ -74,12 +74,12 @@ export default function TabVersionComparison({ versions }) {
               onChange={(e) => setSortBy(e.target.value)}
               className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm border border-gray-700"
             >
-              <option value="recommended">🏆 推薦排序</option>
-              <option value="popular">🔥 最熱門</option>
-              <option value="likes">❤️ 最多讚好</option>
-              <option value="easiest">⬇️ 最簡單</option>
-              <option value="hardest">⬆️ 最進階</option>
-              <option value="newest">🆕 最新</option>
+              <option value="recommended">推薦排序</option>
+              <option value="popular">最熱門</option>
+              <option value="likes">最多讚好</option>
+              <option value="easiest">最簡單</option>
+              <option value="hardest">最進階</option>
+              <option value="newest">最新</option>
             </select>
           </div>
         </div>
@@ -140,21 +140,21 @@ function VersionCard({ version, rank, isTop }) {
             {/* 熱門標記 */}
             {(version.viewCount || 0) > 1000 && (
               <span className="px-2 py-0.5 bg-red-600 text-white text-xs rounded">
-                🔥 熱門
+                熱門
               </span>
             )}
             
             {/* 新手首選 */}
             {(votes.goodForBeginners || 0) > 20 && (
               <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded">
-                🎸 新手首選
+                新手首選
               </span>
             )}
             
             {/* 原汁原味 */}
             {(votes.soundsLikeOriginal || 0) > 15 && (
               <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded">
-                🎵 最似原曲
+                最似原曲
               </span>
             )}
           </div>
@@ -178,18 +178,18 @@ function VersionCard({ version, rank, isTop }) {
             
             <span className="text-gray-600">|</span>
             
-            <span>👁 {version.viewCount || 0}</span>
-            <span>❤️ {version.likes || 0}</span>
+            <span>{version.viewCount || 0}</span>
+            <span>{version.likes || 0}</span>
             
             {/* 投票數 */}
             {(votes.goodForBeginners || votes.soundsLikeOriginal) && (
               <>
                 <span className="text-gray-600">|</span>
                 {votes.goodForBeginners > 0 && (
-                  <span className="text-green-400">🎸 {votes.goodForBeginners}</span>
+                  <span className="text-green-400">{votes.goodForBeginners}</span>
                 )}
                 {votes.soundsLikeOriginal > 0 && (
-                  <span className="text-blue-400">🎵 {votes.soundsLikeOriginal}</span>
+                  <span className="text-blue-400">{votes.soundsLikeOriginal}</span>
                 )}
               </>
             )}
@@ -230,9 +230,9 @@ function VersionCard({ version, rank, isTop }) {
 
 function DifficultyBadge({ level }) {
   const config = {
-    beginner: { color: 'text-green-400', bg: 'bg-green-400/10', label: '🟢 初階' },
-    intermediate: { color: 'text-yellow-400', bg: 'bg-yellow-400/10', label: '🟡 中級' },
-    advanced: { color: 'text-red-400', bg: 'bg-red-400/10', label: '🔴 進階' }
+    beginner: { color: 'text-green-400', bg: 'bg-green-400/10', label: '初階' },
+    intermediate: { color: 'text-yellow-400', bg: 'bg-yellow-400/10', label: '中級' },
+    advanced: { color: 'text-red-400', bg: 'bg-red-400/10', label: '進階' }
   }
   
   const { color, bg, label } = config[level] || config.beginner

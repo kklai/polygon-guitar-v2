@@ -127,8 +127,7 @@ export default function Search() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-2xl">
-                            {artist.artistType === 'male' ? '👨‍🎤' : 
-                             artist.artistType === 'female' ? '👩‍🎤' : '🎸'}
+                            
                           </div>
                         )}
                       </div>
@@ -161,7 +160,7 @@ export default function Search() {
                             className="w-full h-full object-cover rounded"
                           />
                         ) : (
-                          '🎸'
+                          ''
                         )}
                       </div>
                       <div className="flex-1 text-left">
@@ -180,7 +179,7 @@ export default function Search() {
             {/* No Results */}
             {filteredSongs.length === 0 && filteredArtists.length === 0 && (
               <div className="text-center py-12">
-                <span className="text-4xl mb-4 block">🔍</span>
+                <span className="text-4xl mb-4 block"></span>
                 <p className="text-gray-500">找不到「{searchQuery}」的結果</p>
               </div>
             )}

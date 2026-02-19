@@ -12,7 +12,7 @@ export default function AdminIndex() {
       href: '/admin/playlists',
       title: '歌單管理',
       description: '管理精選歌單、編輯歌單內容',
-      icon: '🎵',
+      icon: '',
       color: 'bg-purple-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.PLAYLIST_MAKER]
     },
@@ -20,7 +20,7 @@ export default function AdminIndex() {
       href: '/admin/artists-v2',
       title: '歌手管理 V2',
       description: '統一管理歌手資料、分類和照片',
-      icon: '🎤',
+      icon: '',
       color: 'bg-blue-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER, ROLES.ART_DIRECTOR]
     },
@@ -28,7 +28,7 @@ export default function AdminIndex() {
       href: '/admin/artists-region',
       title: '歌手地區設定',
       description: '批次設定歌手所屬地區（香港、台灣、中國、外國）',
-      icon: '🌏',
+      icon: '',
       color: 'bg-cyan-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -36,7 +36,7 @@ export default function AdminIndex() {
       href: '/admin/artists-score',
       title: '歌手評分管理',
       description: '設定歌手推薦分數（0-1000），控制排序優先級',
-      icon: '⭐',
+      icon: '',
       color: 'bg-yellow-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -44,7 +44,7 @@ export default function AdminIndex() {
       href: '/admin/category-images',
       title: '分類封面管理',
       description: '自動更新首頁男歌手/女歌手/組合封面',
-      icon: '🖼️',
+      icon: '',
       color: 'bg-green-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
@@ -52,7 +52,7 @@ export default function AdminIndex() {
       href: '/admin/category-covers',
       title: '分類封面設定',
       description: '手動設定首頁分類封面圖片',
-      icon: '🎨',
+      icon: '',
       color: 'bg-teal-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
@@ -60,7 +60,7 @@ export default function AdminIndex() {
       href: '/admin/hero-photos',
       title: 'Hero 圖片管理',
       description: '管理首頁輪播圖片',
-      icon: '📸',
+      icon: '',
       color: 'bg-pink-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
@@ -68,7 +68,7 @@ export default function AdminIndex() {
       href: '/admin/import-tabs',
       title: '批量導入譜',
       description: '從 Blogger 導入結他譜',
-      icon: '📥',
+      icon: '',
       color: 'bg-orange-600',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -76,7 +76,7 @@ export default function AdminIndex() {
       href: '/admin/migrated-tabs',
       title: '遷移樂譜管理',
       description: '管理已遷移的樂譜，修復顯示問題',
-      icon: '🔧',
+      icon: '',
       color: 'bg-amber-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -84,7 +84,7 @@ export default function AdminIndex() {
       href: '/admin/merge-artists',
       title: '合併重複歌手',
       description: '檢測並合併中英文名的重複歌手檔案',
-      icon: '🔀',
+      icon: '',
       color: 'bg-rose-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -92,7 +92,7 @@ export default function AdminIndex() {
       href: '/admin/analyze',
       title: '數據分析',
       description: '分析結他譜數據、和弦統計',
-      icon: '📊',
+      icon: '',
       color: 'bg-indigo-600',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -100,7 +100,7 @@ export default function AdminIndex() {
       href: '/admin/migrate',
       title: '數據遷移',
       description: '執行數據庫遷移和修復',
-      icon: '🔄',
+      icon: '',
       color: 'bg-teal-600',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -116,7 +116,7 @@ export default function AdminIndex() {
       href: '/admin/bulk-youtube',
       title: '批量添加 YouTube',
       description: '自動為舊譜添加 YouTube 連結（3000+份）',
-      icon: '▶️',
+      icon: '',
       color: 'bg-red-700',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -124,7 +124,7 @@ export default function AdminIndex() {
       href: '/admin/spotify-manager',
       title: 'Spotify 管理',
       description: '管理歌手相片、歌曲資訊、批量更新 Spotify 資料',
-      icon: '🎧',
+      icon: '',
       color: 'bg-green-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
@@ -132,7 +132,7 @@ export default function AdminIndex() {
       href: '/admin/update-track-info',
       title: '批量更新歌曲資訊',
       description: '從 Spotify 獲取 BPM、作曲、填詞、專輯封面等',
-      icon: '🎼',
+      icon: '',
       color: 'bg-emerald-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -140,7 +140,7 @@ export default function AdminIndex() {
       href: '/admin/home-settings',
       title: '首頁設置',
       description: '管理熱門歌手、熱門歌曲、排序方式',
-      icon: '🏠',
+      icon: '',
       color: 'bg-orange-500',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -148,7 +148,7 @@ export default function AdminIndex() {
       href: '/admin/data-review',
       title: '數據審查',
       description: '找出可疑歌手/歌曲，批量刪除或標記',
-      icon: '🔍',
+      icon: '',
       color: 'bg-slate-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -156,7 +156,7 @@ export default function AdminIndex() {
       href: '/admin/fix-artist',
       title: '歌手名修復',
       description: '快速修復錯誤的歌手名稱',
-      icon: '✏️',
+      icon: '',
       color: 'bg-violet-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
@@ -164,7 +164,7 @@ export default function AdminIndex() {
       href: '/admin/analytics',
       title: '瀏覽統計',
       description: '查看全站頁面瀏覽統計',
-      icon: '📈',
+      icon: '',
       color: 'bg-cyan-600',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -172,7 +172,7 @@ export default function AdminIndex() {
       href: '/admin/role-settings',
       title: '角色權限設置',
       description: '設置用戶角色權限（僅限超級管理員）',
-      icon: '🎭',
+      icon: '',
       color: 'bg-red-500',
       roles: [ROLES.SUPER_ADMIN]
     },
@@ -180,7 +180,7 @@ export default function AdminIndex() {
       href: '/admin/nav-icons',
       title: '導航圖標設置',
       description: '自定義底部導航欄圖標',
-      icon: '⚙️',
+      icon: '',
       color: 'bg-gray-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     }
@@ -235,21 +235,21 @@ export default function AdminIndex() {
         {userRole === ROLES.ART_DIRECTOR && (
           <div className="mb-6 p-4 bg-pink-900/20 border border-pink-700 rounded-lg">
             <p className="text-pink-400 text-sm">
-              🎨 <span className="font-medium">Art Director</span> - 你可以管理 Logo、相片、封面等視覺內容
+              <span className="font-medium">Art Director</span> - 你可以管理 Logo、相片、封面等視覺內容
             </p>
           </div>
         )}
         {userRole === ROLES.SCORE_CHECKER && (
           <div className="mb-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
             <p className="text-blue-400 text-sm">
-              📝 <span className="font-medium">Score Checker</span> - 你可以編輯樂譜內容和歌手資料
+              <span className="font-medium">Score Checker</span> - 你可以編輯樂譜內容和歌手資料
             </p>
           </div>
         )}
         {userRole === ROLES.PLAYLIST_MAKER && (
           <div className="mb-6 p-4 bg-green-900/20 border border-green-700 rounded-lg">
             <p className="text-green-400 text-sm">
-              🎵 <span className="font-medium">Playlist Maker</span> - 你可以創建和管理精選歌單
+              <span className="font-medium">Playlist Maker</span> - 你可以創建和管理精選歌單
             </p>
           </div>
         )}

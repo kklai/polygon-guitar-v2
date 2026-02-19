@@ -306,7 +306,7 @@ E|----------------------------------------------------------------|
               {similarArtists.length > 0 && (
                 <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg">
                   <p className="text-yellow-400 text-sm mb-2">
-                    ⚠️ 發現相似歌手，是否使用現有資料？
+                    發現相似歌手，是否使用現有資料？
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {similarArtists.map(artist => (
@@ -578,7 +578,7 @@ E|----------------------------------------------------------------|
                   disabled={!formData.artist || !formData.title}
                   className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition disabled:opacity-50 text-sm font-medium"
                 >
-                  <span>⚡</span>
+                  <span></span>
                   快速添加（自動選第一個）
                 </button>
               </div>

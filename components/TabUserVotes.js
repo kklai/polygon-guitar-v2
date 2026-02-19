@@ -8,28 +8,28 @@ const VOTE_OPTIONS = [
   { 
     id: 'soundsLikeOriginal', 
     label: '最似原曲', 
-    icon: '🎵', 
+    icon: '', 
     desc: '呢個版本還原度高',
     color: 'bg-blue-600'
   },
   { 
     id: 'goodForBeginners', 
     label: '啱新手', 
-    icon: '🎸', 
+    icon: '', 
     desc: '初學者都彈到',
     color: 'bg-green-600'
   },
   { 
     id: 'greatForBusking', 
     label: '啱Busking', 
-    icon: '🔥', 
+    icon: '', 
     desc: '氣氛好，帶動全場',
     color: 'bg-orange-600'
   },
   { 
     id: 'beautifulArrangement', 
     label: '編配靚', 
-    icon: '✨', 
+    icon: '', 
     desc: '個人風格獨特',
     color: 'bg-purple-600'
   },
@@ -57,7 +57,7 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
   return (
     <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
       <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-        👍 用戶評價
+        用戶評價
         {totalVotes > 0 && (
           <span className="text-sm font-normal text-gray-400">
             ({totalVotes} 人投票)
@@ -86,7 +86,7 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
         </div>
       ) : (
         <div className="text-center py-4">
-          <div className="text-3xl mb-2">✅</div>
+          <div className="text-3xl mb-2"></div>
           <p className="text-green-400 font-medium">多謝你嘅投票！</p>
           <p className="text-gray-400 text-sm mt-1">
             你揀咗：{VOTE_OPTIONS.find(o => o.id === selectedVote)?.label}
@@ -133,7 +133,7 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
       {/* 感謝訊息 */}
       {showThankYou && (
         <div className="mt-4 p-3 bg-green-900/30 border border-green-700 rounded-lg text-center">
-          <p className="text-green-400 text-sm">🎉 投票成功！你嘅意見幫到其他結他手揀選</p>
+          <p className="text-green-400 text-sm">投票成功！你嘅意見幫到其他結他手揀選</p>
         </div>
       )}
 
@@ -142,22 +142,22 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
         <div className="mt-4 flex flex-wrap gap-2">
           {votes.soundsLikeOriginal >= 10 && (
             <span className="px-2 py-1 bg-blue-900/50 text-blue-300 text-xs rounded-full">
-              🏆 最似原曲
+              最似原曲
             </span>
           )}
           {votes.goodForBeginners >= 10 && (
             <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded-full">
-              🎸 新手首選
+              新手首選
             </span>
           )}
           {votes.greatForBusking >= 5 && (
             <span className="px-2 py-1 bg-orange-900/50 text-orange-300 text-xs rounded-full">
-              🔥 Busking之選
+              Busking之選
             </span>
           )}
           {votes.beautifulArrangement >= 5 && (
             <span className="px-2 py-1 bg-purple-900/50 text-purple-300 text-xs rounded-full">
-              ✨ 編配出色
+              編配出色
             </span>
           )}
         </div>

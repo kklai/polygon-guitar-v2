@@ -1183,7 +1183,7 @@ const TabContent = ({
         
         {currentKey !== originalKey && capoSuggestion.alternative && (
           <div className={`mb-2 text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-500' : 'text-gray-500'}`}>
-            <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>💡 提示：</span>
+            <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>提示：</span>
             <span className="ml-1 text-white">{capoSuggestion.alternative.message}</span>
             <span className="ml-2 text-gray-400">({capoSuggestion.alternative.tuningDesc})</span>
             {capoSuggestion.alternative.newCapo > 0 ? (
