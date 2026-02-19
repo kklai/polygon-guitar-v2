@@ -1,6 +1,24 @@
 // components/RecentItems.js
 import { useRouter } from 'next/router';
-import { User, Music, BookmarkPlus } from 'lucide-react';
+
+// SVG 圖標
+const UserIcon = () => (
+  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const MusicIcon = () => (
+  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+  </svg>
+);
+
+const BookmarkIcon = () => (
+  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+  </svg>
+);
 
 export default function RecentItems({ items = [] }) {
   const router = useRouter();
@@ -50,33 +68,17 @@ export default function RecentItems({ items = [] }) {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
-                    {item.type === 'artist' ? (
-                      <User className="w-8 h-8 text-[#3E3E3E]" />
-                    ) : item.type === 'playlist' ? (
-                      <BookmarkPlus className="w-8 h-8 text-[#3E3E3E]" />
-                    ) : (
-                      <Music className="w-8 h-8 text-[#3E3E3E]" />
-                    )}
+                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a] text-[#3E3E3E]">
+                    {item.type === 'artist' ? <UserIcon /> : item.type === 'playlist' ? <BookmarkIcon /> : <MusicIcon />}
                   </div>
                 )}
                 
                 {/* 喜愛結他譜特殊標記 */}
-                {item.type === 'playlist' && item.isLikedSongs && (
+                {item.type === 'playlist' && item.isLiked && (
                   <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center">
-                    <BookmarkPlus className="w-10 h-10 text-white fill-white" />
-                  </div>
-                )}
-                
-                {/* 歌單2x2預覽 */}
-                {item.type === 'playlist' && item.covers && item.covers.length > 0 && !item.isLikedSongs && (
-                  <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-[#121212]">
-                    {item.covers.map((cover, i) => (
-                      <img key={i} src={cover} className="w-full h-full object-cover" alt="" />
-                    ))}
-                    {Array(4 - item.covers.length).fill(0).map((_, i) => (
-                      <div key={`empty-${i}`} className="bg-[#282828] w-full h-full" />
-                    ))}
+                    <svg className="w-10 h-10 text-white fill-white" viewBox="0 0 24 24">
+                      <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" fill="currentColor"/>
+                    </svg>
                   </div>
                 )}
               </div>
@@ -87,7 +89,7 @@ export default function RecentItems({ items = [] }) {
                   {item.title}
                 </p>
                 <p className="text-[#B3B3B3] text-xs truncate mt-0.5">
-                  {item.type === 'artist' ? '歌手' : item.subtitle || item.artistName || '收藏'}
+                  {item.type === 'artist' ? '歌手' : item.subtitle || item.artist || '收藏'}
                 </p>
               </div>
             </div>

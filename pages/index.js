@@ -157,6 +157,7 @@ export default function Home() {
     hotArtistSortBy: 'viewCount',
     displayCount: 20
   })
+  const [recentItems, setRecentItems] = useState([])
 
   useEffect(() => {
     loadHomeData()
@@ -165,6 +166,12 @@ export default function Home() {
   const loadHomeData = async () => {
     setIsLoading(true)
     try {
+      // 載入最近瀏覽
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
+      if (saved) {
+        setRecentItems(JSON.parse(saved).slice(0, 10));
+      }
+      
       // 獲取首頁設置
       let settings = {}
       try {
@@ -511,7 +518,7 @@ export default function Home() {
         )}
 
         {/* 第一區：最近瀏覽 */}
-        <RecentItems />
+        <RecentItems items={recentItems} />
 
         {/* 第二區：歌手分類 */}
         <section className="mb-8">
