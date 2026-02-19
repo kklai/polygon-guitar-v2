@@ -19,6 +19,9 @@ function UpdateTrackInfoPage() {
   // 篩選條件
   const [filter, setFilter] = useState('all') // 'all' | 'no-spotify' | 'no-bpm' | 'no-credits'
   
+  // 批次大小
+  const [batchSize, setBatchSize] = useState(50) // 50 | 100 | 200
+  
   // 選中的歌曲
   const [selectedTabs, setSelectedTabs] = useState(new Set())
   
@@ -98,7 +101,7 @@ function UpdateTrackInfoPage() {
 
   // 批量搜尋預覽
   const runBatchSearchPreview = async () => {
-    const targetTabs = getFilteredTabs().slice(0, 50) // 限制每次預覽 50 首
+    const targetTabs = getFilteredTabs().slice(0, batchSize) // 限制每次預覽數量
     
     if (targetTabs.length === 0) {
       alert('沒有符合條件的歌曲')
@@ -320,6 +323,16 @@ function UpdateTrackInfoPage() {
                 <option value="no-credits">無作曲/填詞 ({tabs.filter(t => !t.composer && !t.lyricist).length})</option>
               </select>
               
+              <select
+                value={batchSize}
+                onChange={(e) => setBatchSize(Number(e.target.value))}
+                className="px-4 py-2 bg-black border border-gray-700 rounded-lg text-white"
+              >
+                <option value={50}>每次 50 首（穩定）</option>
+                <option value={100}>每次 100 首</option>
+                <option value={200}>每次 200 首（快速）</option>
+              </select>
+              
               <button
                 onClick={runBatchSearchPreview}
                 disabled={isProcessing || filteredTabs.length === 0}
@@ -338,14 +351,14 @@ function UpdateTrackInfoPage() {
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2z"/>
                     </svg>
-                    搜尋 Spotify (最多50首)
+                    搜尋 Spotify (最多{batchSize}首)
                   </>
                 )}
               </button>
             </div>
             
             <p className="text-sm text-gray-500">
-              💡 會使用現有的歌手名和歌名搜尋 Spotify，獲取 BPM、專輯封面、作曲填詞等資訊
+              💡 會使用現有的歌手名和歌名搜尋 Spotify，獲取 BPM、專輯封面、作曲填詞等資訊。建議先用 50 首測試，穩定後再用 200 首。
             </p>
           </div>
         )}
@@ -484,7 +497,8 @@ function UpdateTrackInfoPage() {
           <h3 className="text-blue-300 font-medium mb-2">💡 使用說明</h3>
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
             <li>選擇要更新的歌曲類型（全部、無 Spotify、無 BPM 等）</li>
-            <li>點擊「搜尋 Spotify」批量搜尋歌曲資訊（每次最多 50 首）</li>
+            <li>選擇批次大小（50/100/200 首），建議先用 50 首測試</li>
+            <li>點擊「搜尋 Spotify」批量搜尋歌曲資訊</li>
             <li>預覽結果中可以看到 Spotify 匹配的資訊、BPM、作曲填詞等</li>
             <li>勾選要更新的項目，點「確認更新」寫入資料庫</li>
           </ul>
