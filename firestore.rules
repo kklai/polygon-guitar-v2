@@ -1,107 +1,130 @@
-// Firestore Security Rules
-// 去 Firebase Console → Firestore Database → 規則貼上以下內容
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 評分系統 - 任何人可讀，登入用戶可寫
-    match /ratings/{ratingId} {
-      allow read: if true;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+
+    // ==================== 輔助函數 ====================
+    
+    // 檢查是否為超級管理員（支援多位）
+    function isSuperAdmin() {
+      return request.auth != null && (
+        request.auth.token.email in [
+          'kermit.tam@gmail.com'
+          // 喺呢度添加其他 Super Admin email
+          // 例如：, 'friend@example.com'
+        ]
+        || exists(/databases/$(database)/documents/users/$(request.auth.uid))
+           && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'
+      );
     }
     
-    // 用戶歌單 - 公開可讀，只有創建者可修改
-    match /userPlaylists/{playlistId} {
-      allow read: if true;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+    // 檢查是否為資源擁有者
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
-    
-    // 喜愛歌曲 - 只有本人可讀寫
-    match /userLikedSongs/{docId} {
-      allow read: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.userId;
-      allow delete: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-    }
-    
-    // 歌曲資料 - 允許更新評分欄位，所有登入用戶可寫（Admin 權限在前端控制）
+
+    // ==================== Tabs Collection ====================
     match /tabs/{tabId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        // Super Admin 可以更新所有欄位
+        isSuperAdmin()
+        ||
+        // 創建者可以更新自己的譜
+        (resource.data.keys().hasAny(['createdBy']) && resource.data.createdBy == request.auth.uid)
+        ||
+        // 任何人可以更新評分統計欄位
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['averageRating', 'ratingCount', 'totalRating', 'likes', 'viewCount'])
+      );
+      allow delete: if request.auth != null && (
+        isSuperAdmin()
+        ||
+        (resource.data.keys().hasAny(['createdBy']) && resource.data.createdBy == request.auth.uid)
+      );
     }
-    
-    // Artists collection - 所有登入用戶可寫（Admin 權限在前端控制）
+
+    // ==================== Artists Collection ====================
     match /artists/{artistId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    
-    // Users collection - 用戶可寫自己的資料，Admin 可寫所有（前端控制）
+
+    // ==================== Users Collection ====================
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if true;
+      allow write: if request.auth != null && (
+        isOwner(userId) || isSuperAdmin()
+      );
     }
-    
-    // Comments collection
+
+    // ==================== Comments Collection ====================
     match /comments/{commentId} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow delete: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && (
+        isOwner(resource.data.userId) || isSuperAdmin()
+      );
     }
-    
-    // TabRequests collection
+
+    // ==================== TabRequests Collection ====================
     match /tabRequests/{requestId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+      allow create, update: if request.auth != null;
     }
-    
-    // System Playlists collection - 所有登入用戶可寫（Admin 權限在前端控制）
+
+    // ==================== System Playlists Collection ====================
     match /playlists/{playlistId} {
       allow read: if true;
       allow create, update, delete: if request.auth != null;
     }
-    
-    // Settings collection - 所有登入用戶可寫（Admin 權限在前端控制）
+
+    // ==================== Settings Collection ====================
     match /settings/{settingId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    
-    // Page Views collection
+
+    // ==================== Page Views ====================
     match /pageViews/{viewId} {
       allow create: if true;
       allow read: if true;
       allow update, delete: if false;
     }
-    
-    // Daily Stats collection - 所有登入用戶可讀寫（Admin 權限在前端控制）
+
+    // ==================== Daily Stats ====================
     match /dailyStats/{dateId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && isSuperAdmin();
     }
-    
-    // Recent Views collection
+
+    // ==================== Recent Views ====================
     match /recentViews/{docId} {
-      allow read: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null && isOwner(resource.data.userId);
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+      allow update, delete: if request.auth != null && isOwner(resource.data.userId);
     }
-    
-    // Nav Icons collection
-    match /navIcons/{docId} {
+
+    // ==================== Rating System ====================
+    match /ratings/{ratingId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null && isOwner(request.resource.data.userId);
+      allow update, delete: if request.auth != null && isOwner(resource.data.userId);
     }
+
+    // ==================== User Playlists ====================
+    match /userPlaylists/{playlistId} {
+      allow read: if true;
+      allow create: if request.auth != null && isOwner(request.resource.data.userId);
+      allow update, delete: if request.auth != null && isOwner(resource.data.userId);
+    }
+
+    // ==================== Liked Songs ====================
+    match /userLikedSongs/{docId} {
+      allow read: if request.auth != null && isOwner(resource.data.userId);
+      allow create: if request.auth != null && isOwner(request.resource.data.userId);
+      allow delete: if request.auth != null && isOwner(resource.data.userId);
+      allow update: if false;
+    }
+
   }
 }
