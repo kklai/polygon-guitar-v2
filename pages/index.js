@@ -222,14 +222,23 @@ export default function Home() {
       const getCategoryArtists = (category) => {
         const useManual = settings.useManualSelection?.[category]
         const manualList = settings.manualSelection?.[category] || []
-        
+
         if (useManual && manualList.length > 0) {
-          // 使用手動揀選，並補充自動排序至指定數量
+          // 使用手動揀選，但從實時數據中獲取最新資料（確保圖片是最新）
+          const manualArtists = manualList.map(savedArtist => {
+            // 從 popularArtists 中搵最新資料
+            const liveArtist = popularArtists.find(a => a.id === savedArtist.id)
+            // 如果搵到就 merge，否則用存儲的資料
+            return liveArtist ? { ...savedArtist, ...liveArtist } : savedArtist
+          }).filter(a => a) // 過濾無效的
+
+          // 補充自動排序至指定數量
           const manualIds = new Set(manualList.map(a => a.id))
           const autoFill = sortedArtists
             .filter(a => (a.artistType || a.gender) === category && !manualIds.has(a.id))
-            .slice(0, displayCount - manualList.length)
-          return [...manualList, ...autoFill].slice(0, displayCount)
+            .slice(0, displayCount - manualArtists.length)
+
+          return [...manualArtists, ...autoFill].slice(0, displayCount)
         } else {
           // 自動排序
           return sortedArtists
