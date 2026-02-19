@@ -167,6 +167,16 @@ export default function ArtistDetail() {
           {/* 網頁版 Hero - 保持原有設計 */}
           <div className="hidden md:block relative h-[45vh]">
             <ArtistHeroImage artist={artist} size="hero" />
+            
+            {/* 圖片來源標示（僅 Admin 可見）*/}
+            {isAdmin && (
+              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                {artist.heroPhoto ? 'Hero 圖片' : 
+                 artist.spotifyPhotoURL ? 'Spotify' : 
+                 artist.photoURL ? '用戶上傳' : 
+                 artist.wikiPhotoURL ? '維基' : '預設'}
+              </div>
+            )}
             <div 
               className="absolute inset-0"
               style={{
