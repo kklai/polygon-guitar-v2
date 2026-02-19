@@ -86,10 +86,20 @@ export default function TabDetail() {
     }
   }
 
+  const extractYouTubeId = (url) => {
+    if (!url) return null
+    const match = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
+    return match ? match[1] : null
+  }
+
   const loadTab = async () => {
     try {
       const data = await getTab(id)
       if (data) {
+        // 如果冇 youtubeVideoId 但有 youtubeUrl，提取 videoId
+        if (!data.youtubeVideoId && data.youtubeUrl) {
+          data.youtubeVideoId = extractYouTubeId(data.youtubeUrl)
+        }
         setTab(data)
         // 初始化 currentKey：URL參數 > PlayKey > OriginalKey
         const initialKey = queryKey || data.playKey || data.originalKey || 'C'
