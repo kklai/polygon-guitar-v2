@@ -3,18 +3,52 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import Image from 'next/image';
-import { 
-  Home, 
-  Search, 
-  User, 
-  BookmarkPlus, 
-  Plus, 
-  Menu,
-  ChevronRight 
-} from 'lucide-react';
+import Layout from '@/components/Layout';
 
-export default function Home() {
+// SVG 圖標組件
+const HomeIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const BookmarkIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);
+
+const MenuIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+export default function IndexPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [recentItems, setRecentItems] = useState([]);
@@ -33,15 +67,15 @@ export default function Home() {
   // 載入最近瀏覽（從 localStorage 或 API）
   const loadRecentItems = () => {
     // 模擬數據，實際應從 localStorage 或用戶記錄讀取
-    const saved = localStorage.getItem('recentViews');
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
     if (saved) {
       setRecentItems(JSON.parse(saved).slice(0, 10));
     } else {
       // 預設顯示
       setRecentItems([
-        { type: 'tab', id: '1', title: '梨子', artist: '陳健安 On Chan', image: '/covers/default.jpg' },
-        { type: 'tab', id: '2', title: '記憶棉', artist: 'MC 張天賦', image: '/covers/default.jpg' },
-        { type: 'artist', id: 'hungkaho', title: '洪嘉豪', subtitle: '歌手', image: '/artists/hungkaho.jpg' },
+        { type: 'tab', id: '1', title: '記憶棉', artist: 'MC 張天賦', image: null },
+        { type: 'tab', id: '2', title: '孤勇者', artist: '陳奕迅', image: null },
+        { type: 'artist', id: 'beyond', title: 'Beyond', subtitle: '歌手', image: null },
       ]);
     }
   };
@@ -84,7 +118,6 @@ export default function Home() {
             {/* Logo */}
             <div className="flex items-center mb-1">
               <div className="w-8 h-8 mr-2">
-                {/* 你的 Logo SVG */}
                 <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-black">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -97,9 +130,9 @@ export default function Home() {
             </p>
           </div>
           
-          {/* 漢堡菜單（可選） */}
+          {/* 漢堡菜單 */}
           <button className="p-2 text-black">
-            <Menu className="w-6 h-6" />
+            <MenuIcon />
           </button>
         </div>
       </header>
@@ -113,16 +146,9 @@ export default function Home() {
             {/* 男歌手 - 藍色標籤 */}
             <div 
               onClick={() => router.push('/artists?gender=male')}
-              className="aspect-square rounded-[4px] overflow-hidden relative cursor-pointer group"
+              className="aspect-square rounded-lg overflow-hidden relative cursor-pointer group bg-gradient-to-br from-blue-600 to-blue-800"
             >
-              <img 
-                src="/categories/male.jpg" 
-                alt="男歌手"
-                className="w-full h-full object-cover"
-              />
-              {/* 藍色半透明遮罩 */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              {/* 藍色標籤 */}
               <div className="absolute bottom-3 left-3 bg-[#3B82F6] bg-opacity-90 px-3 py-1.5 rounded">
                 <span className="text-white font-bold text-base">男歌手</span>
               </div>
@@ -131,15 +157,9 @@ export default function Home() {
             {/* 女歌手 - 粉紅/橙色標籤 */}
             <div 
               onClick={() => router.push('/artists?gender=female')}
-              className="aspect-square rounded-[4px] overflow-hidden relative cursor-pointer group"
+              className="aspect-square rounded-lg overflow-hidden relative cursor-pointer group bg-gradient-to-br from-orange-500 to-pink-600"
             >
-              <img 
-                src="/categories/female.jpg" 
-                alt="女歌手"
-                className="w-full h-full object-cover"
-              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              {/* 粉紅/橙色標籤 */}
               <div className="absolute bottom-3 left-3 bg-[#F97316] bg-opacity-90 px-3 py-1.5 rounded">
                 <span className="text-white font-bold text-base">女歌手</span>
               </div>
@@ -148,15 +168,9 @@ export default function Home() {
             {/* 組合 - 紫色/灰色標籤 */}
             <div 
               onClick={() => router.push('/artists?gender=group')}
-              className="aspect-square rounded-[4px] overflow-hidden relative cursor-pointer group"
+              className="aspect-square rounded-lg overflow-hidden relative cursor-pointer group bg-gradient-to-br from-gray-600 to-gray-800"
             >
-              <img 
-                src="/categories/group.jpg" 
-                alt="組合"
-                className="w-full h-full object-cover"
-              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              {/* 紫色/灰色標籤 */}
               <div className="absolute bottom-3 left-3 bg-[#6B7280] bg-opacity-90 px-3 py-1.5 rounded">
                 <span className="text-white font-bold text-base">組合</span>
               </div>
@@ -183,7 +197,7 @@ export default function Home() {
               onClick={() => router.push('/history')}
               className="text-[#B3B3B3] text-sm hover:text-white flex items-center"
             >
-              瀏覽全部 <ChevronRight className="w-4 h-4 ml-1" />
+              瀏覽全部 <ChevronRightIcon />
             </button>
           </div>
           
@@ -200,7 +214,7 @@ export default function Home() {
                   {/* 圖片區域 */}
                   <div className={`
                     relative overflow-hidden mb-2 bg-[#121212]
-                    ${item.type === 'artist' ? 'rounded-full aspect-square' : 'rounded-[4px] aspect-square'}
+                    ${item.type === 'artist' ? 'rounded-full aspect-square' : 'rounded-lg aspect-square'}
                   `}>
                     {item.image ? (
                       <img 
@@ -209,19 +223,12 @@ export default function Home() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
                         {item.type === 'artist' ? (
-                          <User className="w-8 h-8 text-[#3E3E3E]" />
+                          <UserIcon />
                         ) : (
-                          <div className="text-[#FFD700] text-3xl">♪</div>
+                          <span className="text-[#FFD700] text-2xl">♪</span>
                         )}
-                      </div>
-                    )}
-                    
-                    {/* 喜愛結他譜特殊標記 */}
-                    {item.type === 'playlist' && item.isLiked && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center">
-                        <BookmarkPlus className="w-8 h-8 text-white" />
                       </div>
                     )}
                   </div>
@@ -238,7 +245,6 @@ export default function Home() {
                 </div>
               ))}
               
-              {/* 如果冇最近瀏覽，顯示提示 */}
               {recentItems.length === 0 && (
                 <div className="text-[#B3B3B3] text-sm py-4">
                   暫無瀏覽記錄
@@ -268,7 +274,7 @@ export default function Home() {
                   className="flex-shrink-0 cursor-pointer group"
                   style={{ width: '140px' }}
                 >
-                  <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative">
+                  <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-[#121212] relative">
                     {tab.thumbnail ? (
                       <img 
                         src={tab.thumbnail} 
@@ -285,7 +291,7 @@ export default function Home() {
                     {tab.title}
                   </h3>
                   <p className="text-[#B3B3B3] text-sm line-clamp-1">
-                    {tab.artistName}
+                    {tab.artist}
                   </p>
                 </div>
               ))}
@@ -297,9 +303,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 其他區域（可選） */}
-        {/* 可以加入 Playlist 區域 */}
-
       </div>
 
       {/* 底部導航欄 - 5個按鈕 */}
@@ -309,7 +312,7 @@ export default function Home() {
             onClick={() => router.push('/')}
             className="flex flex-col items-center justify-center w-full h-full space-y-1"
           >
-            <Home className="w-6 h-6 text-black" />
+            <HomeIcon />
             <span className="text-xs text-black font-medium">首頁</span>
           </button>
           
@@ -317,7 +320,7 @@ export default function Home() {
             onClick={() => router.push('/search')}
             className="flex flex-col items-center justify-center w-full h-full space-y-1"
           >
-            <Search className="w-6 h-6 text-black/60" />
+            <span className="text-black/60"><SearchIcon /></span>
             <span className="text-xs text-black/60 font-medium">搜尋</span>
           </button>
           
@@ -325,7 +328,7 @@ export default function Home() {
             onClick={() => router.push('/artists')}
             className="flex flex-col items-center justify-center w-full h-full space-y-1"
           >
-            <User className="w-6 h-6 text-black/60" />
+            <span className="text-black/60"><UserIcon /></span>
             <span className="text-xs text-black/60 font-medium">歌手</span>
           </button>
           
@@ -333,7 +336,7 @@ export default function Home() {
             onClick={() => router.push('/library')}
             className="flex flex-col items-center justify-center w-full h-full space-y-1"
           >
-            <BookmarkPlus className="w-6 h-6 text-black/60" />
+            <span className="text-black/60"><BookmarkIcon /></span>
             <span className="text-xs text-black/60 font-medium">收藏</span>
           </button>
           
@@ -341,16 +344,13 @@ export default function Home() {
             onClick={() => router.push('/tabs/new')}
             className="flex flex-col items-center justify-center w-full h-full space-y-1"
           >
-            <Plus className="w-6 h-6 text-black/60" />
+            <span className="text-black/60"><PlusIcon /></span>
             <span className="text-xs text-black/60 font-medium">上傳</span>
           </button>
         </div>
-        
-        {/* 安全區域 */}
-        <div className="h-safe-area-inset-bottom bg-[#FFD700]" />
       </nav>
 
-      <style jsx>{`
+      <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
