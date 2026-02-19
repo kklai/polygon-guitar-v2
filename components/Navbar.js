@@ -44,9 +44,11 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               {logoUrl ? (
-                <img 
-                  src={logoUrl} 
+                <img
+                  src={logoUrl}
                   alt={siteName}
+                  loading="eager"
+                  decoding="async"
                   className="h-10 max-w-[160px] object-contain"
                 />
               ) : (
@@ -93,9 +95,11 @@ export default function Navbar() {
                   className="flex items-center space-x-2 hover:opacity-80 transition"
                 >
                   {user.photoURL && (
-                    <img 
-                      src={user.photoURL} 
+                    <img
+                      src={user.photoURL}
                       alt={user.displayName}
+                      loading="lazy"
+                      decoding="async"
                       className="w-8 h-8 rounded-full border-2 border-[#FFD700]"
                     />
                   )}
@@ -173,9 +177,11 @@ export default function Navbar() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {user.photoURL && (
-                    <img 
-                      src={user.photoURL} 
+                    <img
+                      src={user.photoURL}
                       alt={user.displayName}
+                      loading="lazy"
+                      decoding="async"
                       className="w-8 h-8 rounded-full border-2 border-[#FFD700]"
                     />
                   )}

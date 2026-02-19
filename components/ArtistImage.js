@@ -81,6 +81,8 @@ export default function ArtistImage({
     <img
       src={imageUrl}
       alt={artist?.name || '歌手'}
+      loading="lazy"
+      decoding="async"
       className={`
         ${sizeClass}
         object-cover
@@ -144,6 +146,8 @@ export function ArtistHeroImage({ artist, className = '' }) {
     <img
       src={imageUrl}
       alt={artist?.name || '歌手'}
+      loading="lazy"
+      decoding="async"
       className={`w-full h-full object-cover object-top ${className}`}
       onError={() => setError(true)}
     />

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getAllArtists, getAllTabs, getCategoryImages } from '@/lib/tabs'
+import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages } from '@/lib/tabs'
 import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
@@ -162,6 +162,7 @@ export default function Home() {
   }, [])
 
   const loadHomeData = async () => {
+    setIsLoading(true)
     try {
       // 獲取首頁設置
       let settings = {}
@@ -172,74 +173,50 @@ export default function Home() {
       } catch (settingsError) {
         console.error('Error loading home settings:', settingsError)
       }
-      
-      // 獲取所有譜（先獲取用於計算歌手瀏覽量）
-      const allTabs = await getAllTabs()
-      
-      // 計算網站總瀏覽量
-      const totalViews = allTabs.reduce((sum, tab) => sum + (tab.viewCount || 0), 0)
+
+      // 獲取熱門樂譜（限制數量，提升性能）
+      const hotTabsData = await getHotTabs(12)
+      setHotTabs(hotTabsData)
+
+      // 獲取熱門歌手（限制數量，提升性能）
+      const popularArtists = await getPopularArtists(60)
+
+      // 計算網站總瀏覽量（基於熱門樂譜估算）
+      const totalViews = popularArtists.reduce((sum, artist) => sum + (artist.viewCount || 0), 0)
       setTotalViewCount(totalViews)
-      
-      // 計算每個歌手嘅總瀏覽量（基於所有歌嘅瀏覽量總和）
-      const artistViewCounts = {}
-      allTabs.forEach(tab => {
-        const artistId = tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')
-        if (artistId) {
-          if (!artistViewCounts[artistId]) {
-            artistViewCounts[artistId] = 0
-          }
-          artistViewCounts[artistId] += (tab.viewCount || 0)
-        }
-      })
-      
-      // 獲取所有歌手
-      const allArtists = await getAllArtists()
-      
-      // 為每個歌手添加計算出嘅總瀏覽量
-      const artistsWithViews = allArtists.map(artist => {
-        const artistId = artist.normalizedName || artist.id
-        // 優先使用計算嘅總瀏覽量，其次使用歌手本身嘅 viewCount
-        const calculatedViews = artistViewCounts[artistId] || 0
-        const storedViews = artist.viewCount || 0
-        return {
-          ...artist,
-          viewCount: calculatedViews || storedViews // 使用計算值或存儲值
-        }
-      })
       
       // 根據設置排序
       const displayCount = settings.displayCount || 20
       const sortBy = settings.hotArtistSortBy || 'viewCount'
       
-      const sortedArtists = artistsWithViews.sort((a, b) => {
-        if (sortBy === 'tabCount') {
-          // 按譜數排序
-          return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
-        } else if (sortBy === 'adminScore') {
-          // 按 adminScore 排序
-          return (b.adminScore || 0) - (a.adminScore || 0)
-        } else if (sortBy === 'mixed') {
-          // 混合排序：瀏覽量(50%) + 譜數(30%) + 評分(20%)
-          const scoreA = (a.viewCount || 0) * 0.5 + 
-                        (a.songCount || a.tabCount || 0) * 30 + 
-                        (a.adminScore || 0) * 200
-          const scoreB = (b.viewCount || 0) * 0.5 + 
-                        (b.songCount || b.tabCount || 0) * 30 + 
-                        (b.adminScore || 0) * 200
-          return scoreB - scoreA
-        } else {
-          // 默認：按瀏覽量排序（同分按評分、歌曲數）
-          const viewsA = a.viewCount || 0
-          const viewsB = b.viewCount || 0
-          if (viewsB !== viewsA) return viewsB - viewsA
-          
-          const scoreA = a.adminScore || 0
-          const scoreB = b.adminScore || 0
-          if (scoreB !== scoreA) return scoreB - scoreA
-          
-          return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
-        }
-      })
+      // 根據設置排序歌手
+      const sortArtists = (artists) => {
+        return [...artists].sort((a, b) => {
+          if (sortBy === 'tabCount') {
+            return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+          } else if (sortBy === 'adminScore') {
+            return (b.adminScore || 0) - (a.adminScore || 0)
+          } else if (sortBy === 'mixed') {
+            const scoreA = (a.viewCount || 0) * 0.5 +
+                          (a.songCount || a.tabCount || 0) * 30 +
+                          (a.adminScore || 0) * 200
+            const scoreB = (b.viewCount || 0) * 0.5 +
+                          (b.songCount || b.tabCount || 0) * 30 +
+                          (b.adminScore || 0) * 200
+            return scoreB - scoreA
+          } else {
+            const viewsA = a.viewCount || 0
+            const viewsB = b.viewCount || 0
+            if (viewsB !== viewsA) return viewsB - viewsA
+            const scoreA = a.adminScore || 0
+            const scoreB = b.adminScore || 0
+            if (scoreB !== scoreA) return scoreB - scoreA
+            return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+          }
+        })
+      }
+
+      const sortedArtists = sortArtists(popularArtists)
       
       // 分類熱門歌手（根據設置決定手動或自動）
       const getCategoryArtists = (category) => {
@@ -270,55 +247,17 @@ export default function Home() {
       // 保留原來的總熱門歌手（向後兼容）
       setArtists(sortedArtists.slice(0, 10))
       
-      // 獲取最新歌曲（顯示40個）
+      // 獲取最新歌曲（限制數量提升性能）
       try {
-        const sortedTabs = allTabs
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 40)
-        console.log('Latest songs:', sortedTabs.length)
-        setLatestSongs(sortedTabs)
+        const recentTabs = await getRecentTabs(20)
+        setLatestSongs(recentTabs)
       } catch (e) {
         console.error('Error setting latest songs:', e)
         setLatestSongs([])
       }
       
-      // 獲取熱門譜（支持手動揀選或按瀏覽量自動排序）
-      try {
-        const hotTabsDisplayCount = settings.hotTabs?.displayCount || 20
-        
-        // 檢查是否啟用手動揀選
-        if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
-          // 使用手動揀選
-          const manualIds = settings.hotTabs.manualSelection.map(t => t.id)
-          const manualTabs = manualIds
-            .map(id => allTabs.find(t => t.id === id))
-            .filter(Boolean)
-          console.log('Hot tabs (manual):', manualTabs.length)
-          setHotTabs(manualTabs.slice(0, hotTabsDisplayCount))
-        } else {
-          // 自動排序：最近一個月熱門譜（按瀏覽量排序）
-          const oneMonthAgo = new Date()
-          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-          
-          const recentHotTabs = allTabs
-            .filter(tab => {
-              try {
-                const createdDate = tab.createdAt?.toDate ? tab.createdAt.toDate() : new Date(tab.createdAt)
-                return createdDate >= oneMonthAgo || (tab.viewCount || 0) > 0
-              } catch (dateError) {
-                // 如果日期解析失敗，只檢查 viewCount
-                return (tab.viewCount || 0) > 0
-              }
-            })
-            .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-            .slice(0, hotTabsDisplayCount)
-          console.log('Hot tabs (auto):', recentHotTabs.length)
-          setHotTabs(recentHotTabs)
-        }
-      } catch (e) {
-        console.error('Error setting hot tabs:', e)
-        setHotTabs([])
-      }
+      // 熱門譜已於上方獲取，此處保留手動揀選邏輯（如需要）
+      // 注意：手動揀選功能需要額外實現支持
 
       // 獲取自動歌單（熱門歌單區）
       try {

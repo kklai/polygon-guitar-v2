@@ -10,9 +10,11 @@ export default function TabCard({ tab, compact = false }) {
       <Link href={`/tabs/${tab.id}`}>
         <div className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer">
           {tab.thumbnail && (
-            <img 
-              src={tab.thumbnail} 
+            <img
+              src={tab.thumbnail}
               alt={tab.title}
+              loading="lazy"
+              decoding="async"
               className="w-14 h-10 rounded object-cover"
             />
           )}

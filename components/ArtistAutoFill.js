@@ -131,9 +131,11 @@ export default function ArtistAutoFill({
       <div className={`p-4 bg-green-900/20 border border-green-800 rounded-lg ${className}`}>
         <div className="flex items-center gap-3">
           {existingArtist.photo && (
-            <img 
-              src={existingArtist.photo} 
+            <img
+              src={existingArtist.photo}
               alt={existingArtist.name}
+              loading="lazy"
+              decoding="async"
               className="w-12 h-12 rounded-full object-cover border-2 border-green-500"
             />
           )}
@@ -203,9 +205,11 @@ export default function ArtistAutoFill({
           
           <div className="flex gap-4 mb-4">
             {preview.photo && (
-              <img 
-                src={preview.photo} 
+              <img
+                src={preview.photo}
                 alt={preview.name}
+                loading="lazy"
+                decoding="async"
                 className="w-20 h-20 rounded-full object-cover border-2 border-[#FFD700]"
               />
             )}

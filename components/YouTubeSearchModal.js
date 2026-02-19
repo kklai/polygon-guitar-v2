@@ -249,9 +249,11 @@ export default function YouTubeSearchModal({
                 >
                   {/* 縮圖 */}
                   <div className="relative aspect-video">
-                    <img 
-                      src={video.thumbnail} 
+                    <img
+                      src={video.thumbnail}
                       alt={video.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                     {video.duration && (

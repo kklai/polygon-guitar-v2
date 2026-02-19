@@ -338,9 +338,11 @@ export default function SpotifyTrackSearch({
                   }`}
                 >
                   {/* 專輯封面 */}
-                  <img 
-                    src={track.thumbnail} 
+                  <img
+                    src={track.thumbnail}
                     alt={track.album}
+                    loading="lazy"
+                    decoding="async"
                     className="w-16 h-16 rounded object-cover flex-shrink-0"
                     onError={(e) => {
                       e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23333" width="100" height="100"/><text fill="%23666" x="50" y="50" text-anchor="middle" font-size="12">No Image</text></svg>';

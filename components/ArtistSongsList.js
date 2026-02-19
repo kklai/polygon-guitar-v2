@@ -84,9 +84,11 @@ export default function ArtistSongsList({ songs, artistPhoto }) {
               {/* 歌曲縮圖 */}
               <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gray-800">
                 {thumbnail ? (
-                  <img 
-                    src={thumbnail} 
+                  <img
+                    src={thumbnail}
                     alt={song.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition"
                   />
                 ) : (

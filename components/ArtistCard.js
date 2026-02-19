@@ -23,6 +23,8 @@ export default function ArtistCard({ artist, category }) {
           <img
             src={artist.photoURL || artist.wikiPhotoURL}
             alt={artist.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         ) : (
