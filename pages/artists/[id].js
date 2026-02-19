@@ -8,6 +8,7 @@ import Layout from '@/components/Layout'
 import { ArtistHeroImage } from '@/components/ArtistImage'
 import ArtistTabRequests from '@/components/ArtistTabRequests'
 import { recordArtistView } from '@/lib/recentViews'
+import { RatingDisplay } from '@/components/RatingSystem'
 import Head from 'next/head'
 import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
@@ -242,9 +243,7 @@ export default function ArtistDetail() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">
-                          🎸
-                        </div>
+                        <div className="w-full h-full bg-gray-700" />
                       )}
                     </div>
 
@@ -258,10 +257,19 @@ export default function ArtistDetail() {
                         {song.title}
                       </h3>
                       
-                      {/* 瀏覽次數 */}
-                      <p style={{ fontSize: '12px', color: '#888' }}>
-                        {song.viewCount || 0} 瀏覽
-                      </p>
+                      {/* 瀏覽次數和評分 */}
+                      <div className="flex items-center gap-3">
+                        <p style={{ fontSize: '12px', color: '#888' }}>
+                          {song.viewCount || 0} 瀏覽
+                        </p>
+                        {song.averageRating > 0 && (
+                          <RatingDisplay 
+                            rating={song.averageRating} 
+                            count={song.ratingCount}
+                            size="sm"
+                          />
+                        )}
+                      </div>
                       
                       {/* Key 圓圈 - 一行緊貼排列 */}
                       <div 
