@@ -53,40 +53,43 @@ function HeroPhotosAdmin() {
     setUploadingId(artistId)
     setMessage('')
 
+    // 檢查檔案類型
+    if (!file.type.startsWith('image/')) {
+      alert('請上傳圖片檔案')
+      setUploadingId(null)
+      return
+    }
+
+    // 檢查檔案大小（最大 2MB）
+    if (file.size > 2 * 1024 * 1024) {
+      alert('圖片大小不能超過 2MB')
+      setUploadingId(null)
+      return
+    }
+
+    // 轉換為 base64（使用 Promise 包裝）
     try {
-      // 檢查檔案類型
-      if (!file.type.startsWith('image/')) {
-        alert('請上傳圖片檔案')
-        return
-      }
+      const base64String = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.onerror = () => reject(new Error('讀取檔案失敗'))
+        reader.readAsDataURL(file)
+      })
 
-      // 檢查檔案大小（最大 2MB）
-      if (file.size > 2 * 1024 * 1024) {
-        alert('圖片大小不能超過 2MB')
-        return
-      }
+      // 更新 Firestore
+      const artistRef = doc(db, 'artists', artistId)
+      await updateDoc(artistRef, {
+        heroPhoto: base64String,
+        updatedAt: new Date().toISOString()
+      })
 
-      // 轉換為 base64
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        const base64String = reader.result
+      // 更新本地狀態
+      setArtists(prev => prev.map(a => 
+        a.id === artistId ? { ...a, heroPhoto: base64String } : a
+      ))
 
-        // 更新 Firestore
-        const artistRef = doc(db, 'artists', artistId)
-        await updateDoc(artistRef, {
-          heroPhoto: base64String,
-          updatedAt: new Date().toISOString()
-        })
-
-        // 更新本地狀態
-        setArtists(prev => prev.map(a => 
-          a.id === artistId ? { ...a, heroPhoto: base64String } : a
-        ))
-
-        setMessage(`✅ ${artists.find(a => a.id === artistId)?.name} 的 Hero 圖片上傳成功！`)
-        setTimeout(() => setMessage(''), 3000)
-      }
-      reader.readAsDataURL(file)
+      setMessage(`✅ ${artists.find(a => a.id === artistId)?.name} 的 Hero 圖片上傳成功！`)
+      setTimeout(() => setMessage(''), 3000)
     } catch (error) {
       console.error('Upload error:', error)
       alert('上傳失敗：' + error.message)
