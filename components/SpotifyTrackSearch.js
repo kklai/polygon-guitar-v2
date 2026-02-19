@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function SpotifyTrackSearch({ 
   isOpen, 
@@ -14,6 +14,8 @@ export default function SpotifyTrackSearch({
   const [manualTitle, setManualTitle] = useState(songTitle || '');
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [mode, setMode] = useState('auto'); // 'auto' | 'manual'
+  const [cooldown, setCooldown] = useState(0);
+  const lastSearchTime = useRef(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,6 +34,18 @@ export default function SpotifyTrackSearch({
   }, [isOpen, artistName, songTitle]);
 
   const searchSpotify = async (artist, title, customQuery = null) => {
+    // 檢查冷卻時間（避免 rate limit）
+    const now = Date.now();
+    const timeSinceLastSearch = now - lastSearchTime.current;
+    const minInterval = 1500; // 最少 1.5 秒間隔
+    
+    if (timeSinceLastSearch < minInterval) {
+      const waitTime = Math.ceil((minInterval - timeSinceLastSearch) / 1000);
+      setError(`請等待 ${waitTime} 秒後再搜尋（避免 API 限制）`);
+      return;
+    }
+    
+    lastSearchTime.current = now;
     setLoading(true);
     setError(null);
     setResults([]);
