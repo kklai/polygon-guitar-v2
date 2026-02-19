@@ -60,6 +60,16 @@ export default function ArtistDetail() {
         )
         
         if (foundArtist) {
+          // 調試：檢查 artist 對象
+          console.log('Artist data:', {
+            id: foundArtist.id,
+            name: foundArtist.name,
+            photoURL: foundArtist.photoURL,
+            wikiPhotoURL: foundArtist.wikiPhotoURL,
+            spotifyPhotoURL: foundArtist.spotifyPhotoURL,
+            photo: foundArtist.photo,
+            heroPhoto: foundArtist.heroPhoto ? 'exists' : 'null'
+          })
           setArtist(foundArtist)
           // 獲取歌手歌曲（包括合作歌曲）
           const artistTabs = await getArtistTabsWithCollabs(foundArtist.id, foundArtist.name)
