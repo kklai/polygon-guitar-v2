@@ -10,7 +10,8 @@ import {
   where,
   orderBy,
   deleteDoc,
-  getDoc
+  getDoc,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
@@ -156,6 +157,48 @@ export default function ArtistsV2Page() {
   const handleSave = async () => {
     try {
       const artistRef = doc(db, 'artists', selectedArtist.id)
+      
+      // 檢查歌手名是否有改變
+      const nameChanged = editForm.name !== selectedArtist.name
+      let updatedTabCount = 0
+      
+      // 如果歌手名改變，同步更新所有歌譜的歌手名
+      if (nameChanged) {
+        // 查詢所有該歌手的歌譜
+        const songsQuery = query(
+          collection(db, 'songs'),
+          where('artistId', '==', selectedArtist.id)
+        )
+        const songsSnapshot = await getDocs(songsQuery)
+        
+        // 批量更新歌譜（每批最多 500 個）
+        const batch = writeBatch(db)
+        let batchCount = 0
+        
+        songsSnapshot.docs.forEach((songDoc) => {
+          const songRef = doc(db, 'songs', songDoc.id)
+          batch.update(songRef, {
+            artist: editForm.name,
+            artistName: editForm.name,
+            updatedAt: new Date().toISOString()
+          })
+          batchCount++
+          
+          // Firebase 每批最多 500 個操作
+          if (batchCount >= 450) {
+            batch.commit()
+            batchCount = 0
+          }
+        })
+        
+        if (batchCount > 0) {
+          await batch.commit()
+        }
+        
+        updatedTabCount = songsSnapshot.docs.length
+      }
+      
+      // 更新歌手資料
       await updateDoc(artistRef, {
         name: editForm.name,
         artistType: editForm.artistType,
@@ -169,7 +212,10 @@ export default function ArtistsV2Page() {
         updatedAt: new Date().toISOString()
       })
 
-      showMessage('保存成功')
+      const message = nameChanged 
+        ? `保存成功，已同步更新 ${updatedTabCount} 份歌譜的歌手名`
+        : '保存成功'
+      showMessage(message)
       setSelectedArtist(null)
       setEditForm(null)
       fetchArtists()
