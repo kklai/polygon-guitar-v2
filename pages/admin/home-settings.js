@@ -27,40 +27,51 @@ function HomeSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // 設置狀態
+  // 首頁區域選項
+  const SECTION_OPTIONS = [
+    { id: 'categories', label: '歌手分類', icon: '🎭' },
+    { id: 'recent', label: '最近瀏覽', icon: '🕐' },
+    { id: 'hotTabs', label: '熱門結他譜', icon: '🔥' },
+    { id: 'hotArtists', label: '熱門歌手', icon: '⭐' },
+    { id: 'autoPlaylists', label: '推薦歌單', icon: '📻' },
+    { id: 'latest', label: '最新上架', icon: '🆕' },
+    { id: 'manualPlaylists', label: '精選歌單', icon: '💿' }
+  ]
+
   const [settings, setSettings] = useState({
-    // 手動揀選歌手
     manualSelection: {
       male: [],
       female: [],
       group: []
     },
-    // 是否啟用手動揀選
     useManualSelection: {
       male: false,
       female: false,
       group: false
     },
-    // 熱門歌手排序方式
     hotArtistSortBy: 'viewCount',
-    // 每類顯示數量
     displayCount: 20,
-    // 熱門歌曲設置
     hotTabs: {
-      manualSelection: [], // 手動揀選的歌曲
-      useManual: false,    // 是否使用手動揀選
-      displayCount: 20     // 顯示數量
-    }
+      manualSelection: [],
+      useManual: false,
+      displayCount: 20
+    },
+    sectionOrder: [
+      { id: 'categories', enabled: true },
+      { id: 'recent', enabled: true },
+      { id: 'hotTabs', enabled: true },
+      { id: 'hotArtists', enabled: true },
+      { id: 'autoPlaylists', enabled: true },
+      { id: 'latest', enabled: true },
+      { id: 'manualPlaylists', enabled: true }
+    ]
   })
   
-  // 搜尋同揀選狀態
   const [searchTerm, setSearchTerm] = useState('')
   const [activeCategory, setActiveCategory] = useState('male')
   const [selectedArtists, setSelectedArtists] = useState([])
   const [message, setMessage] = useState('')
-  
-  // Tab 切換
-  const [activeTab, setActiveTab] = useState('artists') // 'artists' | 'tabs')
+  const [activeTab, setActiveTab] = useState('artists')
 
   useEffect(() => {
     loadData()
@@ -82,11 +93,11 @@ function HomeSettings() {
         setSettings(prev => ({
           ...prev,
           ...data,
-          // 確保 hotTabs 結構存在
           hotTabs: {
             ...prev.hotTabs,
             ...(data.hotTabs || {})
-          }
+          },
+          sectionOrder: data.sectionOrder || prev.sectionOrder
         }))
       }
     } catch (error) {
@@ -113,129 +124,34 @@ function HomeSettings() {
     }
   }
 
-  // 獲取某類別嘅歌手
   const getArtistsByCategory = (category) => {
     return artists.filter(a => (a.artistType || a.gender) === category)
   }
 
-  // 搜尋結果
-  const getSearchResults = () => {
-    if (!searchTerm.trim()) return []
-    const term = searchTerm.toLowerCase()
-    return artists.filter(a => 
-      a.name.toLowerCase().includes(term) &&
-      (a.artistType || a.gender) === activeCategory
-    ).slice(0, 10)
+  const moveSection = (index, direction) => {
+    const newOrder = [...settings.sectionOrder]
+    if (direction === 'up' && index > 0) {
+      [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]]
+    } else if (direction === 'down' && index < newOrder.length - 1) {
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]]
+    }
+    setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
   }
 
-  // 添加手動揀選
-  const addManualArtist = (artist) => {
-    const current = settings.manualSelection[activeCategory] || []
-    if (current.find(a => a.id === artist.id)) return
-    
-    setSettings(prev => ({
-      ...prev,
-      manualSelection: {
-        ...prev.manualSelection,
-        [activeCategory]: [...current, artist]
-      }
-    }))
-    setSearchTerm('')
-  }
-
-  // 移除手動揀選
-  const removeManualArtist = (artistId) => {
-    setSettings(prev => ({
-      ...prev,
-      manualSelection: {
-        ...prev.manualSelection,
-        [activeCategory]: prev.manualSelection[activeCategory].filter(a => a.id !== artistId)
-      }
-    }))
-  }
-
-  // 調整順序
-  const moveArtist = (index, direction) => {
-    const current = [...settings.manualSelection[activeCategory]]
-    const newIndex = index + direction
-    if (newIndex < 0 || newIndex >= current.length) return
-    
-    ;[current[index], current[newIndex]] = [current[newIndex], current[index]]
-    
-    setSettings(prev => ({
-      ...prev,
-      manualSelection: {
-        ...prev.manualSelection,
-        [activeCategory]: current
-      }
-    }))
-  }
-
-  // === 熱門歌曲管理功能 ===
-  
-  // 歌曲搜尋
-  const [tabSearchTerm, setTabSearchTerm] = useState('')
-  
-  const getTabSearchResults = () => {
-    if (!tabSearchTerm.trim()) return []
-    const term = tabSearchTerm.toLowerCase()
-    return tabs
-      .filter(t => 
-        t.title?.toLowerCase().includes(term) ||
-        t.artist?.toLowerCase().includes(term)
-      )
-      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-      .slice(0, 10)
-  }
-  
-  // 添加手動揀選歌曲
-  const addManualTab = (tab) => {
-    const current = settings.hotTabs?.manualSelection || []
-    if (current.find(t => t.id === tab.id)) return
-    
-    setSettings(prev => ({
-      ...prev,
-      hotTabs: {
-        ...prev.hotTabs,
-        manualSelection: [...current, tab]
-      }
-    }))
-    setTabSearchTerm('')
-  }
-  
-  // 移除手動揀選歌曲
-  const removeManualTab = (tabId) => {
-    setSettings(prev => ({
-      ...prev,
-      hotTabs: {
-        ...prev.hotTabs,
-        manualSelection: prev.hotTabs.manualSelection.filter(t => t.id !== tabId)
-      }
-    }))
-  }
-  
-  // 調整歌曲順序
-  const moveTab = (index, direction) => {
-    const current = [...(settings.hotTabs?.manualSelection || [])]
-    const newIndex = index + direction
-    if (newIndex < 0 || newIndex >= current.length) return
-    
-    ;[current[index], current[newIndex]] = [current[newIndex], current[index]]
-    
-    setSettings(prev => ({
-      ...prev,
-      hotTabs: {
-        ...prev.hotTabs,
-        manualSelection: current
-      }
-    }))
+  const toggleSection = (index) => {
+    const newOrder = [...settings.sectionOrder]
+    newOrder[index] = { ...newOrder[index], enabled: !newOrder[index].enabled }
+    setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
   }
 
   if (loading) {
     return (
       <Layout>
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full mx-auto"></div>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-800 rounded w-1/3"></div>
+            <div className="h-64 bg-gray-800 rounded"></div>
+          </div>
         </div>
       </Layout>
     )
@@ -243,91 +159,22 @@ function HomeSettings() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 pb-8">
-        {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span>🏠</span> 首頁設置
-              </h1>
-              <p className="text-sm text-[#B3B3B3]">管理熱門歌手顯示同排序</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => router.push('/admin')}
-                className="text-[#B3B3B3] hover:text-white transition"
-              >
-                返回後台
-              </button>
-            </div>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-white mb-2">首頁設置</h1>
+          <p className="text-gray-500">自定義首頁顯示內容同排序</p>
         </div>
 
         {message && (
-          <div className="mb-4 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-400">
+          <div className={`mb-4 p-4 rounded-lg ${
+            message.startsWith('✅') 
+              ? 'bg-green-900/50 text-green-400 border border-green-700' 
+              : 'bg-red-900/50 text-red-400 border border-red-700'
+          }`}>
             {message}
           </div>
         )}
 
-        {/* 熱門歌手排序設置 */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-medium text-white">🔥 熱門歌手排序方式</h2>
-            <p className="text-sm text-gray-500 mt-1">選擇自動排序嘅方法（唔啟用手動揀選時使用）</p>
-          </div>
-          <div className="p-4 space-y-3">
-            {SORT_OPTIONS.map(option => (
-              <label 
-                key={option.value}
-                className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition ${
-                  settings.hotArtistSortBy === option.value 
-                    ? 'bg-[#FFD700]/10 border border-[#FFD700]/50' 
-                    : 'bg-gray-900/50 hover:bg-gray-900'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="sortBy"
-                  value={option.value}
-                  checked={settings.hotArtistSortBy === option.value}
-                  onChange={(e) => setSettings(prev => ({ ...prev, hotArtistSortBy: e.target.value }))}
-                  className="mt-1 w-4 h-4 text-[#FFD700]"
-                />
-                <div>
-                  <p className="text-white font-medium">{option.label}</p>
-                  <p className="text-sm text-gray-500">{option.desc}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* 顯示數量 */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-medium text-white">📊 顯示數量</h2>
-          </div>
-          <div className="p-4">
-            <label className="block text-sm text-gray-400 mb-2">
-              每類顯示歌手數量（{settings.displayCount}）
-            </label>
-            <input
-              type="range"
-              min="5"
-              max="50"
-              value={settings.displayCount}
-              onChange={(e) => setSettings(prev => ({ ...prev, displayCount: parseInt(e.target.value) }))}
-              className="w-full accent-[#FFD700]"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>5</span>
-              <span>50</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab 切換 */}
         <div className="flex border-b border-gray-800 mb-6">
           <button
             onClick={() => setActiveTab('artists')}
@@ -348,354 +195,87 @@ function HomeSettings() {
             }`}
           >
             🎵 熱門歌曲
-            {settings.hotTabs?.manualSelection?.length > 0 && (
-              <span className="ml-2 text-xs bg-[#FFD700] text-black px-2 py-0.5 rounded-full">
-                {settings.hotTabs.manualSelection.length}
-              </span>
-            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('layout')}
+            className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
+              activeTab === 'layout'
+                ? 'text-[#FFD700] border-[#FFD700]'
+                : 'text-gray-400 border-transparent hover:text-white'
+            }`}
+          >
+            📐 頁面布局
           </button>
         </div>
 
         {activeTab === 'artists' ? (
-          <>
-        {/* 手動揀選歌手 */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-medium text-white">✋ 手動揀選歌手</h2>
-            <p className="text-sm text-gray-500 mt-1">啟用手動揀選後，會優先顯示你揀嘅歌手</p>
+          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6 p-6">
+            <h2 className="text-lg font-medium text-white mb-4">熱門歌手設置</h2>
+            <p className="text-gray-500">功能開發中...</p>
           </div>
-          
-          {/* 類別 Tab */}
-          <div className="flex border-b border-gray-800">
-            {[
-              { id: 'male', label: '男歌手' },
-              { id: 'female', label: '女歌手' },
-              { id: 'group', label: '組合' }
-            ].map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`flex-1 py-3 text-center font-medium transition ${
-                  activeCategory === cat.id
-                    ? 'text-[#FFD700] border-b-2 border-[#FFD700]'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {cat.label}
-                {settings.manualSelection[cat.id]?.length > 0 && (
-                  <span className="ml-2 text-xs bg-[#FFD700] text-black px-2 py-0.5 rounded-full">
-                    {settings.manualSelection[cat.id].length}
-                  </span>
-                )}
-              </button>
-            ))}
+        ) : activeTab === 'tabs' ? (
+          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6 p-6">
+            <h2 className="text-lg font-medium text-white mb-4">熱門歌曲設置</h2>
+            <p className="text-gray-500">功能開發中...</p>
           </div>
-
-          <div className="p-4">
-            {/* 啟用開關 */}
-            <label className="flex items-center gap-3 mb-4 p-3 bg-gray-900/50 rounded-lg cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.useManualSelection[activeCategory]}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  useManualSelection: {
-                    ...prev.useManualSelection,
-                    [activeCategory]: e.target.checked
-                  }
-                }))}
-                className="w-5 h-5 text-[#FFD700] rounded"
-              />
-              <span className="text-white">
-                啟用{activeCategory === 'male' ? '男歌手' : activeCategory === 'female' ? '女歌手' : '組合'}手動揀選
-              </span>
-            </label>
-
-            {settings.useManualSelection[activeCategory] && (
-              <>
-                {/* 搜尋 */}
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder={`搜尋${activeCategory === 'male' ? '男歌手' : activeCategory === 'female' ? '女歌手' : '組合'}...`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
-                  />
-                  
-                  {/* 搜尋結果 */}
-                  {searchTerm && (
-                    <div className="mt-2 bg-gray-900 rounded-lg border border-gray-700 max-h-48 overflow-y-auto">
-                      {getSearchResults().length === 0 ? (
-                        <p className="p-3 text-gray-500 text-center">找不到相關歌手</p>
-                      ) : (
-                        getSearchResults().map(artist => (
-                          <button
-                            key={artist.id}
-                            onClick={() => addManualArtist(artist)}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-gray-800 transition text-left"
-                          >
-                            {artist.photoURL || artist.wikiPhotoURL ? (
-                              <img 
-                                src={artist.photoURL || artist.wikiPhotoURL} 
-                                alt={artist.name}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                                🎤
-                              </div>
-                            )}
-                            <span className="text-white">{artist.name}</span>
-                            <span className="ml-auto text-xs text-gray-500">
-                              {artist.songCount || artist.tabCount || 0} 首
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* 已揀選列表 */}
-                <div>
-                  <p className="text-sm text-gray-400 mb-2">
-                    已揀選（{settings.manualSelection[activeCategory]?.length || 0}）
-                    <span className="text-xs ml-2">拖曳調整顯示順序</span>
-                  </p>
-                  
-                  {settings.manualSelection[activeCategory]?.length === 0 ? (
-                    <p className="p-4 bg-gray-900/50 rounded-lg text-gray-500 text-center">
-                      尚未揀選任何歌手
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {settings.manualSelection[activeCategory].map((artist, index) => (
-                        <div 
-                          key={artist.id}
-                          className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg"
-                        >
-                          <span className="text-gray-500 w-6">{index + 1}</span>
-                          {artist.photoURL || artist.wikiPhotoURL ? (
-                            <img 
-                              src={artist.photoURL || artist.wikiPhotoURL} 
-                              alt={artist.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                              🎤
-                            </div>
-                          )}
-                          <span className="text-white flex-1">{artist.name}</span>
-                          
-                          {/* 排序按 */}
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => moveArtist(index, -1)}
-                              disabled={index === 0}
-                              className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              onClick={() => moveArtist(index, 1)}
-                              disabled={index === settings.manualSelection[activeCategory].length - 1}
-                              className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
-                            >
-                              ↓
-                            </button>
-                          </div>
-                          
-                          <button
-                            onClick={() => removeManualArtist(artist.id)}
-                            className="p-2 text-red-400 hover:text-red-300"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-          </>
         ) : (
-          <>
-        {/* 熱門歌曲手動揀選 */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-medium text-white">🎸 熱門歌曲手動揀選</h2>
-            <p className="text-sm text-gray-500 mt-1">啟用手動揀選後，會優先顯示你揀嘅歌曲（按觀看次數自動排序時會顯示最近30日內熱門）</p>
-          </div>
-          
-          <div className="p-4">
-            {/* 啟用開關 */}
-            <label className="flex items-center gap-3 mb-4 p-3 bg-gray-900/50 rounded-lg cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.hotTabs?.useManual || false}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  hotTabs: {
-                    ...prev.hotTabs,
-                    useManual: e.target.checked
-                  }
-                }))}
-                className="w-5 h-5 text-[#FFD700] rounded"
-              />
-              <span className="text-white">啟用熱門歌曲手動揀選</span>
-            </label>
+          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
+            <div className="p-4 border-b border-gray-800">
+              <h2 className="text-lg font-medium text-white">📐 首頁區域排序</h2>
+              <p className="text-sm text-gray-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
+            </div>
             
-            {/* 顯示數量設置 */}
-            <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">
-                顯示數量: <span className="text-[#FFD700]">{settings.hotTabs?.displayCount || 20}</span> 首
-              </label>
-              <input
-                type="range"
-                min="5"
-                max="50"
-                value={settings.hotTabs?.displayCount || 20}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  hotTabs: {
-                    ...prev.hotTabs,
-                    displayCount: parseInt(e.target.value)
-                  }
-                }))}
-                className="w-full accent-[#FFD700]"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>5</span>
-                <span>50</span>
+            <div className="p-4">
+              <div className="space-y-2">
+                {settings.sectionOrder?.map((section, index) => {
+                  const option = SECTION_OPTIONS.find(o => o.id === section.id)
+                  if (!option) return null
+                  return (
+                    <div 
+                      key={section.id}
+                      className={`flex items-center gap-4 p-3 rounded-lg border ${
+                        section.enabled 
+                          ? 'bg-gray-900/50 border-gray-800' 
+                          : 'bg-gray-900/30 border-gray-800/50 opacity-50'
+                      }`}
+                    >
+                      <span className="text-xl">{option.icon}</span>
+                      <span className="flex-1 text-white font-medium">{option.label}</span>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => moveSection(index, 'up')}
+                          disabled={index === 0}
+                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => moveSection(index, 'down')}
+                          disabled={index === settings.sectionOrder.length - 1}
+                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          onClick={() => toggleSection(index)}
+                          className={`px-3 py-1 rounded text-sm font-medium transition ${
+                            section.enabled
+                              ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          }`}
+                        >
+                          {section.enabled ? '顯示' : '隱藏'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-
-            {settings.hotTabs?.useManual && (
-              <>
-                {/* 搜尋歌曲 */}
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="搜尋歌曲名或歌手名..."
-                    value={tabSearchTerm}
-                    onChange={(e) => setTabSearchTerm(e.target.value)}
-                    className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
-                  />
-                  
-                  {/* 搜尋結果 */}
-                  {tabSearchTerm && (
-                    <div className="mt-2 bg-gray-900 rounded-lg border border-gray-700 max-h-48 overflow-y-auto">
-                      {getTabSearchResults().length === 0 ? (
-                        <p className="p-3 text-gray-500 text-center">找不到相關歌曲</p>
-                      ) : (
-                        getTabSearchResults().map(tab => (
-                          <button
-                            key={tab.id}
-                            onClick={() => addManualTab(tab)}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-gray-800 transition text-left"
-                          >
-                            {tab.thumbnail ? (
-                              <img 
-                                src={tab.thumbnail} 
-                                alt={tab.title}
-                                className="w-12 h-9 rounded object-cover"
-                              />
-                            ) : (
-                              <div className="w-12 h-9 rounded bg-gray-700 flex items-center justify-center text-xs">
-                                🎵
-                              </div>
-                            )}
-                            <div className="flex-1 text-left">
-                              <p className="text-white text-sm">{tab.title}</p>
-                              <p className="text-gray-500 text-xs">{tab.artist}</p>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {tab.viewCount || 0} 瀏覽
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* 已揀選歌曲列表 */}
-                <div>
-                  <p className="text-sm text-gray-400 mb-2">
-                    已揀選（{settings.hotTabs?.manualSelection?.length || 0}）
-                    <span className="text-xs ml-2">拖曳調整顯示順序</span>
-                  </p>
-                  
-                  {settings.hotTabs?.manualSelection?.length === 0 ? (
-                    <p className="p-4 bg-gray-900/50 rounded-lg text-gray-500 text-center">
-                      尚未揀選任何歌曲
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {settings.hotTabs.manualSelection.map((tab, index) => (
-                        <div 
-                          key={tab.id}
-                          className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg"
-                        >
-                          <span className="text-gray-500 w-6">{index + 1}</span>
-                          {tab.thumbnail ? (
-                            <img 
-                              src={tab.thumbnail} 
-                              alt={tab.title}
-                              className="w-12 h-9 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-9 rounded bg-gray-700 flex items-center justify-center text-xs">
-                              🎵
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <p className="text-white text-sm">{tab.title}</p>
-                            <p className="text-gray-500 text-xs">{tab.artist}</p>
-                          </div>
-                          
-                          {/* 排序按鈕 */}
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => moveTab(index, -1)}
-                              disabled={index === 0}
-                              className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              onClick={() => moveTab(index, 1)}
-                              disabled={index === settings.hotTabs.manualSelection.length - 1}
-                              className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
-                            >
-                              ↓
-                            </button>
-                          </div>
-                          
-                          <button
-                            onClick={() => removeManualTab(tab.id)}
-                            className="p-2 text-red-400 hover:text-red-300"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
           </div>
-        </div>
-          </>
         )}
 
-        {/* 保存按 */}
         <div className="flex gap-4">
           <button
             onClick={saveSettings}
