@@ -275,7 +275,7 @@ export default function ArtistPage() {
                     </div>
                     
                     {/* 評分（中間） */}
-                    <div className="flex items-center px-4 flex-shrink-0">
+                    <div className="flex items-center px-2 md:px-4 flex-shrink-0">
                       <RatingSystem 
                         tabId={tab.id} 
                         averageRating={tab.averageRating} 
@@ -283,7 +283,7 @@ export default function ArtistPage() {
                         size="sm"
                         showCount={false}
                       />
-                      <span className="text-[#B3B3B3] text-xs ml-2">({tab.ratingCount || 0})</span>
+                      <span className="text-gray-500 text-[10px] md:text-xs ml-1 md:ml-2 min-w-[24px] text-right">{tab.ratingCount || 0}</span>
                     </div>
                     
                     {/* 出譜者（靠右） */}
@@ -312,7 +312,7 @@ export default function ArtistPage() {
                 </div>
                 
                 {/* 評分（中間） */}
-                <div className="flex items-center px-4 flex-shrink-0">
+                <div className="flex items-center px-2 md:px-4 flex-shrink-0">
                   <RatingSystem 
                     tabId={tab.id} 
                     averageRating={tab.averageRating} 
@@ -320,7 +320,7 @@ export default function ArtistPage() {
                     size="sm"
                     showCount={false}
                   />
-                  <span className="text-[#B3B3B3] text-xs ml-2">({tab.ratingCount || 0})</span>
+                  <span className="text-gray-500 text-[10px] md:text-xs ml-1 md:ml-2 min-w-[24px] text-right">{tab.ratingCount || 0}</span>
                 </div>
                 
                 {/* 出譜者（靠右） */}
