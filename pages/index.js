@@ -688,6 +688,40 @@ export default function Home() {
 
 
 
+        {/* 第七區：推薦歌單（移到熱門歌手下面） */}
+        {autoPlaylists.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-white px-6 py-4">推薦歌單</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {autoPlaylists.map((playlist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => handlePlaylistClick(playlist.id)}
+                  className="flex-shrink-0 flex flex-col group text-left w-36"
+                >
+                  {/* Square Cover */}
+                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                    {getThumbnail(playlist) ? (
+                      <img
+                        src={getThumbnail(playlist)}
+                        alt={playlist.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">
+                        
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                    {playlist.title}
+                  </h3>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* 最新上架 */}
         {latestSongs.length > 0 && (
           <section className="mb-8">
@@ -724,39 +758,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第七區：熱門歌單（移到底部） */}
-        {autoPlaylists.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xl font-bold text-white px-6 py-4">熱門歌單</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {autoPlaylists.map((playlist) => (
-                <button
-                  key={playlist.id}
-                  onClick={() => handlePlaylistClick(playlist.id)}
-                  className="flex-shrink-0 flex flex-col group text-left w-36"
-                >
-                  {/* Square Cover */}
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {getThumbnail(playlist) ? (
-                      <img
-                        src={getThumbnail(playlist)}
-                        alt={playlist.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {playlist.title}
-                  </h3>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+
 
         {/* 第八區：歌單（人工策劃 - Manual） */}
         {manualPlaylists.length > 0 && (
