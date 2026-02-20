@@ -76,6 +76,7 @@ export default function PlaylistDetail() {
     if (song.thumbnail) {
       return song.thumbnail
     }
+    // 其次使用 YouTube 縮圖
     if (song.youtubeVideoId) {
       return `https://img.youtube.com/vi/${song.youtubeVideoId}/hqdefault.jpg`
     }
@@ -84,6 +85,10 @@ export default function PlaylistDetail() {
       if (match) {
         return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`
       }
+    }
+    // 最後使用歌手相片做 fallback
+    if (song.artistPhoto) {
+      return song.artistPhoto
     }
     return null
   }
