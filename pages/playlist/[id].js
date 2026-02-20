@@ -3,10 +3,13 @@ import { useRouter } from 'next/router'
 import { getPlaylist, getPlaylistSongs, AUTO_PLAYLIST_TYPES } from '@/lib/playlists'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
+import { recordPlaylistView } from '@/lib/recentViews'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function PlaylistDetail() {
   const router = useRouter()
   const { id } = router.query
+  const { user } = useAuth()
   const [playlist, setPlaylist] = useState(null)
   const [songs, setSongs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -47,6 +50,9 @@ export default function PlaylistDetail() {
       }
       
       setPlaylist(playlistData)
+      
+      // 記錄瀏覽（支援未登入用戶）
+      recordPlaylistView(user?.uid || null, playlistData);
       
       // 如果歌單有設置默認視圖模式，使用它
       if (playlistData.viewMode) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages } from '@/lib/tabs'
 import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
@@ -135,7 +135,7 @@ const formatTimeAgo = (timestamp) => {
 
 export default function Home() {
   const router = useRouter()
-  const { isAdmin } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [artists, setArtists] = useState([])
   const [latestSongs, setLatestSongs] = useState([])
   const [hotTabs, setHotTabs] = useState([]) // 最近一個月熱門譜
@@ -161,16 +161,48 @@ export default function Home() {
 
   useEffect(() => {
     loadHomeData()
-  }, [])
+  }, [user])
 
   const loadHomeData = async () => {
     setIsLoading(true)
     try {
       // 載入最近瀏覽
       const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
-      if (saved) {
-        setRecentItems(JSON.parse(saved).slice(0, 10));
+      let items = saved ? JSON.parse(saved).slice(0, 10) : [];
+      
+      // 如果用戶已登入，添加「我的喜愛」到最前面
+      if (user) {
+        try {
+          // 檢查用戶是否有喜愛的歌曲
+          const likedQuery = query(
+            collection(db, 'userLikes'),
+            where('userId', '==', user.uid),
+            limit(1)
+          );
+          const likedSnapshot = await getDocs(likedQuery);
+          
+          if (!likedSnapshot.empty) {
+            // 用戶有喜愛的歌曲，添加「我的喜愛」項目
+            const likedSongsItem = {
+              type: 'liked-songs',
+              id: 'liked-songs',
+              title: '我的喜愛',
+              subtitle: '歌單',
+              isLikedSongs: true,
+              timestamp: new Date().toISOString()
+            };
+            // 檢查是否已經在列表中
+            const exists = items.some(item => item.type === 'liked-songs');
+            if (!exists) {
+              items = [likedSongsItem, ...items].slice(0, 10);
+            }
+          }
+        } catch (e) {
+          console.error('Error checking liked songs:', e);
+        }
       }
+      
+      setRecentItems(items);
       
       // 獲取首頁設置
       let settings = {}
@@ -517,10 +549,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* 第一區：最近瀏覽 */}
-        <RecentItems items={recentItems} />
-
-        {/* 第二區：歌手分類 */}
+        {/* 第一區：歌手分類 */}
         <section className="mb-8">
           <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
             {categories.map((category) => (
@@ -537,12 +566,15 @@ export default function Home() {
                     alt={category.name}
                     className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                   />
-                  {/* 文字置中底部 */}
-                  <div className="absolute bottom-4 left-0 right-0 text-center">
-                    <h3 className="text-white font-bold text-2xl tracking-wider"
-                        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                  {/* 文字右下方 + 顏色底 */}
+                  <div className="absolute bottom-2 right-0 w-1/2">
+                    <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
+                      category.id === 'male' ? 'bg-[#1fc3df]' :
+                      category.id === 'female' ? 'bg-[#ff9b98]' :
+                      'bg-[#fed702]'
+                    }`}>
                       {category.name}
-                    </h3>
+                    </span>
                   </div>
                 </div>
                 {/* 熱門歌手名單 */}
@@ -555,6 +587,9 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* 第二區：最近瀏覽 */}
+        <RecentItems items={recentItems} />
 
         {/* 第三區：熱門結他譜 */}
         {hotTabs.length > 0 && (
@@ -641,8 +676,12 @@ export default function Home() {
                   className="flex-shrink-0 flex flex-col items-center group"
                 >
                   <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {artist.photo ? (
-                      <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
+                    {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
+                      <img 
+                        src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
+                        alt={artist.name} 
+                        className="w-full h-full object-cover" 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                     )}
@@ -668,8 +707,12 @@ export default function Home() {
                   className="flex-shrink-0 flex flex-col items-center group"
                 >
                   <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {artist.photo ? (
-                      <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
+                    {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
+                      <img 
+                        src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
+                        alt={artist.name} 
+                        className="w-full h-full object-cover" 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                     )}
@@ -714,21 +757,6 @@ export default function Home() {
                       </div>
                     )}
                     
-                    {/* Auto Badge */}
-                    <div className="absolute top-2 right-2">
-                      <span className="text-xs bg-black/60 text-gray-400 px-2 py-0.5 rounded">
-                        自動
-                      </span>
-                    </div>
-                    
-                    {/* Play Overlay */}
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      <div className="w-12 h-12 bg-[#FFD700] rounded-full flex items-center justify-center">
-                        <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
-                    </div>
                   </div>
                   
                   {/* Playlist Info */}
@@ -747,12 +775,12 @@ export default function Home() {
           </section>
         )}
 
-        {/* 第八區：編輯精選（人工策劃 - Manual） */}
+        {/* 第八區：歌單（人工策劃 - Manual） */}
         {manualPlaylists.length > 0 && (
           <section className="mb-8">
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-2xl font-bold text-white">編輯精選</h2>
+                <h2 className="text-2xl font-bold text-white">歌單</h2>
               </div>
               <p className="text-sm text-gray-500">精心策劃的音樂旅程</p>
             </div>
@@ -778,21 +806,6 @@ export default function Home() {
                       </div>
                     )}
                     
-                    {/* Featured Badge */}
-                    <div className="absolute top-2 right-2">
-                      <span className="text-xs bg-[#FFD700] text-black px-2 py-0.5 rounded font-medium">
-                        精選
-                      </span>
-                    </div>
-                    
-                    {/* Play Overlay */}
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      <div className="w-12 h-12 bg-[#FFD700] rounded-full flex items-center justify-center">
-                        <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
-                    </div>
                   </div>
                   
                   {/* Playlist Info */}

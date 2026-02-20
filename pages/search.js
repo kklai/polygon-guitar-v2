@@ -119,9 +119,9 @@ export default function Search() {
                       className="flex-shrink-0 flex flex-col items-center group"
                     >
                       <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-800 mb-2 transition-transform group-hover:scale-105">
-                        {artist.photo ? (
+                        {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
                           <img
-                            src={artist.photo}
+                            src={artist.photoURL || artist.wikiPhotoURL || artist.photo}
                             alt={artist.name}
                             className="w-full h-full object-cover"
                           />

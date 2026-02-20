@@ -1,9 +1,11 @@
 // components/RecentItems.js
 import { useRouter } from 'next/router';
-import { User, Music, BookmarkPlus } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
 export default function RecentItems({ items = [] }) {
   const router = useRouter();
+  const { user } = useAuth();
 
   const handleClick = (item) => {
     if (item.type === 'tab') {
@@ -12,10 +14,17 @@ export default function RecentItems({ items = [] }) {
       router.push(`/artists/${item.slug || item.id}`);
     } else if (item.type === 'playlist') {
       router.push(`/playlist/${item.id}`);
+    } else if (item.type === 'liked-songs') {
+      router.push('/library/liked');
     }
   };
 
-  if (items.length === 0) return null;
+  // 過濾：如果用戶未登入，過濾掉 liked-songs
+  const displayItems = user 
+    ? items 
+    : items.filter(item => item.type !== 'liked-songs');
+
+  if (displayItems.length === 0) return null;
 
   return (
     <div className="mb-6">
@@ -31,7 +40,7 @@ export default function RecentItems({ items = [] }) {
       
       <div className="overflow-x-auto scrollbar-hide">
         <div className="flex space-x-4 px-4 pb-2">
-          {items.map((item, index) => (
+          {displayItems.map((item, index) => (
             <div 
               key={index}
               onClick={() => handleClick(item)}
@@ -49,27 +58,27 @@ export default function RecentItems({ items = [] }) {
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
+                ) : item.type === 'liked-songs' ? (
+                  // 我的喜愛特殊樣式
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-[#FFA500]">
+                    <Heart className="w-10 h-10 text-white fill-white" />
+                  </div>
+                ) : item.type === 'artist' ? (
+                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
+                    <User className="w-8 h-8 text-[#3E3E3E]" />
+                  </div>
+                ) : item.type === 'playlist' ? (
+                  <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
+                    <BookmarkPlus className="w-8 h-8 text-[#3E3E3E]" />
+                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
-                    {item.type === 'artist' ? (
-                      <User className="w-8 h-8 text-[#3E3E3E]" />
-                    ) : item.type === 'playlist' ? (
-                      <BookmarkPlus className="w-8 h-8 text-[#3E3E3E]" />
-                    ) : (
-                      <Music className="w-8 h-8 text-[#3E3E3E]" />
-                    )}
+                    <Music className="w-8 h-8 text-[#3E3E3E]" />
                   </div>
                 )}
                 
-                {/* 喜愛結他譜特殊標記 */}
-                {item.type === 'playlist' && item.isLikedSongs && (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center">
-                    <BookmarkPlus className="w-10 h-10 text-white fill-white" />
-                  </div>
-                )}
-                
-                {/* 歌單2x2預覽 */}
-                {item.type === 'playlist' && item.covers && item.covers.length > 0 && !item.isLikedSongs && (
+                {/* 歌單2x2預覽（如果有 covers） */}
+                {item.type === 'playlist' && item.covers && item.covers.length > 0 && (
                   <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-[#121212]">
                     {item.covers.map((cover, i) => (
                       <img key={i} src={cover} className="w-full h-full object-cover" alt="" />
@@ -87,7 +96,7 @@ export default function RecentItems({ items = [] }) {
                   {item.title}
                 </p>
                 <p className="text-[#B3B3B3] text-xs truncate mt-0.5">
-                  {item.type === 'artist' ? '歌手' : item.subtitle || item.artistName || '收藏'}
+                  {item.subtitle || item.artistName || ''}
                 </p>
               </div>
             </div>

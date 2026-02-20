@@ -722,21 +722,35 @@ const TabContent = ({
   initialKey,
   fullWidth = false,
   theme: externalTheme,
-  setTheme: externalSetTheme
+  setTheme: externalSetTheme,
+  hideKeySelector = false,
+  // 外部控制的字體大小和自動滾動
+  externalFontSize,
+  externalIsAutoScroll,
+  externalScrollSpeed,
+  onFontSizeChange,
+  onAutoScrollChange,
+  onScrollSpeedChange
 }) => {
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
   const [currentKey, setCurrentKey] = useState(initialKey || baseKey);
-  const [fontSize, setFontSize] = useState(20);
-  const [isAutoScroll, setIsAutoScroll] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(3);
+  const [internalFontSize, setInternalFontSize] = useState(20);
+  const [internalIsAutoScroll, setInternalIsAutoScroll] = useState(false);
+  const [internalScrollSpeed, setInternalScrollSpeed] = useState(3);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
   const [internalTheme, setInternalTheme] = useState('night'); // 'night' | 'day'
   
-  // 優先使用外部傳入的 theme，否則使用內部 state
+  // 優先使用外部傳入的值，否則使用內部 state
   const theme = externalTheme !== undefined ? externalTheme : internalTheme;
   const setTheme = externalSetTheme !== undefined ? externalSetTheme : setInternalTheme;
+  const fontSize = externalFontSize !== undefined ? externalFontSize : internalFontSize;
+  const setFontSize = onFontSizeChange !== undefined ? (v) => onFontSizeChange(v) : setInternalFontSize;
+  const isAutoScroll = externalIsAutoScroll !== undefined ? externalIsAutoScroll : internalIsAutoScroll;
+  const setIsAutoScroll = onAutoScrollChange !== undefined ? (v) => onAutoScrollChange(v) : setInternalIsAutoScroll;
+  const scrollSpeed = externalScrollSpeed !== undefined ? externalScrollSpeed : internalScrollSpeed;
+  const setScrollSpeed = onScrollSpeedChange !== undefined ? (v) => onScrollSpeedChange(v) : setInternalScrollSpeed;
   
   const autoScrollRef = useRef(null);
   const containerRef = useRef(null);
@@ -824,7 +838,12 @@ const TabContent = ({
   }, [isAutoScroll, scrollSpeed]);
 
   const handleFontSize = (delta) => {
-    setFontSize(prev => Math.max(12, Math.min(28, prev + delta)));
+    const newSize = Math.max(12, Math.min(28, fontSize + delta));
+    if (onFontSizeChange) {
+      onFontSizeChange(newSize);
+    } else {
+      setInternalFontSize(newSize);
+    }
   };
 
   const handleCopy = useCallback(() => {
@@ -1156,102 +1175,104 @@ const TabContent = ({
         ? 'bg-gray-100 border-gray-300' 
         : 'bg-black border-gray-800'
     }`}>
-      <div>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-          <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>原調:</span>
-          <span className={`text-xs sm:text-sm font-medium ${theme === 'day' ? 'text-gray-900' : 'text-white'}`}>{originalKey}</span>
-          <span className={theme === 'day' ? 'text-gray-400' : 'text-gray-600'}>→</span>
-          <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>PLAY:</span>
-          <span className={`text-xs sm:text-sm font-bold ${currentKey !== originalKey ? (theme === 'day' ? 'text-purple-600' : 'text-[#FFD700]') : (theme === 'day' ? 'text-gray-900' : 'text-white')}`}>
-            {currentKey}
-          </span>
-          
-          {currentKey !== originalKey && (
-            <>
-              {capoSuggestion.status === 'none' && (
-                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-gray-200 text-gray-600' : 'bg-gray-800 text-gray-400'}`}>免Capo</span>
-              )}
-              {capoSuggestion.status === 'ok' && (
-                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-green-100 text-green-700' : 'bg-green-900/50 text-green-400'}`}>Capo {displayCapo}</span>
-              )}
-              {capoSuggestion.status === 'high' && (
-                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-orange-100 text-orange-700' : 'bg-orange-900/50 text-orange-400'}`}>Capo {displayCapo}太高</span>
-              )}
-            </>
-          )}
-        </div>
-        
-        {currentKey !== originalKey && capoSuggestion.alternative && (
-          <div className={`mb-2 text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-500' : 'text-gray-500'}`}>
-            <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>提示：</span>
-            <span className="ml-1 text-white">{capoSuggestion.alternative.message}</span>
-            <span className="ml-2 text-gray-400">({capoSuggestion.alternative.tuningDesc})</span>
-            {capoSuggestion.alternative.newCapo > 0 ? (
-              <button
-                onClick={() => {
-                  // 根據調音建議調整 Key
-                  const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
-                  const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
-                  setCurrentKey(targetKey)
-                  onKeyChange?.(targetKey)
-                }}
-                className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
-              >
-                試試 {capoSuggestion.alternative.tuning}
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
-                  const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
-                  setCurrentKey(targetKey)
-                  onKeyChange?.(targetKey)
-                }}
-                className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
-              >
-                試試 {capoSuggestion.alternative.tuning}
-              </button>
+      {!hideKeySelector && (
+        <div>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+            <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>原調:</span>
+            <span className={`text-xs sm:text-sm font-medium ${theme === 'day' ? 'text-gray-900' : 'text-white'}`}>{originalKey}</span>
+            <span className={theme === 'day' ? 'text-gray-400' : 'text-gray-600'}>→</span>
+            <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>PLAY:</span>
+            <span className={`text-xs sm:text-sm font-bold ${currentKey !== originalKey ? (theme === 'day' ? 'text-purple-600' : 'text-[#FFD700]') : (theme === 'day' ? 'text-gray-900' : 'text-white')}`}>
+              {currentKey}
+            </span>
+            
+            {currentKey !== originalKey && (
+              <>
+                {capoSuggestion.status === 'none' && (
+                  <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-gray-200 text-gray-600' : 'bg-gray-800 text-gray-400'}`}>免Capo</span>
+                )}
+                {capoSuggestion.status === 'ok' && (
+                  <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-green-100 text-green-700' : 'bg-green-900/50 text-green-400'}`}>Capo {displayCapo}</span>
+                )}
+                {capoSuggestion.status === 'high' && (
+                  <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-orange-100 text-orange-700' : 'bg-orange-900/50 text-orange-400'}`}>Capo {displayCapo}太高</span>
+                )}
+              </>
             )}
           </div>
-        )}
-        
-        {/* Key Selector - 響應式：手機 375px 顯示 12 個 Key */}
-        <div className="flex flex-wrap gap-[2px] sm:gap-1.5 pb-1 sm:pb-2">
-          {/* 只顯示 12 個基本 Key（移除 Gb 避免重複）*/}
-          {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm', 'G#m', 'A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
-            const isCurrent = key === currentKey;
-            return (
-              <button
-                key={key}
-                onClick={() => {
-                  setCurrentKey(key)
-                  onKeyChange?.(key)
-                }}
-                className={`
-                  flex-shrink-0
-                  w-5 h-5 sm:w-8 sm:h-8 md:w-9 md:h-9
-                  rounded-full 
-                  flex items-center justify-center 
-                  text-[10px] sm:text-xs md:text-sm font-bold
-                  transition hover:scale-105
-                  ${isCurrent
-                    ? theme === 'day'
-                      ? 'bg-purple-600 text-white ring-1 sm:ring-2 ring-purple-600'
-                      : 'bg-black text-[#FFD700] ring-1 sm:ring-2 ring-[#FFD700]'
-                    : theme === 'day'
-                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                      : 'bg-[#FFD700] text-black'
-                  }
-                `}
-              >
-                {key}
-              </button>
-            );
-          })}
+          
+          {currentKey !== originalKey && capoSuggestion.alternative && (
+            <div className={`mb-2 text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-500' : 'text-gray-500'}`}>
+              <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>提示：</span>
+              <span className="ml-1 text-white">{capoSuggestion.alternative.message}</span>
+              <span className="ml-2 text-gray-400">({capoSuggestion.alternative.tuningDesc})</span>
+              {capoSuggestion.alternative.newCapo > 0 ? (
+                <button
+                  onClick={() => {
+                    // 根據調音建議調整 Key
+                    const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
+                    const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
+                    setCurrentKey(targetKey)
+                    onKeyChange?.(targetKey)
+                  }}
+                  className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
+                >
+                  試試 {capoSuggestion.alternative.tuning}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
+                    const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
+                    setCurrentKey(targetKey)
+                    onKeyChange?.(targetKey)
+                  }}
+                  className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
+                >
+                  試試 {capoSuggestion.alternative.tuning}
+                </button>
+              )}
+            </div>
+          )}
+          
+          {/* Key Selector - 響應式：手機 375px 顯示 12 個 Key */}
+          <div className="flex flex-wrap gap-[2px] sm:gap-1.5 pb-1 sm:pb-2">
+            {/* 只顯示 12 個基本 Key（移除 Gb 避免重複）*/}
+            {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm', 'G#m', 'A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
+              const isCurrent = key === currentKey;
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setCurrentKey(key)
+                    onKeyChange?.(key)
+                  }}
+                  className={`
+                    flex-shrink-0
+                    w-5 h-5 sm:w-8 sm:h-8 md:w-9 md:h-9
+                    rounded-full 
+                    flex items-center justify-center 
+                    text-[10px] sm:text-xs md:text-sm font-bold
+                    transition hover:scale-105
+                    ${isCurrent
+                      ? theme === 'day'
+                        ? 'bg-purple-600 text-white ring-1 sm:ring-2 ring-purple-600'
+                        : 'bg-[#FFD700] text-black'
+                      : theme === 'day'
+                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                    }
+                  `}
+                >
+                  {key}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className={`h-px ${theme === 'day' ? 'bg-gray-300' : 'bg-gray-700'}`} />
+      {!hideKeySelector && <div className={`h-px ${theme === 'day' ? 'bg-gray-300' : 'bg-gray-700'}`} />}
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 sm:gap-3">

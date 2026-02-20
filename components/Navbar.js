@@ -39,23 +39,32 @@ export default function Navbar() {
   return (
     <nav className="bg-[#FFD700] border-b border-yellow-600 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
+        <div className="flex justify-between h-20">
+          {/* Logo + 副標題 */}
+          <div className="flex flex-col justify-center">
+            <Link href="/" className="flex flex-col">
               {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={siteName}
-                  loading="eager"
-                  decoding="async"
-                  className="h-10 max-w-[160px] object-contain"
-                />
-              ) : (
                 <>
-                  <span className="text-2xl">🎸</span>
-                  <span className="font-bold text-xl text-black hidden sm:block">
+                  <img
+                    src={logoUrl}
+                    alt={siteName}
+                    loading="eager"
+                    decoding="async"
+                    className="h-10 max-w-[160px] object-contain"
+                  />
+                  {/* 副標題 */}
+                  <span className="text-base text-black tracking-[0.5em] mt-0.5 w-full pb-2">
+                    香港廣東歌結他譜網
+                  </span>
+                </>
+              ) : (
+                /* 未撈到 Logo 前顯示文字 */
+                <>
+                  <span className="font-bold text-xl text-black">
                     Polygon Guitar
+                  </span>
+                  <span className="text-base text-black tracking-[0.5em] mt-0.5 w-full pb-2">
+                    香港廣東歌結他譜網
                   </span>
                 </>
               )}

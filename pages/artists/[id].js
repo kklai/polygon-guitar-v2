@@ -8,6 +8,8 @@ import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist } from '../../lib/playlistApi';
+import { recordArtistView } from '../../lib/recentViews';
+import { ArtistHeroImage } from '../../components/ArtistImage';
 
 export default function ArtistPage() {
   const router = useRouter();
@@ -43,6 +45,9 @@ export default function ArtistPage() {
       }
       const artistData = { id: artistDoc.id, ...artistDoc.data() };
       setArtist(artistData);
+
+      // 記錄瀏覽（支援未登入用戶）
+      recordArtistView(user?.uid || null, artistData);
 
       // 使用 getTabsByArtist 獲取歌曲（支援多種 artistId 格式兼容）
       const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
@@ -132,7 +137,10 @@ export default function ArtistPage() {
     return tabs;
   };
 
-  const groupedTabs = groupByYear(sortedTabs());
+  // 按年份時分組，其他排序不分組
+  const displayData = sortBy === 'year' 
+    ? { grouped: true, data: groupByYear(sortedTabs()) }
+    : { grouped: false, data: sortedTabs() };
 
   // 提取 YouTube Video ID
   const extractYouTubeId = (url) => {
@@ -162,11 +170,7 @@ export default function ArtistPage() {
     <div className="min-h-screen bg-black pb-20">
       {/* Hero */}
       <div className="relative h-[45vh] w-full">
-        <img 
-          src={artist.photoURL || artist.wikiPhotoURL || '/default-artist.jpg'} 
-          alt={artist.name}
-          className="w-full h-full object-cover"
-        />
+        <ArtistHeroImage artist={artist} />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         
         {/* 返回按鈕 */}
@@ -252,45 +256,83 @@ export default function ArtistPage() {
           </div>
         </div>
 
-        {/* 年份分組 */}
-        {Object.entries(groupedTabs).map(([yearRange, tabs]) => (
-          <div key={yearRange} className="mb-6">
-            <h3 className="text-[#FFD700] text-sm font-medium mb-3 sticky top-0 bg-black/95 py-2 z-10">{yearRange}</h3>
-            <div className="space-y-1">
-              {tabs.map((tab) => (
-                <div 
-                  key={tab.id}
-                  onClick={() => router.push(`/tabs/${tab.id}`)}
-                  className="flex items-center py-3 border-b border-[#282828] hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
-                >
-                  {/* 歌曲名稱 */}
-                  <div className="flex-1 min-w-0 pr-4">
-                    <h4 className="text-white font-medium truncate">{tab.title}</h4>
+        {/* 歌曲列表 - 按年份分組或平鋪顯示 */}
+        {displayData.grouped ? (
+          // 按年份分組顯示
+          Object.entries(displayData.data).map(([yearRange, tabs]) => (
+            <div key={yearRange} className="mb-6">
+              <h3 className="text-[#FFD700] text-sm font-medium mb-3 sticky top-0 bg-black/95 py-2 z-10">{yearRange}</h3>
+              <div className="space-y-1">
+                {tabs.map((tab) => (
+                  <div 
+                    key={tab.id}
+                    onClick={() => router.push(`/tabs/${tab.id}`)}
+                    className="flex items-center py-3 hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
+                  >
+                    {/* 歌曲名稱 */}
+                    <div className="flex-1 min-w-0 pr-4">
+                      <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                    </div>
+                    
+                    {/* 評分（中間） */}
+                    <div className="flex items-center px-4 flex-shrink-0">
+                      <RatingSystem 
+                        tabId={tab.id} 
+                        averageRating={tab.averageRating} 
+                        ratingCount={tab.ratingCount}
+                        size="sm"
+                        showCount={false}
+                      />
+                      <span className="text-[#B3B3B3] text-xs ml-2">({tab.ratingCount || 0})</span>
+                    </div>
+                    
+                    {/* 出譜者（靠右） */}
+                    <div className="w-24 text-right flex-shrink-0">
+                      <span className="text-[#B3B3B3] text-sm truncate block">
+                        {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                      </span>
+                    </div>
                   </div>
-                  
-                  {/* 評分（中間） */}
-                  <div className="flex items-center px-4 flex-shrink-0">
-                    <RatingSystem 
-                      tabId={tab.id} 
-                      averageRating={tab.averageRating} 
-                      ratingCount={tab.ratingCount}
-                      size="sm"
-                      showCount={false}
-                    />
-                    <span className="text-[#B3B3B3] text-xs ml-2">({tab.ratingCount || 0})</span>
-                  </div>
-                  
-                  {/* 出譜者（靠右） */}
-                  <div className="w-24 text-right flex-shrink-0">
-                    <span className="text-[#B3B3B3] text-sm truncate block">
-                      {tab.uploaderPenName || tab.arrangedBy || '匿名'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+          ))
+        ) : (
+          // 平鋪顯示（按筆畫/瀏覽）
+          <div className="space-y-1">
+            {displayData.data.map((tab) => (
+              <div 
+                key={tab.id}
+                onClick={() => router.push(`/tabs/${tab.id}`)}
+                className="flex items-center py-3 hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
+              >
+                {/* 歌曲名稱 */}
+                <div className="flex-1 min-w-0 pr-4">
+                  <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                </div>
+                
+                {/* 評分（中間） */}
+                <div className="flex items-center px-4 flex-shrink-0">
+                  <RatingSystem 
+                    tabId={tab.id} 
+                    averageRating={tab.averageRating} 
+                    ratingCount={tab.ratingCount}
+                    size="sm"
+                    showCount={false}
+                  />
+                  <span className="text-[#B3B3B3] text-xs ml-2">({tab.ratingCount || 0})</span>
+                </div>
+                
+                {/* 出譜者（靠右） */}
+                <div className="w-24 text-right flex-shrink-0">
+                  <span className="text-[#B3B3B3] text-sm truncate block">
+                    {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </section>
 
       {/* Action Modal（分享/收藏） */}
