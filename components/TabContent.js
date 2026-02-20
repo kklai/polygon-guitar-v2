@@ -1197,15 +1197,15 @@ const TabContent = ({
           {/* 第一行：Key | 出譜 | 和弦數 | 三角形(開YouTube/資訊) */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-[11px] sm:text-xs whitespace-nowrap">
-              {/* Key */}
+              {/* Key - 顯示原調 */}
               <span className="flex items-center gap-1">
                 <span className="text-[#FFD700]">♪</span>
-                <span className="text-white font-medium">{currentKey}</span>
+                <span className="text-white font-medium">{originalKey}</span>
               </span>
               
               <span className="text-gray-600">|</span>
               
-              {/* 出譜 */}
+              {/* 出譜 - 顯示 playKey (出譜人建議的Key) */}
               <span className="text-gray-400">
                 出譜 <span className="text-[#FFD700]">{playKey || originalKey}</span>
               </span>
@@ -1303,9 +1303,9 @@ const TabContent = ({
             )}
           </div>
 
-          {/* 第三行：12個KEY大波波 (永遠顯示) */}
+          {/* 第三行：12個KEY大波波 (永遠顯示) - 一行過 */}
           {!hideKeySelector && (
-            <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-gray-700">
+            <div className="flex gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-gray-700 overflow-x-auto pb-1">
               {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
                 const isCurrent = key === currentKey;
                 return (

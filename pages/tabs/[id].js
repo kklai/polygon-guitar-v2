@@ -234,11 +234,12 @@ export default function TabDetail() {
             
             {/* 歌名 + 歌手 + 操作 */}
             <div className="flex-1 min-w-0">
-              {/* 歌名 - 一行過，字體細啲確保顯示到 */}
-              <h1 className={`font-bold text-white leading-tight ${
+              {/* 歌名 - 參考圖：短歌名更大 */}
+              <h1 className={`font-bold text-white leading-tight truncate ${
                 tab.title.length > 20 ? 'text-lg sm:text-xl' : 
                 tab.title.length > 12 ? 'text-xl sm:text-2xl' : 
-                'text-2xl sm:text-3xl'
+                tab.title.length > 6 ? 'text-2xl sm:text-3xl' :
+                'text-3xl sm:text-4xl'
               }`}>
                 {tab.title}
               </h1>
