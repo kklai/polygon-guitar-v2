@@ -121,7 +121,7 @@ export default function Layout({ children, fullWidth = false }) {
   const desktopNavItems = getDesktopNavItems()
 
   return (
-    <div className="bg-black text-white">
+    <div className="bg-black text-white min-h-screen">
       <Navbar />
       <main 
         className={fullWidth ? 'pt-20 pb-16 md:pb-0' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24'}

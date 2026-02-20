@@ -9,7 +9,10 @@ import {
   setDoc, 
   updateDoc,
   collection,
-  getDocs 
+  getDocs,
+  query,
+  orderBy,
+  limit
 } from 'firebase/firestore'
 import { getAllArtists, getAllTabs } from '@/lib/tabs'
 
@@ -18,6 +21,13 @@ const SORT_OPTIONS = [
   { value: 'tabCount', label: '譜數目', desc: '按歌手歌曲數量排序' },
   { value: 'adminScore', label: 'Admin 評分', desc: '按 adminScore 分數排序' },
   { value: 'mixed', label: '混合排序', desc: '瀏覽量(50%) + 譜數(30%) + 評分(20%)' }
+]
+
+const TAB_SORT_OPTIONS = [
+  { value: 'viewCount', label: '瀏覽量', desc: '按歌曲瀏覽次數排序' },
+  { value: 'likes', label: '讚好數', desc: '按歌曲讚好數排序' },
+  { value: 'createdAt', label: '最新上傳', desc: '按上傳時間排序' },
+  { value: 'rating', label: '最高評分', desc: '按用戶評分排序' }
 ]
 
 function HomeSettings() {
@@ -54,7 +64,8 @@ function HomeSettings() {
     hotTabs: {
       manualSelection: [],
       useManual: false,
-      displayCount: 20
+      displayCount: 20,
+      sortBy: 'viewCount'
     },
     sectionOrder: [
       { id: 'categories', enabled: true },
@@ -67,9 +78,14 @@ function HomeSettings() {
     ]
   })
   
-  const [searchTerm, setSearchTerm] = useState('')
-  const [activeCategory, setActiveCategory] = useState('male')
-  const [selectedArtists, setSelectedArtists] = useState([])
+  // 熱門歌手搜索
+  const [artistSearchTerm, setArtistSearchTerm] = useState('')
+  const [activeArtistCategory, setActiveArtistCategory] = useState('male')
+  
+  // 熱門歌曲搜索
+  const [tabSearchTerm, setTabSearchTerm] = useState('')
+  const [selectedTabIds, setSelectedTabIds] = useState([])
+  
   const [message, setMessage] = useState('')
   const [activeTab, setActiveTab] = useState('artists')
 
@@ -99,6 +115,11 @@ function HomeSettings() {
           },
           sectionOrder: data.sectionOrder || prev.sectionOrder
         }))
+        
+        // 初始化已選歌曲
+        if (data.hotTabs?.manualSelection) {
+          setSelectedTabIds(data.hotTabs.manualSelection)
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -128,6 +149,108 @@ function HomeSettings() {
     return artists.filter(a => (a.artistType || a.gender) === category)
   }
 
+  // 熱門歌手相關函數
+  const toggleArtistSelection = (artistId, category) => {
+    setSettings(prev => {
+      const currentSelection = prev.manualSelection[category] || []
+      const isSelected = currentSelection.includes(artistId)
+      
+      return {
+        ...prev,
+        manualSelection: {
+          ...prev.manualSelection,
+          [category]: isSelected
+            ? currentSelection.filter(id => id !== artistId)
+            : [...currentSelection, artistId]
+        }
+      }
+    })
+  }
+
+  const moveArtistOrder = (category, index, direction) => {
+    setSettings(prev => {
+      const currentSelection = [...(prev.manualSelection[category] || [])]
+      if (direction === 'up' && index > 0) {
+        [currentSelection[index], currentSelection[index - 1]] = 
+        [currentSelection[index - 1], currentSelection[index]]
+      } else if (direction === 'down' && index < currentSelection.length - 1) {
+        [currentSelection[index], currentSelection[index + 1]] = 
+        [currentSelection[index + 1], currentSelection[index]]
+      }
+      
+      return {
+        ...prev,
+        manualSelection: {
+          ...prev.manualSelection,
+          [category]: currentSelection
+        }
+      }
+    })
+  }
+
+  const removeArtistFromSelection = (artistId, category) => {
+    setSettings(prev => ({
+      ...prev,
+      manualSelection: {
+        ...prev.manualSelection,
+        [category]: prev.manualSelection[category].filter(id => id !== artistId)
+      }
+    }))
+  }
+
+  // 熱門歌曲相關函數
+  const toggleTabSelection = (tabId) => {
+    setSelectedTabIds(prev => {
+      const isSelected = prev.includes(tabId)
+      const newSelection = isSelected
+        ? prev.filter(id => id !== tabId)
+        : [...prev, tabId]
+      
+      // 同時更新 settings
+      setSettings(s => ({
+        ...s,
+        hotTabs: {
+          ...s.hotTabs,
+          manualSelection: newSelection
+        }
+      }))
+      
+      return newSelection
+    })
+  }
+
+  const moveTabOrder = (index, direction) => {
+    const newSelection = [...selectedTabIds]
+    if (direction === 'up' && index > 0) {
+      [newSelection[index], newSelection[index - 1]] = 
+      [newSelection[index - 1], newSelection[index]]
+    } else if (direction === 'down' && index < newSelection.length - 1) {
+      [newSelection[index], newSelection[index + 1]] = 
+      [newSelection[index + 1], newSelection[index]]
+    }
+    
+    setSelectedTabIds(newSelection)
+    setSettings(prev => ({
+      ...prev,
+      hotTabs: {
+        ...prev.hotTabs,
+        manualSelection: newSelection
+      }
+    }))
+  }
+
+  const removeTabFromSelection = (tabId) => {
+    const newSelection = selectedTabIds.filter(id => id !== tabId)
+    setSelectedTabIds(newSelection)
+    setSettings(prev => ({
+      ...prev,
+      hotTabs: {
+        ...prev.hotTabs,
+        manualSelection: newSelection
+      }
+    }))
+  }
+
   const moveSection = (index, direction) => {
     const newOrder = [...settings.sectionOrder]
     if (direction === 'up' && index > 0) {
@@ -142,6 +265,34 @@ function HomeSettings() {
     const newOrder = [...settings.sectionOrder]
     newOrder[index] = { ...newOrder[index], enabled: !newOrder[index].enabled }
     setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
+  }
+
+  // 過濾搜索結果
+  const filteredArtists = (category) => {
+    const categoryArtists = getArtistsByCategory(category)
+    if (!artistSearchTerm) return categoryArtists
+    
+    return categoryArtists.filter(a => 
+      a.name?.toLowerCase().includes(artistSearchTerm.toLowerCase())
+    )
+  }
+
+  const filteredTabs = () => {
+    if (!tabSearchTerm) return tabs.slice(0, 50) // 限制顯示數量
+    
+    return tabs.filter(t => 
+      t.title?.toLowerCase().includes(tabSearchTerm.toLowerCase()) ||
+      t.artistName?.toLowerCase().includes(tabSearchTerm.toLowerCase())
+    ).slice(0, 50)
+  }
+
+  const getSelectedArtists = (category) => {
+    const ids = settings.manualSelection[category] || []
+    return ids.map(id => artists.find(a => a.id === id)).filter(Boolean)
+  }
+
+  const getSelectedTabs = () => {
+    return selectedTabIds.map(id => tabs.find(t => t.id === id)).filter(Boolean)
   }
 
   if (loading) {
@@ -159,7 +310,7 @@ function HomeSettings() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white mb-2">首頁設置</h1>
           <p className="text-gray-500">自定義首頁顯示內容同排序</p>
@@ -208,18 +359,378 @@ function HomeSettings() {
           </button>
         </div>
 
-        {activeTab === 'artists' ? (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6 p-6">
-            <h2 className="text-lg font-medium text-white mb-4">熱門歌手設置</h2>
-            <p className="text-gray-500">功能開發中...</p>
+        {/* 熱門歌手設置 */}
+        {activeTab === 'artists' && (
+          <div className="space-y-6">
+            {/* 設置選項 */}
+            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+              <h2 className="text-lg font-medium text-white mb-4">顯示設置</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">排序方式</label>
+                  <select
+                    value={settings.hotArtistSortBy}
+                    onChange={(e) => setSettings(prev => ({ ...prev, hotArtistSortBy: e.target.value }))}
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  >
+                    {SORT_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {SORT_OPTIONS.find(o => o.value === settings.hotArtistSortBy)?.desc}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">顯示數量</label>
+                  <input
+                    type="number"
+                    value={settings.displayCount}
+                    onChange={(e) => setSettings(prev => ({ ...prev, displayCount: parseInt(e.target.value) || 20 }))}
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="1"
+                    max="50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 手動選擇 */}
+            <div className="bg-[#121212] rounded-xl border border-gray-800">
+              <div className="p-4 border-b border-gray-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-medium text-white">手動揀選歌手</h2>
+                    <p className="text-sm text-gray-500 mt-1">揀選特定歌手優先顯示喺熱門歌手區</p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.useManualSelection[activeArtistCategory]}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        useManualSelection: {
+                          ...prev.useManualSelection,
+                          [activeArtistCategory]: e.target.checked
+                        }
+                      }))}
+                      className="w-5 h-5 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700] bg-[#282828]"
+                    />
+                    <span className="text-sm text-gray-300">啟用手動揀選</span>
+                  </label>
+                </div>
+              </div>
+              
+              {/* 分類 Tab */}
+              <div className="flex border-b border-gray-800">
+                {['male', 'female', 'group'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setActiveArtistCategory(cat)
+                      setArtistSearchTerm('')
+                    }}
+                    className={`flex-1 py-3 text-sm font-medium transition ${
+                      activeArtistCategory === cat
+                        ? 'text-[#FFD700] border-b-2 border-[#FFD700]'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {cat === 'male' ? '男歌手' : cat === 'female' ? '女歌手' : '組合'}
+                    {settings.manualSelection[cat]?.length > 0 && (
+                      <span className="ml-2 px-2 py-0.5 bg-[#FFD700] text-black text-xs rounded-full">
+                        {settings.manualSelection[cat].length}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-4">
+                {/* 已選歌手列表 */}
+                {settings.manualSelection[activeArtistCategory]?.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-400 mb-3">
+                      已揀選 ({settings.manualSelection[activeArtistCategory].length})
+                    </h3>
+                    <div className="space-y-2">
+                      {getSelectedArtists(activeArtistCategory).map((artist, index) => (
+                        <div 
+                          key={artist.id}
+                          className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800"
+                        >
+                          <span className="text-gray-500 w-6">{index + 1}</span>
+                          {artist.photoURL || artist.wikiPhotoURL ? (
+                            <img 
+                              src={artist.photoURL || artist.wikiPhotoURL} 
+                              alt="" 
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#282828] flex items-center justify-center">
+                              <span className="text-lg">🎤</span>
+                            </div>
+                          )}
+                          <span className="flex-1 text-white font-medium">{artist.name}</span>
+                          
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => moveArtistOrder(activeArtistCategory, index, 'up')}
+                              disabled={index === 0}
+                              className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => moveArtistOrder(activeArtistCategory, index, 'down')}
+                              disabled={index === settings.manualSelection[activeArtistCategory].length - 1}
+                              className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded"
+                            >
+                              ↓
+                            </button>
+                            <button
+                              onClick={() => removeArtistFromSelection(artist.id, activeArtistCategory)}
+                              className="p-1.5 text-red-400 hover:text-red-300 rounded"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 搜索添加 */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-400 mb-3">添加歌手</h3>
+                  <input
+                    type="text"
+                    value={artistSearchTerm}
+                    onChange={(e) => setArtistSearchTerm(e.target.value)}
+                    placeholder={`搜索${activeArtistCategory === 'male' ? '男歌手' : activeArtistCategory === 'female' ? '女歌手' : '組合'}...`}
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 mb-3"
+                  />
+                  
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {filteredArtists(activeArtistCategory).slice(0, 20).map(artist => {
+                      const isSelected = settings.manualSelection[activeArtistCategory]?.includes(artist.id)
+                      return (
+                        <button
+                          key={artist.id}
+                          onClick={() => toggleArtistSelection(artist.id, activeArtistCategory)}
+                          className={`w-full flex items-center gap-3 p-2 rounded-lg transition text-left ${
+                            isSelected 
+                              ? 'bg-[#FFD700]/20 border border-[#FFD700]/50' 
+                              : 'hover:bg-[#282828]'
+                          }`}
+                        >
+                          {artist.photoURL || artist.wikiPhotoURL ? (
+                            <img 
+                              src={artist.photoURL || artist.wikiPhotoURL} 
+                              alt="" 
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center">
+                              <span>🎤</span>
+                            </div>
+                          )}
+                          <span className={`flex-1 ${isSelected ? 'text-[#FFD700]' : 'text-white'}`}>
+                            {artist.name}
+                          </span>
+                          {isSelected && <span className="text-[#FFD700]">✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : activeTab === 'tabs' ? (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6 p-6">
-            <h2 className="text-lg font-medium text-white mb-4">熱門歌曲設置</h2>
-            <p className="text-gray-500">功能開發中...</p>
+        )}
+
+        {/* 熱門歌曲設置 */}
+        {activeTab === 'tabs' && (
+          <div className="space-y-6">
+            {/* 設置選項 */}
+            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+              <h2 className="text-lg font-medium text-white mb-4">顯示設置</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">排序方式</label>
+                  <select
+                    value={settings.hotTabs?.sortBy || 'viewCount'}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      hotTabs: { ...prev.hotTabs, sortBy: e.target.value }
+                    }))}
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  >
+                    {TAB_SORT_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">顯示數量</label>
+                  <input
+                    type="number"
+                    value={settings.hotTabs?.displayCount || 20}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      hotTabs: { ...prev.hotTabs, displayCount: parseInt(e.target.value) || 20 }
+                    }))}
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                    min="1"
+                    max="50"
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.hotTabs?.useManual || false}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        hotTabs: { ...prev.hotTabs, useManual: e.target.checked }
+                      }))}
+                      className="w-5 h-5 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700] bg-[#282828]"
+                    />
+                    <span className="text-sm text-gray-300">只顯示手動揀選</span>
+                  </label>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                {TAB_SORT_OPTIONS.find(o => o.value === (settings.hotTabs?.sortBy || 'viewCount'))?.desc}
+              </p>
+            </div>
+
+            {/* 手動選擇歌曲 */}
+            <div className="bg-[#121212] rounded-xl border border-gray-800">
+              <div className="p-4 border-b border-gray-800">
+                <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
+                <p className="text-sm text-gray-500 mt-1">揀選特定歌曲顯示喺熱門結他譜區</p>
+              </div>
+
+              <div className="p-4">
+                {/* 已選歌曲列表 */}
+                {selectedTabIds.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-400 mb-3">
+                      已揀選 ({selectedTabIds.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {getSelectedTabs().map((tab, index) => (
+                        <div 
+                          key={tab.id}
+                          className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800"
+                        >
+                          <span className="text-gray-500 w-6">{index + 1}</span>
+                          {tab.thumbnail || tab.youtubeVideoId ? (
+                            <img 
+                              src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/default.jpg`} 
+                              alt="" 
+                              className="w-12 h-9 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-9 rounded bg-[#282828] flex items-center justify-center">
+                              <span className="text-xs">🎵</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium truncate">{tab.title}</p>
+                            <p className="text-sm text-gray-500">{tab.artistName}</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => moveTabOrder(index, 'up')}
+                              disabled={index === 0}
+                              className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => moveTabOrder(index, 'down')}
+                              disabled={index === selectedTabIds.length - 1}
+                              className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded"
+                            >
+                              ↓
+                            </button>
+                            <button
+                              onClick={() => removeTabFromSelection(tab.id)}
+                              className="p-1.5 text-red-400 hover:text-red-300 rounded"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 搜索添加 */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-400 mb-3">添加歌曲</h3>
+                  <input
+                    type="text"
+                    value={tabSearchTerm}
+                    onChange={(e) => setTabSearchTerm(e.target.value)}
+                    placeholder="搜索歌曲名或歌手名..."
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 mb-3"
+                  />
+                  
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {filteredTabs().map(tab => {
+                      const isSelected = selectedTabIds.includes(tab.id)
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => toggleTabSelection(tab.id)}
+                          className={`w-full flex items-center gap-3 p-2 rounded-lg transition text-left ${
+                            isSelected 
+                              ? 'bg-[#FFD700]/20 border border-[#FFD700]/50' 
+                              : 'hover:bg-[#282828]'
+                          }`}
+                        >
+                          {tab.thumbnail || tab.youtubeVideoId ? (
+                            <img 
+                              src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/default.jpg`} 
+                              alt="" 
+                              className="w-10 h-8 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-8 rounded bg-[#282828] flex items-center justify-center">
+                              <span className="text-xs">🎵</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium truncate ${isSelected ? 'text-[#FFD700]' : 'text-white'}`}>
+                              {tab.title}
+                            </p>
+                            <p className="text-xs text-gray-500">{tab.artistName}</p>
+                          </div>
+                          {isSelected && <span className="text-[#FFD700]">✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
+        )}
+
+        {/* 頁面布局設置 */}
+        {activeTab === 'layout' && (
+          <div className="bg-[#121212] rounded-xl border border-gray-800">
             <div className="p-4 border-b border-gray-800">
               <h2 className="text-lg font-medium text-white">📐 首頁區域排序</h2>
               <p className="text-sm text-gray-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
@@ -276,7 +787,7 @@ function HomeSettings() {
           </div>
         )}
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 mt-8">
           <button
             onClick={saveSettings}
             disabled={saving}
