@@ -6,6 +6,7 @@ import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, inc
 import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music } from 'lucide-react';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
+import { getTabsByArtist } from '../../lib/tabs';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist } from '../../lib/playlistApi';
 
 export default function ArtistPage() {
@@ -40,16 +41,14 @@ export default function ArtistPage() {
         router.push('/artists');
         return;
       }
-      setArtist({ id: artistDoc.id, ...artistDoc.data() });
+      const artistData = { id: artistDoc.id, ...artistDoc.data() };
+      setArtist(artistData);
 
-      // 獲取歌曲（包含評分資料）
-      const tabsQuery = query(
-        collection(db, 'tabs'),
-        where('artistId', '==', id),
-        orderBy('viewCount', 'desc')
-      );
-      const tabsSnap = await getDocs(tabsQuery);
-      const tabs = tabsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 使用 getTabsByArtist 獲取歌曲（支援多種 artistId 格式兼容）
+      const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
+      
+      // 按瀏覽數排序
+      tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
       
       // 前5首為熱門
       setHotTabs(tabs.slice(0, 5));
