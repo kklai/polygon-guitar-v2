@@ -1201,7 +1201,7 @@ const TabContent = ({
           
           {/* 第一行：Key | 出譜 | 和弦數 | 三角形(開YouTube/資訊) */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] sm:text-xs whitespace-nowrap">
+            <div className="flex items-center gap-2 text-xs md:text-base whitespace-nowrap">
               {/* Key - 顯示原調 + 建議Key + Capo */}
               <span className="flex items-center gap-1">
                 <span className="text-[#FFD700]">♪</span>
@@ -1238,10 +1238,10 @@ const TabContent = ({
             {(youtubeVideoId || hasSongInfo) && (
               <button
                 onClick={() => setShowInfo(!showInfo)}
-                className="p-1 text-gray-400 hover:text-white transition"
+                className="p-1 md:p-1.5 text-gray-400 hover:text-white transition"
               >
                 <svg 
-                  className={`w-4 h-4 transition-transform ${showInfo ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 md:w-5 md:h-5 transition-transform ${showInfo ? 'rotate-180' : ''}`}
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -1272,7 +1272,7 @@ const TabContent = ({
               
               {/* 歌曲資訊 */}
               {hasSongInfo && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs text-gray-400">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-gray-400">
                   {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
                   {songInfo.composer && <span>作曲：<span className="text-white">{songInfo.composer}</span></span>}
                   {songInfo.lyricist && <span>填詞：<span className="text-white">{songInfo.lyricist}</span></span>}
@@ -1283,7 +1283,7 @@ const TabContent = ({
               
               {/* 演奏技巧 */}
               {(songInfo.strummingPattern || songInfo.fingeringTips) && (
-                <div className="space-y-1 text-[11px] sm:text-xs">
+                <div className="space-y-1 text-[11px] sm:text-xs md:text-sm">
                   {songInfo.strummingPattern && (
                     <div>
                       <span className="text-[#FFD700]">掃弦：</span>
@@ -1302,20 +1302,20 @@ const TabContent = ({
           )}
 
           {/* 第二行：原調 → PLAY Capo (永遠顯示) */}
-          <div className="flex items-center gap-2 text-[11px] sm:text-xs mt-3 whitespace-nowrap">
+          <div className="flex items-center gap-2 text-xs md:text-base mt-3 whitespace-nowrap">
             <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
             <span className="text-gray-600">→</span>
             <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
             {displayCapo > 0 && (
-              <span className="bg-[#FFD700] text-black text-[10px] px-1.5 py-0.5 rounded font-medium">
+              <span className="bg-[#FFD700] text-black text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded font-medium">
                 Capo {displayCapo}
               </span>
             )}
           </div>
 
-          {/* 第三行：12個KEY波波 (永遠顯示) - 縮細啲確保一行過 */}
+          {/* 第三行：12個KEY波波 (永遠顯示) - 響應式大小 */}
           {!hideKeySelector && (
-            <div className="flex gap-0.5 sm:gap-1 mt-3 pt-3 border-t border-gray-700 justify-between">
+            <div className="flex gap-0.5 sm:gap-1 md:gap-2 mt-3 pt-3 border-t border-gray-700 justify-between">
               {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
                 const isCurrent = key === currentKey;
                 return (
@@ -1326,10 +1326,10 @@ const TabContent = ({
                       onKeyChange?.(key);
                     }}
                     className={`
-                      flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6
+                      flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9
                       rounded-full 
                       flex items-center justify-center 
-                      text-[8px] sm:text-[9px] font-bold
+                      text-[10px] sm:text-xs md:text-sm font-bold
                       transition hover:scale-105
                       ${isCurrent
                         ? 'bg-[#FFD700] text-black'
@@ -1346,39 +1346,39 @@ const TabContent = ({
 
           {/* 第四行：字體控制 + 自動滾動 + 複製 (永遠顯示) */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 md:gap-2">
               {/* A- */}
               <button
                 onClick={() => handleFontSize(-1)}
-                className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm"
               >
                 A-
               </button>
               {/* 字體數字 */}
-              <span className="w-6 text-center text-xs text-gray-400">{fontSize}</span>
+              <span className="w-6 md:w-8 text-center text-xs md:text-sm text-gray-400">{fontSize}</span>
               {/* A+ */}
               <button
                 onClick={() => handleFontSize(1)}
-                className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm"
               >
                 A+
               </button>
               
-              <div className="w-px h-5 bg-gray-700 mx-1" />
+              <div className="w-px h-5 md:h-6 bg-gray-700 mx-1" />
               
               {/* 自動滾動 */}
               <button
                 onClick={() => setIsAutoScroll(!isAutoScroll)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition text-xs ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${
                   isAutoScroll 
                     ? 'bg-[#FFD700] text-black'
                     : 'bg-gray-800 text-white hover:bg-gray-700'
                 }`}
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
-                <span>自動滾動</span>
+                <span className="hidden sm:inline">自動滾動</span>
               </button>
               
               {/* 速度控制 */}
@@ -1386,15 +1386,15 @@ const TabContent = ({
                 <div className="flex items-center gap-0.5">
                   <button
                     onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
-                    className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
+                    className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm"
                     disabled={scrollSpeed <= 0}
                   >
                     −
                   </button>
-                  <span className="w-4 text-center text-xs text-gray-400">{scrollSpeed}</span>
+                  <span className="w-4 md:w-5 text-center text-xs md:text-sm text-gray-400">{scrollSpeed}</span>
                   <button
                     onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
-                    className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
+                    className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm"
                     disabled={scrollSpeed >= 4}
                   >
                     +
@@ -1406,10 +1406,10 @@ const TabContent = ({
             {/* 複製按鈕 */}
             <button
               onClick={handleCopy}
-              className="p-2 text-gray-400 hover:text-white transition"
+              className="p-2 md:p-2.5 text-gray-400 hover:text-white transition"
               title="複製歌詞"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>

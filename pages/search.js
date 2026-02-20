@@ -69,25 +69,28 @@ export default function Search() {
       setHotSongs(hotSongsData)
       setHotArtists(hotArtistsData)
       
-      // 找分類封面圖
+      // 找分類封面圖（按 adminScore 評分排序）
       const maleArtists = artistsData.filter(a => 
         a.artistType === 'male' || a.gender === 'male'
-      ).sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+      ).sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
       
       const femaleArtists = artistsData.filter(a => 
         a.artistType === 'female' || a.gender === 'female'
-      ).sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+      ).sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
       
       const groupArtists = artistsData.filter(a => 
         a.artistType === 'group' || a.gender === 'group' ||
         a.artistType === 'band' || a.gender === 'band'
-      ).sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+      ).sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
+      
+      // 最新上架用男歌手評分第二高的
+      const secondMaleArtist = maleArtists[1] || maleArtists[0] || null
       
       setCategoryCovers({
         male: maleArtists[0] || null,
         female: femaleArtists[0] || null,
         group: groupArtists[0] || null,
-        recent: recentSongsData[0] || null
+        recent: secondMaleArtist
       })
       
     } catch (error) {

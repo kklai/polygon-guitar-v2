@@ -212,11 +212,11 @@ export default function TabDetail() {
       <Layout>
         <div className="w-full">
         {/* Header - 全寬 */}
-        <div className="bg-[#121212] px-4 sm:px-5 pt-4 sm:pt-5 pb-0">
+        <div className="bg-[#121212] px-4 sm:px-5 md:px-8 pt-4 sm:pt-5 md:pt-6 pb-0">
           {/* 頂部：封面 + 歌名 + 歌手 + 操作 */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
               {tab.thumbnail || tab.youtubeVideoId ? (
                 <img 
                   src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
@@ -245,29 +245,28 @@ export default function TabDetail() {
               </h1>
               
               {/* 歌手行 + 操作掣 */}
-              <div className="flex items-center justify-between mt-1">
+              <div className="flex items-center justify-between mt-1 md:mt-2">
                 {/* 歌手 - 灰色文字 */}
                 <Link 
                   href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="text-gray-400 text-sm sm:text-base hover:text-white transition truncate"
-                >
+                  className="text-gray-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate"
                   {tab.artist}
                 </Link>
                 
                 {/* 右邊操作掣 - 歌手嗰一行 */}
-                <div className="flex items-center gap-1 ml-2">
+                <div className="flex items-center gap-1 md:gap-2 ml-2">
                   {/* 主題切換 */}
                   <button
                     onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
-                    className="p-1.5 text-gray-400 hover:text-white transition"
+                    className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
                     title={theme === 'night' ? '切換日間模式' : '切換夜間模式'}
                   >
                     {theme === 'night' ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                       </svg>
                     )}
@@ -277,10 +276,10 @@ export default function TabDetail() {
                   {(isOwner || isAdmin) && (
                     <Link
                       href={`/tabs/${tab.id}/edit`}
-                      className="p-1.5 text-gray-400 hover:text-white transition"
+                      className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
                       title="編輯"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </Link>
