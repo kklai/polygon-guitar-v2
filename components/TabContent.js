@@ -1326,14 +1326,14 @@ const TabContent = ({
                       onKeyChange?.(key);
                     }}
                     className={`
-                      flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10
+                      flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6
                       rounded-full 
                       flex items-center justify-center 
-                      text-xs sm:text-sm font-bold
+                      text-[8px] sm:text-[9px] font-bold
                       transition hover:scale-105
                       ${isCurrent
                         ? 'bg-[#FFD700] text-black'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }
                     `}
                   >
