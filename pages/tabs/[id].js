@@ -250,6 +250,7 @@ export default function TabDetail() {
                 <Link 
                   href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
                   className="text-gray-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate"
+                >
                   {tab.artist}
                 </Link>
                 
