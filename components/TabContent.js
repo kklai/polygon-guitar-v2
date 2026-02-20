@@ -730,7 +730,10 @@ const TabContent = ({
   externalScrollSpeed,
   onFontSizeChange,
   onAutoScrollChange,
-  onScrollSpeedChange
+  onScrollSpeedChange,
+  // YouTube 和歌曲資訊
+  youtubeVideoId,
+  songInfo = {}
 }) => {
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
@@ -1170,7 +1173,7 @@ const TabContent = ({
   };
 
   const ControlBar = () => {
-    const [showKeyPanel, setShowKeyPanel] = useState(true);
+    const [showInfo, setShowInfo] = useState(false);
     
     // 計算和弦統計
     const chordStats = (() => {
@@ -1184,12 +1187,14 @@ const TabContent = ({
       return { total: uniqueChords.length, barreCount };
     })();
     
+    const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.strummingPattern || songInfo.fingeringTips);
+    
     return (
       <div className="p-3 sm:p-4 border-b border-gray-800">
         {/* 圓角卡片容器 */}
         <div className={`rounded-2xl p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
           
-          {/* 第一行：Key | 出譜 | 和弦數 | 三角形 */}
+          {/* 第一行：Key | 出譜 | 和弦數 | 三角形(開YouTube/資訊) */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-[11px] sm:text-xs whitespace-nowrap">
               {/* Key */}
@@ -1200,7 +1205,7 @@ const TabContent = ({
               
               <span className="text-gray-600">|</span>
               
-              {/* 出譜者 - 從外部傳入或從內容提取 */}
+              {/* 出譜 */}
               <span className="text-gray-400">
                 出譜 <span className="text-[#FFD700]">{playKey || originalKey}</span>
               </span>
@@ -1219,143 +1224,186 @@ const TabContent = ({
               )}
             </div>
             
-            {/* 三角形展開/收起 */}
-            <button
-              onClick={() => setShowKeyPanel(!showKeyPanel)}
-              className="p-1 text-gray-400 hover:text-white transition"
-            >
-              <svg 
-                className={`w-4 h-4 transition-transform ${showKeyPanel ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+            {/* 三角形 - 展開 YouTube + 歌曲資訊 */}
+            {(youtubeVideoId || hasSongInfo) && (
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                className="p-1 text-gray-400 hover:text-white transition"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+                <svg 
+                  className={`w-4 h-4 transition-transform ${showInfo ? 'rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            )}
           </div>
 
-          {/* 展開面板 */}
-          {showKeyPanel && (
-            <div className="mt-3 pt-3 border-t border-gray-700">
+          {/* YouTube + 歌曲資訊 展開區 */}
+          {showInfo && (
+            <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
+              {/* YouTube 影片 */}
+              {youtubeVideoId && (
+                <div className="aspect-video w-full rounded-lg overflow-hidden">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+                    title="YouTube"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              )}
               
-              {/* 第二行：原調 → PLAY Capo */}
-              <div className="flex items-center gap-2 text-[11px] sm:text-xs mb-3 whitespace-nowrap">
-                <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
-                <span className="text-gray-600">→</span>
-                <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
-                {displayCapo > 0 && (
-                  <span className="bg-[#FFD700] text-black text-[10px] px-1.5 py-0.5 rounded font-medium">
-                    Capo {displayCapo}
-                  </span>
-                )}
-              </div>
-
-              {!hideKeySelector && (
-                <>
-                  {/* 第三行：12個KEY大波波 */}
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
-                    {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
-                      const isCurrent = key === currentKey;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setCurrentKey(key);
-                            onKeyChange?.(key);
-                          }}
-                          className={`
-                            flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10
-                            rounded-full 
-                            flex items-center justify-center 
-                            text-xs sm:text-sm font-bold
-                            transition hover:scale-105
-                            ${isCurrent
-                              ? 'bg-[#FFD700] text-black'
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-                            }
-                          `}
-                        >
-                          {key}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* 第四行：字體控制 + 自動滾動 */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-700">
-                    <div className="flex items-center gap-1.5">
-                      {/* A- */}
-                      <button
-                        onClick={() => handleFontSize(-1)}
-                        className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
-                      >
-                        A-
-                      </button>
-                      {/* 字體數字 */}
-                      <span className="w-6 text-center text-xs text-gray-400">{fontSize}</span>
-                      {/* A+ */}
-                      <button
-                        onClick={() => handleFontSize(1)}
-                        className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
-                      >
-                        A+
-                      </button>
-                      
-                      <div className="w-px h-5 bg-gray-700 mx-1" />
-                      
-                      {/* 自動滾動 */}
-                      <button
-                        onClick={() => setIsAutoScroll(!isAutoScroll)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition text-xs ${
-                          isAutoScroll 
-                            ? 'bg-[#FFD700] text-black'
-                            : 'bg-gray-800 text-white hover:bg-gray-700'
-                        }`}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <span>自動滾動</span>
-                      </button>
-                      
-                      {/* 速度控制 */}
-                      {isAutoScroll && (
-                        <div className="flex items-center gap-0.5">
-                          <button
-                            onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
-                            className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
-                            disabled={scrollSpeed <= 0}
-                          >
-                            −
-                          </button>
-                          <span className="w-4 text-center text-xs text-gray-400">{scrollSpeed}</span>
-                          <button
-                            onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
-                            className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
-                            disabled={scrollSpeed >= 4}
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
+              {/* 歌曲資訊 */}
+              {hasSongInfo && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs text-gray-400">
+                  {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
+                  {songInfo.composer && <span>作曲：<span className="text-white">{songInfo.composer}</span></span>}
+                  {songInfo.lyricist && <span>填詞：<span className="text-white">{songInfo.lyricist}</span></span>}
+                  {songInfo.arranger && <span>編曲：<span className="text-white">{songInfo.arranger}</span></span>}
+                  {songInfo.producer && <span>監製：<span className="text-white">{songInfo.producer}</span></span>}
+                </div>
+              )}
+              
+              {/* 演奏技巧 */}
+              {(songInfo.strummingPattern || songInfo.fingeringTips) && (
+                <div className="space-y-1 text-[11px] sm:text-xs">
+                  {songInfo.strummingPattern && (
+                    <div>
+                      <span className="text-[#FFD700]">掃弦：</span>
+                      <span className="text-white font-mono">{songInfo.strummingPattern}</span>
                     </div>
-
-                    {/* 複製按鈕 */}
-                    <button
-                      onClick={handleCopy}
-                      className="p-2 text-gray-400 hover:text-white transition"
-                      title="複製歌詞"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </>
+                  )}
+                  {songInfo.fingeringTips && (
+                    <div>
+                      <span className="text-[#FFD700]">指法：</span>
+                      <span className="text-gray-300">{songInfo.fingeringTips}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
+
+          {/* 第二行：原調 → PLAY Capo (永遠顯示) */}
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs mt-3 whitespace-nowrap">
+            <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
+            <span className="text-gray-600">→</span>
+            <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
+            {displayCapo > 0 && (
+              <span className="bg-[#FFD700] text-black text-[10px] px-1.5 py-0.5 rounded font-medium">
+                Capo {displayCapo}
+              </span>
+            )}
+          </div>
+
+          {/* 第三行：12個KEY大波波 (永遠顯示) */}
+          {!hideKeySelector && (
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-gray-700">
+              {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
+                const isCurrent = key === currentKey;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setCurrentKey(key);
+                      onKeyChange?.(key);
+                    }}
+                    className={`
+                      flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10
+                      rounded-full 
+                      flex items-center justify-center 
+                      text-xs sm:text-sm font-bold
+                      transition hover:scale-105
+                      ${isCurrent
+                        ? 'bg-[#FFD700] text-black'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                      }
+                    `}
+                  >
+                    {key}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 第四行：字體控制 + 自動滾動 + 複製 (永遠顯示) */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
+            <div className="flex items-center gap-1.5">
+              {/* A- */}
+              <button
+                onClick={() => handleFontSize(-1)}
+                className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
+              >
+                A-
+              </button>
+              {/* 字體數字 */}
+              <span className="w-6 text-center text-xs text-gray-400">{fontSize}</span>
+              {/* A+ */}
+              <button
+                onClick={() => handleFontSize(1)}
+                className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
+              >
+                A+
+              </button>
+              
+              <div className="w-px h-5 bg-gray-700 mx-1" />
+              
+              {/* 自動滾動 */}
+              <button
+                onClick={() => setIsAutoScroll(!isAutoScroll)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition text-xs ${
+                  isAutoScroll 
+                    ? 'bg-[#FFD700] text-black'
+                    : 'bg-gray-800 text-white hover:bg-gray-700'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+                <span>自動滾動</span>
+              </button>
+              
+              {/* 速度控制 */}
+              {isAutoScroll && (
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
+                    className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
+                    disabled={scrollSpeed <= 0}
+                  >
+                    −
+                  </button>
+                  <span className="w-4 text-center text-xs text-gray-400">{scrollSpeed}</span>
+                  <button
+                    onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
+                    className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
+                    disabled={scrollSpeed >= 4}
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 複製按鈕 */}
+            <button
+              onClick={handleCopy}
+              className="p-2 text-gray-400 hover:text-white transition"
+              title="複製歌詞"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     );

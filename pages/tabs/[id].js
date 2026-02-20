@@ -292,126 +292,6 @@ export default function TabDetail() {
             </div>
           </div>
 
-          {/* 第二行：Key + 和弦統計 + 操作 */}
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
-            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-              {/* Key + Capo */}
-              <span className="flex items-center gap-1 text-[#B3B3B3]">
-                <span className="text-[#FFD700]">♪</span>
-                <span>
-                  {/* 顯示當前選中嘅 Key */}
-                  {currentKey || tab.playKey || tab.originalKey || 'C'}
-                  {/* 顯示原調（如果不同）*/}
-                  {currentKey && currentKey !== tab.originalKey && (
-                    <span className="text-gray-500 ml-1">(原調 {tab.originalKey})</span>
-                  )}
-                  {/* 顯示 Capo */}
-                  {tab.capo > 0 && (
-                    <span className="text-[#FFD700] ml-1">Capo {tab.capo}</span>
-                  )}
-                </span>
-              </span>
-              
-              {/* 編譜者 */}
-              {(tab.uploaderPenName || tab.arrangedBy) && (
-                <>
-                  <span className="text-gray-600 hidden sm:inline">|</span>
-                  <span className="text-[#FFD700] font-medium">
-                    出譜：{tab.uploaderPenName || tab.arrangedBy}
-                  </span>
-                </>
-              )}
-              
-              {/* 和弦統計 */}
-              {chordStats && (
-                <>
-                  <span className="text-gray-600">|</span>
-                  <span className="text-[#B3B3B3]" title={`${chordStats.total}個獨特和弦`}>
-                    {chordStats.total}和弦
-                  </span>
-                  {chordStats.barreCount > 0 && (
-                    <span className="text-orange-400" title={`原調有${chordStats.barreCount}個Barre和弦，可轉Key避開`}>
-                      ({chordStats.barreCount}Barre)
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* 更多資訊按鈕 (手機版) */}
-            <div className="flex items-center gap-1">
-              {(hasSongInfo || tab.youtubeVideoId) && (
-                <button
-                  onClick={() => setShowInfo(!showInfo)}
-                  className="sm:hidden px-2 py-1 text-xs bg-gray-800 text-white rounded-lg"
-                >
-                  {showInfo ? '收起' : '更多'}
-                </button>
-              )}
-              {canEdit && (
-                <Link
-                  href={`/tabs/${tab.id}/edit`}
-                  className="p-1.5 sm:px-3 sm:py-1.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
-                >
-                  <svg className="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <span className="hidden sm:inline text-sm">編輯</span>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 可折疊資訊區 (手機版) */}
-        <div className={`${showInfo ? '' : 'hidden sm:block'}`}>
-          {/* YouTube - 手機版縮小 */}
-          {tab.youtubeVideoId && (
-            <div className="bg-[#121212] border-b border-gray-800">
-              <div className="aspect-video max-w-2xl mx-auto">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  src={`https://www.youtube.com/embed/${tab.youtubeVideoId}`}
-                  title={`${tab.artist} - ${tab.title}`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            </div>
-          )}
-
-          {/* 歌曲資訊 - 簡化 */}
-          {hasSongInfo && (
-            <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-[#B3B3B3]">
-                {tab.songYear && <span>年份：{tab.songYear}</span>}
-                {tab.composer && <span>作曲：{tab.composer}</span>}
-                {tab.lyricist && <span>填詞：{tab.lyricist}</span>}
-                {tab.arranger && <span>編曲：{tab.arranger}</span>}
-                {tab.producer && <span>監製：{tab.producer}</span>}
-              </div>
-            </div>
-          )}
-
-          {/* 演奏技巧 */}
-          {(tab.strummingPattern || tab.fingeringTips) && (
-            <div className="bg-[#121212] p-3 sm:p-4 border-b border-gray-800">
-              {tab.strummingPattern && (
-                <div className="mb-2">
-                  <span className="text-xs text-[#FFD700]">掃弦：</span>
-                  <span className="text-sm text-white font-mono">{tab.strummingPattern}</span>
-                </div>
-              )}
-              {tab.fingeringTips && (
-                <div>
-                  <span className="text-xs text-[#FFD700]">指法：</span>
-                  <span className="text-sm text-gray-300">{tab.fingeringTips}</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* 主要內容：譜 - 全寬無邊距 */}
@@ -424,6 +304,16 @@ export default function TabDetail() {
           fullWidth
           theme={theme}
           setTheme={setTheme}
+          youtubeVideoId={tab.youtubeVideoId}
+          songInfo={{
+            songYear: tab.songYear,
+            composer: tab.composer,
+            lyricist: tab.lyricist,
+            arranger: tab.arranger,
+            producer: tab.producer,
+            strummingPattern: tab.strummingPattern,
+            fingeringTips: tab.fingeringTips
+          }}
         />
 
         {/* 留言區 */}
