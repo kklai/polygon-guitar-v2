@@ -24,6 +24,7 @@ export default function ArtistPage() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
@@ -65,15 +66,27 @@ export default function ArtistPage() {
     }
   };
 
-  // 分組顯示（按年份）
+  // 分組顯示（按年份）- 沒有年份的排在最後
   const groupByYear = (tabs) => {
     const groups = {};
+    const noYearTabs = [];
+    
     tabs.forEach(tab => {
-      const year = tab.uploadYear || new Date(tab.createdAt?.toDate?.() || Date.now()).getFullYear();
+      const year = tab.uploadYear;
+      if (!year) {
+        noYearTabs.push(tab);
+        return;
+      }
       const range = getYearRange(year);
       if (!groups[range]) groups[range] = [];
       groups[range].push({ ...tab, year });
     });
+    
+    // 把沒有年份的放在 '未知年份' 組
+    if (noYearTabs.length > 0) {
+      groups['未知年份'] = noYearTabs;
+    }
+    
     return groups;
   };
 
@@ -127,7 +140,15 @@ export default function ArtistPage() {
   const sortedTabs = () => {
     let tabs = [...allTabs];
     if (sortBy === 'year') {
-      tabs.sort((a, b) => (b.uploadYear || 0) - (a.uploadYear || 0));
+      // 有年份的排前面（新到舊），沒有年份的排最後
+      tabs.sort((a, b) => {
+        const yearA = a.uploadYear || 0;
+        const yearB = b.uploadYear || 0;
+        if (yearA === 0 && yearB === 0) return 0;
+        if (yearA === 0) return 1;  // A 沒年份，排後
+        if (yearB === 0) return -1; // B 沒年份，排後
+        return yearB - yearA; // 新到舊
+      });
     } else if (sortBy === 'views') {
       tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
     } else if (sortBy === 'strokes') {
@@ -236,23 +257,34 @@ export default function ArtistPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-white text-xl font-bold">所有歌曲</h2>
           
-          <div className="relative group">
-            <button className="flex items-center space-x-1 text-[#B3B3B3] text-sm hover:text-white bg-[#1a1a1a] px-3 py-1.5 rounded-full">
+          <div className="relative">
+            <button 
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center space-x-1 text-[#B3B3B3] text-sm hover:text-white bg-[#1a1a1a] px-3 py-1.5 rounded-full"
+            >
               <span>{sortBy === 'year' ? '按年份' : sortBy === 'strokes' ? '按筆畫' : '按瀏覽'}</span>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className={`w-4 h-4 transition-transform ${showSortMenu ? 'rotate-180' : ''}`} />
             </button>
             
-            <div className="absolute right-0 top-full mt-2 bg-[#282828] rounded-lg shadow-xl py-1 min-w-[120px] hidden group-hover:block z-20">
-              {['year', 'strokes', 'views'].map((type) => (
-                <button 
-                  key={type}
-                  onClick={() => setSortBy(type)}
-                  className={`block w-full text-left px-4 py-2 text-sm ${sortBy === type ? 'text-[#FFD700]' : 'text-white hover:bg-[#3E3E3E]'}`}
-                >
-                  {type === 'year' ? '按年份' : type === 'strokes' ? '按筆畫' : '按瀏覽'}
-                </button>
-              ))}
-            </div>
+            {showSortMenu && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShowSortMenu(false)} />
+                <div className="absolute right-0 top-full mt-2 bg-[#282828] rounded-lg shadow-xl py-1 min-w-[120px] z-30">
+                  {['year', 'strokes', 'views'].map((type) => (
+                    <button 
+                      key={type}
+                      onClick={() => {
+                        setSortBy(type);
+                        setShowSortMenu(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${sortBy === type ? 'text-[#FFD700]' : 'text-white hover:bg-[#3E3E3E]'}`}
+                    >
+                      {type === 'year' ? '按年份' : type === 'strokes' ? '按筆畫' : '按瀏覽'}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
