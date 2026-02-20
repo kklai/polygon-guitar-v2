@@ -124,7 +124,7 @@ export default function Layout({ children, fullWidth = false }) {
     <div className="bg-black text-white">
       <Navbar />
       <main 
-        className={fullWidth ? 'pb-16 md:pb-0' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24'}
+        className={fullWidth ? 'pt-20 pb-16 md:pb-0' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24'}
       >
         {children}
       </main>

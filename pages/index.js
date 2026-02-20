@@ -578,7 +578,7 @@ export default function Home() {
         )}
 
         {/* 第一區：歌手分類 */}
-        <section className="mb-4">
+        <section className="mb-6 pt-2">
           <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
             {categories.map((category) => (
               <button
@@ -621,7 +621,7 @@ export default function Home() {
 
         {/* 第三區：熱門結他譜 */}
         {hotTabs.length > 0 && (
-          <section className="mb-4">
+          <section className="mb-6">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門結他譜</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {hotTabs.map((song) => (
@@ -657,7 +657,7 @@ export default function Home() {
 
         {/* 第四區：熱門歌手（不分類別） */}
         {hotArtists.all?.length > 0 && (
-          <section className="mb-4">
+          <section className="mb-6">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌手</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-6">
               {hotArtists.all.map((artist) => (
@@ -688,10 +688,10 @@ export default function Home() {
 
 
 
-        {/* 第七區：推薦歌單（移到熱門歌手下面） */}
+        {/* 第七區：熱門歌單 */}
         {autoPlaylists.length > 0 && (
-          <section className="mb-4">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">推薦歌單</h2>
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌單</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {autoPlaylists.map((playlist) => (
                 <button
@@ -724,7 +724,7 @@ export default function Home() {
 
         {/* 最新上架 */}
         {latestSongs.length > 0 && (
-          <section className="mb-4">
+          <section className="mb-6">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">最新上架</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {latestSongs.map((song) => (
@@ -760,10 +760,10 @@ export default function Home() {
 
 
 
-        {/* 第八區：歌單（人工策劃 - Manual） */}
+        {/* 第八區：推薦歌單（人工策劃） */}
         {manualPlaylists.length > 0 && (
-          <section className="mb-4">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">歌單</h2>
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">推薦歌單</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {manualPlaylists.map((playlist) => (
                 <button
