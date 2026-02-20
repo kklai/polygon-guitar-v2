@@ -306,6 +306,7 @@ export default function TabDetail() {
           theme={theme}
           setTheme={setTheme}
           youtubeVideoId={tab.youtubeVideoId}
+          arrangedBy={tab.uploaderPenName || tab.arrangedBy || ''}
           songInfo={{
             songYear: tab.songYear,
             composer: tab.composer,

@@ -733,7 +733,9 @@ const TabContent = ({
   onScrollSpeedChange,
   // YouTube 和歌曲資訊
   youtubeVideoId,
-  songInfo = {}
+  songInfo = {},
+  // 編譜者名稱
+  arrangedBy = ''
 }) => {
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
@@ -1190,25 +1192,30 @@ const TabContent = ({
     const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.strummingPattern || songInfo.fingeringTips);
     
     return (
-      <div className="p-3 sm:p-4 border-b border-gray-800">
-        {/* 圓角卡片容器 */}
-        <div className={`rounded-2xl p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
+      <div className="px-2 sm:px-4 py-3 border-b border-gray-800">
+        {/* 圓角卡片容器 - 加闊 */}
+        <div className={`rounded-2xl p-3 sm:p-4 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
           
           {/* 第一行：Key | 出譜 | 和弦數 | 三角形(開YouTube/資訊) */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] sm:text-xs whitespace-nowrap">
-              {/* Key - 顯示原調 */}
+            <div className="flex items-center gap-2 text-[10px] sm:text-xs whitespace-nowrap">
+              {/* Key - 顯示原調 + 建議Key + Capo */}
               <span className="flex items-center gap-1">
                 <span className="text-[#FFD700]">♪</span>
                 <span className="text-white font-medium">{originalKey}</span>
+                {playKey && playKey !== originalKey && (
+                  <span className="text-gray-400">({playKey})</span>
+                )}
               </span>
               
               <span className="text-gray-600">|</span>
               
-              {/* 出譜 - 顯示 playKey (出譜人建議的Key) */}
-              <span className="text-gray-400">
-                出譜 <span className="text-[#FFD700]">{playKey || originalKey}</span>
-              </span>
+              {/* 出譜 - 顯示編譜者名稱 */}
+              {arrangedBy && (
+                <span className="text-gray-400">
+                  出譜: <span className="text-[#FFD700]">{arrangedBy}</span>
+                </span>
+              )}
               
               {/* 和弦統計 */}
               {chordStats.total > 0 && (
@@ -1303,9 +1310,9 @@ const TabContent = ({
             )}
           </div>
 
-          {/* 第三行：12個KEY大波波 (永遠顯示) - 一行過 */}
+          {/* 第三行：12個KEY波波 (永遠顯示) - 縮細啲確保一行過 */}
           {!hideKeySelector && (
-            <div className="flex gap-1.5 sm:gap-2 mt-3 pt-3 border-t border-gray-700 overflow-x-auto pb-1">
+            <div className="flex gap-1 sm:gap-1.5 mt-3 pt-3 border-t border-gray-700 justify-between">
               {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
                 const isCurrent = key === currentKey;
                 return (
