@@ -134,6 +134,28 @@ export default function ArtistPage() {
 
   const groupedTabs = groupByYear(sortedTabs());
 
+  // 提取 YouTube Video ID
+  const extractYouTubeId = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
+  // 取得歌曲縮圖 - 順序：YouTube > thumbnail > 歌手相片
+  const getSongThumbnail = (tab) => {
+    // 1. 優先使用 YouTube 縮圖
+    if (tab.youtubeUrl) {
+      const videoId = extractYouTubeId(tab.youtubeUrl);
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      }
+    }
+    // 2. 其次使用歌曲自己的縮圖
+    if (tab.thumbnail) return tab.thumbnail;
+    // 3. 使用歌手圖片
+    return artist?.photoURL || artist?.wikiPhotoURL || null;
+  };
+
   if (loading || !artist) return <div className="min-h-screen bg-black" />;
 
   return (
@@ -179,8 +201,8 @@ export default function ArtistPage() {
               
               {/* 歌曲封面 */}
               <div className="w-14 h-14 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
-                {tab.thumbnail ? (
-                  <img src={tab.thumbnail} alt={tab.title} className="w-full h-full object-cover" />
+                {getSongThumbnail(tab) ? (
+                  <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3E3E3E] text-xl">♪</div>
                 )}
@@ -280,8 +302,8 @@ export default function ArtistPage() {
             
             <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
               <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-[#282828]">
-                {selectedTab.thumbnail ? (
-                  <img src={selectedTab.thumbnail} alt={selectedTab.title} className="w-full h-full object-cover" />
+                {selectedTab && getSongThumbnail(selectedTab) ? (
+                  <img src={getSongThumbnail(selectedTab)} alt={selectedTab.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3E3E3E]">♪</div>
                 )}
