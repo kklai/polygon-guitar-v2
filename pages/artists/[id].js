@@ -66,13 +66,26 @@ export default function ArtistPage() {
     }
   };
 
+  // 從 createdAt 提取年份
+  const getYearFromCreatedAt = (tab) => {
+    if (tab.uploadYear) return tab.uploadYear;
+    if (tab.createdAt) {
+      // 處理 Firestore Timestamp 或 ISO 字符串
+      const date = tab.createdAt.seconds 
+        ? new Date(tab.createdAt.seconds * 1000) 
+        : new Date(tab.createdAt);
+      return date.getFullYear();
+    }
+    return null;
+  };
+
   // 分組顯示（按年份）- 沒有年份的排在最後
   const groupByYear = (tabs) => {
     const groups = {};
     const noYearTabs = [];
     
     tabs.forEach(tab => {
-      const year = tab.uploadYear;
+      const year = getYearFromCreatedAt(tab);
       if (!year) {
         noYearTabs.push(tab);
         return;
@@ -142,8 +155,8 @@ export default function ArtistPage() {
     if (sortBy === 'year') {
       // 有年份的排前面（新到舊），沒有年份的排最後
       tabs.sort((a, b) => {
-        const yearA = a.uploadYear || 0;
-        const yearB = b.uploadYear || 0;
+        const yearA = getYearFromCreatedAt(a) || 0;
+        const yearB = getYearFromCreatedAt(b) || 0;
         if (yearA === 0 && yearB === 0) return 0;
         if (yearA === 0) return 1;  // A 沒年份，排後
         if (yearB === 0) return -1; // B 沒年份，排後
