@@ -1315,7 +1315,7 @@ const TabContent = ({
 
           {/* 第三行：12個KEY波波 (永遠顯示) - 響應式大小 */}
           {!hideKeySelector && (
-            <div className="flex gap-0.5 sm:gap-1 md:gap-2 mt-3 pt-3 border-t border-gray-700 justify-between">
+            <div className="flex gap-0.5 mt-3 pt-3 border-t border-gray-700">
               {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
                 const isCurrent = key === currentKey;
                 return (
