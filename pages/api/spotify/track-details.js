@@ -43,17 +43,10 @@ export default async function handler(req, res) {
     
     const accessToken = tokenData.access_token
     
-    // 並行獲取所有數據
-    const [trackRes, audioFeaturesRes] = await Promise.all([
-      // 1. 歌曲基本資訊
-      fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      }),
-      // 2. Audio Features (BPM, Key, etc.)
-      fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      })
-    ])
+    // 獲取歌曲基本資訊
+    const trackRes = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    })
     
     if (!trackRes.ok) {
       return res.status(trackRes.status).json({ 
@@ -63,19 +56,46 @@ export default async function handler(req, res) {
     }
     
     const trackData = await trackRes.json()
-    const audioFeaturesData = audioFeaturesRes.ok ? await audioFeaturesRes.json() : null
     
-    // 嘗試獲取 Credits (這是 Web API 的 Beta 功能，可能不是所有歌曲都有)
+    // 獲取 Audio Features
+    let audioFeaturesData = null
+    let audioFeaturesError = null
+    try {
+      const audioFeaturesRes = await fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      })
+      
+      if (audioFeaturesRes.ok) {
+        audioFeaturesData = await audioFeaturesRes.json()
+      } else {
+        audioFeaturesError = {
+          status: audioFeaturesRes.status,
+          statusText: audioFeaturesRes.statusText,
+          body: await audioFeaturesRes.text()
+        }
+      }
+    } catch (e) {
+      audioFeaturesError = e.message
+    }
+    
+    // 獲取 Credits
     let creditsData = null
+    let creditsError = null
     try {
       const creditsRes = await fetch(`https://api.spotify.com/v1/tracks/${trackId}/credits`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       })
+      
       if (creditsRes.ok) {
         creditsData = await creditsRes.json()
+      } else {
+        creditsError = {
+          status: creditsRes.status,
+          statusText: creditsRes.statusText
+        }
       }
     } catch (e) {
-      // Credits API 可能不可用，忽略錯誤
+      creditsError = e.message
     }
     
     // 格式化結果
@@ -121,6 +141,8 @@ export default async function handler(req, res) {
       result,
       hasCredits: !!creditsData,
       hasAudioFeatures: !!audioFeaturesData,
+      audioFeaturesError,
+      creditsError,
       message: audioFeaturesData ? 'Full data retrieved' : 'Basic info only'
     })
     
