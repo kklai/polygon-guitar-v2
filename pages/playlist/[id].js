@@ -72,6 +72,10 @@ export default function PlaylistDetail() {
   }
 
   const getThumbnail = (song) => {
+    // 優先使用 thumbnail 欄位
+    if (song.thumbnail) {
+      return song.thumbnail
+    }
     if (song.youtubeVideoId) {
       return `https://img.youtube.com/vi/${song.youtubeVideoId}/hqdefault.jpg`
     }
