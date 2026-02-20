@@ -152,7 +152,19 @@ export default function PlaylistDetail() {
     <Layout fullWidth>
       <div className="min-h-screen bg-black pb-24">
         {/* Hero Section */}
-        <div className={`relative h-64 bg-gradient-to-b ${getGradient(playlist)}`}>
+        <div className={`relative h-64 ${getGradient(playlist)}`}>
+          {/* 封面背景圖 */}
+          {playlist.coverImage && (
+            <div className="absolute inset-0">
+              <img 
+                src={playlist.coverImage} 
+                alt={playlist.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
+            </div>
+          )}
+          
           {/* Back Button */}
           <Link
             href="/"
@@ -165,7 +177,7 @@ export default function PlaylistDetail() {
           </Link>
 
           {/* Playlist Info */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
             {/* Source Badge */}
             <div className="mb-2">
               {playlist.source === 'auto' ? (
