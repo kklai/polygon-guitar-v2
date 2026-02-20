@@ -27,8 +27,8 @@ export default function RecentItems({ items = [] }) {
   if (displayItems.length === 0) return null;
 
   return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-3 px-4">
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-2 px-6">
         <h2 className="text-white text-xl font-bold">最近瀏覽</h2>
         <button 
           onClick={() => router.push('/history')}
@@ -39,7 +39,7 @@ export default function RecentItems({ items = [] }) {
       </div>
       
       <div className="overflow-x-auto scrollbar-hide">
-        <div className="flex space-x-4 px-4 pb-2">
+        <div className="flex space-x-4 px-6">
           {displayItems.map((item, index) => (
             <div 
               key={index}
