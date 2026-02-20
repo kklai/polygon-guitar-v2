@@ -32,11 +32,15 @@ function HeroPhotosAdmin() {
   const loadArtists = async () => {
     try {
       const data = await getAllArtists()
-      // 排序：冇 heroPhoto 嘅排前面
+      // 排序：冇 heroPhoto 嘅排前面，其次按歌譜數量（多到少）
       const sorted = data.sort((a, b) => {
         const aHasHero = a.heroPhoto ? 1 : 0
         const bHasHero = b.heroPhoto ? 1 : 0
-        return aHasHero - bHasHero
+        if (aHasHero !== bHasHero) {
+          return aHasHero - bHasHero
+        }
+        // 第二層：按歌譜數量（多到少）
+        return (b.tabCount || 0) - (a.tabCount || 0)
       })
       setArtists(sorted)
       setFilteredArtists(sorted)
