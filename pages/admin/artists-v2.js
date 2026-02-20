@@ -172,10 +172,10 @@ export default function ArtistsV2Page() {
         const songsSnapshot = await getDocs(songsQuery)
         
         // 批量更新歌譜（每批最多 500 個）
-        const batch = writeBatch(db)
+        let batch = writeBatch(db)
         let batchCount = 0
         
-        songsSnapshot.docs.forEach((songDoc) => {
+        for (const songDoc of songsSnapshot.docs) {
           const songRef = doc(db, 'songs', songDoc.id)
           batch.update(songRef, {
             artist: editForm.name,
@@ -186,10 +186,11 @@ export default function ArtistsV2Page() {
           
           // Firebase 每批最多 500 個操作
           if (batchCount >= 450) {
-            batch.commit()
+            await batch.commit()
+            batch = writeBatch(db)
             batchCount = 0
           }
-        })
+        }
         
         if (batchCount > 0) {
           await batch.commit()

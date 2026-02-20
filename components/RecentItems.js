@@ -29,7 +29,7 @@ export default function RecentItems({ items = [] }) {
   return (
     <div className="mb-6">
       <div className="flex justify-between items-center mb-3 px-4">
-        <h2 className="text-white text-lg font-bold">最近瀏覽</h2>
+        <h2 className="text-white text-xl font-bold">最近瀏覽</h2>
         <button 
           onClick={() => router.push('/history')}
           className="text-[#B3B3B3] text-sm hover:text-white"
