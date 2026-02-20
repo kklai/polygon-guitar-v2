@@ -9,6 +9,7 @@ import Layout from '@/components/Layout'
 import LikeButton from '@/components/LikeButton'
 import TabContent from '@/components/TabContent'
 import TabComments from '@/components/TabComments'
+import RatingSystem from '@/components/RatingSystem'
 import { recordSongView } from '@/lib/recentViews'
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema } from '@/lib/seo'
@@ -53,6 +54,7 @@ export default function TabDetail() {
   const [showInfo, setShowInfo] = useState(false)
   const [chordStats, setChordStats] = useState(null)
   const [theme, setTheme] = useState('night'); // 'night' | 'day'
+  const [ratingData, setRatingData] = useState({ averageRating: 0, ratingCount: 0 })
   const colors = themeColors[theme];
 
   useEffect(() => {
@@ -117,6 +119,12 @@ export default function TabDetail() {
             setUploaderName(userData.displayName || userData.name || '未知用戶')
           }
         }
+        
+        // 載入評分數據
+        setRatingData({
+          averageRating: data.averageRating || 0,
+          ratingCount: data.ratingCount || 0
+        })
       } else {
         router.push('/')
       }
@@ -290,6 +298,19 @@ export default function TabDetail() {
                   <LikeButton tab={tab} onLikeToggle={loadTab} compact />
                 </div>
               </div>
+              
+              {/* 評分系統 */}
+              {tab && (
+                <div className="mt-2">
+                  <RatingSystem 
+                    tabId={tab.id} 
+                    averageRating={ratingData.averageRating}
+                    ratingCount={ratingData.ratingCount}
+                    size="md"
+                    onRatingUpdate={(avg, count) => setRatingData({ averageRating: avg, ratingCount: count })}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
