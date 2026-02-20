@@ -14,17 +14,6 @@ import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema } from '@/lib/seo'
 import { siteConfig } from '@/lib/seo'
 
-// ============ Key 相關常數 ============
-const MAJOR_KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-const MINOR_KEYS = ['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
-const KEY_TO_SEMITONE = {
-  'C': 0, 'Db': 1, 'C#': 1, 'D': 2, 'Eb': 3, 'D#': 3,
-  'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'Ab': 8, 'G#': 8,
-  'A': 9, 'Bb': 10, 'A#': 10, 'B': 11,
-  'Cm': 0, 'C#m': 1, 'Dm': 2, 'D#m': 3, 'Ebm': 3, 'Em': 4,
-  'Fm': 5, 'F#m': 6, 'Gm': 7, 'G#m': 8, 'Am': 9, 'Bbm': 10, 'Bm': 11
-};
-
 // 主題顏色配置
 const themeColors = {
   night: {
@@ -65,12 +54,6 @@ export default function TabDetail() {
   const [chordStats, setChordStats] = useState(null)
   const [theme, setTheme] = useState('night'); // 'night' | 'day'
   const colors = themeColors[theme];
-
-  // 中台控制狀態
-  const [fontSize, setFontSize] = useState(16);
-  const [isAutoScroll, setIsAutoScroll] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(1);
-  const [showKeyPanel, setShowKeyPanel] = useState(true); // 展開/收起 Key 面板
 
   useEffect(() => {
     if (id) {
@@ -309,192 +292,72 @@ export default function TabDetail() {
             </div>
           </div>
 
-          {/* 第二行：中台卡片 - Key + 和弦統計 + 控制 */}
-          <div className="mt-3">
-            {/* 中台卡片 - 圓角深色背景 */}
-            <div className="bg-[#1A1A1A] rounded-2xl p-3 sm:p-4">
-              {/* 第一行：Key + 出譜 + 和弦數 + 三角形 */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap">
-                  {/* Key 顯示 */}
-                  <span className="flex items-center gap-1">
-                    <span className="text-[#FFD700]">♪</span>
-                    <span className="text-white font-medium">
-                      {currentKey || tab.playKey || tab.originalKey || 'C'}
-                    </span>
-                    {currentKey && currentKey !== tab.originalKey && (
-                      <span className="text-gray-500 text-xs">(原調 {tab.originalKey})</span>
-                    )}
+          {/* 第二行：Key + 和弦統計 + 操作 */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-800">
+            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+              {/* Key + Capo */}
+              <span className="flex items-center gap-1 text-[#B3B3B3]">
+                <span className="text-[#FFD700]">♪</span>
+                <span>
+                  {/* 顯示當前選中嘅 Key */}
+                  {currentKey || tab.playKey || tab.originalKey || 'C'}
+                  {/* 顯示原調（如果不同）*/}
+                  {currentKey && currentKey !== tab.originalKey && (
+                    <span className="text-gray-500 ml-1">(原調 {tab.originalKey})</span>
+                  )}
+                  {/* 顯示 Capo */}
+                  {tab.capo > 0 && (
+                    <span className="text-[#FFD700] ml-1">Capo {tab.capo}</span>
+                  )}
+                </span>
+              </span>
+              
+              {/* 編譜者 */}
+              {(tab.uploaderPenName || tab.arrangedBy) && (
+                <>
+                  <span className="text-gray-600 hidden sm:inline">|</span>
+                  <span className="text-[#FFD700] font-medium">
+                    出譜：{tab.uploaderPenName || tab.arrangedBy}
                   </span>
-                  
-                  {/* 分隔線 */}
+                </>
+              )}
+              
+              {/* 和弦統計 */}
+              {chordStats && (
+                <>
                   <span className="text-gray-600">|</span>
-                  
-                  {/* 出譜者 */}
-                  {(tab.uploaderPenName || tab.arrangedBy) && (
-                    <span className="text-[#B3B3B3]">
-                      出譜 <span className="text-[#FFD700]">{tab.uploaderPenName || tab.arrangedBy}</span>
+                  <span className="text-[#B3B3B3]" title={`${chordStats.total}個獨特和弦`}>
+                    {chordStats.total}和弦
+                  </span>
+                  {chordStats.barreCount > 0 && (
+                    <span className="text-orange-400" title={`原調有${chordStats.barreCount}個Barre和弦，可轉Key避開`}>
+                      ({chordStats.barreCount}Barre)
                     </span>
                   )}
-                  
-                  {/* 和弦統計 */}
-                  {chordStats && (
-                    <>
-                      <span className="text-gray-600">|</span>
-                      <span className="text-[#B3B3B3]" title={`${chordStats.total}個獨特和弦`}>
-                        和弦數 <span className="text-[#FFD700]">{chordStats.total}</span>
-                        {chordStats.barreCount > 0 && (
-                          <span className="text-orange-400 text-xs">({chordStats.barreCount}Barre)</span>
-                        )}
-                      </span>
-                    </>
-                  )}
-                </div>
-                
-                {/* 三角形展開/收起按鈕 */}
+                </>
+              )}
+            </div>
+
+            {/* 更多資訊按鈕 (手機版) */}
+            <div className="flex items-center gap-1">
+              {(hasSongInfo || tab.youtubeVideoId) && (
                 <button
-                  onClick={() => setShowKeyPanel(!showKeyPanel)}
-                  className="p-1 text-gray-400 hover:text-white transition"
+                  onClick={() => setShowInfo(!showInfo)}
+                  className="sm:hidden px-2 py-1 text-xs bg-gray-800 text-white rounded-lg"
                 >
-                  <svg 
-                    className={`w-4 h-4 transition-transform ${showKeyPanel ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  {showInfo ? '收起' : '更多'}
                 </button>
-              </div>
-
-              {/* 展開的 Key 控制面板 */}
-              {showKeyPanel && (
-                <div className="mt-3 pt-3 border-t border-gray-800">
-                  {/* 原調 PLAY Capo */}
-                  <div className="flex items-center gap-3 text-sm mb-3">
-                    <span className="text-gray-400">原調: <span className="text-white">{tab.originalKey || 'C'}</span></span>
-                    <span className="text-gray-600">→</span>
-                    <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey || tab.playKey || tab.originalKey || 'C'}</span></span>
-                    {(() => {
-                      // 計算 Capo
-                      const originalSemitone = KEY_TO_SEMITONE[tab.originalKey || 'C'] || 0;
-                      const currentSemitone = KEY_TO_SEMITONE[currentKey || tab.playKey || tab.originalKey || 'C'] || 0;
-                      const capo = (originalSemitone - currentSemitone + 12) % 12;
-                      if (capo > 0) {
-                        return (
-                          <span className="bg-[#FFD700] text-black text-xs px-2 py-0.5 rounded font-medium">
-                            Capo {capo}
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-
-                  {/* 12 個 KEY 波波 */}
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
-                    {(tab.originalKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm', 'G#m', 'A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
-                      const isCurrent = key === (currentKey || tab.playKey || tab.originalKey || 'C');
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setCurrentKey(key);
-                          }}
-                          className={`
-                            flex-shrink-0 w-7 h-7 sm:w-9 sm:h-9
-                            rounded-full 
-                            flex items-center justify-center 
-                            text-[10px] sm:text-sm font-bold
-                            transition hover:scale-105
-                            ${isCurrent
-                              ? 'bg-[#FFD700] text-black'
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-                            }
-                          `}
-                        >
-                          {key}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* 字體調整 + 自動滾動 */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-800">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      {/* A- */}
-                      <button
-                        onClick={() => setFontSize(Math.max(12, fontSize - 1))}
-                        className="w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs sm:text-sm"
-                      >
-                        A-
-                      </button>
-                      {/* 字體大小數字 */}
-                      <span className="w-6 sm:w-8 text-center text-sm text-gray-400">{fontSize}</span>
-                      {/* A+ */}
-                      <button
-                        onClick={() => setFontSize(Math.min(28, fontSize + 1))}
-                        className="w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs sm:text-sm"
-                      >
-                        A+
-                      </button>
-                      
-                      <div className="w-px h-5 sm:h-6 bg-gray-700 mx-1" />
-                      
-                      {/* 自動滾動 */}
-                      <button
-                        onClick={() => setIsAutoScroll(!isAutoScroll)}
-                        className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded transition text-xs ${
-                          isAutoScroll 
-                            ? 'bg-[#FFD700] text-black'
-                            : 'bg-gray-800 text-white hover:bg-gray-700'
-                        }`}
-                      >
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <span className="hidden sm:inline">自動滾動</span>
-                        <span className="sm:hidden">滾動</span>
-                      </button>
-                      
-                      {/* 滾動速度控制 */}
-                      {isAutoScroll && (
-                        <div className="flex items-center gap-0.5">
-                          <button
-                            onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
-                            className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
-                            disabled={scrollSpeed <= 0}
-                          >
-                            −
-                          </button>
-                          <span className="w-4 sm:w-5 text-center text-xs text-gray-400">{scrollSpeed}</span>
-                          <button
-                            onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
-                            className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
-                            disabled={scrollSpeed >= 4}
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 複製按鈕 */}
-                    <button
-                      onClick={() => {
-                        if (tab.content) {
-                          navigator.clipboard.writeText(tab.content);
-                        }
-                      }}
-                      className="p-2 text-gray-400 hover:text-white transition"
-                      title="複製歌詞"
-                    >
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+              )}
+              {canEdit && (
+                <Link
+                  href={`/tabs/${tab.id}/edit`}
+                  className="p-1.5 sm:px-3 sm:py-1.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+                >
+                  <svg className="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span className="hidden sm:inline text-sm">編輯</span>
+                </Link>
               )}
             </div>
           </div>
@@ -555,16 +418,12 @@ export default function TabDetail() {
         <TabContent 
           content={tab.content} 
           originalKey={tab.originalKey || 'C'}
-          playKey={currentKey || tab.playKey || tab.originalKey}
-          initialKey={currentKey || tab.playKey || tab.originalKey}
+          playKey={tab.playKey}
+          initialKey={queryKey || tab.playKey || tab.originalKey}
           onKeyChange={setCurrentKey}
           fullWidth
           theme={theme}
           setTheme={setTheme}
-          hideKeySelector={true}
-          externalFontSize={fontSize}
-          externalIsAutoScroll={isAutoScroll}
-          externalScrollSpeed={scrollSpeed}
         />
 
         {/* 留言區 */}
