@@ -156,6 +156,13 @@ export default function ArtistsV2Page() {
   // 保存編輯
   const handleSave = async () => {
     try {
+      // 檢查資料完整性
+      if (!selectedArtist?.id || !editForm?.name) {
+        showMessage('資料不完整，無法保存', 'error')
+        return
+      }
+
+      console.log('Saving artist:', selectedArtist.id, editForm.name)
       const artistRef = doc(db, 'artists', selectedArtist.id)
       
       // 檢查歌手名是否有改變
@@ -164,54 +171,67 @@ export default function ArtistsV2Page() {
       
       // 如果歌手名改變，同步更新所有歌譜的歌手名
       if (nameChanged) {
-        // 查詢所有該歌手的歌譜
-        const songsQuery = query(
-          collection(db, 'songs'),
-          where('artistId', '==', selectedArtist.id)
-        )
-        const songsSnapshot = await getDocs(songsQuery)
-        
-        // 批量更新歌譜（每批最多 500 個）
-        let batch = writeBatch(db)
-        let batchCount = 0
-        
-        for (const songDoc of songsSnapshot.docs) {
-          const songRef = doc(db, 'songs', songDoc.id)
-          batch.update(songRef, {
-            artist: editForm.name,
-            artistName: editForm.name,
-            updatedAt: new Date().toISOString()
-          })
-          batchCount++
+        console.log('Name changed, updating songs...')
+        try {
+          // 查詢所有該歌手的歌譜
+          const songsQuery = query(
+            collection(db, 'songs'),
+            where('artistId', '==', selectedArtist.id)
+          )
+          const songsSnapshot = await getDocs(songsQuery)
+          console.log('Found songs:', songsSnapshot.docs.length)
           
-          // Firebase 每批最多 500 個操作
-          if (batchCount >= 450) {
-            await batch.commit()
-            batch = writeBatch(db)
-            batchCount = 0
+          // 批量更新歌譜（每批最多 500 個）
+          let batch = writeBatch(db)
+          let batchCount = 0
+          
+          for (const songDoc of songsSnapshot.docs) {
+            const songRef = doc(db, 'songs', songDoc.id)
+            batch.update(songRef, {
+              artist: editForm.name,
+              artistName: editForm.name,
+              updatedAt: new Date().toISOString()
+            })
+            batchCount++
+            
+            // Firebase 每批最多 500 個操作
+            if (batchCount >= 450) {
+              await batch.commit()
+              batch = writeBatch(db)
+              batchCount = 0
+            }
           }
+          
+          if (batchCount > 0) {
+            await batch.commit()
+          }
+          
+          updatedTabCount = songsSnapshot.docs.length
+          console.log('Updated songs:', updatedTabCount)
+        } catch (songError) {
+          console.error('Error updating songs:', songError)
+          showMessage('更新歌譜失敗: ' + songError.message, 'error')
+          return
         }
-        
-        if (batchCount > 0) {
-          await batch.commit()
-        }
-        
-        updatedTabCount = songsSnapshot.docs.length
       }
       
       // 更新歌手資料
-      await updateDoc(artistRef, {
+      console.log('Updating artist...')
+      const updateData = {
         name: editForm.name,
-        artistType: editForm.artistType,
-        gender: editForm.artistType, // 同時更新兩個欄位兼容
-        bio: editForm.bio,
-        photoURL: editForm.photoURL,
-        wikiPhotoURL: editForm.wikiPhotoURL,
-        heroPhoto: editForm.heroPhoto,
+        artistType: editForm.artistType || '',
+        gender: editForm.artistType || '',
+        bio: editForm.bio || '',
+        photoURL: editForm.photoURL || '',
+        wikiPhotoURL: editForm.wikiPhotoURL || '',
+        heroPhoto: editForm.heroPhoto || '',
         birthYear: editForm.birthYear || '',
         debutYear: editForm.debutYear || '',
         updatedAt: new Date().toISOString()
-      })
+      }
+      
+      await updateDoc(artistRef, updateData)
+      console.log('Artist updated successfully')
 
       const message = nameChanged 
         ? `保存成功，已同步更新 ${updatedTabCount} 份歌譜的歌手名`

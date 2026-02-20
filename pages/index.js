@@ -152,8 +152,10 @@ export default function Home() {
   const [hotArtists, setHotArtists] = useState({
     male: [],
     female: [],
-    group: []
+    group: [],
+    all: []
   })
+  const [artistPhotoMap, setArtistPhotoMap] = useState({})
   const [autoPlaylists, setAutoPlaylists] = useState([])
   const [manualPlaylists, setManualPlaylists] = useState([])
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
@@ -259,6 +261,17 @@ export default function Home() {
 
       // 獲取熱門歌手（限制數量，提升性能）
       const popularArtists = await getPopularArtists(60)
+      
+      // 建立歌手照片 lookup（給歌曲封面 fallback 用）
+      const photoMap = {}
+      popularArtists.forEach(artist => {
+        photoMap[artist.id] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null
+        // 同時用歌手名作 key（因為 songs 用 artist 欄位）
+        if (artist.name) {
+          photoMap[artist.name] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null
+        }
+      })
+      setArtistPhotoMap(photoMap)
 
       // 計算網站總瀏覽量（基於熱門樂譜估算）
       const totalViews = popularArtists.reduce((sum, artist) => sum + (artist.viewCount || 0), 0)
@@ -619,15 +632,15 @@ export default function Home() {
                 >
                   {/* Square Cover */}
                   <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative">
-                    {getThumbnail(song) ? (
+                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
                       <img
-                        src={getThumbnail(song)}
+                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
                         alt={song.title}
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        
+                        🎵
                       </div>
                     )}
                   </div>
@@ -636,9 +649,6 @@ export default function Home() {
                     {song.title}
                   </h3>
                   <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {song.originalKey || 'C'} Key
-                  </p>
                 </button>
               ))}
             </div>
@@ -691,15 +701,15 @@ export default function Home() {
                 >
                   {/* Square Cover */}
                   <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {getThumbnail(song) ? (
+                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
                       <img
-                        src={getThumbnail(song)}
+                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
                         alt={song.title}
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">
-                        
+                        🎵
                       </div>
                     )}
                   </div>
@@ -708,9 +718,6 @@ export default function Home() {
                     {song.title}
                   </h3>
                   <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {song.originalKey || 'C'} Key
-                  </p>
                 </button>
               ))}
             </div>
