@@ -136,33 +136,6 @@ export default function ArtistsV2Page() {
     }
     return sorted
   })()
-    // 搜索過濾
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      const matchName = artist.name?.toLowerCase().includes(query)
-      const matchId = artist.id?.toLowerCase().includes(query)
-      if (!matchName && !matchId) return false
-    }
-
-    // 類型過濾
-    switch (filter) {
-      case 'noGender':
-        return !artist.artistType && !artist.gender
-      case 'noPhoto':
-        return !artist.photoURL && !artist.photo && !artist.wikiPhotoURL
-      case 'noHero':
-        return !artist.heroPhoto
-      case 'male':
-        return (artist.artistType === 'male' || artist.gender === 'male')
-      case 'female':
-        return (artist.artistType === 'female' || artist.gender === 'female')
-      case 'group':
-        return (artist.artistType === 'group' || artist.gender === 'group' || 
-                artist.artistType === 'band' || artist.gender === 'band')
-      default:
-        return true
-    }
-  })
 
   // 開始編輯
   const handleEdit = (artist) => {
