@@ -1169,204 +1169,197 @@ const TabContent = ({
     return elements;
   };
 
-  const ControlBar = () => (
-    <div className={`flex flex-col gap-2 sm:gap-4 p-2 sm:p-4 border-b transition-colors ${
-      theme === 'day' 
-        ? 'bg-gray-100 border-gray-300' 
-        : 'bg-black border-gray-800'
-    }`}>
-      {!hideKeySelector && (
-        <div>
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-            <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>原調:</span>
-            <span className={`text-xs sm:text-sm font-medium ${theme === 'day' ? 'text-gray-900' : 'text-white'}`}>{originalKey}</span>
-            <span className={theme === 'day' ? 'text-gray-400' : 'text-gray-600'}>→</span>
-            <span className={`text-xs sm:text-sm ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>PLAY:</span>
-            <span className={`text-xs sm:text-sm font-bold ${currentKey !== originalKey ? (theme === 'day' ? 'text-purple-600' : 'text-[#FFD700]') : (theme === 'day' ? 'text-gray-900' : 'text-white')}`}>
-              {currentKey}
-            </span>
-            
-            {currentKey !== originalKey && (
-              <>
-                {capoSuggestion.status === 'none' && (
-                  <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-gray-200 text-gray-600' : 'bg-gray-800 text-gray-400'}`}>免Capo</span>
-                )}
-                {capoSuggestion.status === 'ok' && (
-                  <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-green-100 text-green-700' : 'bg-green-900/50 text-green-400'}`}>Capo {displayCapo}</span>
-                )}
-                {capoSuggestion.status === 'high' && (
-                  <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded ${theme === 'day' ? 'bg-orange-100 text-orange-700' : 'bg-orange-900/50 text-orange-400'}`}>Capo {displayCapo}太高</span>
-                )}
-              </>
-            )}
-          </div>
+  const ControlBar = () => {
+    const [showKeyPanel, setShowKeyPanel] = useState(true);
+    
+    // 計算和弦統計
+    const chordStats = (() => {
+      const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)\b/g;
+      const matches = content?.match(chordPattern) || [];
+      const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/;
+      const chords = matches.filter(c => validChordPattern.test(c));
+      const uniqueChords = [...new Set(chords)];
+      const BARRE_CHORDS = ['B','Bm','Bb','Bbm','B7','Bm7','Bb7','C#','C#m','C#7','C#m7','Db','Dbm','F','Fm','F7','Fm7','F#','F#m','F#7','F#m7','Gb','Gbm','G#','G#m','G#7','G#m7','Ab','Abm'];
+      const barreCount = uniqueChords.filter(c => BARRE_CHORDS.includes(c)).length;
+      return { total: uniqueChords.length, barreCount };
+    })();
+    
+    return (
+      <div className="p-3 sm:p-4 border-b border-gray-800">
+        {/* 圓角卡片容器 */}
+        <div className={`rounded-2xl p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
           
-          {currentKey !== originalKey && capoSuggestion.alternative && (
-            <div className={`mb-2 text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-500' : 'text-gray-500'}`}>
-              <span className={theme === 'day' ? 'text-orange-600' : 'text-orange-400'}>提示：</span>
-              <span className="ml-1 text-white">{capoSuggestion.alternative.message}</span>
-              <span className="ml-2 text-gray-400">({capoSuggestion.alternative.tuningDesc})</span>
-              {capoSuggestion.alternative.newCapo > 0 ? (
-                <button
-                  onClick={() => {
-                    // 根據調音建議調整 Key
-                    const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
-                    const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
-                    setCurrentKey(targetKey)
-                    onKeyChange?.(targetKey)
-                  }}
-                  className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
-                >
-                  試試 {capoSuggestion.alternative.tuning}
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    const tuningKeys = { 'Eb Tuning': 'D#', 'D Tuning': 'D', 'Db Tuning': 'C#' };
-                    const targetKey = tuningKeys[capoSuggestion.alternative.tuning] || 'C';
-                    setCurrentKey(targetKey)
-                    onKeyChange?.(targetKey)
-                  }}
-                  className={`ml-2 px-2 py-0.5 rounded bg-[#FFD700] text-black hover:opacity-80 font-medium`}
-                >
-                  試試 {capoSuggestion.alternative.tuning}
-                </button>
+          {/* 第一行：Key | 出譜 | 和弦數 | 三角形 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] sm:text-xs whitespace-nowrap">
+              {/* Key */}
+              <span className="flex items-center gap-1">
+                <span className="text-[#FFD700]">♪</span>
+                <span className="text-white font-medium">{currentKey}</span>
+              </span>
+              
+              <span className="text-gray-600">|</span>
+              
+              {/* 出譜者 - 從外部傳入或從內容提取 */}
+              <span className="text-gray-400">
+                出譜 <span className="text-[#FFD700]">{playKey || originalKey}</span>
+              </span>
+              
+              {/* 和弦統計 */}
+              {chordStats.total > 0 && (
+                <>
+                  <span className="text-gray-600">|</span>
+                  <span className="text-gray-400">
+                    和弦數 <span className="text-[#FFD700]">{chordStats.total}</span>
+                    {chordStats.barreCount > 0 && (
+                      <span className="text-orange-400">({chordStats.barreCount}Barre)</span>
+                    )}
+                  </span>
+                </>
+              )}
+            </div>
+            
+            {/* 三角形展開/收起 */}
+            <button
+              onClick={() => setShowKeyPanel(!showKeyPanel)}
+              className="p-1 text-gray-400 hover:text-white transition"
+            >
+              <svg 
+                className={`w-4 h-4 transition-transform ${showKeyPanel ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* 展開面板 */}
+          {showKeyPanel && (
+            <div className="mt-3 pt-3 border-t border-gray-700">
+              
+              {/* 第二行：原調 → PLAY Capo */}
+              <div className="flex items-center gap-2 text-[11px] sm:text-xs mb-3 whitespace-nowrap">
+                <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
+                <span className="text-gray-600">→</span>
+                <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
+                {displayCapo > 0 && (
+                  <span className="bg-[#FFD700] text-black text-[10px] px-1.5 py-0.5 rounded font-medium">
+                    Capo {displayCapo}
+                  </span>
+                )}
+              </div>
+
+              {!hideKeySelector && (
+                <>
+                  {/* 第三行：12個KEY大波波 */}
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
+                    {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
+                      const isCurrent = key === currentKey;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            setCurrentKey(key);
+                            onKeyChange?.(key);
+                          }}
+                          className={`
+                            flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10
+                            rounded-full 
+                            flex items-center justify-center 
+                            text-xs sm:text-sm font-bold
+                            transition hover:scale-105
+                            ${isCurrent
+                              ? 'bg-[#FFD700] text-black'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                            }
+                          `}
+                        >
+                          {key}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 第四行：字體控制 + 自動滾動 */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+                    <div className="flex items-center gap-1.5">
+                      {/* A- */}
+                      <button
+                        onClick={() => handleFontSize(-1)}
+                        className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
+                      >
+                        A-
+                      </button>
+                      {/* 字體數字 */}
+                      <span className="w-6 text-center text-xs text-gray-400">{fontSize}</span>
+                      {/* A+ */}
+                      <button
+                        onClick={() => handleFontSize(1)}
+                        className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs"
+                      >
+                        A+
+                      </button>
+                      
+                      <div className="w-px h-5 bg-gray-700 mx-1" />
+                      
+                      {/* 自動滾動 */}
+                      <button
+                        onClick={() => setIsAutoScroll(!isAutoScroll)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition text-xs ${
+                          isAutoScroll 
+                            ? 'bg-[#FFD700] text-black'
+                            : 'bg-gray-800 text-white hover:bg-gray-700'
+                        }`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        <span>自動滾動</span>
+                      </button>
+                      
+                      {/* 速度控制 */}
+                      {isAutoScroll && (
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
+                            className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
+                            disabled={scrollSpeed <= 0}
+                          >
+                            −
+                          </button>
+                          <span className="w-4 text-center text-xs text-gray-400">{scrollSpeed}</span>
+                          <button
+                            onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
+                            className="w-5 h-5 flex items-center justify-center rounded bg-gray-700 text-white text-xs"
+                            disabled={scrollSpeed >= 4}
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 複製按鈕 */}
+                    <button
+                      onClick={handleCopy}
+                      className="p-2 text-gray-400 hover:text-white transition"
+                      title="複製歌詞"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}
-          
-          {/* Key Selector - 響應式：手機 375px 顯示 12 個 Key */}
-          <div className="flex flex-wrap gap-[2px] sm:gap-1.5 pb-1 sm:pb-2">
-            {/* 只顯示 12 個基本 Key（移除 Gb 避免重複）*/}
-            {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm', 'G#m', 'A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
-              const isCurrent = key === currentKey;
-              return (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setCurrentKey(key)
-                    onKeyChange?.(key)
-                  }}
-                  className={`
-                    flex-shrink-0
-                    w-5 h-5 sm:w-8 sm:h-8 md:w-9 md:h-9
-                    rounded-full 
-                    flex items-center justify-center 
-                    text-[10px] sm:text-xs md:text-sm font-bold
-                    transition hover:scale-105
-                    ${isCurrent
-                      ? theme === 'day'
-                        ? 'bg-purple-600 text-white ring-1 sm:ring-2 ring-purple-600'
-                        : 'bg-[#FFD700] text-black'
-                      : theme === 'day'
-                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-                    }
-                  `}
-                >
-                  {key}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {!hideKeySelector && <div className={`h-px ${theme === 'day' ? 'bg-gray-300' : 'bg-gray-700'}`} />}
-
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 sm:gap-3">
-          <div className="flex items-center gap-0.5 sm:gap-2">
-            <button
-              onClick={() => handleFontSize(-1)}
-              className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded transition text-[10px] sm:text-xs ${
-                theme === 'day'
-                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
-            >
-              A-
-            </button>
-            <span className={`w-6 sm:w-8 text-center text-xs ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>{fontSize}</span>
-            <button
-              onClick={() => handleFontSize(1)}
-              className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded transition text-xs sm:text-sm ${
-                theme === 'day'
-                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
-            >
-              A+
-            </button>
-          </div>
-
-          <div className={`w-px h-4 sm:h-6 ${theme === 'day' ? 'bg-gray-300' : 'bg-gray-700'}`} />
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setIsAutoScroll(!isAutoScroll)}
-              className={`flex items-center gap-0.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded transition text-xs ${
-                isAutoScroll 
-                  ? theme === 'day'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-[#FFD700] text-black'
-                  : theme === 'day'
-                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
-            >
-              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-              <span>{isAutoScroll ? '停止' : '自動滾動'}</span>
-            </button>
-            
-            {isAutoScroll && (
-              <div className="flex items-center gap-0.5">
-                <button
-                  onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
-                  className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded text-[10px] sm:text-xs ${
-                    theme === 'day'
-                      ? 'bg-gray-200 text-gray-700'
-                      : 'bg-gray-700 text-white'
-                  }`}
-                  disabled={scrollSpeed <= 0}
-                >
-                  −
-                </button>
-                <span className={`w-4 sm:w-5 text-center text-[10px] sm:text-xs ${theme === 'day' ? 'text-gray-600' : 'text-gray-400'}`}>{scrollSpeed}</span>
-                <button
-                  onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
-                  className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded text-[10px] sm:text-xs ${
-                    theme === 'day'
-                      ? 'bg-gray-200 text-gray-700'
-                      : 'bg-gray-700 text-white'
-                  }`}
-                  disabled={scrollSpeed >= 4}
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            className={`p-1.5 sm:px-3 sm:py-1.5 transition ${
-              theme === 'day' ? 'text-purple-600 hover:text-purple-800' : 'text-[#FFD700] hover:opacity-80'
-            }`}
-            title="複製譜內容"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (isEditing && editable) {
     return (
