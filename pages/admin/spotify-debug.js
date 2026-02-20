@@ -101,116 +101,102 @@ function SpotifyDebugPage() {
           </div>
         )}
         
-        {result && (
+        {result && result.details && (
           <div className="space-y-6">
             {/* 基本資訊 */}
             <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
               <h2 className="text-lg font-medium text-white mb-4">基本資訊</h2>
               <div className="flex items-center gap-4">
-                {result.track.albumImage && (
-                  <img src={result.track.albumImage} alt="" className="w-20 h-20 rounded object-cover" />
+                {result.details.result?.albumImage && (
+                  <img src={result.details.result.albumImage} alt="" className="w-20 h-20 rounded object-cover" />
                 )}
                 <div>
-                  <div className="text-[#1DB954] font-medium text-lg">{result.track.name}</div>
-                  <div className="text-gray-400">{result.track.artist}</div>
-                  <div className="text-gray-500 text-sm">{result.track.album} · {result.track.releaseYear}</div>
+                  <div className="text-[#1DB954] font-medium text-lg">{result.details.result?.name}</div>
+                  <div className="text-gray-400">{result.details.result?.artist}</div>
+                  <div className="text-gray-500 text-sm">{result.details.result?.album} · {result.details.result?.releaseYear}</div>
                 </div>
               </div>
             </div>
             
             {/* Audio Features */}
-            {result.details && (
+            {result.details.result?.audioFeatures && (
               <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
                 <h2 className="text-lg font-medium text-white mb-4">
                   Audio Features 
-                  {result.details.hasAudioFeatures && <span className="text-green-500 text-sm ml-2">✓ 可用</span>}
+                  <span className="text-green-500 text-sm ml-2">✓ 可用</span>
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-black rounded-lg p-3">
                     <div className="text-gray-500 text-xs">BPM</div>
-                    <div className="text-[#FFD700] text-xl font-bold">{result.details.bpm || '-'}</div>
+                    <div className="text-[#FFD700] text-xl font-bold">{result.details.result.audioFeatures.bpm || '-'}</div>
                   </div>
                   <div className="bg-black rounded-lg p-3">
                     <div className="text-gray-500 text-xs">調性 (Key)</div>
-                    <div className="text-white text-xl font-bold">{result.details.key !== undefined ? result.details.key : '-'}</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.key || '-'}</div>
                   </div>
                   <div className="bg-black rounded-lg p-3">
                     <div className="text-gray-500 text-xs">拍號</div>
-                    <div className="text-white text-xl font-bold">{result.details.timeSignature || '-'}</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.timeSignature || '-'}</div>
                   </div>
                   <div className="bg-black rounded-lg p-3">
                     <div className="text-gray-500 text-xs">能量</div>
-                    <div className="text-white text-xl font-bold">{result.details.energy !== undefined ? Math.round(result.details.energy * 100) : '-'}%</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.energy || '-'}%</div>
                   </div>
                 </div>
                 
-                {/* 顯示原始數據 */}
-                <details className="mt-4">
-                  <summary className="text-gray-500 text-sm cursor-pointer">查看原始 Audio Features 數據</summary>
-                  <pre className="mt-2 text-xs text-gray-400 bg-black p-3 rounded-lg overflow-auto max-h-60">
-                    {JSON.stringify({
-                      bpm: result.details.bpm,
-                      key: result.details.key,
-                      mode: result.details.mode,
-                      timeSignature: result.details.timeSignature,
-                      danceability: result.details.danceability,
-                      energy: result.details.energy,
-                      valence: result.details.valence
-                    }, null, 2)}
-                  </pre>
-                </details>
+                {/* 更多 Audio Features */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="bg-black rounded-lg p-3">
+                    <div className="text-gray-500 text-xs">舞曲性</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.danceability || '-'}%</div>
+                  </div>
+                  <div className="bg-black rounded-lg p-3">
+                    <div className="text-gray-500 text-xs">情緒值</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.valence || '-'}%</div>
+                  </div>
+                  <div className="bg-black rounded-lg p-3">
+                    <div className="text-gray-500 text-xs">原聲度</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.acousticness || '-'}%</div>
+                  </div>
+                  <div className="bg-black rounded-lg p-3">
+                    <div className="text-gray-500 text-xs">模式</div>
+                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.mode || '-'}</div>
+                  </div>
+                </div>
               </div>
             )}
             
             {/* Credits */}
-            {result.details && (
+            {result.details.result?.credits && result.details.result.credits.length > 0 && (
               <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
                 <h2 className="text-lg font-medium text-white mb-4">
                   Credits
-                  {result.details.hasCredits ? <span className="text-green-500 text-sm ml-2">✓ 可用</span> : <span className="text-red-500 text-sm ml-2">✗ 不可用</span>}
+                  <span className="text-green-500 text-sm ml-2">✓ 可用</span>
                 </h2>
                 
-                {result.details.composers || result.details.lyricists || result.details.producers ? (
-                  <div className="space-y-2">
-                    {result.details.composers && (
-                      <div className="flex gap-2">
-                        <span className="text-gray-500 w-16">作曲:</span>
-                        <span className="text-white">{result.details.composers}</span>
-                      </div>
-                    )}
-                    {result.details.lyricists && (
-                      <div className="flex gap-2">
-                        <span className="text-gray-500 w-16">填詞:</span>
-                        <span className="text-white">{result.details.lyricists}</span>
-                      </div>
-                    )}
-                    {result.details.producers && (
-                      <div className="flex gap-2">
-                        <span className="text-gray-500 w-16">監製:</span>
-                        <span className="text-white">{result.details.producers}</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm">沒有 Credits 資訊</p>
-                )}
-                
-                {/* 顯示原始數據 */}
-                <details className="mt-4">
-                  <summary className="text-gray-500 text-sm cursor-pointer">查看原始 Credits 數據</summary>
-                  <pre className="mt-2 text-xs text-gray-400 bg-black p-3 rounded-lg overflow-auto max-h-60">
-                    {JSON.stringify({
-                      composers: result.details.composers,
-                      lyricists: result.details.lyricists,
-                      producers: result.details.producers,
-                      performers: result.details.performers
-                    }, null, 2)}
-                  </pre>
-                </details>
+                <div className="space-y-2">
+                  {result.details.result.credits.map((credit, i) => (
+                    <div key={i} className="flex gap-2">
+                      <span className="text-gray-500 w-20">{credit.role}:</span>
+                      <span className="text-white">{credit.artists?.join(', ')}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             
-            {/* 完整原始數據 */}
+            {/* Credits 不可用提示 */}
+            {(!result.details.result?.credits || result.details.result.credits.length === 0) && (
+              <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+                <h2 className="text-lg font-medium text-white mb-4">
+                  Credits
+                  <span className="text-red-500 text-sm ml-2">✗ 不可用</span>
+                </h2>
+                <p className="text-gray-500 text-sm">Spotify 沒有提供這首歌的 Credits 資訊</p>
+              </div>
+            )}
+            
+            {/* 完整 API 回應 */}
             <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
               <h2 className="text-lg font-medium text-white mb-4">完整 API 回應</h2>
               <pre className="text-xs text-gray-400 bg-black p-3 rounded-lg overflow-auto max-h-96">
