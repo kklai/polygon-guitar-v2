@@ -64,6 +64,21 @@ function SpotifyDebugPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-white mb-6">🎧 Spotify API 測試</h1>
         
+        {/* API 狀態提示 */}
+        <div className="bg-yellow-900/20 border border-yellow-800 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <h3 className="text-yellow-400 font-medium">API 限制通知</h3>
+              <p className="text-yellow-200/70 text-sm mt-1">
+                Spotify 已於 2024年11月27日棄用 Audio Features API。<br/>
+                只有之前申請咗配額擴展嘅 App 先至可以用 BPM、Key 等功能。<br/>
+                基本歌曲資訊（歌名、歌手、專輯封面）仍然正常運作。
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div className="bg-[#121212] rounded-xl p-6 border border-gray-800 mb-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
@@ -105,7 +120,7 @@ function SpotifyDebugPage() {
           <div className="space-y-6">
             {/* 基本資訊 */}
             <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
-              <h2 className="text-lg font-medium text-white mb-4">基本資訊</h2>
+              <h2 className="text-lg font-medium text-white mb-4">基本資訊 ✓</h2>
               <div className="flex items-center gap-4">
                 {result.details.result?.albumImage && (
                   <img src={result.details.result.albumImage} alt="" className="w-20 h-20 rounded object-cover" />
@@ -114,87 +129,48 @@ function SpotifyDebugPage() {
                   <div className="text-[#1DB954] font-medium text-lg">{result.details.result?.name}</div>
                   <div className="text-gray-400">{result.details.result?.artist}</div>
                   <div className="text-gray-500 text-sm">{result.details.result?.album} · {result.details.result?.releaseYear}</div>
+                  <a 
+                    href={result.details.result?.spotifyUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[#1DB954] text-sm hover:underline mt-1 inline-block"
+                  >
+                    在 Spotify 開啟 →
+                  </a>
                 </div>
               </div>
             </div>
             
-            {/* Audio Features */}
-            {result.details.result?.audioFeatures && (
-              <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
-                <h2 className="text-lg font-medium text-white mb-4">
-                  Audio Features 
-                  <span className="text-green-500 text-sm ml-2">✓ 可用</span>
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">BPM</div>
-                    <div className="text-[#FFD700] text-xl font-bold">{result.details.result.audioFeatures.bpm || '-'}</div>
-                  </div>
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">調性 (Key)</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.key || '-'}</div>
-                  </div>
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">拍號</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.timeSignature || '-'}</div>
-                  </div>
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">能量</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.energy || '-'}%</div>
-                  </div>
-                </div>
-                
-                {/* 更多 Audio Features */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">舞曲性</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.danceability || '-'}%</div>
-                  </div>
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">情緒值</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.valence || '-'}%</div>
-                  </div>
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">原聲度</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.acousticness || '-'}%</div>
-                  </div>
-                  <div className="bg-black rounded-lg p-3">
-                    <div className="text-gray-500 text-xs">模式</div>
-                    <div className="text-white text-xl font-bold">{result.details.result.audioFeatures.mode || '-'}</div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Audio Features - 已棄用 */}
+            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800 opacity-60">
+              <h2 className="text-lg font-medium text-white mb-4">
+                Audio Features 
+                <span className="text-red-500 text-sm ml-2">✗ API 已棄用</span>
+              </h2>
+              <p className="text-gray-500 text-sm">
+                Spotify 於 2024年11月27日棄用 Audio Features API。<br/>
+                無法獲取 BPM、調性、能量等數據。
+              </p>
+              {result.details.audioFeaturesError && (
+                <details className="mt-4">
+                  <summary className="text-gray-600 text-sm cursor-pointer">查看錯誤詳情</summary>
+                  <pre className="mt-2 text-xs text-gray-500 bg-black p-3 rounded-lg overflow-auto">
+                    {JSON.stringify(result.details.audioFeaturesError, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
             
-            {/* Credits */}
-            {result.details.result?.credits && result.details.result.credits.length > 0 && (
-              <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
-                <h2 className="text-lg font-medium text-white mb-4">
-                  Credits
-                  <span className="text-green-500 text-sm ml-2">✓ 可用</span>
-                </h2>
-                
-                <div className="space-y-2">
-                  {result.details.result.credits.map((credit, i) => (
-                    <div key={i} className="flex gap-2">
-                      <span className="text-gray-500 w-20">{credit.role}:</span>
-                      <span className="text-white">{credit.artists?.join(', ')}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Credits 不可用提示 */}
-            {(!result.details.result?.credits || result.details.result.credits.length === 0) && (
-              <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
-                <h2 className="text-lg font-medium text-white mb-4">
-                  Credits
-                  <span className="text-red-500 text-sm ml-2">✗ 不可用</span>
-                </h2>
-                <p className="text-gray-500 text-sm">Spotify 沒有提供這首歌的 Credits 資訊</p>
-              </div>
-            )}
+            {/* Credits - 不可用 */}
+            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800 opacity-60">
+              <h2 className="text-lg font-medium text-white mb-4">
+                Credits
+                <span className="text-red-500 text-sm ml-2">✗ 不可用</span>
+              </h2>
+              <p className="text-gray-500 text-sm">
+                Credits API 需要特殊權限，或該歌曲冇提供 Credits 資訊。
+              </p>
+            </div>
             
             {/* 完整 API 回應 */}
             <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
