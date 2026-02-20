@@ -35,6 +35,7 @@ export default function ArtistsV2Page() {
   const [message, setMessage] = useState(null)
   const [selectedArtists, setSelectedArtists] = useState(new Set()) // 多選功能
   const [batchMode, setBatchMode] = useState(false) // 批量模式
+  const [sortOrder, setSortOrder] = useState('name') // 排序方式: name, tabsDesc, tabsAsc
   const [stats, setStats] = useState({
     total: 0,
     withGender: 0,
@@ -87,8 +88,54 @@ export default function ArtistsV2Page() {
     setTimeout(() => setMessage(null), 3000)
   }
 
-  // 過濾歌手
-  const filteredArtists = artists.filter(artist => {
+  // 過濾並排序歌手
+  const filteredAndSortedArtists = (() => {
+    // 先過濾
+    const filtered = artists.filter(artist => {
+      // 搜索過濾
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase()
+        const matchName = artist.name?.toLowerCase().includes(query)
+        const matchId = artist.id?.toLowerCase().includes(query)
+        if (!matchName && !matchId) return false
+      }
+
+      // 類型過濾
+      switch (filter) {
+        case 'noGender':
+          return !artist.artistType && !artist.gender
+        case 'noPhoto':
+          return !artist.photoURL && !artist.photo && !artist.wikiPhotoURL
+        case 'noHero':
+          return !artist.heroPhoto
+        case 'male':
+          return (artist.artistType === 'male' || artist.gender === 'male')
+        case 'female':
+          return (artist.artistType === 'female' || artist.gender === 'female')
+        case 'group':
+          return (artist.artistType === 'group' || artist.gender === 'group' || 
+                  artist.artistType === 'band' || artist.gender === 'band')
+        default:
+          return true
+      }
+    })
+
+    // 再排序
+    const sorted = [...filtered]
+    switch (sortOrder) {
+      case 'tabsDesc':
+        sorted.sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+        break
+      case 'tabsAsc':
+        sorted.sort((a, b) => (a.tabCount || 0) - (b.tabCount || 0))
+        break
+      case 'name':
+      default:
+        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        break
+    }
+    return sorted
+  })()
     // 搜索過濾
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
@@ -172,12 +219,12 @@ export default function ArtistsV2Page() {
 
   // 多選功能：全選當前過濾結果
   const selectAll = () => {
-    if (selectedArtists.size === filteredArtists.length) {
+    if (selectedArtists.size === filteredAndSortedArtists.length) {
       // 如果已全部選中，則取消全選
       setSelectedArtists(new Set())
     } else {
       // 否則全選
-      const newSelected = new Set(filteredArtists.map(a => a.id))
+      const newSelected = new Set(filteredAndSortedArtists.map(a => a.id))
       setSelectedArtists(newSelected)
     }
   }
@@ -327,6 +374,16 @@ export default function ArtistsV2Page() {
                 <option value="female">女歌手</option>
                 <option value="group">組合/樂隊</option>
               </select>
+              
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="bg-[#121212] text-white border border-gray-700 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="name">按名稱</option>
+                <option value="tabsDesc">按譜數 (多到少)</option>
+                <option value="tabsAsc">按譜數 (少到多)</option>
+              </select>
             </div>
 
             <div className="flex items-center gap-2">
@@ -350,7 +407,7 @@ export default function ArtistsV2Page() {
                   onClick={selectAll}
                   className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-3 py-2 rounded-lg text-sm transition-colors"
                 >
-                  {selectedArtists.size === filteredArtists.length ? '取消全選' : '全選'} ({selectedArtists.size})
+                  {selectedArtists.size === filteredAndSortedArtists.length ? '取消全選' : '全選'} ({selectedArtists.size})
                 </button>
               )}
               
@@ -389,21 +446,21 @@ export default function ArtistsV2Page() {
           {/* 歌手列表 */}
           {loading ? (
             <div className="text-center py-12 text-[#B3B3B3]">載入中...</div>
-          ) : filteredArtists.length === 0 ? (
+          ) : filteredAndSortedArtists.length === 0 ? (
             <div className="text-center py-12 text-[#B3B3B3]">
               沒有符合條件的歌手
             </div>
           ) : (
             <div className="space-y-3">
               <div className="text-[#B3B3B3] text-sm mb-2 flex items-center justify-between">
-                <span>顯示 {filteredArtists.length} / {stats.total} 個歌手</span>
+                <span>顯示 {filteredAndSortedArtists.length} / {stats.total} 個歌手</span>
                 {selectedArtists.size > 0 && (
                   <span className="text-[#FFD700]">
                     已選擇 {selectedArtists.size} 個歌手
                   </span>
                 )}
               </div>
-              {filteredArtists.map((artist) => (
+              {filteredAndSortedArtists.map((artist) => (
                 <div
                   key={artist.id}
                   className={`bg-[#121212] rounded-lg border ${
