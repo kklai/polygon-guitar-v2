@@ -1179,10 +1179,13 @@ const TabContent = ({
     
     // 計算和弦統計
     const chordStats = (() => {
-      const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)\b/g;
-      const matches = content?.match(chordPattern) || [];
+      if (!content) return { total: 0, barreCount: 0 };
+      // 更寬鬆的和弦匹配
+      const chordPattern = /\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(?:\/[A-G][#b]?)?\b/g;
+      const matches = content.match(chordPattern) || [];
+      // 過濾有效和弦
       const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/;
-      const chords = matches.filter(c => validChordPattern.test(c));
+      const chords = matches.filter(c => validChordPattern.test(c.replace(/\/.*/, '')));
       const uniqueChords = [...new Set(chords)];
       const BARRE_CHORDS = ['B','Bm','Bb','Bbm','B7','Bm7','Bb7','C#','C#m','C#7','C#m7','Db','Dbm','F','Fm','F7','Fm7','F#','F#m','F#7','F#m7','Gb','Gbm','G#','G#m','G#7','G#m7','Ab','Abm'];
       const barreCount = uniqueChords.filter(c => BARRE_CHORDS.includes(c)).length;
@@ -1192,9 +1195,9 @@ const TabContent = ({
     const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.strummingPattern || songInfo.fingeringTips);
     
     return (
-      <div className="px-2 sm:px-4 py-3 border-b border-gray-800">
-        {/* 圓角卡片容器 - 加闊 */}
-        <div className={`rounded-2xl p-3 sm:p-4 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
+      <div className="px-2 sm:px-4 py-2 border-b border-gray-800">
+        {/* 圓角卡片容器 */}
+        <div className={`rounded-2xl p-2.5 sm:p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
           
           {/* 第一行：Key | 出譜 | 和弦數 | 三角形(開YouTube/資訊) */}
           <div className="flex items-center justify-between">
