@@ -27,7 +27,7 @@ export default function RecentItems({ items = [] }) {
   if (displayItems.length === 0) return null;
 
   return (
-    <div className="mb-4">
+    <div className="mb-8">
       <div className="flex justify-between items-center mb-2 px-6">
         <h2 className="text-white text-xl font-bold">最近瀏覽</h2>
         <button 
@@ -91,7 +91,7 @@ export default function RecentItems({ items = [] }) {
               </div>
               
               {/* 文字資訊 */}
-              <div className="text-center">
+              <div className="text-left">
                 <p className="text-white text-sm font-medium truncate leading-tight">
                   {item.title}
                 </p>
