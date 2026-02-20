@@ -217,11 +217,67 @@ export default function ArtistPage() {
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <h1 className="text-4xl font-bold text-white mb-2">{artist.name}</h1>
-          <p className="text-[#B3B3B3] text-sm">
-            {artist.songCount || hotTabs.length + allTabs.length} 首歌曲
-          </p>
+          
+          {/* 歌手資訊：年份 + 歌曲數 */}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {/* 出生年份 */}
+            {artist.birthYear && (
+              <span className="text-[#B3B3B3]">
+                {artist.birthYear}年
+              </span>
+            )}
+            
+            {/* 出道年份 */}
+            {artist.debutYear && (
+              <span className="text-[#B3B3B3]">
+                {artist.debutYear}年出道
+              </span>
+            )}
+            
+            {/* 分隔符 */}
+            {(artist.birthYear || artist.debutYear) && (
+              <span className="text-[#555]">·</span>
+            )}
+            
+            {/* 歌曲數 */}
+            <span className="text-[#B3B3B3]">
+              {artist.songCount || hotTabs.length + allTabs.length} 首歌曲
+            </span>
+            
+            {/* Spotify 粉絲數 */}
+            {artist.spotifyFollowers && (
+              <>
+                <span className="text-[#555]">·</span>
+                <span className="text-[#1DB954]">
+                  {(artist.spotifyFollowers / 10000).toFixed(1)}萬粉絲
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* 歌手簡介 */}
+      {artist.bio && (
+        <section className="px-4 mt-4">
+          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+            <p className="text-[#B3B3B3] text-sm leading-relaxed line-clamp-3" id="artist-bio">
+              {artist.bio}
+            </p>
+            {artist.bio.length > 100 && (
+              <button 
+                onClick={() => {
+                  const bio = document.getElementById('artist-bio');
+                  bio.classList.toggle('line-clamp-3');
+                }}
+                className="text-[#FFD700] text-xs mt-2 hover:underline"
+              >
+                顯示更多
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* 熱門歌曲（前5首 - 有相片） */}
       <section className="px-4 mt-6">

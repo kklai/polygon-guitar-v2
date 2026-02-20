@@ -32,17 +32,6 @@ export default async function handler(req, res) {
       body: 'grant_type=client_credentials'
     })
     
-    // 檢查是否為 rate limit 錯誤
-    const contentType = tokenResponse.headers.get('content-type')
-    if (!contentType?.includes('application/json')) {
-      const text = await tokenResponse.text()
-      console.error('Token error (non-JSON):', text)
-      return res.status(429).json({ 
-        error: 'Rate limited',
-        message: 'Spotify API rate limit reached. Please try again later.'
-      })
-    }
-    
     const tokenData = await tokenResponse.json()
     
     if (!tokenResponse.ok) {
@@ -54,21 +43,17 @@ export default async function handler(req, res) {
     
     const accessToken = tokenData.access_token
     
-    // 只獲取歌曲基本資訊（減少 API 請求避免 rate limit）
-    const trackRes = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    })
-    
-    // 檢查 rate limit（返回純文本時）
-    const ct = trackRes.headers.get('content-type')
-    if (!ct?.includes('application/json')) {
-      const text = await trackRes.text()
-      console.error('Track response (non-JSON):', text)
-      return res.status(429).json({ 
-        error: 'Rate limited',
-        message: 'Spotify API rate limit reached. Please try again later.'
+    // 並行獲取所有數據
+    const [trackRes, audioFeaturesRes] = await Promise.all([
+      // 1. 歌曲基本資訊
+      fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }),
+      // 2. Audio Features (BPM, Key, etc.)
+      fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
       })
-    }
+    ])
     
     if (!trackRes.ok) {
       return res.status(trackRes.status).json({ 
@@ -78,8 +63,22 @@ export default async function handler(req, res) {
     }
     
     const trackData = await trackRes.json()
+    const audioFeaturesData = audioFeaturesRes.ok ? await audioFeaturesRes.json() : null
     
-    // 格式化結果（只包含基本資料）
+    // 嘗試獲取 Credits (這是 Web API 的 Beta 功能，可能不是所有歌曲都有)
+    let creditsData = null
+    try {
+      const creditsRes = await fetch(`https://api.spotify.com/v1/tracks/${trackId}/credits`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      })
+      if (creditsRes.ok) {
+        creditsData = await creditsRes.json()
+      }
+    } catch (e) {
+      // Credits API 可能不可用，忽略錯誤
+    }
+    
+    // 格式化結果
     const result = {
       // 基本資訊
       id: trackData?.id,
@@ -95,13 +94,34 @@ export default async function handler(req, res) {
       popularity: trackData?.popularity,
       previewUrl: trackData?.preview_url,
       spotifyUrl: trackData?.external_urls?.spotify,
+      
+      // Audio Features
+      audioFeatures: audioFeaturesData ? {
+        bpm: Math.round(audioFeaturesData.tempo),
+        key: formatKey(audioFeaturesData.key, audioFeaturesData.mode),
+        mode: audioFeaturesData.mode === 1 ? 'Major' : 'Minor',
+        timeSignature: audioFeaturesData.time_signature,
+        energy: Math.round(audioFeaturesData.energy * 100),
+        danceability: Math.round(audioFeaturesData.danceability * 100),
+        valence: Math.round(audioFeaturesData.valence * 100),
+        acousticness: Math.round(audioFeaturesData.acousticness * 100),
+        instrumentalness: Math.round(audioFeaturesData.instrumentalness * 100),
+        loudness: audioFeaturesData.loudness,
+        speechiness: Math.round(audioFeaturesData.speechiness * 100)
+      } : null,
+      
+      // Credits
+      credits: creditsData?.credits?.map(c => ({
+        role: c.role,
+        artists: c.artists?.map(a => a.name)
+      })) || null
     }
     
     return res.status(200).json({
       result,
-      hasCredits: false,
-      hasAudioFeatures: false,
-      message: 'Basic info only (BPM/credits excluded to avoid rate limit)'
+      hasCredits: !!creditsData,
+      hasAudioFeatures: !!audioFeaturesData,
+      message: audioFeaturesData ? 'Full data retrieved' : 'Basic info only'
     })
     
   } catch (error) {
@@ -111,4 +131,12 @@ export default async function handler(req, res) {
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     })
   }
+}
+
+// 格式化調性
+function formatKey(key, mode) {
+  const keys = ['C', 'C♯/D♭', 'D', 'D♯/E♭', 'E', 'F', 'F♯/G♭', 'G', 'G♯/A♭', 'A', 'A♯/B♭', 'B']
+  const keyName = keys[key] || '?'
+  const modeName = mode === 1 ? '' : 'm' // Major 不顯示，Minor 顯示 m
+  return keyName + modeName
 }
