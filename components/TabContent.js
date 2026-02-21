@@ -362,6 +362,88 @@ function isNumericNotationLine(line) {
   return false;
 }
 
+// 從簡譜行提取所有數字
+function extractNotationNumbers(line) {
+  const numbers = [];
+  const regex = /(\d+\.?\d*|\d)/g;
+  let match;
+  while ((match = regex.exec(line)) !== null) {
+    numbers.push({
+      value: match[0],
+      index: match.index
+    });
+  }
+  return numbers;
+}
+
+// 從歌詞行提取所有括號對位置
+function extractLyricBrackets(line) {
+  const brackets = [];
+  const regex = /\([^)]*\)/g;
+  let match;
+  while ((match = regex.exec(line)) !== null) {
+    brackets.push({
+      content: match[0],
+      index: match.index,
+      length: match[0].length
+    });
+  }
+  return brackets;
+}
+
+// 將簡譜數字與歌詞括號對齊
+function alignNotationWithLyrics(notationLine, lyricLine) {
+  const numbers = extractNotationNumbers(notationLine);
+  const brackets = extractLyricBrackets(lyricLine);
+  
+  // 如果數量不匹配，返回 null（使用普通渲染）
+  if (numbers.length !== brackets.length || numbers.length === 0) {
+    return null;
+  }
+  
+  // 計算每個位置的寬度（假設使用等寬字體）
+  const result = [];
+  let lastEnd = 0;
+  
+  for (let i = 0; i < brackets.length; i++) {
+    const bracket = brackets[i];
+    const number = numbers[i];
+    
+    // 括號前的歌詞
+    if (bracket.index > lastEnd) {
+      const beforeText = lyricLine.substring(lastEnd, bracket.index);
+      result.push({
+        type: 'lyric',
+        content: beforeText,
+        isInside: false
+      });
+    }
+    
+    // 簡譜數字 + 括號內歌詞（組合成一個單元）
+    const bracketContent = bracket.content; // 包括括號
+    result.push({
+      type: 'pair',
+      notation: number.value,
+      lyric: bracketContent,
+      notationWidth: getTextWidth(number.value),
+      lyricWidth: getTextWidth(bracketContent)
+    });
+    
+    lastEnd = bracket.index + bracket.length;
+  }
+  
+  // 剩餘的歌詞
+  if (lastEnd < lyricLine.length) {
+    result.push({
+      type: 'lyric',
+      content: lyricLine.substring(lastEnd),
+      isInside: false
+    });
+  }
+  
+  return result;
+}
+
 // 處理簡譜行（數字旋律譜）- 括號內所有內容（數字+歌詞）標記為白色
 function processNumericNotationLine(line) {
   // 如果冇括號，成行都係簡譜數字（粉紅色）
@@ -1171,41 +1253,136 @@ const TabContent = ({
                 {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
               
-              {/* 中間的簡譜行 */}
+              {/* 中間的簡譜行 - 支持與歌詞對齊 */}
               {notationLines.map(({ index, line: notationLine }) => {
-                const notationParts = processNumericNotationLine(notationLine);
                 const notationFontSize = getLineFontSize(notationLine);
-                return (
-                  <div key={index} style={{ 
-                    fontSize: `${notationFontSize}px`, 
-                    marginBottom: `${notationFontSize * 0.3}px`,
-                    whiteSpace: 'pre-wrap', 
-                    overflowWrap: 'break-word',
-                    fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
-                  }}>
-                    {notationParts.map((part, idx) => (
-                      <span key={idx} style={{
-                        color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
-                        fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                
+                // 嘗試對齊簡譜與歌詞
+                const aligned = alignNotationWithLyrics(notationLine, lyricLine);
+                
+                if (aligned) {
+                  // 對齊模式：簡譜數字對應歌詞括號
+                  return (
+                    <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
+                      {/* 簡譜行 */}
+                      <div style={{ 
+                        fontSize: `${notationFontSize}px`, 
+                        whiteSpace: 'pre-wrap',
+                        overflowWrap: 'break-word',
+                        fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                        color: colors.numericNotation,
+                        marginBottom: '0.1em',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-end'
                       }}>
-                        {part.content}
-                      </span>
-                    ))}
-                  </div>
-                );
+                        {aligned.map((item, idx) => {
+                          if (item.type === 'lyric') {
+                            // 透明佔位，保持對齊
+                            return (
+                              <span key={idx} style={{ 
+                                visibility: 'hidden',
+                                whiteSpace: 'pre'
+                              }}>
+                                {item.content}
+                              </span>
+                            );
+                          } else if (item.type === 'pair') {
+                            // 簡譜數字 - 置中對齊
+                            return (
+                              <span key={idx} style={{
+                                display: 'inline-flex',
+                                justifyContent: 'center',
+                                minWidth: `${Math.max(item.notationWidth, item.lyricWidth) * (notationFontSize / 2)}px`,
+                                color: colors.numericNotation,
+                                fontWeight: 'bold'
+                              }}>
+                                {item.notation}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // 普通模式：直接渲染簡譜
+                  const notationParts = processNumericNotationLine(notationLine);
+                  return (
+                    <div key={index} style={{ 
+                      fontSize: `${notationFontSize}px`, 
+                      marginBottom: `${notationFontSize * 0.3}px`,
+                      whiteSpace: 'pre-wrap', 
+                      overflowWrap: 'break-word',
+                      fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                    }}>
+                      {notationParts.map((part, idx) => (
+                        <span key={idx} style={{
+                          color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
+                          fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                        }}>
+                          {part.content}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                }
               })}
               
               {/* 歌詞行 - 括號外灰色，括號內白色 */}
-              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                {result.lyricParts.map((part, idx) => (
-                  <span key={idx} style={{ 
-                    color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                    fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                  }}>
-                    {part.text}
-                  </span>
-                ))}
-              </div>
+              {notationLines.length > 0 && notationLines.some(({ line: nl }) => alignNotationWithLyrics(nl, lyricLine)) ? (
+                // 對齊模式的歌詞顯示
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  {(() => {
+                    const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
+                    if (aligned) {
+                      return aligned.map((item, idx) => {
+                        if (item.type === 'lyric') {
+                          return (
+                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                              {item.content}
+                            </span>
+                          );
+                        } else if (item.type === 'pair') {
+                          return (
+                            <span key={idx} style={{
+                              display: 'inline-flex',
+                              justifyContent: 'center',
+                              minWidth: `${Math.max(item.notationWidth, item.lyricWidth) * (lineFontSize / 2)}px`,
+                              color: colors.lyricInside,
+                              fontWeight: theme === 'day' ? 'bold' : 'normal'
+                            }}>
+                              {item.lyric}
+                            </span>
+                          );
+                        }
+                        return null;
+                      });
+                    }
+                    return result.lyricParts.map((part, idx) => (
+                      <span key={idx} style={{ 
+                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                      }}>
+                        {part.text}
+                      </span>
+                    ));
+                  })()}
+                </div>
+              ) : (
+                // 普通模式的歌詞顯示
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  {result.lyricParts.map((part, idx) => (
+                    <span key={idx} style={{ 
+                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                    }}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           );
           i = targetLyricIndex + 1;
