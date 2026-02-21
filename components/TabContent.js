@@ -376,17 +376,35 @@ function extractNotationNumbers(line) {
   return numbers;
 }
 
-// 從歌詞行提取所有中文字符及其位置
+// 從歌詞行提取所有對齊位置（中文字符 + 空括號）
 function extractLyricChars(line) {
   const chars = [];
+  
+  // 先找所有中文字符
   const chineseRegex = /[\u4e00-\u9fff]/g;
   let match;
   while ((match = chineseRegex.exec(line)) !== null) {
     chars.push({
       char: match[0],
-      index: match.index
+      index: match.index,
+      type: 'char'
     });
   }
+  
+  // 再找空括號 ( ) 或 ()
+  const emptyBracketRegex = /\(\s*\)/g;
+  while ((match = emptyBracketRegex.exec(line)) !== null) {
+    chars.push({
+      char: '',
+      index: match.index,
+      type: 'empty-bracket',
+      length: match[0].length
+    });
+  }
+  
+  // 按位置排序
+  chars.sort((a, b) => a.index - b.index);
+  
   return chars;
 }
 
