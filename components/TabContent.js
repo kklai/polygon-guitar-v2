@@ -476,11 +476,12 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
         });
         charIndex++;
       } else {
-        // 多個中文字在括號內 - 只取第一個字對應的簡譜
+        // 多個中文字在括號內 - 只取第一個字對應的簡譜，也是白色
         result.push({
           type: 'bracket',
           content: unit.content,
-          notation: numbers[charIndex]?.value || ''
+          notation: numbers[charIndex]?.value || '',
+          isInside: true
         });
         charIndex += unitChineseChars.length;
       }
@@ -1448,9 +1449,10 @@ const TabContent = ({
                             </span>
                           );
                         } else if (item.type === 'bracket') {
-                          // 括號（無對應簡譜或空括號）
+                          // 括號（無對應簡譜或空括號）- 白色
+                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
                           return (
-                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                            <span key={idx} style={{ color: color, whiteSpace: 'pre' }}>
                               {item.content}
                             </span>
                           );
