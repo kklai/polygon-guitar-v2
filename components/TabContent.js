@@ -197,7 +197,7 @@ const SECTION_MARKERS = [
   'Intro', 'Outro', 
   'Verse', 'Verse 1', 'Verse 2', 'Verse 3', 'Verse 4',
   'Chorus', 'Chorus 1', 'Chorus 2', 'Chorus 3',
-  'Prechorus', 'Pre-chorus', 'Pre Chorus', 'Pre Chorus 1', 'Pre Chorus 2',
+  'Prechorus', 'Pre-chorus', 'Pre chorus', 'Pre Chorus', 'Pre Chorus 1', 'Pre Chorus 2',
   'Bridge', 
   'Interlude', 
   'Solo', 'Guitar Solo',
@@ -1033,6 +1033,29 @@ const TabContent = ({
       // 計算當前行的字體大小
       const lineFontSize = getLineFontSize(line);
       
+      // ========== 優先檢查 Section Marker ==========
+      const sectionCheck = extractSectionMarker(line);
+      if (sectionCheck.hasMarker) {
+        elements.push(
+          <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+            <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+              {sectionCheck.marker}
+            </span>
+          </div>
+        );
+        const restLine = sectionCheck.rest.trim();
+        if (restLine) {
+          const transposedRest = transposeChordLine(restLine, transposeSemitones);
+          elements.push(
+            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+              {transposedRest}
+            </div>
+          );
+        }
+        i++;
+        continue;
+      }
+      
       // 檢查是否為歌詞行（有中文字且冇 | 和弦）
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const hasChordBar = /\|[\s]*[A-G]/.test(line);
@@ -1095,30 +1118,37 @@ const TabContent = ({
       
       // 處理和弦行
       if (isChord) {
-        // 搵下下面嘅歌詞行（跳過簡譜行）
+        // 收集中間的所有簡譜行，找到最終的歌詞行
+        const notationLines = [];
         let targetLyricIndex = i + 1;
+        
         while (targetLyricIndex < lines.length) {
           const targetLine = lines[targetLyricIndex];
+          if (!targetLine) break;
+          
           const targetChinese = (targetLine.match(/[\u4e00-\u9fff]/g) || []).length;
           const targetHasChord = /\|[\s]*[A-G]/.test(targetLine);
           const targetDigits = (targetLine.match(/\d/g) || []).length;
           
-          // 如果係歌詞行（有中文字且冇和弦），就對齊
+          // 如果係歌詞行（有中文字且冇和弦），停止搜索
           if (targetChinese > 0 && !targetHasChord) {
             break;
           }
-          // 如果係簡譜行，繼續搵
+          // 如果係簡譜行，收集並繼續搵
           if (targetDigits > 3 && targetChinese < 3 && !targetHasChord) {
+            notationLines.push({ index: targetLyricIndex, line: targetLine });
             targetLyricIndex++;
             continue;
           }
+          // 其他情況停止
           break;
         }
         
         const lyricLine = lines[targetLyricIndex] || '';
+        const hasLyric = lyricLine && (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length > 0;
         
-        if (lyricLine && (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length > 0) {
-          // 有歌詞行，對齊處理
+        if (hasLyric) {
+          // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
           const result = processPair(cleanLine, lyricLine, transposeSemitones);
           
@@ -1130,6 +1160,31 @@ const TabContent = ({
                 {result.chordLine}
                 {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
+              
+              {/* 中間的簡譜行 */}
+              {notationLines.map(({ index, line: notationLine }) => {
+                const notationParts = processNumericNotationLine(notationLine);
+                const notationFontSize = getLineFontSize(notationLine);
+                return (
+                  <div key={index} style={{ 
+                    fontSize: `${notationFontSize}px`, 
+                    marginBottom: `${notationFontSize * 0.3}px`,
+                    whiteSpace: 'pre-wrap', 
+                    overflowWrap: 'break-word',
+                    fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                  }}>
+                    {notationParts.map((part, idx) => (
+                      <span key={idx} style={{
+                        color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
+                        fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                      }}>
+                        {part.content}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })}
+              
               {/* 歌詞行 - 括號外灰色，括號內白色 */}
               <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                 {result.lyricParts.map((part, idx) => (
@@ -1158,32 +1213,6 @@ const TabContent = ({
           i++;
         }
         continue;
-      }
-      
-      // 處理 Section Marker
-      const isSectionMarker = isSectionMarkerLine(line);
-      if (isSectionMarker) {
-        const sectionInfo = extractSectionMarker(line);
-        if (sectionInfo.hasMarker) {
-          elements.push(
-            <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                {sectionInfo.marker}
-              </span>
-            </div>
-          );
-          const restLine = sectionInfo.rest.trim();
-          if (restLine) {
-            const transposedRest = transposeChordLine(restLine, transposeSemitones);
-            elements.push(
-              <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-                {transposedRest}
-              </div>
-            );
-          }
-          i++;
-          continue;
-        }
       }
       
       // 其他行，普通顯示
