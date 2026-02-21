@@ -460,11 +460,12 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
       const unitChineseChars = (unit.content.match(/[\u4e00-\u9fff]/g) || []);
       
       if (unitChineseChars.length === 0) {
-        // 空括號或無中文字
+        // 空括號或無中文字 - 也是白色
         result.push({
           type: 'bracket',
           content: unit.content,
-          notation: null
+          notation: null,
+          isInside: true
         });
       } else if (unitChineseChars.length === 1) {
         // 單個中文字在括號內
@@ -476,11 +477,12 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
         });
         charIndex++;
       } else {
-        // 多個中文字在括號內 - 只取第一個字對應的簡譜
+        // 多個中文字在括號內 - 只取第一個字對應的簡譜，也是白色
         result.push({
           type: 'bracket',
           content: unit.content,
-          notation: numbers[charIndex]?.value || ''
+          notation: numbers[charIndex]?.value || '',
+          isInside: true
         });
         charIndex += unitChineseChars.length;
       }
@@ -1452,9 +1454,10 @@ const TabContent = ({
                             </span>
                           );
                         } else if (item.type === 'bracket') {
-                          // 括號（無對應簡譜或空括號）
+                          // 括號（無對應簡譜或空括號或多個字）
+                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
                           return (
-                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                            <span key={idx} style={{ color: color, whiteSpace: 'pre' }}>
                               {item.content}
                             </span>
                           );
