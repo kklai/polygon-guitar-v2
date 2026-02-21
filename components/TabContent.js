@@ -376,36 +376,60 @@ function extractNotationNumbers(line) {
   return numbers;
 }
 
-// 從歌詞行提取所有對齊位置（中文字符 + 空括號）
+// 從歌詞行提取所有對齊位置（中文字符 + 空括號都算一個位置）
 function extractLyricChars(line) {
-  const chars = [];
+  const positions = [];
+  let i = 0;
   
-  // 先找所有中文字符
-  const chineseRegex = /[\u4e00-\u9fff]/g;
-  let match;
-  while ((match = chineseRegex.exec(line)) !== null) {
-    chars.push({
-      char: match[0],
-      index: match.index,
-      type: 'char'
-    });
+  while (i < line.length) {
+    if (line[i] === '(') {
+      // 找到括號結束
+      let j = i + 1;
+      while (j < line.length && line[j] !== ')') {
+        j++;
+      }
+      if (j < line.length && line[j] === ')') {
+        // 括號內的內容
+        const content = line.substring(i + 1, j);
+        const hasChinese = /[\u4e00-\u9fff]/.test(content);
+        
+        if (hasChinese) {
+          // 有中文字的括號 - 每個中文字算一個位置
+          for (let k = 0; k < content.length; k++) {
+            if (/[\u4e00-\u9fff]/.test(content[k])) {
+              positions.push({
+                char: content[k],
+                index: i,
+                type: 'bracket-char'
+              });
+            }
+          }
+        } else {
+          // 空括號 - 也算一個位置
+          positions.push({
+            char: '',
+            index: i,
+            type: 'empty-bracket'
+          });
+        }
+        i = j + 1;
+      } else {
+        i++;
+      }
+    } else if (/[\u4e00-\u9fff]/.test(line[i])) {
+      // 中文字符（不在括號內）
+      positions.push({
+        char: line[i],
+        index: i,
+        type: 'char'
+      });
+      i++;
+    } else {
+      i++;
+    }
   }
   
-  // 再找空括號 ( ) 或 ()
-  const emptyBracketRegex = /\(\s*\)/g;
-  while ((match = emptyBracketRegex.exec(line)) !== null) {
-    chars.push({
-      char: '',
-      index: match.index,
-      type: 'empty-bracket',
-      length: match[0].length
-    });
-  }
-  
-  // 按位置排序
-  chars.sort((a, b) => a.index - b.index);
-  
-  return chars;
+  return positions;
 }
 
 // 從歌詞行提取顯示單元（括號組 + 非括號文字）
@@ -1279,13 +1303,20 @@ const TabContent = ({
             overflowWrap: 'break-word',
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
           }}>
-            {lyricParts.map((part, idx) => (
-              <span key={idx} style={{
-                color: part.type === 'inside' ? colors.lyricInside : colors.lyricNormal
-              }}>
-                {part.type === 'inside' ? `(${part.text})` : part.text}
-              </span>
-            ))}
+            {lyricParts.map((part, idx) => {
+              // 處理空括號內的空格：半形轉全形，確保對齊
+              let displayText = part.text;
+              if (part.type === 'inside' && displayText.trim() === '') {
+                displayText = '\u3000'; // 全形空格
+              }
+              return (
+                <span key={idx} style={{
+                  color: part.type === 'inside' ? colors.lyricInside : colors.lyricNormal
+                }}>
+                  {part.type === 'inside' ? `(${displayText})` : displayText}
+                </span>
+              );
+            })}
           </div>
         );
         i++;
@@ -1497,14 +1528,21 @@ const TabContent = ({
                         return null;
                       });
                     }
-                    return result.lyricParts.map((part, idx) => (
-                      <span key={idx} style={{ 
-                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                      }}>
-                        {part.text}
-                      </span>
-                    ));
+                    return result.lyricParts.map((part, idx) => {
+                      // 處理空括號內的空格
+                      let displayText = part.text;
+                      if (part.isInside && displayText && displayText.trim() === '') {
+                        displayText = '\u3000';
+                      }
+                      return (
+                        <span key={idx} style={{ 
+                          color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                          fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                        }}>
+                          {displayText}
+                        </span>
+                      );
+                    });
                   })()}
                 </div>
               ) : (
@@ -1516,14 +1554,21 @@ const TabContent = ({
                   lineHeight: '1.2',
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                 }}>
-                  {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ 
-                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                    }}>
-                      {part.text}
-                    </span>
-                  ))}
+                  {result.lyricParts.map((part, idx) => {
+                    // 處理空括號內的空格
+                    let displayText = part.text;
+                    if (part.isInside && displayText && displayText.trim() === '') {
+                      displayText = '\u3000';
+                    }
+                    return (
+                      <span key={idx} style={{ 
+                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                      }}>
+                        {displayText}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
