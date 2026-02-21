@@ -24,12 +24,12 @@ const REGION_OPTIONS = [
 
 
 
-// 橢圓形 Pill 按鈕組件（設計圖樣式）
-function PillButton({ isActive, onClick, label, count }) {
+// 橢圓形 Pill 按鈕組件（設計圖樣式）- 統一兩行樣式
+function PillButton({ isActive, onClick, label }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-medium transition ${
+      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-normal transition ${
         isActive
           ? 'bg-[#FFD700] text-black'
           : 'bg-[#282828] text-white hover:bg-[#3E3E3E]'
@@ -210,7 +210,7 @@ export default function Artists() {
               placeholder="搜尋歌手..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white rounded-xl text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+              className="w-full pl-12 pr-4 py-4 bg-white rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
             />
             <svg 
               className="absolute left-4 top-3.5 w-5 h-5 text-gray-500"
@@ -227,7 +227,7 @@ export default function Artists() {
         <div className="space-y-3">
           
           {/* 第一行：類型篩選 */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             <PillButton
               isActive={activeCategory === 'all'}
               onClick={() => setActiveCategory('all')}
@@ -243,7 +243,7 @@ export default function Artists() {
             ))}
           </div>
           
-          {/* 第二行：地區篩選 */}
+          {/* 第二行：地區篩選 - 與第一行完全一樣 */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {REGION_OPTIONS.map(region => (
               <PillButton
