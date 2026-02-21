@@ -1098,9 +1098,8 @@ const TabContent = ({
       const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : validChordMatches.length >= 2;
       const isChord = hasChordPattern && chineseChars.length < 3;
       
-      // 檢查是否為簡譜行（純數字，冇中文字，冇 | 和弦）
-      const digits = (line.match(/\d/g) || []).length;
-      const isNumericNotation = digits > 3 && chineseChars.length < 3 && !hasChordBar;
+      // 檢查是否為簡譜行（使用函數，包含英文字母檢查）
+      const isNumericNotation = isNumericNotationLine(line) && !hasChordBar;
       
       // 處理簡譜行
       if (isNumericNotation) {
