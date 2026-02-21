@@ -329,10 +329,21 @@ function isNumericNotationLine(line) {
   // 2. 可以包含括號內的數字 (6.)、(2) 等
   // 3. 很少或沒有中文字符（少於 3 個）
   // 4. 冇和弦豎線 |
+  // 5. 英文字母要少（簡譜只有 b, # 是合法的）
   
   const digits = (line.match(/\d/g) || []).length;
   const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
   const hasChordBar = /\|[\s]*[A-G]/.test(line);
+  
+  // 檢查英文字母（簡譜只應有 b, # 或少量其他字母）
+  const allLetters = (line.match(/[a-zA-Z]/g) || []);
+  const allowedLetters = (line.match(/[b#]/gi) || []);
+  const otherLetters = allLetters.filter(c => !/[b#]/i.test(c));
+  
+  // 如果有很多其他英文字母（如 D7add4, xx0012 等），這不是簡譜
+  if (otherLetters.length > 3) {
+    return false;
+  }
   
   // 數字多（>3）、中文字少（<3）、冇和弦 = 簡譜
   if (digits > 3 && chineseChars < 3 && !hasChordBar) {
@@ -343,7 +354,7 @@ function isNumericNotationLine(line) {
   if (line.includes('(')) {
     const numericBracketPattern = /\(\d+\.?\)/g;
     const numericBrackets = line.match(numericBracketPattern) || [];
-    if (numericBrackets.length >= 1 && digits > 3 && chineseChars < 3) {
+    if (numericBrackets.length >= 1 && digits > 3 && chineseChars < 3 && otherLetters.length <= 3) {
       return true;
     }
   }
@@ -1079,8 +1090,8 @@ const TabContent = ({
         continue;
       }
       
-      // 檢查是否為和弦行
-      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\b/g;
+      // 檢查是否為和弦行（添加 \d* 支持 Em9 等數字結尾和弦）
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/g;
       const chordMatches = line.match(strictChordPattern) || [];
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
       const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
