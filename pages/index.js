@@ -184,154 +184,138 @@ export default function Home() {
     loadHomeData()
   }, [user])
 
+  // 緩存設定（避免重複獲取）
+  const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘緩存
+  
   const loadHomeData = async () => {
     setIsLoading(true)
+    const startTime = performance.now();
+    
     try {
-      // 載入最近瀏覽
+      // === 第1步：並行載入本地數據同獨立請求 ===
       const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
       let items = saved ? JSON.parse(saved).slice(0, 10) : [];
       
-      // 如果用戶已登入，添加「我的喜愛」到最前面
-      if (user) {
+      // 檢查喜愛歌曲（非阻塞）
+      const checkLikedSongs = async () => {
+        if (!user) return;
         try {
-          // 檢查用戶是否有喜愛的歌曲
           const likedQuery = query(
             collection(db, 'userLikes'),
             where('userId', '==', user.uid),
             limit(1)
           );
           const likedSnapshot = await getDocs(likedQuery);
-          
           if (!likedSnapshot.empty) {
-            // 用戶有喜愛的歌曲，添加「我的喜愛」項目
-            const likedSongsItem = {
-              type: 'liked-songs',
-              id: 'liked-songs',
-              title: '我的喜愛',
-              subtitle: '歌單',
-              isLikedSongs: true,
-              timestamp: new Date().toISOString()
-            };
-            // 檢查是否已經在列表中
             const exists = items.some(item => item.type === 'liked-songs');
             if (!exists) {
-              items = [likedSongsItem, ...items].slice(0, 10);
+              items = [{
+                type: 'liked-songs',
+                id: 'liked-songs',
+                title: '我的喜愛',
+                subtitle: '歌單',
+                isLikedSongs: true,
+                timestamp: new Date().toISOString()
+              }, ...items].slice(0, 10);
             }
           }
         } catch (e) {
           console.error('Error checking liked songs:', e);
         }
-      }
+      };
       
+      // 並行載入：設置、熱門歌手、歌單、最新歌曲
+      const [
+        settingsDoc,
+        popularArtistsData,
+        autoPlaylistsData,
+        manualPlaylistsData,
+        recentTabsData
+      ] = await Promise.all([
+        getDoc(doc(db, 'settings', 'home')),
+        getPopularArtists(60),
+        getAutoPlaylists(),
+        getManualPlaylists(8),
+        getRecentTabs(20)
+      ]);
+      
+      const settings = settingsDoc.exists() ? settingsDoc.data() : {};
+      setHomeSettings(prev => ({ ...prev, ...settings }));
       setRecentItems(items);
+      checkLikedSongs(); // 非阻塞檢查
       
-      // 獲取首頁設置
-      let settings = {}
-      try {
-        const settingsDoc = await getDoc(doc(db, 'settings', 'home'))
-        settings = settingsDoc.exists() ? settingsDoc.data() : {}
-        setHomeSettings(prev => ({ ...prev, ...settings }))
-      } catch (settingsError) {
-        console.error('Error loading home settings:', settingsError)
-      }
+      console.log('[Performance] Core data loaded:', Math.round(performance.now() - startTime), 'ms');
 
-      // 獲取熱門樂譜（支援手動揀選+自動補充）
-      let hotTabsData = []
-      const targetCount = settings.hotTabs?.displayCount || 20
+      // === 第2步：處理熱門樂譜 ===
+      let hotTabsData = [];
+      const targetCount = settings.hotTabs?.displayCount || 20;
       
       if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
-        // 使用手動揀選，並自動補充至指定數量
-        // 兼容舊格式：可能是對象 {id, ...} 或純 ID 字符串
         const manualIds = settings.hotTabs.manualSelection
           .map(t => typeof t === 'object' && t !== null ? t.id : t)
           .filter(id => typeof id === 'string' && id.trim() !== '')
-          .slice(0, 30) // 限制最多 30 首
+          .slice(0, 30);
         
-        // 直接通過 ID 獲取揀選嘅歌曲（唔使靠瀏覽量或時間）
-        const manualTabs = manualIds.length > 0 ? await getTabsByIds(manualIds) : []
+        const manualTabs = manualIds.length > 0 ? await getTabsByIds(manualIds) : [];
         
-        // 如果手動揀選唔夠，自動補充熱門歌曲
         if (manualTabs.length < targetCount) {
-          const manualIdsSet = new Set(manualIds)
-          const hotTabs = await getHotTabs(targetCount + 10) // 獲取多啲用嚟補充
-          const autoFill = hotTabs
-            .filter(t => !manualIdsSet.has(t.id)) // 排除已揀選嘅
-            .slice(0, targetCount - manualTabs.length)
-          hotTabsData = [...manualTabs, ...autoFill]
+          const manualIdsSet = new Set(manualIds);
+          const [hotTabs] = await Promise.all([getHotTabs(targetCount + 10)]);
+          const autoFill = hotTabs.filter(t => !manualIdsSet.has(t.id)).slice(0, targetCount - manualTabs.length);
+          hotTabsData = [...manualTabs, ...autoFill];
         } else {
-          hotTabsData = manualTabs.slice(0, targetCount)
+          hotTabsData = manualTabs.slice(0, targetCount);
         }
-        console.log('Hot tabs (manual + auto-fill):', hotTabsData.length)
       } else {
-        // 自動排序：按瀏覽量
-        hotTabsData = await getHotTabs(targetCount)
-        console.log('Hot tabs (auto):', hotTabsData.length)
+        hotTabsData = await getHotTabs(targetCount);
       }
-      setHotTabs(hotTabsData)
-
-      // 獲取熱門歌手（限制數量，提升性能）
-      let popularArtists = await getPopularArtists(60)
+      setHotTabs(hotTabsData);
+      setLatestSongs(recentTabsData || []);
+      setAutoPlaylists(autoPlaylistsData?.length > 0 ? autoPlaylistsData : FALLBACK_AUTO_PLAYLISTS);
+      setManualPlaylists(manualPlaylistsData?.length > 0 ? manualPlaylistsData : FALLBACK_MANUAL_PLAYLISTS);
       
-      // 檢查手動揀選嘅歌手係咪全部喺 popularArtists 入面
-      // 兼容舊格式：可能是對象或純 ID 字符串
+      // === 第3步：處理歌手數據 ===
+      let popularArtists = popularArtistsData || [];
+      
+      // 並行獲取缺少嘅手動揀選歌手
       const rawManualSelection = Array.isArray(settings.manualSelection) 
         ? settings.manualSelection 
         : [
             ...(settings.manualSelection?.male || []),
             ...(settings.manualSelection?.female || []),
             ...(settings.manualSelection?.group || [])
-          ]
+          ];
       
-      // 清理 ID：確保係有效字符串
       const manualIds = rawManualSelection
         .map(item => typeof item === 'object' && item !== null ? item.id : item)
-        .filter(id => typeof id === 'string' && id.trim() !== '')
+        .filter(id => typeof id === 'string' && id.trim() !== '');
       
       if (manualIds.length > 0) {
-        const existingIds = new Set(popularArtists.map(a => a.id))
-        const missingIds = manualIds.filter(id => !existingIds.has(id))
+        const existingIds = new Set(popularArtists.map(a => a.id));
+        const missingIds = manualIds.filter(id => !existingIds.has(id));
         
         if (missingIds.length > 0) {
-          // 額外獲取缺少嘅歌手
           const missingArtists = await Promise.all(
-            missingIds.map(async (id) => {
-              try {
-                const artistDoc = await getDoc(doc(db, 'artists', id))
-                if (artistDoc.exists()) {
-                  const data = artistDoc.data()
-                  return {
-                    id: artistDoc.id,
-                    ...data,
-                    photo: data.photoURL || data.wikiPhotoURL || data.photo || null,
-                    tabCount: data.songCount || data.tabCount || 0
-                  }
-                }
-              } catch (e) {
-                console.error('Error fetching artist:', id, e)
-              }
-              return null
-            })
-          )
-          
-          // 將缺少嘅歌手加入 popularArtists
-          popularArtists = [...popularArtists, ...missingArtists.filter(Boolean)]
+            missingIds.map(id => 
+              getDoc(doc(db, 'artists', id)).then(doc => {
+                if (!doc.exists()) return null;
+                const data = doc.data();
+                return { id: doc.id, ...data, photo: data.photoURL || data.wikiPhotoURL || data.photo || null, tabCount: data.songCount || data.tabCount || 0 };
+              }).catch(() => null)
+            )
+          );
+          popularArtists = [...popularArtists, ...missingArtists.filter(Boolean)];
         }
       }
       
-      // 建立歌手照片 lookup（給歌曲封面 fallback 用）
-      const photoMap = {}
+      // 建立照片 lookup
+      const photoMap = {};
       popularArtists.forEach(artist => {
-        photoMap[artist.id] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null
-        // 同時用歌手名作 key（因為 songs 用 artist 欄位）
-        if (artist.name) {
-          photoMap[artist.name] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null
-        }
-      })
-      setArtistPhotoMap(photoMap)
-
-      // 計算網站總瀏覽量（基於熱門樂譜估算）
-      const totalViews = popularArtists.reduce((sum, artist) => sum + (artist.viewCount || 0), 0)
-      setTotalViewCount(totalViews)
+        photoMap[artist.id] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null;
+        if (artist.name) photoMap[artist.name] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null;
+      });
+      setArtistPhotoMap(photoMap);
+      setTotalViewCount(popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0));
       
       // 根據設置排序
       const displayCount = settings.displayCount || 20
@@ -413,99 +397,43 @@ export default function Home() {
         group: sortedArtists.filter(a => (a.artistType || a.gender) === 'group').slice(0, 5)
       })
       
-      // 保留原來的總熱門歌手（向後兼容）
-      setArtists(sortedArtists.slice(0, 10))
+      // 保留原來的總熱門歌手
+      setArtists(sortedArtists.slice(0, 10));
       
-      // 獲取最新歌曲（限制數量提升性能）
-      try {
-        const recentTabs = await getRecentTabs(20)
-        setLatestSongs(recentTabs)
-      } catch (e) {
-        console.error('Error setting latest songs:', e)
-        setLatestSongs([])
-      }
+      console.log('[Performance] Artists processed:', Math.round(performance.now() - startTime), 'ms');
       
-      // 熱門譜已於上方獲取，此處保留手動揀選邏輯（如需要）
-      // 注意：手動揀選功能需要額外實現支持
-
-      // 獲取自動歌單（熱門歌單區）
-      try {
-        const auto = await getAutoPlaylists()
-        console.log('Auto playlists loaded:', auto?.length || 0)
-        setAutoPlaylists(auto?.length > 0 ? auto : FALLBACK_AUTO_PLAYLISTS)
-      } catch (e) {
-        console.error('Error loading auto playlists:', e)
-        setAutoPlaylists(FALLBACK_AUTO_PLAYLISTS)
-      }
-
-      // 獲取精選手動歌單（編輯精選區）
-      try {
-        const manual = await getManualPlaylists(8)
-        console.log('Manual playlists loaded:', manual?.length || 0)
-        setManualPlaylists(manual?.length > 0 ? manual : FALLBACK_MANUAL_PLAYLISTS)
-      } catch (e) {
-        console.error('Error loading manual playlists:', e)
-        setManualPlaylists(FALLBACK_MANUAL_PLAYLISTS)
-      }
-
-      // 獲取自定義分類圖片（使用熱門歌手相片）
-      // 注意：呢個係獨立嘅 try-catch，唔會影響其他數據載入
-      try {
-        console.log('Loading category images...')
-        const categoryImages = await getCategoryImages()
-        console.log('Category images loaded:', categoryImages)
-
-        if (categoryImages) {
-          // 對於有 artistId 嘅分類，實時獲取歌手最新圖片
-          const updatedCategories = await Promise.all(
-            DEFAULT_CATEGORIES.map(async (cat) => {
-              const catData = categoryImages[cat.id]
-              let imageUrl = cat.image // 默認圖片
-
-              if (catData) {
-                // 如果有 artistId，實時獲取歌手最新圖片
-                if (catData.artistId) {
-                  try {
-                    const artistDoc = await getDoc(doc(db, 'artists', catData.artistId))
-                    if (artistDoc.exists()) {
-                      const artistData = artistDoc.data()
-                      // 按優先順序獲取最新圖片
-                      imageUrl = artistData.photoURL || 
-                                 artistData.wikiPhotoURL || 
-                                 artistData.photo || 
-                                 catData.image || // 後備：存儲的圖片
-                                 cat.image
-                      console.log(`[${cat.name}] 動態獲取歌手圖片:`, artistData.name, imageUrl?.substring(0, 50))
-                    } else {
-                      // 歌手不存在，使用存儲的圖片
-                      imageUrl = catData.image || cat.image
-                    }
-                  } catch (err) {
-                    console.error(`[${cat.name}] 獲取歌手圖片失敗:`, err)
-                    imageUrl = catData.image || cat.image
-                  }
-                } else if (catData.image) {
-                  // 沒有 artistId，使用存儲的靜態圖片
-                  imageUrl = catData.image
-                }
-              }
-
-              // 如果是維基百科圖片，添加裁剪參數顯示頭部
-              if (imageUrl && imageUrl.includes('wikipedia.org')) {
-                imageUrl = getCroppedWikiImage(imageUrl)
-              }
-
-              return { ...cat, image: imageUrl }
-            })
-          )
-
-          setCategories(updatedCategories)
-          console.log('Categories updated with dynamic images:', updatedCategories)
+      // === 第4步：延遲載入分類圖片（非關鍵數據）===
+      setTimeout(async () => {
+        try {
+          const categoryImages = await getCategoryImages();
+          if (!categoryImages) return;
+          
+          // 使用已載入的歌手數據，避免重複查詢
+          const artistMap = new Map(popularArtists.map(a => [a.id, a]));
+          
+          const updatedCategories = DEFAULT_CATEGORIES.map(cat => {
+            const catData = categoryImages[cat.id];
+            let imageUrl = cat.image;
+            
+            if (catData?.artistId && artistMap.has(catData.artistId)) {
+              const artist = artistMap.get(catData.artistId);
+              imageUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo || catData.image || cat.image;
+            } else if (catData?.image) {
+              imageUrl = catData.image;
+            }
+            
+            if (imageUrl?.includes('wikipedia.org')) {
+              imageUrl = getCroppedWikiImage(imageUrl);
+            }
+            
+            return { ...cat, image: imageUrl };
+          });
+          
+          setCategories(updatedCategories);
+        } catch (e) {
+          console.error('Error loading category images:', e);
         }
-      } catch (e) {
-        console.error('Error loading category images (non-critical):', e)
-        // 唔會影響其他數據，繼續執行
-      }
+      }, 100); // 延遲100ms，讓關鍵內容先渲染
     } catch (error) {
       console.error('Error loading home data:', error)
     } finally {
