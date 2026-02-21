@@ -241,10 +241,14 @@ export default function Home() {
       
       if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
         // 使用手動揀選，並自動補充至指定數量
-        const manualIds = settings.hotTabs.manualSelection.map(t => t.id)
+        // 兼容舊格式：可能是對象 {id, ...} 或純 ID 字符串
+        const manualIds = settings.hotTabs.manualSelection
+          .map(t => typeof t === 'object' && t !== null ? t.id : t)
+          .filter(id => typeof id === 'string' && id.trim() !== '')
+          .slice(0, 30) // 限制最多 30 首
         
         // 直接通過 ID 獲取揀選嘅歌曲（唔使靠瀏覽量或時間）
-        const manualTabs = await getTabsByIds(manualIds)
+        const manualTabs = manualIds.length > 0 ? await getTabsByIds(manualIds) : []
         
         // 如果手動揀選唔夠，自動補充熱門歌曲
         if (manualTabs.length < targetCount) {
@@ -269,13 +273,19 @@ export default function Home() {
       let popularArtists = await getPopularArtists(60)
       
       // 檢查手動揀選嘅歌手係咪全部喺 popularArtists 入面
-      const manualIds = Array.isArray(settings.manualSelection) 
+      // 兼容舊格式：可能是對象或純 ID 字符串
+      const rawManualSelection = Array.isArray(settings.manualSelection) 
         ? settings.manualSelection 
         : [
             ...(settings.manualSelection?.male || []),
             ...(settings.manualSelection?.female || []),
             ...(settings.manualSelection?.group || [])
           ]
+      
+      // 清理 ID：確保係有效字符串
+      const manualIds = rawManualSelection
+        .map(item => typeof item === 'object' && item !== null ? item.id : item)
+        .filter(id => typeof id === 'string' && id.trim() !== '')
       
       if (manualIds.length > 0) {
         const existingIds = new Set(popularArtists.map(a => a.id))
