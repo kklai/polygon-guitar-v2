@@ -1055,7 +1055,7 @@ const TabContent = ({
     night: {
       bg: '#121212',
       text: '#FFFFFF',
-      lyricNormal: '#FFFFFF',  // 白色（歌詞行統一白色）
+      lyricNormal: '#A0A0A0',  // 灰色（括號外）
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
@@ -1252,7 +1252,13 @@ const TabContent = ({
       if (isLyric) {
         const lyricParts = processLyricLine(line);
         elements.push(
-          <div key={i} style={{ fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+          <div key={i} style={{ 
+            fontSize: `${lineFontSize}px`, 
+            marginBottom: `${lineFontSize * 0.6}px`, 
+            whiteSpace: 'pre-wrap', 
+            overflowWrap: 'break-word',
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          }}>
             {lyricParts.map((part, idx) => (
               <span key={idx} style={{
                 color: part.type === 'inside' ? colors.lyricInside : colors.lyricNormal
@@ -1427,7 +1433,13 @@ const TabContent = ({
               {/* 歌詞行 - 括號外灰色，括號內白色 */}
               {notationLines.length > 0 && notationLines.some(({ line: nl }) => alignNotationWithLyrics(nl, lyricLine)) ? (
                 // 對齊模式的歌詞顯示
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                <div style={{ 
+                  fontSize: `${lineFontSize}px`, 
+                  whiteSpace: 'pre-wrap', 
+                  overflowWrap: 'break-word', 
+                  lineHeight: '1.2',
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                }}>
                   {(() => {
                     const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
                     if (aligned) {
@@ -1476,7 +1488,13 @@ const TabContent = ({
                 </div>
               ) : (
                 // 普通模式的歌詞顯示
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                <div style={{ 
+                  fontSize: `${lineFontSize}px`, 
+                  whiteSpace: 'pre-wrap', 
+                  overflowWrap: 'break-word', 
+                  lineHeight: '1.2',
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                }}>
                   {result.lyricParts.map((part, idx) => (
                     <span key={idx} style={{ 
                       color: part.isInside ? colors.lyricInside : colors.lyricNormal,
