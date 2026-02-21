@@ -639,17 +639,31 @@ export default function Home() {
         )}
 
         {/* 根據 sectionOrder 動態渲染各區域 */}
-        {(homeSettings.sectionOrder || [
-          { id: 'categories', enabled: true },
-          { id: 'recent', enabled: true },
-          { id: 'hotTabs', enabled: true },
-          { id: 'hotArtists', enabled: true },
-          { id: 'autoPlaylists', enabled: true },
-          { id: 'latest', enabled: true },
-          { id: 'manualPlaylists', enabled: true }
-        ])
-          .filter(section => section.enabled !== false)
-          .map((section) => {
+        {(() => {
+          // 預設區域配置
+          const defaultSectionOrder = [
+            { id: 'categories', enabled: true },
+            { id: 'recent', enabled: true },
+            { id: 'hotTabs', enabled: true },
+            { id: 'hotArtists', enabled: true },
+            { id: 'autoPlaylists', enabled: true },
+            { id: 'latest', enabled: true },
+            { id: 'manualPlaylists', enabled: true }
+          ]
+          
+          // 獲取當前 sectionOrder，如果無效則使用預設
+          let sectionOrder = homeSettings.sectionOrder || defaultSectionOrder
+          
+          // 檢查啟用嘅區域是否太少（少於 3 個），係則使用預設
+          const enabledCount = sectionOrder.filter(s => s.enabled !== false).length
+          if (enabledCount < 3) {
+            console.log('Too few sections enabled (' + enabledCount + '), using defaults')
+            sectionOrder = defaultSectionOrder
+          }
+          
+          return sectionOrder
+            .filter(section => section.enabled !== false)
+            .map((section) => {
             switch (section.id) {
               case 'categories':
                 return (
@@ -856,7 +870,8 @@ export default function Home() {
               default:
                 return null
             }
-          })}
+          })
+        })()}
 
         {/* 底部 Spacer */}
         <div className="h-8" />

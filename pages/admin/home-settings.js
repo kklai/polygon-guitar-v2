@@ -927,9 +927,33 @@ function HomeSettings() {
         {/* 頁面布局設置 */}
         {activeTab === 'layout' && (
           <div className="bg-[#121212] rounded-xl border border-gray-800">
-            <div className="p-4 border-b border-gray-800">
-              <h2 className="text-lg font-medium text-white">📐 首頁區域排序</h2>
-              <p className="text-sm text-gray-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-medium text-white">📐 首頁區域排序</h2>
+                <p className="text-sm text-gray-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (confirm('確定要重置為預設布局嗎？這會恢復所有區域的顯示。')) {
+                    setSettings(prev => ({
+                      ...prev,
+                      sectionOrder: [
+                        { id: 'categories', enabled: true },
+                        { id: 'recent', enabled: true },
+                        { id: 'hotTabs', enabled: true },
+                        { id: 'hotArtists', enabled: true },
+                        { id: 'autoPlaylists', enabled: true },
+                        { id: 'latest', enabled: true },
+                        { id: 'manualPlaylists', enabled: true }
+                      ]
+                    }))
+                    setHasChanges(true)
+                  }
+                }}
+                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition text-sm"
+              >
+                🔄 重置為預設
+              </button>
             </div>
             
             <div className="p-4">
