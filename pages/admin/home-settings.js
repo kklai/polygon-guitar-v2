@@ -302,7 +302,10 @@ function HomeSettings() {
     const ids = settings.manualSelection[category] || []
     // 去重，防止重複 ID 導致重複顯示
     const uniqueIds = [...new Set(ids)]
-    return uniqueIds.map(id => artists.find(a => a.id === id)).filter(Boolean)
+    // 過濾掉找不到的歌手，防止顯示 null
+    return uniqueIds
+      .map(id => artists.find(a => a.id === id))
+      .filter(a => a && a.id) // 確保有有效 ID
   }
 
   const getSelectedTabs = () => {
@@ -453,24 +456,33 @@ function HomeSettings() {
                     }`}
                   >
                     {cat === 'male' ? '男歌手' : cat === 'female' ? '女歌手' : '組合'}
-                    {settings.manualSelection[cat]?.length > 0 && (
-                      <span className="ml-2 px-2 py-0.5 bg-[#FFD700] text-black text-xs rounded-full">
-                        {settings.manualSelection[cat].length}
-                      </span>
-                    )}
+                    {(() => {
+                      // 計算去重後的有效數量
+                      const uniqueIds = [...new Set(settings.manualSelection[cat] || [])]
+                      const validCount = uniqueIds.filter(id => 
+                        artists.find(a => a.id === id)
+                      ).length
+                      return validCount > 0 ? (
+                        <span className="ml-2 px-2 py-0.5 bg-[#FFD700] text-black text-xs rounded-full">
+                          {validCount}
+                        </span>
+                      ) : null
+                    })()}
                   </button>
                 ))}
               </div>
 
               <div className="p-4">
                 {/* 已選歌手列表 */}
-                {settings.manualSelection[activeArtistCategory]?.length > 0 && (
+                {(() => {
+                  const selectedArtists = getSelectedArtists(activeArtistCategory)
+                  return selectedArtists.length > 0 ? (
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-gray-400 mb-3">
-                      已揀選 ({settings.manualSelection[activeArtistCategory].length})
+                      已揀選 ({selectedArtists.length})
                     </h3>
                     <div className="space-y-2">
-                      {getSelectedArtists(activeArtistCategory).map((artist, index) => (
+                      {selectedArtists.map((artist, index) => (
                         <div 
                           key={artist.id}
                           className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800"
@@ -515,7 +527,8 @@ function HomeSettings() {
                       ))}
                     </div>
                   </div>
-                )}
+                  ) : null
+                })()}
 
                 {/* 搜索添加 */}
                 <div>
