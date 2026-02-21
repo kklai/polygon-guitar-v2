@@ -857,7 +857,7 @@ export default function Home() {
                           onClick={() => handlePlaylistClick(playlist.id)}
                           className="flex-shrink-0 flex flex-col group text-left w-36"
                         >
-                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-[#FFD700]/20 to-orange-900/20 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg border border-[#FFD700]/20">
+                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
                             {getThumbnail(playlist) ? (
                               <img
                                 src={getThumbnail(playlist)}
