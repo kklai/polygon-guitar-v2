@@ -45,7 +45,7 @@ function NewPlaylist() {
     try {
       const songs = await getAllTabs()
       setAllSongs(songs)
-      setSearchResults(songs.slice(0, 10)) // 預設顯示前 10 首
+      setSearchResults(songs.slice(0, 50)) // 預設顯示前 50 首
     } catch (error) {
       console.error('Error loading songs:', error)
     } finally {
@@ -56,7 +56,7 @@ function NewPlaylist() {
   // 搜尋歌曲
   useEffect(() => {
     if (searchQuery.trim() === '') {
-      setSearchResults(allSongs.slice(0, 10))
+      setSearchResults(allSongs.slice(0, 50))
       return
     }
     
@@ -474,7 +474,7 @@ function NewPlaylist() {
               </div>
 
               {/* Search Results */}
-              <div className="space-y-2 max-h-80 overflow-y-auto">
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {isLoading ? (
                   <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
