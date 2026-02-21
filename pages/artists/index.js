@@ -49,10 +49,7 @@ export default function Artists() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeRegion, setActiveRegion] = useState('all')
-  const [sortBy, setSortBy] = useState('default')
-  // 唔再需要使用 showMoreCategories
-  const [showSortDropdown, setShowSortDropdown] = useState(false)
-  const sortDropdownRef = useRef(null)
+  // 簡化設計：唔使用複雜排序
 
   // 從 URL 讀取分類參數
   useEffect(() => {
@@ -61,15 +58,13 @@ export default function Artists() {
     }
   }, [category])
 
-  // 唔再需要 sort dropdown 事件監聽
-
   useEffect(() => {
     loadArtists()
   }, [])
 
-  // 使用 useMemo 優化排序性能
+  // 過濾歌手（無複雜排序，保持原有瀏覽量排序）
   const filteredArtists = useMemo(() => {
-    let result = [...artists] // 創建新數組避免修改原數據
+    let result = [...artists]
     
     // 搜尋過濾
     if (searchQuery.trim() !== '') {
@@ -79,7 +74,7 @@ export default function Artists() {
       )
     }
     
-    // 第一層：類型過濾
+    // 類型過濾
     if (activeCategory !== 'all') {
       result = result.filter(artist => {
         const type = artist.artistType || artist.gender || 'other'
@@ -88,61 +83,21 @@ export default function Artists() {
       })
     }
     
-    // 第二層：地區過濾
+    // 地區過濾
     if (activeRegion !== 'all') {
       result = result.filter(artist => artist.region === activeRegion)
     }
     
-    // 根據選擇的排序方式排序
-    switch (sortBy) {
-      case 'songCount': // 樂譜數目 - songCount desc
-        result.sort((a, b) => (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0))
-        break
-      
-      case 'alphabet': // 筆畫/A-Z
-        result.sort((a, b) => a.name.localeCompare(b.name, 'zh-HK'))
-        break
-      
-      case 'likes': // 用戶讚好 - likes desc
-        result.sort((a, b) => (b.likes || 0) - (a.likes || 0))
-        break
-      
-      case 'spotifyChoice': // Spotify Choice - 按粉絲數排序
-        result.sort((a, b) => {
-          const followersA = a.spotifyFollowers || 0
-          const followersB = b.spotifyFollowers || 0
-          // 有粉絲數的優先，然後按數量排序
-          if (followersB !== followersA) return followersB - followersA
-          // 同分按瀏覽數
-          return (b.totalViewCount || b.viewCount || 0) - (a.totalViewCount || a.viewCount || 0)
-        })
-        break
-      
-      case 'polygonChoice': // Polygon Choice - 1000分優先
-        result.sort((a, b) => {
-          const scoreA = a.adminScore || 0
-          const scoreB = b.adminScore || 0
-          // 1000分優先，然後其他分數
-          if (scoreA === 1000 && scoreB !== 1000) return -1
-          if (scoreB === 1000 && scoreA !== 1000) return 1
-          if (scoreB !== scoreA) return scoreB - scoreA
-          // 同分按瀏覽
-          return (b.totalViewCount || b.viewCount || 0) - (a.totalViewCount || a.viewCount || 0)
-        })
-        break
-      
-      case 'default': // 預設（熱門）
-      default:
-        result.sort((a, b) => {
-          const viewsA = a.totalViewCount || a.viewCount || 0
-          const viewsB = b.totalViewCount || b.viewCount || 0
-          if (viewsB !== viewsA) return viewsB - viewsA
-          return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
-        })
-    }
+    // 預設排序：按瀏覽量
+    result.sort((a, b) => {
+      const viewsA = a.totalViewCount || a.viewCount || 0
+      const viewsB = b.totalViewCount || b.viewCount || 0
+      if (viewsB !== viewsA) return viewsB - viewsA
+      return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
+    })
     
     return result
-  }, [searchQuery, artists, activeCategory, activeRegion, sortBy])
+  }, [searchQuery, artists, activeCategory, activeRegion])
 
   const loadArtists = async () => {
     try {
@@ -298,60 +253,6 @@ export default function Artists() {
                 label={region.label}
               />
             ))}
-          </div>
-        </div>
-              <button
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-1 text-[#888] hover:text-white text-sm px-3 py-1.5 rounded-lg transition"
-              >
-                <span>排序</span>
-                <svg 
-                  className={`w-4 h-4 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {/* Dropdown Menu */}
-              {showSortDropdown && (
-                <div className="absolute right-0 top-full mt-1 w-[180px] bg-[#121212] border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                  {SORT_OPTIONS.map((option, index) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        if (!option.disabled) {
-                          setSortBy(option.value)
-                          setShowSortDropdown(false)
-                        }
-                      }}
-                      disabled={option.disabled}
-                      className={`
-                        w-full text-left px-4 py-2.5 text-sm transition
-                        ${option.disabled 
-                          ? 'text-gray-600 cursor-not-allowed bg-[#0a0a0a]' 
-                          : sortBy === option.value
-                            ? 'text-[#FFD700] bg-[#1a1a1a]'
-                            : 'text-white hover:bg-[#1a1a1a]'
-                        }
-                        ${index !== SORT_OPTIONS.length - 1 ? 'border-b border-gray-800' : ''}
-                      `}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{option.label}</span>
-                        {sortBy === option.value && !option.disabled && (
-                          <svg className="w-4 h-4 text-[#FFD700]" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 

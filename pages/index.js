@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages } from '@/lib/tabs'
+import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages, getTabsByIds } from '@/lib/tabs'
 import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
@@ -242,12 +242,9 @@ export default function Home() {
       if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
         // 使用手動揀選，並自動補充至指定數量
         const manualIds = settings.hotTabs.manualSelection.map(t => t.id)
-        const allTabs = await getRecentTabs(100) // 獲取足夠數量嚟匹配
         
-        // 手動揀選的歌曲
-        const manualTabs = manualIds
-          .map(id => allTabs.find(t => t.id === id))
-          .filter(Boolean)
+        // 直接通過 ID 獲取揀選嘅歌曲（唔使靠瀏覽量或時間）
+        const manualTabs = await getTabsByIds(manualIds)
         
         // 如果手動揀選唔夠，自動補充熱門歌曲
         if (manualTabs.length < targetCount) {

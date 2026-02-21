@@ -14,7 +14,7 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore'
-import { getAllArtists, getAllTabs } from '@/lib/tabs'
+import { getAllArtists, getRecentTabs, searchTabs } from '@/lib/tabs'
 
 const SORT_OPTIONS = [
   { value: 'viewCount', label: '總瀏覽量', desc: '按歌手所有歌曲瀏覽總和排序' },
@@ -110,7 +110,7 @@ function HomeSettings() {
     try {
       const [artistsData, tabsData, settingsDoc] = await Promise.all([
         getAllArtists(),
-        getAllTabs(),
+        getRecentTabs(500), // 載入最近 500 首，足夠揀選用
         getDoc(doc(db, 'settings', 'home'))
       ])
       
