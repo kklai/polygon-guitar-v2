@@ -154,9 +154,19 @@ function HomeSettings() {
           sectionOrder: data.sectionOrder || prev.sectionOrder
         }))
         
-        // 初始化已選歌曲
+        // 初始化已選歌曲 - 確保只包含 ID 字符串
         if (data.hotTabs?.manualSelection) {
-          setSelectedTabIds(data.hotTabs.manualSelection)
+          let tabSelection = data.hotTabs.manualSelection
+          if (Array.isArray(tabSelection)) {
+            tabSelection = tabSelection.map(item => {
+              if (typeof item === 'object' && item !== null && item.id) {
+                return item.id
+              }
+              return item
+            }).filter(id => typeof id === 'string')
+          }
+          setSelectedTabIds(tabSelection)
+          console.log('Loaded selected tabs:', tabSelection)
         }
       }
     } catch (error) {
@@ -380,7 +390,12 @@ function HomeSettings() {
   }
 
   const getSelectedTabs = () => {
-    return selectedTabIds.map(id => tabs.find(t => t.id === id)).filter(Boolean)
+    return selectedTabIds.map(id => {
+      const tab = tabs.find(t => t.id === id)
+      if (tab) return tab
+      // 如果喺 tabs 數組入邊搵唔到，顯示一個佔位符
+      return { id, title: '載入中...', artistName: '', notFound: true }
+    })
   }
 
   if (loading) {
@@ -775,9 +790,27 @@ function HomeSettings() {
                 {/* 已選歌曲列表 */}
                 {selectedTabIds.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-400 mb-3">
-                      已揀選 ({selectedTabIds.length})
-                    </h3>
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-medium text-gray-400">
+                        已揀選 ({selectedTabIds.length})
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setSelectedTabIds([])
+                          setSettings(prev => ({
+                            ...prev,
+                            hotTabs: {
+                              ...prev.hotTabs,
+                              manualSelection: []
+                            }
+                          }))
+                          setHasChanges(true)
+                        }}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        清空全部
+                      </button>
+                    </div>
                     <div className="space-y-2">
                       {getSelectedTabs().map((tab, index) => (
                         <div 
