@@ -325,19 +325,24 @@ function isNumericNotationLine(line) {
   if (!line) return false;
   
   // 簡譜特徵：
-  // 1. 大量數字（多於 3 個）
+  // 1. 大量數字（多於 3 個）- 支持 1' 高音, 5# 升號
   // 2. 可以包含括號內的數字 (6.)、(2) 等
   // 3. 很少或沒有中文字符（少於 3 個）
   // 4. 冇和弦豎線 |
   // 5. 英文字母要少（簡譜只有 b, # 是合法的）
   
+  // 匹配完整簡譜音符：數字 + 可選的 ' 或 #（如 1', 5#, 6, 3'）
+  const notationPattern = /\d['#]*/g;
+  const notationMatches = line.match(notationPattern) || [];
+  const notationCount = notationMatches.length;
+  
+  // 也計算純數字（向後兼容）
   const digits = (line.match(/\d/g) || []).length;
   const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
   const hasChordBar = /\|[\s]*[A-G]/.test(line);
   
   // 檢查英文字母（簡譜只應有 b, # 或少量其他字母）
   const allLetters = (line.match(/[a-zA-Z]/g) || []);
-  const allowedLetters = (line.match(/[b#]/gi) || []);
   const otherLetters = allLetters.filter(c => !/[b#]/i.test(c));
   
   // 如果有很多其他英文字母（如 D7add4, xx0012 等），這不是簡譜
@@ -345,8 +350,8 @@ function isNumericNotationLine(line) {
     return false;
   }
   
-  // 數字多（>3）、中文字少（<3）、冇和弦 = 簡譜
-  if (digits > 3 && chineseChars < 3 && !hasChordBar) {
+  // 簡譜音符多（>3）、中文字少（<3）、冇和弦 = 簡譜
+  if ((notationCount > 3 || digits > 3) && chineseChars < 3 && !hasChordBar) {
     return true;
   }
   
@@ -354,7 +359,7 @@ function isNumericNotationLine(line) {
   if (line.includes('(')) {
     const numericBracketPattern = /\(\d+\.?\)/g;
     const numericBrackets = line.match(numericBracketPattern) || [];
-    if (numericBrackets.length >= 1 && digits > 3 && chineseChars < 3 && otherLetters.length <= 3) {
+    if (numericBrackets.length >= 1 && (notationCount > 3 || digits > 3) && chineseChars < 3 && otherLetters.length <= 3) {
       return true;
     }
   }
@@ -362,10 +367,11 @@ function isNumericNotationLine(line) {
   return false;
 }
 
-// 從簡譜行提取所有數字
+// 從簡譜行提取所有音符（支持 1', 5#, 6 等格式）
 function extractNotationNumbers(line) {
   const numbers = [];
-  const regex = /(\d+\.?\d*|\d)/g;
+  // 匹配完整簡譜音符：數字 + 可選的 ' 或 #（高音/升號）
+  const regex = /\d['#]*/g;
   let match;
   while ((match = regex.exec(line)) !== null) {
     numbers.push({
