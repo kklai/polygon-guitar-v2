@@ -131,10 +131,22 @@ function HomeSettings() {
   const saveSettings = async () => {
     setSaving(true)
     try {
-      await setDoc(doc(db, 'settings', 'home'), {
+      // 去重處理，防止重複 ID
+      const dedupedSettings = {
         ...settings,
+        manualSelection: {
+          male: [...new Set(settings.manualSelection.male)],
+          female: [...new Set(settings.manualSelection.female)],
+          group: [...new Set(settings.manualSelection.group)]
+        },
+        hotTabs: {
+          ...settings.hotTabs,
+          manualSelection: [...new Set(settings.hotTabs.manualSelection)]
+        },
         updatedAt: new Date().toISOString()
-      })
+      }
+      
+      await setDoc(doc(db, 'settings', 'home'), dedupedSettings)
       setMessage('✅ 設置已保存')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
@@ -288,7 +300,9 @@ function HomeSettings() {
 
   const getSelectedArtists = (category) => {
     const ids = settings.manualSelection[category] || []
-    return ids.map(id => artists.find(a => a.id === id)).filter(Boolean)
+    // 去重，防止重複 ID 導致重複顯示
+    const uniqueIds = [...new Set(ids)]
+    return uniqueIds.map(id => artists.find(a => a.id === id)).filter(Boolean)
   }
 
   const getSelectedTabs = () => {
@@ -506,13 +520,23 @@ function HomeSettings() {
                 {/* 搜索添加 */}
                 <div>
                   <h3 className="text-sm font-medium text-gray-400 mb-3">添加歌手</h3>
-                  <input
-                    type="text"
-                    value={artistSearchTerm}
-                    onChange={(e) => setArtistSearchTerm(e.target.value)}
-                    placeholder={`搜索${activeArtistCategory === 'male' ? '男歌手' : activeArtistCategory === 'female' ? '女歌手' : '組合'}...`}
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 mb-3"
-                  />
+                  <div className="relative mb-3">
+                    <input
+                      type="text"
+                      value={artistSearchTerm}
+                      onChange={(e) => setArtistSearchTerm(e.target.value)}
+                      placeholder={`搜索${activeArtistCategory === 'male' ? '男歌手' : activeArtistCategory === 'female' ? '女歌手' : '組合'}...`}
+                      className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white placeholder-gray-500"
+                    />
+                    {artistSearchTerm && (
+                      <button
+                        onClick={() => setArtistSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                   
                   <div className="max-h-64 overflow-y-auto space-y-1">
                     {filteredArtists(activeArtistCategory).slice(0, 20).map(artist => {
@@ -679,13 +703,23 @@ function HomeSettings() {
                 {/* 搜索添加 */}
                 <div>
                   <h3 className="text-sm font-medium text-gray-400 mb-3">添加歌曲</h3>
-                  <input
-                    type="text"
-                    value={tabSearchTerm}
-                    onChange={(e) => setTabSearchTerm(e.target.value)}
-                    placeholder="搜索歌曲名或歌手名..."
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 mb-3"
-                  />
+                  <div className="relative mb-3">
+                    <input
+                      type="text"
+                      value={tabSearchTerm}
+                      onChange={(e) => setTabSearchTerm(e.target.value)}
+                      placeholder="搜索歌曲名或歌手名..."
+                      className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white placeholder-gray-500"
+                    />
+                    {tabSearchTerm && (
+                      <button
+                        onClick={() => setTabSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                   
                   <div className="max-h-64 overflow-y-auto space-y-1">
                     {filteredTabs().map(tab => {

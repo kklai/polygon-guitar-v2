@@ -10,6 +10,7 @@ import { getTabsByArtist } from '../../lib/tabs';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { ArtistHeroImage } from '../../components/ArtistImage';
+import Layout from '../../components/Layout';
 
 export default function ArtistPage() {
   const router = useRouter();
@@ -198,9 +199,10 @@ export default function ArtistPage() {
     return artist?.photoURL || artist?.wikiPhotoURL || null;
   };
 
-  if (loading || !artist) return <div className="min-h-screen bg-black" />;
+  if (loading || !artist) return <Layout><div className="min-h-screen bg-black" /></Layout>;
 
   return (
+    <Layout>
     <div className="min-h-screen bg-black pb-20">
       {/* Hero */}
       <div className="relative h-[45vh] w-full">
@@ -512,5 +514,6 @@ export default function ArtistPage() {
         }
       `}</style>
     </div>
+    </Layout>
   );
 }

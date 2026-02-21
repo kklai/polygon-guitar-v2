@@ -312,20 +312,28 @@ export default function Home() {
       
       // 熱門歌手（不分類別，綜合排名）
       const getHotArtists = () => {
-        const useManual = settings.useManualSelection?.['all']
-        const manualList = settings.manualSelection?.['all'] || []
+        // 合併所有手動揀選（male + female + group）
+        const manualIds = [
+          ...(settings.manualSelection?.male || []),
+          ...(settings.manualSelection?.female || []),
+          ...(settings.manualSelection?.group || [])
+        ]
+        
+        // 檢查是否有啟用手動揀選
+        const useManual = settings.useManualSelection?.male || 
+                         settings.useManualSelection?.female || 
+                         settings.useManualSelection?.group
 
-        if (useManual && manualList.length > 0) {
+        if (useManual && manualIds.length > 0) {
           // 使用手動揀選，但從實時數據中獲取最新資料
-          const manualArtists = manualList.map(savedArtist => {
-            const liveArtist = popularArtists.find(a => a.id === savedArtist.id)
-            return liveArtist ? { ...savedArtist, ...liveArtist } : savedArtist
-          }).filter(a => a)
+          const manualArtists = manualIds
+            .map(id => popularArtists.find(a => a.id === id))
+            .filter(Boolean)
 
           // 補充自動排序至指定數量
-          const manualIds = new Set(manualList.map(a => a.id))
+          const manualIdsSet = new Set(manualIds)
           const autoFill = sortedArtists
-            .filter(a => !manualIds.has(a.id))
+            .filter(a => !manualIdsSet.has(a.id))
             .slice(0, displayCount - manualArtists.length)
 
           return [...manualArtists, ...autoFill].slice(0, displayCount)
