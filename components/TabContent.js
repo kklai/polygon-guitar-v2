@@ -1055,7 +1055,7 @@ const TabContent = ({
     night: {
       bg: '#121212',
       text: '#FFFFFF',
-      lyricNormal: '#A0A0A0',
+      lyricNormal: '#FFFFFF',  // 白色（歌詞行統一白色）
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
@@ -1065,7 +1065,7 @@ const TabContent = ({
     day: {
       bg: '#FFFFFF',
       text: '#000000',
-      lyricNormal: '#333333',
+      lyricNormal: '#333333',  // 日間模式保持深色
       lyricInside: '#000000',
       chord: '#8B5CF6', // 紫色
       sectionMarker: '#000000',
@@ -1168,24 +1168,31 @@ const TabContent = ({
   const processLyricLine = (line) => {
     const parts = [];
     let buffer = '';
+    let inBracket = false;
+    
     for (let char of line) {
       if (char === '(') {
+        // 括號前的內容
         if (buffer) {
-          parts.push({ type: 'outside', text: buffer });
+          parts.push({ type: inBracket ? 'inside' : 'outside', text: buffer });
           buffer = '';
         }
+        inBracket = true;
       } else if (char === ')') {
-        if (buffer) {
-          parts.push({ type: 'inside', text: buffer });
-          buffer = '';
-        }
+        // 括號內的內容（包括空字符串）
+        parts.push({ type: 'inside', text: buffer }); // buffer 可能為空，但空括號也要顯示
+        buffer = '';
+        inBracket = false;
       } else {
         buffer += char;
       }
     }
+    
+    // 剩餘內容
     if (buffer) {
-      parts.push({ type: 'outside', text: buffer });
+      parts.push({ type: inBracket ? 'inside' : 'outside', text: buffer });
     }
+    
     return parts;
   };
 
