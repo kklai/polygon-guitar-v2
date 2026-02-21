@@ -226,7 +226,7 @@ export default function ArtistPage() {
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-3xl font-bold text-white">{artist.name}</h1>
+            <h1 className="text-4xl font-bold text-white leading-tight">{artist.name}</h1>
             {/* 歌手資訊按鈕 */}
             <button
               onClick={() => setShowInfo(!showInfo)}
@@ -293,16 +293,16 @@ export default function ArtistPage() {
       )}
 
       {/* 熱門歌曲（前5首 - 有相片） */}
-      <section className="px-4 mt-6">
-        <h2 className="text-white text-lg font-bold mb-3">熱門</h2>
+      <section className="px-4 mt-2">
+        <h2 className="text-white text-lg font-bold mb-2">熱門</h2>
         <div className="space-y-1">
           {hotTabs.map((tab, index) => (
             <div 
               key={tab.id}
               onClick={() => router.push(`/tabs/${tab.id}`)}
-              className="flex items-center py-2 px-1 hover:bg-[#1a1a1a] rounded-lg cursor-pointer group"
+              className="flex items-center py-1 hover:bg-[#1a1a1a] rounded-lg cursor-pointer group -mx-2 px-2"
             >
-              <span className="text-[#B3B3B3] w-6 text-center text-sm font-medium mr-2">
+              <span className="text-[#B3B3B3] w-5 text-center text-sm font-medium mr-2">
                 {index + 1}
               </span>
               
