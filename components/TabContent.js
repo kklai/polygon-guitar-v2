@@ -460,11 +460,12 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
       const unitChineseChars = (unit.content.match(/[\u4e00-\u9fff]/g) || []);
       
       if (unitChineseChars.length === 0) {
-        // 空括號或無中文字
+        // 空括號或無中文字 - 白色
         result.push({
           type: 'bracket',
           content: unit.content,
-          notation: null
+          notation: null,
+          isInside: true
         });
       } else if (unitChineseChars.length === 1) {
         // 單個中文字在括號內
@@ -1164,10 +1165,14 @@ const TabContent = ({
   const getLineFontSize = (lineText, isChordLine = false) => {
     if (!lineText) return fontSize;
     
-    const adjustedBase = calculateFontSize(lineText, containerWidth);
+    // 網頁版（寬度 >= 768）使用固定字體大小，唔根據行長調整
+    if (containerWidth >= 768) {
+      return Math.max(10, Math.min(28, Math.round(fontSize)));
+    }
     
-    // 如果用戶手動調整了字體大小，按比例調整
-    const ratio = fontSize / 16; // 16 是預設值
+    // 手機版根據行長調整
+    const adjustedBase = calculateFontSize(lineText, containerWidth);
+    const ratio = fontSize / 16;
     return Math.max(10, Math.min(28, Math.round(adjustedBase * ratio)));
   };
 
