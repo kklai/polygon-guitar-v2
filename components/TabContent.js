@@ -1440,7 +1440,7 @@ const TabContent = ({
                   whiteSpace: 'pre-wrap', 
                   overflowWrap: 'break-word', 
                   lineHeight: '1.2',
-                  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                  fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
                 }}>
                   {(() => {
                     const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
