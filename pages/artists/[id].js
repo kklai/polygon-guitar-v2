@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
-import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info } from 'lucide-react';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
@@ -26,6 +26,7 @@ export default function ArtistPage() {
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showInfo, setShowInfo] = useState(false); // 控制歌手資訊顯示
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
@@ -57,9 +58,15 @@ export default function ArtistPage() {
       // 按瀏覽數排序
       tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
       
-      // 前5首為熱門
-      setHotTabs(tabs.slice(0, 5));
-      setAllTabs(tabs.slice(5));
+      // 如果總歌曲數 <= 5，全部顯示喺「熱門」區，唔顯示「所有歌曲」區
+      if (tabs.length <= 5) {
+        setHotTabs(tabs);
+        setAllTabs([]);
+      } else {
+        // 前5首為熱門
+        setHotTabs(tabs.slice(0, 5));
+        setAllTabs(tabs.slice(5));
+      }
     } catch (error) {
       console.error('載入歌手資料失敗:', error);
     } finally {
@@ -204,81 +211,88 @@ export default function ArtistPage() {
   return (
     <Layout>
     <div className="min-h-screen bg-black pb-20">
-      {/* Hero */}
-      <div className="relative h-[45vh] w-full">
+      {/* Hero - 手機版 3:2 比例，桌面版維持 45vh */}
+      <div className="relative w-full aspect-[3/2] md:h-[45vh] md:aspect-auto">
         <ArtistHeroImage artist={artist} />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         
         {/* 返回按鈕 */}
         <button 
           onClick={() => router.back()}
-          className="absolute top-6 left-4 p-2 bg-black/30 backdrop-blur-sm rounded-full text-white hover:bg-black/50"
+          className="absolute top-6 left-4 p-2 bg-black/30 backdrop-blur-sm rounded-full text-white hover:bg-black/50 z-10"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <h1 className="text-4xl font-bold text-white mb-2">{artist.name}</h1>
-          
-          {/* 歌手資訊：年份 + 歌曲數 */}
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {/* 出生年份 */}
-            {artist.birthYear && (
-              <span className="text-[#B3B3B3]">
-                {artist.birthYear}年
-              </span>
-            )}
-            
-            {/* 出道年份 */}
-            {artist.debutYear && (
-              <span className="text-[#B3B3B3]">
-                {artist.debutYear}年出道
-              </span>
-            )}
-            
-            {/* 分隔符 */}
-            {(artist.birthYear || artist.debutYear) && (
-              <span className="text-[#555]">·</span>
-            )}
-            
-            {/* 歌曲數 */}
-            <span className="text-[#B3B3B3]">
-              {artist.songCount || hotTabs.length + allTabs.length} 首歌曲
-            </span>
-            
-            {/* Spotify 粉絲數 */}
-            {artist.spotifyFollowers && (
-              <>
-                <span className="text-[#555]">·</span>
-                <span className="text-[#1DB954]">
-                  {(artist.spotifyFollowers / 10000).toFixed(1)}萬粉絲
-                </span>
-              </>
-            )}
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-4xl font-bold text-white">{artist.name}</h1>
+            {/* 歌手資訊按鈕 */}
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="p-1.5 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition"
+            >
+              <Info className="w-5 h-5" />
+            </button>
           </div>
+          
+          {/* 簡單資訊：歌曲數 */}
+          <p className="text-[#B3B3B3] text-sm">
+            {artist.songCount || hotTabs.length + allTabs.length} 首歌曲
+          </p>
         </div>
       </div>
 
-      {/* 歌手簡介 */}
-      {artist.bio && (
-        <section className="px-4 mt-4">
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-[#B3B3B3] text-sm leading-relaxed line-clamp-3" id="artist-bio">
-              {artist.bio}
-            </p>
-            {artist.bio.length > 100 && (
-              <button 
-                onClick={() => {
-                  const bio = document.getElementById('artist-bio');
-                  bio.classList.toggle('line-clamp-3');
-                }}
-                className="text-[#FFD700] text-xs mt-2 hover:underline"
-              >
-                顯示更多
+      {/* 歌手詳細資訊 Floating Panel */}
+      {showInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowInfo(false)}>
+          <div className="bg-[#121212] rounded-2xl p-6 max-w-sm w-full border border-gray-800 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white text-lg font-bold">{artist.name}</h3>
+              <button onClick={() => setShowInfo(false)} className="text-[#B3B3B3] hover:text-white">
+                ✕
               </button>
+            </div>
+            
+            {/* 資訊列表 */}
+            <div className="space-y-3 text-sm">
+              {artist.birthYear && (
+                <div className="flex justify-between">
+                  <span className="text-[#B3B3B3]">出生年份</span>
+                  <span className="text-white">{artist.birthYear}年</span>
+                </div>
+              )}
+              
+              {artist.debutYear && (
+                <div className="flex justify-between">
+                  <span className="text-[#B3B3B3]">出道年份</span>
+                  <span className="text-white">{artist.debutYear}年</span>
+                </div>
+              )}
+              
+              {artist.spotifyFollowers && (
+                <div className="flex justify-between">
+                  <span className="text-[#B3B3B3]">Spotify 粉絲</span>
+                  <span className="text-[#1DB954]">{(artist.spotifyFollowers / 10000).toFixed(1)}萬</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between">
+                <span className="text-[#B3B3B3]">歌曲數量</span>
+                <span className="text-white">{artist.songCount || hotTabs.length + allTabs.length} 首</span>
+              </div>
+            </div>
+            
+            {/* 簡介 */}
+            {artist.bio && (
+              <div className="mt-4 pt-4 border-t border-gray-800">
+                <p className="text-[#B3B3B3] text-sm leading-relaxed">
+                  {artist.bio}
+                </p>
+              </div>
             )}
           </div>
-        </section>
+        </div>
       )}
 
       {/* 熱門歌曲（前5首 - 有相片） */}
@@ -323,6 +337,7 @@ export default function ArtistPage() {
       </section>
 
       {/* 所有歌曲（第6首起 - 無相片，有評分） */}
+      {allTabs.length > 0 && (
       <section className="px-4 mt-8">
         {/* 標題 + 排序 */}
         <div className="flex justify-between items-center mb-4">
@@ -437,6 +452,7 @@ export default function ArtistPage() {
           </div>
         )}
       </section>
+      )}
 
       {/* Action Modal（分享/收藏） */}
       {showActionModal && selectedTab && (

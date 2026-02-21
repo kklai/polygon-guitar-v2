@@ -38,14 +38,20 @@ export default function Search() {
     setFilteredSongs(
       songs.filter(song => 
         song.title.toLowerCase().includes(query) ||
-        song.artist.toLowerCase().includes(query)
-      ).slice(0, 10)
+        song.artist.toLowerCase().includes(query) ||
+        (song.composer && song.composer.toLowerCase().includes(query)) ||
+        (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
+        (song.arranger && song.arranger.toLowerCase().includes(query)) ||
+        (song.arrangedBy && song.arrangedBy.toLowerCase().includes(query))
+      )
+      // 完全冇限制，顯示所有結果
     )
     
     setFilteredArtists(
       artists.filter(artist => 
         artist.name.toLowerCase().includes(query)
-      ).slice(0, 8)
+      )
+      // 完全冇限制，顯示所有結果
     )
   }, [searchQuery, songs, artists])
 
@@ -261,6 +267,13 @@ export default function Search() {
                           {song.title}
                         </h3>
                         <p className="text-sm text-gray-500">{song.artist}</p>
+                        {(song.composer || song.lyricist || song.arranger) && (
+                          <p className="text-xs text-gray-600 mt-0.5">
+                            {song.composer && <span>曲：{song.composer} </span>}
+                            {song.lyricist && <span>詞：{song.lyricist} </span>}
+                            {song.arranger && <span>編：{song.arranger}</span>}
+                          </p>
+                        )}
                       </div>
                       <span className="text-xs text-gray-600">{song.originalKey || 'C'}</span>
                     </button>

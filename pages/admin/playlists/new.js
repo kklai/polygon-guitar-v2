@@ -64,7 +64,8 @@ function NewPlaylist() {
     const filtered = allSongs.filter(song =>
       song.title.toLowerCase().includes(query) ||
       song.artist.toLowerCase().includes(query)
-    ).slice(0, 20)
+    )
+    // 顯示所有符合條件的歌曲，唔限制數量
     
     setSearchResults(filtered)
   }, [searchQuery, allSongs])
@@ -80,8 +81,8 @@ function NewPlaylist() {
     
     setIsUploading(true)
     try {
-      const result = await uploadToCloudinary(file, formData.title || 'playlist-cover')
-      setFormData(prev => ({ ...prev, coverImage: result.url }))
+      const imageUrl = await uploadToCloudinary(file, formData.title || 'playlist-cover', 'playlists')
+      setFormData(prev => ({ ...prev, coverImage: imageUrl }))
     } catch (error) {
       alert('封面上傳失敗：' + error.message)
     } finally {

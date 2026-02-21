@@ -536,6 +536,23 @@ E|----------------------------------------------------------------|
                 />
               </div>
               
+              <div>
+                <label htmlFor="bpm" className="block text-sm font-medium text-white mb-1">
+                  BPM
+                </label>
+                <input
+                  type="number"
+                  id="bpm"
+                  name="bpm"
+                  value={formData.bpm}
+                  onChange={handleChange}
+                  placeholder="例如：120"
+                  min="1"
+                  max="300"
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                />
+              </div>
+              
               {/* 上傳者筆名 */}
               <div className="sm:col-span-2">
                 <label htmlFor="uploaderPenName" className="block text-sm font-medium text-white mb-1">
@@ -748,6 +765,31 @@ E|----------------------------------------------------------------|
                 name="content"
                 value={formData.content}
                 onChange={handleChange}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pastedText = e.clipboardData.getData('text');
+                  // 清理空格：
+                  // 1. 將全型空格（\u3000）轉為半型空格
+                  // 2. 每行開頭結尾空格 trim
+                  // 3. 連續多個空格變一個
+                  const cleanedText = pastedText
+                    .replace(/\u3000/g, ' ')  // 全型空格 -> 半型空格
+                    .split('\n')
+                    .map(line => line.trim().replace(/\s+/g, ' '))
+                    .join('\n');
+                  
+                  // 獲取當前光標位置
+                  const textarea = e.target;
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+                  const currentValue = formData.content;
+                  
+                  // 插入清理後嘅文字
+                  const newValue = currentValue.substring(0, start) + cleanedText + currentValue.substring(end);
+                  
+                  // 更新表單數據
+                  setFormData(prev => ({ ...prev, content: newValue }));
+                }}
                 placeholder="在這裡貼上你的結他譜..."
                 rows={20}
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent font-mono text-sm ${

@@ -167,7 +167,16 @@ export default function Home() {
     manualSelection: { male: [], female: [], group: [] },
     useManualSelection: { male: false, female: false, group: false },
     hotArtistSortBy: 'viewCount',
-    displayCount: 20
+    displayCount: 20,
+    sectionOrder: [
+      { id: 'categories', enabled: true },
+      { id: 'recent', enabled: true },
+      { id: 'hotTabs', enabled: true },
+      { id: 'hotArtists', enabled: true },
+      { id: 'autoPlaylists', enabled: true },
+      { id: 'latest', enabled: true },
+      { id: 'manualPlaylists', enabled: true }
+    ]
   })
   const [recentItems, setRecentItems] = useState([])
 
@@ -260,7 +269,47 @@ export default function Home() {
       setHotTabs(hotTabsData)
 
       // 獲取熱門歌手（限制數量，提升性能）
-      const popularArtists = await getPopularArtists(60)
+      let popularArtists = await getPopularArtists(60)
+      
+      // 檢查手動揀選嘅歌手係咪全部喺 popularArtists 入面
+      const manualIds = Array.isArray(settings.manualSelection) 
+        ? settings.manualSelection 
+        : [
+            ...(settings.manualSelection?.male || []),
+            ...(settings.manualSelection?.female || []),
+            ...(settings.manualSelection?.group || [])
+          ]
+      
+      if (manualIds.length > 0) {
+        const existingIds = new Set(popularArtists.map(a => a.id))
+        const missingIds = manualIds.filter(id => !existingIds.has(id))
+        
+        if (missingIds.length > 0) {
+          // 額外獲取缺少嘅歌手
+          const missingArtists = await Promise.all(
+            missingIds.map(async (id) => {
+              try {
+                const artistDoc = await getDoc(doc(db, 'artists', id))
+                if (artistDoc.exists()) {
+                  const data = artistDoc.data()
+                  return {
+                    id: artistDoc.id,
+                    ...data,
+                    photo: data.photoURL || data.wikiPhotoURL || data.photo || null,
+                    tabCount: data.songCount || data.tabCount || 0
+                  }
+                }
+              } catch (e) {
+                console.error('Error fetching artist:', id, e)
+              }
+              return null
+            })
+          )
+          
+          // 將缺少嘅歌手加入 popularArtists
+          popularArtists = [...popularArtists, ...missingArtists.filter(Boolean)]
+        }
+      }
       
       // 建立歌手照片 lookup（給歌曲封面 fallback 用）
       const photoMap = {}
@@ -312,19 +361,26 @@ export default function Home() {
       
       // 熱門歌手（不分類別，綜合排名）
       const getHotArtists = () => {
-        // 合併所有手動揀選（male + female + group）
-        const manualIds = [
-          ...(settings.manualSelection?.male || []),
-          ...(settings.manualSelection?.female || []),
-          ...(settings.manualSelection?.group || [])
-        ]
+        // 新版：單一 manualSelection 陣列
+        // 舊版兼容：如果是對象格式，合併三個分類
+        let manualIds = []
+        if (Array.isArray(settings.manualSelection)) {
+          manualIds = settings.manualSelection
+        } else if (typeof settings.manualSelection === 'object' && settings.manualSelection) {
+          // 舊格式兼容
+          manualIds = [
+            ...(settings.manualSelection?.male || []),
+            ...(settings.manualSelection?.female || []),
+            ...(settings.manualSelection?.group || [])
+          ]
+        }
         
-        // 檢查是否有啟用手動揀選
-        const useManual = settings.useManualSelection?.male || 
-                         settings.useManualSelection?.female || 
-                         settings.useManualSelection?.group
+        // 檢查是否有手動揀選（新版直接用陣列長度判斷，舊版用 useManualSelection）
+        const hasManualSelection = Array.isArray(settings.manualSelection) 
+          ? manualIds.length > 0 
+          : (settings.useManualSelection?.male || settings.useManualSelection?.female || settings.useManualSelection?.group)
 
-        if (useManual && manualIds.length > 0) {
+        if (hasManualSelection && manualIds.length > 0) {
           // 使用手動揀選，但從實時數據中獲取最新資料
           const manualArtists = manualIds
             .map(id => popularArtists.find(a => a.id === id))
@@ -585,222 +641,225 @@ export default function Home() {
           </div>
         )}
 
-        {/* 第一區：歌手分類 */}
-        <section className="mb-6 pt-2">
-          <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
-                className="flex-shrink-0 flex flex-col group"
-              >
-                {/* 正方形圖片卡片 */}
-                <div className="relative w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] aspect-square rounded-[4px] overflow-hidden">
-                  {/* Background Image - 保持原相自然色，無遮罩 */}
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {/* 文字右下方 + 顏色底 */}
-                  <div className="absolute bottom-2 right-0 w-1/2">
-                    <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
-                      category.id === 'male' ? 'bg-[#1fc3df]' :
-                      category.id === 'female' ? 'bg-[#ff9b98]' :
-                      'bg-[#fed702]'
-                    }`}>
-                      {category.name}
-                    </span>
-                  </div>
-                </div>
-                {/* 熱門歌手名單 */}
-                <div className="w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] mt-2 px-1">
-                  <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
-                    {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
+        {/* 根據 sectionOrder 動態渲染各區域 */}
+        {(homeSettings.sectionOrder || [
+          { id: 'categories', enabled: true },
+          { id: 'recent', enabled: true },
+          { id: 'hotTabs', enabled: true },
+          { id: 'hotArtists', enabled: true },
+          { id: 'autoPlaylists', enabled: true },
+          { id: 'latest', enabled: true },
+          { id: 'manualPlaylists', enabled: true }
+        ])
+          .filter(section => section.enabled !== false)
+          .map((section) => {
+            switch (section.id) {
+              case 'categories':
+                return (
+                  <section key={section.id} className="mb-6 pt-2">
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
+                      {categories.map((category) => (
+                        <button
+                          key={category.id}
+                          onClick={() => handleCategoryClick(category.id)}
+                          className="flex-shrink-0 flex flex-col group"
+                        >
+                          <div className="relative w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] aspect-square rounded-[4px] overflow-hidden">
+                            <img
+                              src={category.image}
+                              alt={category.name}
+                              className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute bottom-2 right-0 w-1/2">
+                              <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
+                                category.id === 'male' ? 'bg-[#1fc3df]' :
+                                category.id === 'female' ? 'bg-[#ff9b98]' :
+                                'bg-[#fed702]'
+                              }`}>
+                                {category.name}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] mt-2 px-1">
+                            <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
+                              {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
 
-        {/* 第二區：最近瀏覽 */}
-        <RecentItems items={recentItems} />
+              case 'recent':
+                return <RecentItems key={section.id} items={recentItems} />
 
-        {/* 第三區：熱門結他譜 */}
-        {hotTabs.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門結他譜</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {hotTabs.map((song) => (
-                <button
-                  key={song.id}
-                  onClick={() => handleSongClick(song.id)}
-                  className="flex-shrink-0 flex flex-col group text-left w-32"
-                >
-                  {/* Square Cover */}
-                  <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative">
-                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                      <img
-                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                        alt={song.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        🎵
-                      </div>
-                    )}
-                  </div>
-                  {/* Song Info */}
-                  <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {song.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+              case 'hotTabs':
+                return hotTabs.length > 0 && (
+                  <section key={section.id} className="mb-10">
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門結他譜</h2>
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                      {hotTabs.map((song) => (
+                        <button
+                          key={song.id}
+                          onClick={() => handleSongClick(song.id)}
+                          className="flex-shrink-0 flex flex-col group text-left w-32"
+                        >
+                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative">
+                            {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                              <img
+                                src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                                alt={song.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                            )}
+                          </div>
+                          <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                            {song.title}
+                          </h3>
+                          <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
 
-        {/* 第四區：熱門歌手（不分類別） */}
-        {hotArtists.all?.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌手</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-6">
-              {hotArtists.all.map((artist) => (
-                <button
-                  key={artist.id}
-                  onClick={() => handleArtistClick(artist)}
-                  className="flex-shrink-0 flex flex-col items-center group"
-                >
-                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
-                      <img 
-                        src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
-                        alt={artist.name} 
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                    )}
-                  </div>
-                  <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
-                    {artist.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+              case 'hotArtists':
+                return hotArtists.all?.length > 0 && (
+                  <section key={section.id} className="mb-10">
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌手</h2>
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-6">
+                      {hotArtists.all.map((artist) => (
+                        <button
+                          key={artist.id}
+                          onClick={() => handleArtistClick(artist)}
+                          className="flex-shrink-0 flex flex-col items-center group"
+                        >
+                          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                            {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
+                              <img 
+                                src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
+                                alt={artist.name} 
+                                className="w-full h-full object-cover" 
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-4xl"></div>
+                            )}
+                          </div>
+                          <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
+                            {artist.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
 
+              case 'autoPlaylists':
+                return autoPlaylists.length > 0 && (
+                  <section key={section.id} className="mb-10">
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌單</h2>
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                      {autoPlaylists.map((playlist) => (
+                        <button
+                          key={playlist.id}
+                          onClick={() => handlePlaylistClick(playlist.id)}
+                          className="flex-shrink-0 flex flex-col group text-left w-36"
+                        >
+                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                            {getThumbnail(playlist) ? (
+                              <img
+                                src={getThumbnail(playlist)}
+                                alt={playlist.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-4xl"></div>
+                            )}
+                          </div>
+                          <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                            {playlist.title}
+                          </h3>
+                          {playlist.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {playlist.description}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
 
+              case 'latest':
+                return latestSongs.length > 0 && (
+                  <section key={section.id} className="mb-10">
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">最新上架</h2>
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                      {latestSongs.map((song) => (
+                        <button
+                          key={song.id}
+                          onClick={() => handleSongClick(song.id)}
+                          className="flex-shrink-0 flex flex-col group text-left w-32"
+                        >
+                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                            {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                              <img
+                                src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                                alt={song.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                            )}
+                          </div>
+                          <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                            {song.title}
+                          </h3>
+                          <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
 
-        {/* 第七區：熱門歌單 */}
-        {autoPlaylists.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌單</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {autoPlaylists.map((playlist) => (
-                <button
-                  key={playlist.id}
-                  onClick={() => handlePlaylistClick(playlist.id)}
-                  className="flex-shrink-0 flex flex-col group text-left w-36"
-                >
-                  {/* Square Cover */}
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {getThumbnail(playlist) ? (
-                      <img
-                        src={getThumbnail(playlist)}
-                        alt={playlist.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {playlist.title}
-                  </h3>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+              case 'manualPlaylists':
+                return manualPlaylists.length > 0 && (
+                  <section key={section.id} className="mb-10">
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">推薦歌單</h2>
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                      {manualPlaylists.map((playlist) => (
+                        <button
+                          key={playlist.id}
+                          onClick={() => handlePlaylistClick(playlist.id)}
+                          className="flex-shrink-0 flex flex-col group text-left w-36"
+                        >
+                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-[#FFD700]/20 to-orange-900/20 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg border border-[#FFD700]/20">
+                            {getThumbnail(playlist) ? (
+                              <img
+                                src={getThumbnail(playlist)}
+                                alt={playlist.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-4xl"></div>
+                            )}
+                          </div>
+                          <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                            {playlist.title}
+                          </h3>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
 
-        {/* 最新上架 */}
-        {latestSongs.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">最新上架</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {latestSongs.map((song) => (
-                <button
-                  key={song.id}
-                  onClick={() => handleSongClick(song.id)}
-                  className="flex-shrink-0 flex flex-col group text-left w-32"
-                >
-                  {/* Square Cover */}
-                  <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
-                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                      <img
-                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                        alt={song.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        🎵
-                      </div>
-                    )}
-                  </div>
-                  {/* Song Info */}
-                  <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {song.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-
-
-        {/* 第八區：推薦歌單（人工策劃） */}
-        {manualPlaylists.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">推薦歌單</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {manualPlaylists.map((playlist) => (
-                <button
-                  key={playlist.id}
-                  onClick={() => handlePlaylistClick(playlist.id)}
-                  className="flex-shrink-0 flex flex-col group text-left w-36"
-                >
-                  {/* Square Cover - 暖色調 */}
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-[#FFD700]/20 to-orange-900/20 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg border border-[#FFD700]/20">
-                    {getThumbnail(playlist) ? (
-                      <img
-                        src={getThumbnail(playlist)}
-                        alt={playlist.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {playlist.title}
-                  </h3>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+              default:
+                return null
+            }
+          })}
 
         {/* 底部 Spacer */}
         <div className="h-8" />

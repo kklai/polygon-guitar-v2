@@ -320,25 +320,30 @@ function getCapoSuggestion(capo) {
   return { capo: null, status: 'invalid', message: '', alternative: null };
 }
 
-// 檢查是否為簡譜行（數字譜，如 (6.)6.13312）
+// 檢查是否為簡譜行（數字譜，如 5 5 6 6 或 (6.)6.13312）
 function isNumericNotationLine(line) {
-  if (!line || !line.includes('(')) return false;
+  if (!line) return false;
   
   // 簡譜特徵：
-  // 1. 包含括號內的數字 (6.)、(2) 等
-  // 2. 大量數字和點號
-  // 3. 很少或沒有中文字符
+  // 1. 大量數字（多於 3 個）
+  // 2. 可以包含括號內的數字 (6.)、(2) 等
+  // 3. 很少或沒有中文字符（少於 3 個）
+  // 4. 冇和弦豎線 |
   
-  const numericBracketPattern = /\(\d+\.?\)/g;
-  const numericBrackets = line.match(numericBracketPattern) || [];
+  const digits = (line.match(/\d/g) || []).length;
+  const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
+  const hasChordBar = /\|[\s]*[A-G]/.test(line);
   
-  // 如果有 2+ 個數字括號模式，可能是簡譜
-  if (numericBrackets.length >= 2) {
-    const digits = (line.match(/\d/g) || []).length;
-    const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
-    
-    // 數字多、中文字少 = 簡譜
-    if (digits > 5 && chineseChars < 3) {
+  // 數字多（>3）、中文字少（<3）、冇和弦 = 簡譜
+  if (digits > 3 && chineseChars < 3 && !hasChordBar) {
+    return true;
+  }
+  
+  // 舊版兼容：有括號數字模式
+  if (line.includes('(')) {
+    const numericBracketPattern = /\(\d+\.?\)/g;
+    const numericBrackets = line.match(numericBracketPattern) || [];
+    if (numericBrackets.length >= 1 && digits > 3 && chineseChars < 3) {
       return true;
     }
   }
@@ -346,10 +351,115 @@ function isNumericNotationLine(line) {
   return false;
 }
 
+// 處理簡譜行（數字旋律譜）- 括號內所有內容（數字+歌詞）標記為白色
+function processNumericNotationLine(line) {
+  // 如果冇括號，成行都係簡譜數字（粉紅色）
+  if (!line.includes('(')) {
+    return [{ type: 'outside', content: line }];
+  }
+  
+  // 解析括號內容：(內容) - 包括數字簡譜和歌詞
+  const parts = [];
+  let buffer = '';
+  let i = 0;
+  
+  while (i < line.length) {
+    const char = line[i];
+    
+    if (char === '(') {
+      // 保存括號前的內容（簡譜數字）
+      if (buffer) {
+        parts.push({ type: 'outside', content: buffer });
+        buffer = '';
+      }
+      
+      // 讀取括號內容（包括數字和歌詞）
+      let bracketContent = '(';
+      i++;
+      while (i < line.length && line[i] !== ')') {
+        bracketContent += line[i];
+        i++;
+      }
+      if (i < line.length && line[i] === ')') {
+        bracketContent += ')';
+        i++;
+      }
+      
+      // 括號內所有內容（數字+歌詞）都標記為 inside（白色）
+      parts.push({ type: 'inside', content: bracketContent });
+    } else {
+      buffer += char;
+      i++;
+    }
+  }
+  
+  // 保存剩餘內容
+  if (buffer) {
+    parts.push({ type: 'outside', content: buffer });
+  }
+  
+  return parts;
+}
+
+// 從簡譜行提取和弦、數字簡譜、歌詞
+function extractNumericNotationComponents(line) {
+  const components = {
+    chords: [],      // 和弦數組，帶位置
+    notations: [],   // 數字簡譜數組
+    lyrics: []       // 歌詞數組
+  };
+  
+  // 先處理 | 小節線
+  const segments = line.split('|').map(s => s.trim()).filter(s => s);
+  
+  segments.forEach((segment, segIdx) => {
+    // 在segment中找括號
+    const regex = /(\([^)]*\))/g;
+    let match;
+    let lastIndex = 0;
+    
+    while ((match = regex.exec(segment)) !== null) {
+      const bracketPos = match.index;
+      const bracketContent = match[1]; // (內容)
+      
+      // 括號前的是和弦（如果有）
+      const beforeBracket = segment.substring(lastIndex, bracketPos).trim();
+      if (beforeBracket) {
+        // 檢查是否為和弦
+        const chordMatch = beforeBracket.match(/[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|7|9|11|13)?$/);
+        if (chordMatch) {
+          components.chords.push({
+            chord: chordMatch[0],
+            position: segIdx,
+            notation: bracketContent
+          });
+        }
+      }
+      
+      // 括號內的是數字簡譜
+      components.notations.push({
+        notation: bracketContent,
+        position: segIdx
+      });
+      
+      lastIndex = regex.lastIndex;
+    }
+  });
+  
+  return components;
+}
+
 // 檢查是否為混合行（同時包含和弦和歌詞）
 function isMixedLine(line) {
   // 必須包含括號（歌詞標記）
   if (!line.includes('(')) return false;
+  
+  // 排除數字譜行（大量數字、少中文字）
+  const digits = (line.match(/\d/g) || []).length;
+  const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
+  if (digits > 5 && chineseChars < 3) {
+    return false; // 這是數字譜行，不是混合行
+  }
   
   // 檢查是否有 Section Marker
   const sectionInfo = extractSectionMarker(line);
@@ -365,7 +475,6 @@ function isMixedLine(line) {
   const hasLyricBracket = /\([^A-G]/.test(line); // 括號內不是和弦（避免誤判）
   
   // 如果中文字比例高，視為歌詞行而非混合行
-  const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
   const chineseRatio = chineseChars.length / line.length;
   if (chineseRatio > 0.3) {
     return false;
@@ -770,7 +879,7 @@ const TabContent = ({
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
-      numericNotation: '#A0A0A0',
+      numericNotation: '#FF69B4', // 粉紅色
       prefixSuffix: '#808080'
     },
     day: {
@@ -780,7 +889,7 @@ const TabContent = ({
       lyricInside: '#000000',
       chord: '#8B5CF6', // 紫色
       sectionMarker: '#000000',
-      numericNotation: '#555555',
+      numericNotation: '#FF1493', // 深粉紅色
       prefixSuffix: '#666666'
     }
   };
@@ -875,6 +984,31 @@ const TabContent = ({
     return Math.max(10, Math.min(28, Math.round(adjustedBase * ratio)));
   };
 
+  // 處理歌詞行：括號外灰色，括號內白色
+  const processLyricLine = (line) => {
+    const parts = [];
+    let buffer = '';
+    for (let char of line) {
+      if (char === '(') {
+        if (buffer) {
+          parts.push({ type: 'outside', text: buffer });
+          buffer = '';
+        }
+      } else if (char === ')') {
+        if (buffer) {
+          parts.push({ type: 'inside', text: buffer });
+          buffer = '';
+        }
+      } else {
+        buffer += char;
+      }
+    }
+    if (buffer) {
+      parts.push({ type: 'outside', text: buffer });
+    }
+    return parts;
+  };
+
   const renderContent = () => {
     if (!content) return null;
 
@@ -884,7 +1018,6 @@ const TabContent = ({
 
     while (i < lines.length) {
       const line = lines[i];
-      const nextLine = lines[i + 1] || '';
       
       if (!line.trim()) {
         // 跳過連續空行，只保留一個
@@ -900,56 +1033,138 @@ const TabContent = ({
       // 計算當前行的字體大小
       const lineFontSize = getLineFontSize(line);
       
-      // 更精確的和弦行檢測：必須包含和弦模式，且不能主要是中文字
-      // 支援 | 和 ｜ 兩種豎線
-      // 嚴格和弦模式：A-G 開頭，後面可選 #/b/m/maj/min/sus/dim/aug/add/數字
+      // 檢查是否為歌詞行（有中文字且冇 | 和弦）
+      const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
+      const hasChordBar = /\|[\s]*[A-G]/.test(line);
+      const isLyric = chineseChars.length > 0 && !hasChordBar;
+      
+      // 如果是歌詞行，優先處理
+      if (isLyric) {
+        const lyricParts = processLyricLine(line);
+        elements.push(
+          <div key={i} style={{ fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+            {lyricParts.map((part, idx) => (
+              <span key={idx} style={{
+                color: part.type === 'inside' ? colors.lyricInside : colors.lyricNormal
+              }}>
+                {part.type === 'inside' ? `(${part.text})` : part.text}
+              </span>
+            ))}
+          </div>
+        );
+        i++;
+        continue;
+      }
+      
+      // 檢查是否為和弦行
       const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\b/g;
       const chordMatches = line.match(strictChordPattern) || [];
-      
-      // 只計算真正有和弦字母嘅匹配（避免匹配到空字符串）
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
-      
-      // 檢測行首的 | 或 ｜（這通常是和弦行的強信號）
       const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
+      const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : validChordMatches.length >= 2;
+      const isChord = hasChordPattern && chineseChars.length < 3;
       
-      // 判斷是否為和弦行：
-      // 1. 有 | 開頭 且 有至少 1 個和弦；或
-      // 2. 沒有 | 開頭 但 有至少 2 個和弦（避免誤判英文歌詞）
-      const hasChordPattern = hasBarLineStart 
-        ? validChordMatches.length >= 1 
-        : validChordMatches.length >= 2;
+      // 檢查是否為簡譜行（純數字，冇中文字，冇 | 和弦）
+      const digits = (line.match(/\d/g) || []).length;
+      const isNumericNotation = digits > 3 && chineseChars.length < 3 && !hasChordBar;
       
-      // 檢查中文字比例，如果超過 30% 就不是和弦行
-      const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
-      const chineseRatio = chineseChars.length / line.length;
+      // 處理簡譜行
+      if (isNumericNotation) {
+        const notationParts = processNumericNotationLine(line);
+        elements.push(
+          <div key={i} style={{ 
+            fontSize: `${lineFontSize}px`, 
+            marginBottom: `${lineFontSize * 0.6}px`,
+            whiteSpace: 'pre-wrap', 
+            overflowWrap: 'break-word',
+            fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+          }}>
+            {notationParts.map((part, idx) => (
+              <span key={idx} style={{
+                color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
+                fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+              }}>
+                {part.content}
+              </span>
+            ))}
+          </div>
+        );
+        i++;
+        continue;
+      }
       
-      // 如果高中文比例且有括號歌詞，視為歌詞行
-      const hasLyricBrackets = chineseRatio > 0.3 && /\([^A-G#b\)]{1,3}\)/.test(line);
+      // 處理和弦行
+      if (isChord) {
+        // 搵下下面嘅歌詞行（跳過簡譜行）
+        let targetLyricIndex = i + 1;
+        while (targetLyricIndex < lines.length) {
+          const targetLine = lines[targetLyricIndex];
+          const targetChinese = (targetLine.match(/[\u4e00-\u9fff]/g) || []).length;
+          const targetHasChord = /\|[\s]*[A-G]/.test(targetLine);
+          const targetDigits = (targetLine.match(/\d/g) || []).length;
+          
+          // 如果係歌詞行（有中文字且冇和弦），就對齊
+          if (targetChinese > 0 && !targetHasChord) {
+            break;
+          }
+          // 如果係簡譜行，繼續搵
+          if (targetDigits > 3 && targetChinese < 3 && !targetHasChord) {
+            targetLyricIndex++;
+            continue;
+          }
+          break;
+        }
+        
+        const lyricLine = lines[targetLyricIndex] || '';
+        
+        if (lyricLine && (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length > 0) {
+          // 有歌詞行，對齊處理
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+          const result = processPair(cleanLine, lyricLine, transposeSemitones);
+          
+          elements.push(
+            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+              {/* 和弦行 */}
+              <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
+                {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                {result.chordLine}
+                {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+              </div>
+              {/* 歌詞行 - 括號外灰色，括號內白色 */}
+              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                {result.lyricParts.map((part, idx) => (
+                  <span key={idx} style={{ 
+                    color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                    fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                  }}>
+                    {part.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+          i = targetLyricIndex + 1;
+        } else {
+          // 冇歌詞行，單獨顯示和弦
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+          elements.push(
+            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+              {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+              {transposedChordLine}
+              {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
+            </div>
+          );
+          i++;
+        }
+        continue;
+      }
       
-      // 檢查是否為純英文歌詞行（長單詞、小寫字母比例高）
-      const words = line.trim().split(/\s+/);
-      const longWords = words.filter(w => w.length > 3 && /^[a-zA-Z]+$/.test(w));
-      const looksLikeLyrics = longWords.length >= 2;
-      
-      const isChord = hasChordPattern && chineseRatio < 0.3 && !hasLyricBrackets && !looksLikeLyrics;
-      // 同樣檢查下一行
-      const nextChordMatches = nextLine.match(strictChordPattern) || [];
-      const nextValidChordMatches = nextChordMatches.filter(m => /^[A-G]/.test(m.trim()));
-      const nextHasBarLineStart = /^[\s]*[\|｜]/.test(nextLine);
-      const nextHasChordPattern = nextHasBarLineStart 
-        ? nextValidChordMatches.length >= 1 
-        : nextValidChordMatches.length >= 2;
-      const nextChineseChars = nextLine.match(/[\u4e00-\u9fff]/g) || [];
-      const nextChineseRatio = nextChineseChars.length / nextLine.length;
-      const nextIsChord = nextHasChordPattern && nextChineseRatio < 0.3;
-      const isMixed = isMixedLine(line);
+      // 處理 Section Marker
       const isSectionMarker = isSectionMarkerLine(line);
-      
-      // 處理 Section Marker 單獨一行
-      if (isSectionMarker && !isChord && !isMixed) {
+      if (isSectionMarker) {
         const sectionInfo = extractSectionMarker(line);
         if (sectionInfo.hasMarker) {
-          // Section Marker 單獨一行 - 白色、底線、粗體
           elements.push(
             <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
               <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
@@ -957,7 +1172,6 @@ const TabContent = ({
               </span>
             </div>
           );
-          // 如果有剩餘內容（如和弦），顯示在下一行
           const restLine = sectionInfo.rest.trim();
           if (restLine) {
             const transposedRest = transposeChordLine(restLine, transposeSemitones);
@@ -972,218 +1186,24 @@ const TabContent = ({
         }
       }
       
-      // 處理混合行（chord + lyric 在同一行）
-      if (isMixed) {
-        const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-        const result = processMixedLine(cleanLine, transposeSemitones);
-        
-        if (result.error) {
-          elements.push(
-            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px`, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.1em' }}>
-              {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-              <span style={{ color: colors.lyricNormal }}>{cleanLine}</span>
-              {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-            </div>
-          );
-        } else {
-          // 有 Section Marker 時，分三行顯示
-          if (result.sectionMarker) {
-            elements.push(
-              <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                {/* Section Marker 單獨一行 - 白色、底線、粗體 */}
-                <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                  {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                  {result.sectionMarker}
-                  {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-                </span>
-                {/* 和弦行 */}
-                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {result.chordPart}
-                </div>
-                {/* 歌詞行 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                  {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ 
-                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                    }}>
-                      {part.text}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          } else {
-            elements.push(
-              <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                {/* 和弦行 */}
-                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                  {result.chordPart}
-                  {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-                </div>
-                {/* 歌詞行 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                  {result.lyricParts.map((part, idx) => (
-                    <span key={idx} style={{ 
-                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                    }}>
-                      {part.text}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-        }
-        i++;
-      } else if (isChord) {
-        // 如果下一行係空行，跳過去搵歌詞行
-        let lyricLineIndex = i + 1;
-        while (lyricLineIndex < lines.length && !lines[lyricLineIndex].trim()) {
-          lyricLineIndex++;
-        }
-        const lyricLine = lines[lyricLineIndex] || '';
-        
-        // 檢查係咪和弦行 + 歌詞行組合
-        if (lyricLine && lyricLine.includes('(') && !lyricLine.match(/\|[\s]*[A-G][#b]?/)) {
-          // 檢查是否為簡譜行（數字譜）
-          const isNumericNotation = isNumericNotationLine(lyricLine);
-          
-          if (isNumericNotation) {
-            // 簡譜行：直接顯示，不做對齊處理，用等寬字體
-            const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-            const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
-            
-            elements.push(
-              <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                {/* 和弦行 */}
-                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                  {transposedChordLine}
-                  {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-                </div>
-                {/* 簡譜行 - 用等寬字體，保持原樣 */}
-                <div style={{ 
-                  fontSize: `${lineFontSize}px`, 
-                  whiteSpace: 'pre-wrap', 
-                  overflowWrap: 'break-word', 
-                  lineHeight: '1.2',
-                  fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
-                  color: colors.numericNotation
-                }}>
-                  {lyricLine}
-                </div>
-              </div>
-            );
-            i = lyricLineIndex + 1;
-          } else {
-            // 中文歌詞行：使用對齊處理
-            const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-            const result = processPair(cleanLine, lyricLine, transposeSemitones);
-            
-            if (result.error) {
-              // 即使 mismatch 也使用對齊後的結果
-              elements.push(
-                <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                  <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                    {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                    {result.chordLine}
-                    {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-                  </div>
-                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                    {result.lyricParts.map((part, idx) => (
-                      <span key={idx} style={{ 
-                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                      }}>
-                        {part.text}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            } else {
-              elements.push(
-                <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                  <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                    {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                    {result.chordLine}
-                    {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-                  </div>
-                  <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                    {result.lyricParts.map((part, idx) => (
-                      <span key={idx} style={{ 
-                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                      }}>
-                        {part.text}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            i = lyricLineIndex + 1;
-          }
-        } else {
-          // 冇歌詞行，當作單獨和弦行處理（包括 Section Marker）
-          const sectionInfo = extractSectionMarker(line);
-          
-          if (sectionInfo.hasMarker) {
-            // Section Marker 單獨一行 - 白色、底線、粗體
-            elements.push(
-              <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-                <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                  {sectionInfo.marker}
-                </span>
-              </div>
-            );
-            // 和弦部分
-            const transposedChordLine = transposeChordLine(sectionInfo.rest, transposeSemitones);
-            if (transposedChordLine.trim()) {
-              elements.push(
-                <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-                  {transposedChordLine}
-                </div>
-              );
-            }
-          } else {
-            const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-            const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
-            
-            elements.push(
-              <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-                {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                {transposedChordLine}
-                {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-              </div>
-            );
-          }
-          i++;
-        }
-      } else {
-        elements.push(
-          <div key={i} style={{ color: colors.lyricNormal, fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
-        );
-        i++;
-      }
+      // 其他行，普通顯示
+      elements.push(
+        <div key={i} style={{ color: colors.lyricNormal, fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'normal', overflowWrap: 'break-word' }}>{line}</div>
+      );
+      i++;
     }
 
     return elements;
   };
 
+
   const ControlBar = () => {
     const [showInfo, setShowInfo] = useState(false);
     
-    // 計算和弦統計
     const chordStats = (() => {
       if (!content) return { total: 0, barreCount: 0 };
-      // 更寬鬆的和弦匹配
       const chordPattern = /\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(?:\/[A-G][#b]?)?\b/g;
       const matches = content.match(chordPattern) || [];
-      // 過濾有效和弦
       const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/;
       const chords = matches.filter(c => validChordPattern.test(c.replace(/\/.*/, '')));
       const uniqueChords = [...new Set(chords)];
@@ -1196,13 +1216,9 @@ const TabContent = ({
     
     return (
       <div className="px-2 sm:px-4 py-2 border-b border-gray-800">
-        {/* 圓角卡片容器 */}
         <div className={`rounded-2xl p-2.5 sm:p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
-          
-          {/* 第一行：Key | 出譜 | 和弦數 | 三角形(開YouTube/資訊) */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs md:text-base whitespace-nowrap">
-              {/* Key - 顯示原調 + 建議Key + Capo */}
               <span className="flex items-center gap-1">
                 <span className="text-[#FFD700]">♪</span>
                 <span className="text-white font-medium">{originalKey}</span>
@@ -1210,17 +1226,12 @@ const TabContent = ({
                   <span className="text-gray-400">({playKey})</span>
                 )}
               </span>
-              
               <span className="text-gray-600">|</span>
-              
-              {/* 出譜 - 顯示編譜者名稱 */}
               {arrangedBy && (
                 <span className="text-gray-400">
                   出譜: <span className="text-[#FFD700]">{arrangedBy}</span>
                 </span>
               )}
-              
-              {/* 和弦統計 */}
               {chordStats.total > 0 && (
                 <>
                   <span className="text-gray-600">|</span>
@@ -1233,44 +1244,22 @@ const TabContent = ({
                 </>
               )}
             </div>
-            
-            {/* 三角形 - 展開 YouTube + 歌曲資訊 */}
             {(youtubeVideoId || hasSongInfo) && (
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                className="p-1 md:p-1.5 text-gray-400 hover:text-white transition"
-              >
-                <svg 
-                  className={`w-4 h-4 md:w-5 md:h-5 transition-transform ${showInfo ? 'rotate-180' : ''}`}
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
+              <button onClick={() => setShowInfo(!showInfo)} className="p-1 md:p-1.5 text-gray-400 hover:text-white transition">
+                <svg className={`w-4 h-4 md:w-5 md:h-5 transition-transform ${showInfo ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
             )}
           </div>
 
-          {/* YouTube + 歌曲資訊 展開區 */}
           {showInfo && (
             <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
-              {/* YouTube 影片 */}
               {youtubeVideoId && (
                 <div className="aspect-video w-full rounded-lg overflow-hidden">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${youtubeVideoId}`}
-                    title="YouTube"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
+                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${youtubeVideoId}`} title="YouTube" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                 </div>
               )}
-              
-              {/* 歌曲資訊 */}
               {hasSongInfo && (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-gray-400">
                   {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
@@ -1280,63 +1269,24 @@ const TabContent = ({
                   {songInfo.producer && <span>監製：<span className="text-white">{songInfo.producer}</span></span>}
                 </div>
               )}
-              
-              {/* 演奏技巧 */}
-              {(songInfo.strummingPattern || songInfo.fingeringTips) && (
-                <div className="space-y-1 text-[11px] sm:text-xs md:text-sm">
-                  {songInfo.strummingPattern && (
-                    <div>
-                      <span className="text-[#FFD700]">掃弦：</span>
-                      <span className="text-white font-mono">{songInfo.strummingPattern}</span>
-                    </div>
-                  )}
-                  {songInfo.fingeringTips && (
-                    <div>
-                      <span className="text-[#FFD700]">指法：</span>
-                      <span className="text-gray-300">{songInfo.fingeringTips}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
-          {/* 第二行：原調 → PLAY Capo (永遠顯示) */}
           <div className="flex items-center gap-2 text-xs md:text-base mt-3 whitespace-nowrap">
             <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
             <span className="text-gray-600">→</span>
             <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
             {displayCapo > 0 && (
-              <span className="bg-[#FFD700] text-black text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded font-medium">
-                Capo {displayCapo}
-              </span>
+              <span className="bg-[#FFD700] text-black text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded font-medium">Capo {displayCapo}</span>
             )}
           </div>
 
-          {/* 第三行：12個KEY波波 (永遠顯示) - 響應式大小 */}
           {!hideKeySelector && (
             <div className="flex gap-0.5 mt-3 pt-3 border-t border-gray-700">
               {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
                 const isCurrent = key === currentKey;
                 return (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setCurrentKey(key);
-                      onKeyChange?.(key);
-                    }}
-                    className={`
-                      flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9
-                      rounded-full 
-                      flex items-center justify-center 
-                      text-[10px] sm:text-xs md:text-sm font-bold
-                      transition hover:scale-105
-                      ${isCurrent
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }
-                    `}
-                  >
+                  <button key={key} onClick={() => { setCurrentKey(key); onKeyChange?.(key); }} className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-bold transition hover:scale-105 ${isCurrent ? 'bg-[#FFD700] text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
                     {key}
                   </button>
                 );
@@ -1344,71 +1294,27 @@ const TabContent = ({
             </div>
           )}
 
-          {/* 第四行：字體控制 + 自動滾動 + 複製 (永遠顯示) */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
             <div className="flex items-center gap-1.5 md:gap-2">
-              {/* A- */}
-              <button
-                onClick={() => handleFontSize(-1)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm"
-              >
-                A-
-              </button>
-              {/* 字體數字 */}
+              <button onClick={() => handleFontSize(-1)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm">A-</button>
               <span className="w-6 md:w-8 text-center text-xs md:text-sm text-gray-400">{fontSize}</span>
-              {/* A+ */}
-              <button
-                onClick={() => handleFontSize(1)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm"
-              >
-                A+
-              </button>
-              
+              <button onClick={() => handleFontSize(1)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm">A+</button>
               <div className="w-px h-5 md:h-6 bg-gray-700 mx-1" />
-              
-              {/* 自動滾動 */}
-              <button
-                onClick={() => setIsAutoScroll(!isAutoScroll)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${
-                  isAutoScroll 
-                    ? 'bg-[#FFD700] text-black'
-                    : 'bg-gray-800 text-white hover:bg-gray-700'
-                }`}
-              >
+              <button onClick={() => setIsAutoScroll(!isAutoScroll)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${isAutoScroll ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-white hover:bg-gray-700'}`}>
                 <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
                 <span className="hidden sm:inline">自動滾動</span>
               </button>
-              
-              {/* 速度控制 */}
               {isAutoScroll && (
                 <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))}
-                    className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm"
-                    disabled={scrollSpeed <= 0}
-                  >
-                    −
-                  </button>
+                  <button onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm" disabled={scrollSpeed <= 0}>−</button>
                   <span className="w-4 md:w-5 text-center text-xs md:text-sm text-gray-400">{scrollSpeed}</span>
-                  <button
-                    onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))}
-                    className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm"
-                    disabled={scrollSpeed >= 4}
-                  >
-                    +
-                  </button>
+                  <button onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm" disabled={scrollSpeed >= 4}>+</button>
                 </div>
               )}
             </div>
-
-            {/* 複製按鈕 */}
-            <button
-              onClick={handleCopy}
-              className="p-2 md:p-2.5 text-gray-400 hover:text-white transition"
-              title="複製歌詞"
-            >
+            <button onClick={handleCopy} className="p-2 md:p-2.5 text-gray-400 hover:text-white transition" title="複製歌詞">
               <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
@@ -1424,71 +1330,21 @@ const TabContent = ({
       <div className={`${theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
         {showControls && <ControlBar />}
         <div className="p-4">
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className={`w-full h-96 p-4 rounded-lg border focus:outline-none resize-none font-mono text-sm ${
-              theme === 'day'
-                ? 'bg-gray-50 text-gray-800 border-gray-300 focus:border-purple-500'
-                : 'bg-black text-gray-300 border-gray-700 focus:border-[#FFD700]'
-            }`}
-            placeholder="輸入譜內容..."
-          />
+          <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className={`w-full h-96 p-4 rounded-lg border focus:outline-none resize-none font-mono text-sm ${theme === 'day' ? 'bg-gray-50 text-gray-800 border-gray-300 focus:border-purple-500' : 'bg-black text-gray-300 border-gray-700 focus:border-[#FFD700]'}`} placeholder="輸入譜內容..." />
           <div className="flex justify-end gap-3 mt-4">
-            <button
-              onClick={() => setIsEditing(false)}
-              className={`px-4 py-2 transition ${theme === 'day' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-white'}`}
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSave}
-              className={`px-4 py-2 rounded-lg transition ${
-                theme === 'day'
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : 'bg-[#FFD700] text-black hover:opacity-90'
-              }`}
-            >
-              保存
-            </button>
+            <button onClick={() => setIsEditing(false)} className={`px-4 py-2 transition ${theme === 'day' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-white'}`}>取消</button>
+            <button onClick={handleSave} className={`px-4 py-2 rounded-lg transition ${theme === 'day' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-[#FFD700] text-black hover:opacity-90'}`}>保存</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // 顯示模式 - 確保高度自適應內容
   return (
-    <div 
-      className={`${fullWidth 
-        ? (theme === 'day' ? 'bg-white' : 'bg-black') 
-        : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')
-      } ${className}`}
-      style={{ 
-        height: 'auto',
-        minHeight: 'auto',
-        maxHeight: 'none'
-      }}
-    >
+    <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
-      <div 
-        ref={containerRef}
-        className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`}
-        style={{
-          height: 'auto',
-          minHeight: 'auto',
-          maxHeight: 'none'
-        }}
-      >
-        <div 
-          className="tab-content-wrapper"
-          style={{
-            height: 'auto',
-            minHeight: 'auto',
-            maxHeight: 'none',
-            fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
-          }}
-        >
+      <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
+        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>
       </div>
