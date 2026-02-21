@@ -1363,42 +1363,31 @@ const TabContent = ({
                 const aligned = alignNotationWithLyrics(notationLine, lyricLine);
                 
                 if (aligned) {
-                  // 對齊模式：使用 Grid 佈局，保持系統字體
-                  // 所有單元（pair + bracket + text）都參與 grid
-                  const totalUnits = aligned.length;
+                  // 對齊模式：用 Flexbox，每個對應單元分配相同空間
+                  const pairs = aligned.filter(item => item.type === 'pair');
+                  const pairCount = pairs.length;
                   
                   return (
                     <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
-                      {/* 簡譜行 - Grid 佈局 */}
+                      {/* 簡譜行 */}
                       <div style={{ 
                         fontSize: `${notationFontSize}px`,
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${totalUnits}, 1fr)`,
-                        gap: '0.1em',
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         color: colors.numericNotation,
                         marginBottom: '0.1em',
                         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                       }}>
-                        {aligned.map((item, idx) => {
-                          if (item.type === 'pair') {
-                            return (
-                              <span key={idx} style={{
-                                textAlign: 'center',
-                                color: colors.numericNotation,
-                                fontWeight: 'bold'
-                              }}>
-                                {item.notation}
-                              </span>
-                            );
-                          } else {
-                            // bracket 或 text - 透明佔位
-                            return (
-                              <span key={idx} style={{ visibility: 'hidden' }}>
-                                {item.content || item.lyric || '·'}
-                              </span>
-                            );
-                          }
-                        })}
+                        {pairs.map((item, idx) => (
+                          <span key={idx} style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            color: colors.numericNotation,
+                            fontWeight: 'bold'
+                          }}>
+                            {item.notation}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   );
@@ -1437,48 +1426,25 @@ const TabContent = ({
                   {(() => {
                     const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
                     if (aligned) {
-                      const totalUnits = aligned.length;
-                      // 對齊模式：使用 Grid 佈局，所有單元參與
+                      const pairs = aligned.filter(item => item.type === 'pair');
+                      // 對齊模式：用 Flexbox，和簡譜一樣的結構
                       return (
                         <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: `repeat(${totalUnits}, 1fr)`,
-                          gap: '0.1em'
+                          display: 'flex',
+                          justifyContent: 'space-between'
                         }}>
-                          {aligned.map((item, idx) => {
-                            if (item.type === 'pair') {
-                              const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                              return (
-                                <span key={idx} style={{ 
-                                  textAlign: 'center',
-                                  color: color,
-                                  fontWeight: item.isInside && theme === 'day' ? 'bold' : 'normal'
-                                }}>
-                                  {item.lyric}
-                                </span>
-                              );
-                            } else if (item.type === 'bracket') {
-                              // 空括號或其他括號
-                              const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                              return (
-                                <span key={idx} style={{ 
-                                  textAlign: 'center',
-                                  color: color
-                                }}>
-                                  {item.content}
-                                </span>
-                              );
-                            } else {
-                              // text - 左對齊
-                              return (
-                                <span key={idx} style={{ 
-                                  textAlign: 'left',
-                                  color: colors.lyricNormal
-                                }}>
-                                  {item.content}
-                                </span>
-                              );
-                            }
+                          {pairs.map((item, idx) => {
+                            const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                            return (
+                              <span key={idx} style={{ 
+                                flex: 1,
+                                textAlign: 'center',
+                                color: color,
+                                fontWeight: item.isInside && theme === 'day' ? 'bold' : 'normal'
+                              }}>
+                                {item.lyric}
+                              </span>
+                            );
                           })}
                         </div>
                       );
