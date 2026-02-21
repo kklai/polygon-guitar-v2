@@ -12,18 +12,18 @@ function UpdateTrackInfoPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [logs, setLogs] = useState([])
   
+  // 數據源選擇
+  const [dataSource, setDataSource] = useState('musicbrainz') // 'spotify' | 'musicbrainz'
+  
   // 批量更新狀態
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   
   // 篩選條件
-  const [filter, setFilter] = useState('all') // 'all' | 'no-spotify' | 'no-bpm' | 'no-credits'
+  const [filter, setFilter] = useState('no-credits') // 默認搜尋無作曲填詞的
   
   // 批次大小
-  const [batchSize, setBatchSize] = useState(50) // 50 | 100 | 200
-  
-  // 選中的歌曲
-  const [selectedTabs, setSelectedTabs] = useState(new Set())
+  const [batchSize, setBatchSize] = useState(50)
   
   // 預覽結果
   const [previewResults, setPreviewResults] = useState([])
@@ -37,7 +37,6 @@ function UpdateTrackInfoPage() {
     setIsLoading(true)
     try {
       const tabsData = await getAllTabs()
-      // 過濾掉沒有標題的
       const validTabs = tabsData.filter(tab => tab.title && tab.title.trim())
       setTabs(validTabs)
       addLog(`載入 ${validTabs.length} 首歌曲`, 'info')
@@ -50,10 +49,49 @@ function UpdateTrackInfoPage() {
   }
 
   const addLog = (message, type = 'info') => {
-    setLogs(prev => [...prev, { message, type, time: new Date().toLocaleTimeString() }])
+    setLogs(prev => [...prev.slice(-49), { message, type, time: new Date().toLocaleTimeString() }])
   }
 
-  // 搜尋 Spotify 並獲取詳細資訊
+  // ===== MusicBrainz 搜尋 =====
+  const searchMusicBrainz = async (artist, title) => {
+    try {
+      const res = await fetch('/api/musicbrainz/track-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artist, title })
+      })
+      
+      const data = await res.json()
+      
+      if (!res.ok || !data.result) {
+        return { found: false, error: data.error || '未找到' }
+      }
+      
+      return {
+        found: true,
+        track: {
+          id: data.result.id,
+          name: data.result.title,
+          artist: data.result.artist,
+          album: data.result.releases?.[0]?.title,
+          albumImage: null, // MusicBrainz 沒有專輯封面
+          releaseYear: data.result.releases?.[0]?.date?.split('-')[0],
+          spotifyUrl: null
+        },
+        details: {
+          bpm: data.result.audioFeatures?.bpm,
+          key: data.result.audioFeatures?.key,
+          composers: data.result.credits?.composers?.join(', ') || null,
+          lyricists: data.result.credits?.lyricists?.join(', ') || null,
+          arrangers: data.result.credits?.arrangers?.join(', ') || null
+        }
+      }
+    } catch (error) {
+      return { found: false, error: error.message }
+    }
+  }
+
+  // ===== Spotify 搜尋 =====
   const searchSpotify = async (artist, title) => {
     try {
       // 1. 搜尋歌曲
@@ -76,32 +114,24 @@ function UpdateTrackInfoPage() {
       
       const bestMatch = searchData.results[0]
       
-      // 2. 獲取詳細資訊（BPM、調性等）
-      const detailsRes = await fetch('/api/spotify/track-details', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackId: bestMatch.id })
-      })
-      
-      let details = null
-      if (detailsRes.ok) {
-        const detailsData = await detailsRes.json()
-        details = detailsData.result
-      }
-      
       return {
         found: true,
         track: bestMatch,
-        details
+        details: {
+          bpm: null, // Spotify API 已棄用
+          key: null,
+          composers: null,
+          lyricists: null
+        }
       }
     } catch (error) {
       return { found: false, error: error.message }
     }
   }
 
-  // 批量搜尋預覽
+  // ===== 批量搜尋預覽 =====
   const runBatchSearchPreview = async () => {
-    const targetTabs = getFilteredTabs().slice(0, batchSize) // 限制每次預覽數量
+    const targetTabs = getFilteredTabs().slice(0, batchSize)
     
     if (targetTabs.length === 0) {
       alert('沒有符合條件的歌曲')
@@ -113,51 +143,52 @@ function UpdateTrackInfoPage() {
     setPreviewResults([])
     
     const results = []
+    const searchFn = dataSource === 'spotify' ? searchSpotify : searchMusicBrainz
     
     for (let i = 0; i < targetTabs.length; i++) {
       const tab = targetTabs[i]
       setProgress({ current: i + 1, total: targetTabs.length })
       
-      const result = await searchSpotify(tab.artist, tab.title)
+      const result = await searchFn(tab.artist, tab.title)
       
       results.push({
         tabId: tab.id,
         tabTitle: tab.title,
         tabArtist: tab.artist,
         ...result,
-        selected: result.found
+        selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm)
       })
       
-      // 更新預覽（即時顯示）
       setPreviewResults([...results])
       
-      // 延遲避免 rate limit（開發模式限額很低，需要較長間隔）
-      await new Promise(r => setTimeout(r, 1500))
+      // MusicBrainz 限制較寬，可以快啲；Spotify 要慢啲
+      await new Promise(r => setTimeout(r, dataSource === 'spotify' ? 1500 : 800))
     }
     
     setIsProcessing(false)
     setShowPreview(true)
     
     const foundCount = results.filter(r => r.found).length
-    addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首`, 'success')
+    const withCredits = results.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length
+    addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞`, 'success')
   }
 
   // 獲取過濾後的歌曲列表
   const getFilteredTabs = () => {
     switch (filter) {
-      case 'no-spotify':
-        return tabs.filter(tab => !tab.spotifyTrackId)
-      case 'no-bpm':
-        return tabs.filter(tab => !tab.bpm)
       case 'no-credits':
         return tabs.filter(tab => !tab.composer && !tab.lyricist)
+      case 'no-year':
+        return tabs.filter(tab => !tab.songYear && !tab.uploadYear)
+      case 'no-spotify':
+        return tabs.filter(tab => !tab.spotifyTrackId)
       case 'all':
       default:
         return tabs
     }
   }
 
-  // 執行批量更新
+  // ===== 執行批量更新 =====
   const executeBatchUpdate = async () => {
     const toUpdate = previewResults.filter(r => r.selected && r.found)
     
@@ -172,8 +203,6 @@ function UpdateTrackInfoPage() {
     setProgress({ current: 0, total: toUpdate.length })
     
     let success = 0, failed = 0
-    const successIds = new Set()
-    const failedIds = new Set()
     
     for (let i = 0; i < toUpdate.length; i++) {
       const item = toUpdate[i]
@@ -184,27 +213,29 @@ function UpdateTrackInfoPage() {
         const details = item.details
         
         const updateData = {
-          // Spotify 基本資訊
-          spotifyTrackId: track.id,
-          spotifyAlbumId: track.albumId,
-          spotifyArtistId: track.artistId,
-          spotifyUrl: track.spotifyUrl,
-          albumImage: track.albumImage,
-          
-          // 歌曲資訊
-          songYear: track.releaseYear,
+          // 基本資訊
+          songYear: track.releaseYear || details?.releaseYear,
           album: track.album,
-          duration: track.duration,
           
-          // BPM 和音樂特徵
-          bpm: details?.bpm || null,
-          spotifyKey: details?.key,
-          timeSignature: details?.timeSignature,
+          // Spotify 專有
+          ...(dataSource === 'spotify' && {
+            spotifyTrackId: track.id,
+            spotifyAlbumId: track.albumId,
+            spotifyArtistId: track.artistId,
+            spotifyUrl: track.spotifyUrl,
+            albumImage: track.albumImage,
+            duration: track.duration,
+          }),
           
-          // Credits（作曲、填詞等）
-          composer: details?.composers || null,
-          lyricist: details?.lyricists || null,
-          producer: details?.producers || null,
+          // MusicBrainz 專有（作曲填詞 BPM）
+          ...(dataSource === 'musicbrainz' && {
+            musicbrainzId: track.id,
+            bpm: details?.bpm || null,
+            songKey: details?.key || null,
+            composer: details?.composers || null,
+            lyricist: details?.lyricists || null,
+            arranger: details?.arrangers || null,
+          }),
           
           updatedAt: new Date().toISOString()
         }
@@ -217,60 +248,22 @@ function UpdateTrackInfoPage() {
         await updateDoc(doc(db, 'tabs', item.tabId), updateData)
         
         success++
-        successIds.add(item.tabId)
-        addLog(`✅ 已更新：${item.tabArtist} - ${item.tabTitle} ${details?.bpm ? `(BPM: ${details.bpm})` : ''}`, 'success')
+        addLog(`✅ ${item.tabArtist} - ${item.tabTitle} ${details?.composers ? `(曲:${details.composers})` : ''}`, 'success')
       } catch (error) {
         failed++
-        failedIds.add(item.tabId)
-        addLog(`❌ 失敗：${item.tabTitle} - ${error.message}`, 'error')
+        addLog(`❌ ${item.tabTitle} - ${error.message}`, 'error')
       }
     }
     
     setIsProcessing(false)
-    addLog(`\n========== 批量更新完成 ==========`, 'success')
-    addLog(`✅ 成功：${success} 首，❌ 失敗：${failed} 首`, success > failed ? 'success' : 'warning')
+    addLog(`========== 完成：${success} 成功，${failed} 失敗 ==========`, success > failed ? 'success' : 'warning')
     
-    // 標記成功/失敗狀態
-    setPreviewResults(prev => prev.map(item => {
-      if (successIds.has(item.tabId)) {
-        return { ...item, updateStatus: 'success', selected: false }
-      }
-      if (failedIds.has(item.tabId)) {
-        return { ...item, updateStatus: 'failed', selected: true } // 失敗的保持選中，方便重試
-      }
-      return item
-    }))
-    
-    // 2秒後移除成功的項目，保留失敗的
-    setTimeout(() => {
-      setPreviewResults(prev => {
-        const remaining = prev.filter(r => r.updateStatus !== 'success')
-        addLog(`ℹ️ 已移除 ${success} 個成功項目，剩餘 ${remaining.length} 個（含失敗和未選中）`, 'info')
-        return remaining
-      })
-    }, 2000)
-    
-    // 顯示提示
-    setTimeout(() => {
-      if (failed > 0) {
-        alert(`⚠️ 更新完成！\n\n✅ 成功：${success} 首（已從列表移除）\n❌ 失敗：${failed} 首（已保留在列表中）\n\n失敗的項目已自動勾選，可以直接點「確認更新」重試。`)
-      } else if (success > 0) {
-        alert(`✅ 全部更新成功！\n\n共更新：${success} 首`)
-      } else {
-        alert(`❌ 全部更新失敗\n\n請檢查日誌了解詳情。`)
-      }
-    }, 100)
-    
-    // 如果全部成功，3秒後關閉預覽
-    if (failed === 0 && success > 0) {
-      setTimeout(() => {
-        setShowPreview(false)
-        setPreviewResults([])
-      }, 3000)
-    }
+    alert(`更新完成！\n✅ 成功：${success} 首\n❌ 失敗：${failed} 首`)
     
     // 刷新數據
     loadData()
+    setShowPreview(false)
+    setPreviewResults([])
   }
 
   // 切換選擇
@@ -281,14 +274,12 @@ function UpdateTrackInfoPage() {
   }
 
   // 全選/全不選
-  const selectAll = () => {
-    setPreviewResults(prev => prev.map(item => ({ ...item, selected: item.found })))
-  }
-  const deselectAll = () => {
-    setPreviewResults(prev => prev.map(item => ({ ...item, selected: false })))
-  }
+  const selectAll = () => setPreviewResults(prev => prev.map(item => ({ ...item, selected: item.found })))
+  const deselectAll = () => setPreviewResults(prev => prev.map(item => ({ ...item, selected: false })))
 
   const filteredTabs = getFilteredTabs()
+  const hasCreditsCount = tabs.filter(t => t.composer || t.lyricist).length
+  const hasYearCount = tabs.filter(t => t.songYear || t.uploadYear).length
 
   return (
     <Layout>
@@ -300,7 +291,10 @@ function UpdateTrackInfoPage() {
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                 <span>🎵</span> 批量更新歌曲資訊
               </h1>
-              <p className="text-sm text-[#B3B3B3]">從 Spotify 獲取 BPM、作曲、填詞等資訊</p>
+              <p className="text-sm text-[#B3B3B3]">
+                從 MusicBrainz 獲取作曲、填詞、BPM 等資訊
+                <span className="text-yellow-500 ml-2">(Spotify API 已棄用，建議用 MusicBrainz)</span>
+              </p>
             </div>
             <button onClick={() => router.push('/admin')} className="text-[#B3B3B3] hover:text-white transition">
               返回後台
@@ -315,23 +309,49 @@ function UpdateTrackInfoPage() {
             <div className="text-sm text-gray-400">總歌曲數</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <div className="text-2xl font-bold text-[#1DB954]">{tabs.filter(t => t.spotifyTrackId).length}</div>
-            <div className="text-sm text-gray-400">有 Spotify</div>
+            <div className="text-2xl font-bold text-green-400">{hasCreditsCount}</div>
+            <div className="text-sm text-gray-400">有作曲/填詞</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <div className="text-2xl font-bold text-[#FFD700]">{tabs.filter(t => t.bpm).length}</div>
+            <div className="text-2xl font-bold text-yellow-400">{tabs.filter(t => t.bpm).length}</div>
             <div className="text-sm text-gray-400">有 BPM</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <div className="text-2xl font-bold text-blue-400">{tabs.filter(t => t.composer || t.lyricist).length}</div>
-            <div className="text-sm text-gray-400">有作曲/填詞</div>
+            <div className="text-2xl font-bold text-blue-400">{hasYearCount}</div>
+            <div className="text-sm text-gray-400">有年份</div>
           </div>
         </div>
 
         {/* 操作區 */}
         {!showPreview && (
-          <div className="mb-6 p-4 bg-[#1a1a2e] rounded-xl border border-blue-900/50">
-            <h3 className="text-blue-300 font-medium mb-4">⚡ 批量搜尋 Spotify</h3>
+          <div className="mb-6 p-4 bg-[#1a1a2e] rounded-xl border border-purple-900/50">
+            <h3 className="text-purple-300 font-medium mb-4 flex items-center gap-2">
+              <span>🧠</span> 批量搜尋 MusicBrainz（推薦）
+            </h3>
+            
+            {/* 數據源選擇 */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setDataSource('musicbrainz')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  dataSource === 'musicbrainz' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                🧠 MusicBrainz（作曲/填詞/BPM）
+              </button>
+              <button
+                onClick={() => setDataSource('spotify')}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  dataSource === 'spotify' 
+                    ? 'bg-[#1DB954] text-white' 
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                🎧 Spotify（專輯封面/連結）
+              </button>
+            </div>
             
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <select
@@ -339,10 +359,10 @@ function UpdateTrackInfoPage() {
                 onChange={(e) => setFilter(e.target.value)}
                 className="px-4 py-2 bg-black border border-gray-700 rounded-lg text-white"
               >
-                <option value="all">全部歌曲 ({tabs.length})</option>
-                <option value="no-spotify">無 Spotify ({tabs.filter(t => !t.spotifyTrackId).length})</option>
-                <option value="no-bpm">無 BPM ({tabs.filter(t => !t.bpm).length})</option>
                 <option value="no-credits">無作曲/填詞 ({tabs.filter(t => !t.composer && !t.lyricist).length})</option>
+                <option value="no-year">無年份 ({tabs.filter(t => !t.songYear && !t.uploadYear).length})</option>
+                <option value="no-spotify">無 Spotify ({tabs.filter(t => !t.spotifyTrackId).length})</option>
+                <option value="all">全部歌曲 ({tabs.length})</option>
               </select>
               
               <select
@@ -358,7 +378,7 @@ function UpdateTrackInfoPage() {
               <button
                 onClick={runBatchSearchPreview}
                 disabled={isProcessing || filteredTabs.length === 0}
-                className="px-6 py-2 bg-[#1DB954] text-white rounded-lg font-medium hover:bg-[#1ed760] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
                   <>
@@ -370,35 +390,42 @@ function UpdateTrackInfoPage() {
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2z"/>
-                    </svg>
-                    搜尋 Spotify (最多{batchSize}首)
+                    <span>🔍</span>
+                    開始搜尋 (最多{batchSize}首)
                   </>
                 )}
               </button>
             </div>
             
             <p className="text-sm text-gray-500">
-              💡 會使用現有的歌手名和歌名搜尋 Spotify，獲取 BPM、專輯封面、作曲填詞等資訊。建議先用 50 首測試，穩定後再用 200 首。
+              {dataSource === 'musicbrainz' ? (
+                <>💡 MusicBrainz 提供作曲、填詞、BPM 等資訊。建議先用 50 首測試，穩定後再用 200 首。</>
+              ) : (
+                <>⚠️ Spotify 已棄用 Audio Features API，只能獲取專輯封面和連結。</>
+              )}
             </p>
           </div>
         )}
 
         {/* 預覽表格 */}
         {showPreview && (
-          <div className="mb-6 bg-[#121212] rounded-xl border border-[#1DB954] overflow-hidden">
-            <div className="p-4 border-b border-gray-800 bg-[#1DB954]/5">
+          <div className="mb-6 bg-[#121212] rounded-xl border border-purple-500 overflow-hidden">
+            <div className="p-4 border-b border-gray-800 bg-purple-900/20">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-[#1DB954] font-medium mb-1">搜尋結果預覽</h3>
+                  <h3 className="text-purple-300 font-medium mb-1">搜尋結果預覽</h3>
                   <p className="text-sm text-gray-400">
                     找到 {previewResults.filter(r => r.found).length} / {previewResults.length} 首
+                    {previewResults.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length > 0 && (
+                      <span className="text-green-400 ml-2">
+                        ({previewResults.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length} 首有作曲/填詞)
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={selectAll} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
-                    全選找到的
+                    全選
                   </button>
                   <button onClick={deselectAll} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
                     全不選
@@ -412,7 +439,7 @@ function UpdateTrackInfoPage() {
                   <button
                     onClick={executeBatchUpdate}
                     disabled={isProcessing || previewResults.filter(r => r.selected).length === 0}
-                    className="px-6 py-1.5 bg-[#1DB954] text-white rounded-lg font-medium hover:bg-[#1ed760] transition disabled:opacity-50"
+                    className="px-6 py-1.5 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition disabled:opacity-50"
                   >
                     {isProcessing ? `更新中... ${progress.current}/${progress.total}` : `確認更新 (${previewResults.filter(r => r.selected).length})`}
                   </button>
@@ -426,28 +453,24 @@ function UpdateTrackInfoPage() {
                   <tr>
                     <th className="text-center p-3 text-gray-400 font-medium w-12">選</th>
                     <th className="text-left p-3 text-gray-400 font-medium">現有資訊</th>
-                    <th className="text-left p-3 text-gray-400 font-medium">Spotify 搜尋結果</th>
-                    <th className="text-center p-3 text-gray-400 font-medium w-24">BPM</th>
-                    <th className="text-left p-3 text-gray-400 font-medium">Credits</th>
+                    <th className="text-left p-3 text-gray-400 font-medium">搜尋結果</th>
+                    <th className="text-center p-3 text-gray-400 font-medium w-20">年份</th>
+                    <th className="text-left p-3 text-gray-400 font-medium">作曲/填詞</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {previewResults.map((item, index) => (
                     <tr key={item.tabId} className={`${
-                      item.updateStatus === 'success' ? 'bg-green-900/30 border-l-4 border-green-500' : 
-                      item.updateStatus === 'failed' ? 'bg-red-900/30 border-l-4 border-red-500' :
-                      item.selected ? 'bg-green-900/10' : 'bg-gray-900/30'
+                      item.selected ? 'bg-purple-900/10' : 'bg-gray-900/30'
                     }`}>
                       <td className="p-3 text-center">
                         <input
                           type="checkbox"
                           checked={item.selected}
                           onChange={() => toggleSelection(index)}
-                          disabled={!item.found || item.updateStatus === 'success'}
-                          className="w-4 h-4 accent-[#1DB954] cursor-pointer"
+                          disabled={!item.found}
+                          className="w-4 h-4 accent-purple-500 cursor-pointer"
                         />
-                        {item.updateStatus === 'success' && <div className="text-green-500 text-xs mt-1">✓</div>}
-                        {item.updateStatus === 'failed' && <div className="text-red-500 text-xs mt-1">✗</div>}
                       </td>
                       <td className="p-3">
                         <div className="text-white font-medium">{item.tabTitle}</div>
@@ -455,23 +478,20 @@ function UpdateTrackInfoPage() {
                       </td>
                       <td className="p-3">
                         {item.found ? (
-                          <div className="flex items-center gap-3">
-                            {item.track.albumImage && (
-                              <img src={item.track.albumImage} alt="" className="w-10 h-10 rounded object-cover" />
+                          <div>
+                            <div className="text-green-400 font-medium">{item.track.name}</div>
+                            <div className="text-gray-400 text-xs">{item.track.artist}</div>
+                            {item.track.album && (
+                              <div className="text-gray-600 text-xs">{item.track.album}</div>
                             )}
-                            <div>
-                              <div className="text-[#1DB954] font-medium">{item.track.name}</div>
-                              <div className="text-gray-400 text-xs">{item.track.artist}</div>
-                              <div className="text-gray-600 text-xs">{item.track.album} · {item.track.releaseYear}</div>
-                            </div>
                           </div>
                         ) : (
                           <span className="text-red-400 text-xs">❌ {item.error || '未找到'}</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
-                        {item.details?.bpm ? (
-                          <span className="text-[#FFD700] font-bold">{item.details.bpm}</span>
+                        {item.track.releaseYear ? (
+                          <span className="text-[#FFD700] font-bold">{item.track.releaseYear}</span>
                         ) : (
                           <span className="text-gray-600">-</span>
                         )}
@@ -480,13 +500,16 @@ function UpdateTrackInfoPage() {
                         {item.details ? (
                           <div className="text-xs space-y-1">
                             {item.details.composers && (
-                              <div className="text-gray-400">曲: <span className="text-gray-300">{item.details.composers.substring(0, 30)}</span></div>
+                              <div className="text-gray-400">曲: <span className="text-green-300">{item.details.composers}</span></div>
                             )}
                             {item.details.lyricists && (
-                              <div className="text-gray-400">詞: <span className="text-gray-300">{item.details.lyricists.substring(0, 30)}</span></div>
+                              <div className="text-gray-400">詞: <span className="text-green-300">{item.details.lyricists}</span></div>
                             )}
-                            {item.details.producers && (
-                              <div className="text-gray-400">監: <span className="text-gray-300">{item.details.producers.substring(0, 30)}</span></div>
+                            {item.details.bpm && (
+                              <div className="text-gray-400">BPM: <span className="text-yellow-300">{item.details.bpm}</span></div>
+                            )}
+                            {!item.details.composers && !item.details.lyricists && !item.details.bpm && (
+                              <span className="text-gray-600">無額外資訊</span>
                             )}
                           </div>
                         ) : (
@@ -521,15 +544,14 @@ function UpdateTrackInfoPage() {
         )}
 
         {/* 說明 */}
-        <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-blue-900/50">
-          <h3 className="text-blue-300 font-medium mb-2">💡 使用說明</h3>
+        <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-purple-900/50">
+          <h3 className="text-purple-300 font-medium mb-2">💡 使用說明</h3>
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
-            <li>選擇要更新的歌曲類型（全部、無 Spotify、無 BPM 等）</li>
-            <li>選擇批次大小（50/100/200 首），建議先用 50 首測試</li>
-            <li>點擊「搜尋 Spotify」批量搜尋歌曲資訊</li>
-            <li>預覽結果中可以看到 Spotify 匹配的資訊、BPM、作曲填詞等</li>
+            <li>建議使用 <b>MusicBrainz</b> 獲取作曲、填詞、BPM 等資訊</li>
+            <li>Spotify 只提供專輯封面和連結（Audio Features API 已棄用）</li>
+            <li>選擇「無作曲/填詞」可快速找到需要更新的歌曲</li>
+            <li>每次處理 50-200 首，建議先用 50 首測試</li>
             <li>勾選要更新的項目，點「確認更新」寫入資料庫</li>
-            <li><b>失敗項目自動保留：</b>更新失敗的歌曲會保留在列表中（紅色標記），並自動勾選方便重試</li>
           </ul>
         </div>
       </div>
