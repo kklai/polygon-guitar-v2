@@ -24,12 +24,12 @@ const REGION_OPTIONS = [
 
 
 
-// 橢圓形 Pill 按鈕組件（設計圖樣式）- 統一兩行樣式
+// 橢圓形 Pill 按鈕組件（設計圖樣式）- 統一兩行樣式，固定闊度對齊
 function PillButton({ isActive, onClick, label }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-normal transition ${
+      className={`flex-shrink-0 w-[72px] py-2 rounded-full text-sm font-normal transition ${
         isActive
           ? 'bg-[#FFD700] text-black'
           : 'bg-[#282828] text-white hover:bg-[#3E3E3E]'
