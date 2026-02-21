@@ -1061,7 +1061,7 @@ const TabContent = ({
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
-      numericNotation: '#CCCCCC', // 淺灰色
+      numericNotation: '#E0E0E0', // 淺灰色
       prefixSuffix: '#808080'
     },
     day: {
@@ -1363,31 +1363,48 @@ const TabContent = ({
                 const aligned = alignNotationWithLyrics(notationLine, lyricLine);
                 
                 if (aligned) {
-                  // 對齊模式：用 Flexbox，每個對應單元分配相同空間
-                  const pairs = aligned.filter(item => item.type === 'pair');
-                  const pairCount = pairs.length;
-                  
+                  // 對齊模式：簡譜數字對應歌詞括號
                   return (
                     <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
                       {/* 簡譜行 */}
                       <div style={{ 
-                        fontSize: `${notationFontSize}px`,
-                        display: 'flex',
-                        justifyContent: 'space-between',
+                        fontSize: `${notationFontSize}px`, 
+                        whiteSpace: 'pre-wrap',
+                        overflowWrap: 'break-word',
+                        fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                         color: colors.numericNotation,
                         marginBottom: '0.1em',
-                        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-end'
                       }}>
-                        {pairs.map((item, idx) => (
-                          <span key={idx} style={{
-                            flex: 1,
-                            textAlign: 'center',
-                            color: colors.numericNotation,
-                            fontWeight: 'bold'
-                          }}>
-                            {item.notation}
-                          </span>
-                        ))}
+                        {aligned.map((item, idx) => {
+                          if (item.type === 'text' || item.type === 'bracket') {
+                            // 無對應簡譜的文字 - 透明佔位
+                            return (
+                              <span key={idx} style={{ 
+                                visibility: 'hidden',
+                                whiteSpace: 'pre'
+                              }}>
+                                {item.content}
+                              </span>
+                            );
+                          } else if (item.type === 'pair') {
+                            // 簡譜數字 - 置中對齊到對應歌詞字
+                            return (
+                              <span key={idx} style={{
+                                display: 'inline-flex',
+                                justifyContent: 'center',
+                                minWidth: `${getTextWidth(item.lyric) * (notationFontSize / 2)}px`,
+                                color: colors.numericNotation,
+                                fontWeight: 'bold'
+                              }}>
+                                {item.notation}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })}
                       </div>
                     </div>
                   );
@@ -1420,34 +1437,47 @@ const TabContent = ({
                 // 對齊模式的歌詞顯示
                 <div style={{ 
                   fontSize: `${lineFontSize}px`, 
-                  lineHeight: '1.4',
+                  whiteSpace: 'pre-wrap', 
+                  overflowWrap: 'break-word', 
+                  lineHeight: '1.2',
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                 }}>
                   {(() => {
                     const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
                     if (aligned) {
-                      const pairs = aligned.filter(item => item.type === 'pair');
-                      // 對齊模式：用 Flexbox，和簡譜一樣的結構
-                      return (
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between'
-                        }}>
-                          {pairs.map((item, idx) => {
-                            const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                            return (
-                              <span key={idx} style={{ 
-                                flex: 1,
-                                textAlign: 'center',
-                                color: color,
-                                fontWeight: item.isInside && theme === 'day' ? 'bold' : 'normal'
-                              }}>
-                                {item.lyric}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      );
+                      return aligned.map((item, idx) => {
+                        if (item.type === 'text') {
+                          // 非括號文字 - 灰色
+                          return (
+                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                              {item.content}
+                            </span>
+                          );
+                        } else if (item.type === 'bracket') {
+                          // 括號（無對應簡譜或空括號或多個字）
+                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                          return (
+                            <span key={idx} style={{ color: color, whiteSpace: 'pre' }}>
+                              {item.content}
+                            </span>
+                          );
+                        } else if (item.type === 'pair') {
+                          // 對齊的歌詞字
+                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                          return (
+                            <span key={idx} style={{
+                              display: 'inline-flex',
+                              justifyContent: 'center',
+                              minWidth: `${getTextWidth(item.lyric) * (lineFontSize / 2)}px`,
+                              color: color,
+                              fontWeight: theme === 'day' ? 'bold' : 'normal'
+                            }}>
+                              {item.lyric}
+                            </span>
+                          );
+                        }
+                        return null;
+                      });
                     }
                     return result.lyricParts.map((part, idx) => (
                       <span key={idx} style={{ 
