@@ -214,7 +214,7 @@ export default function ArtistPage() {
       {/* Hero - 手機版 3:2 比例，桌面版維持 45vh */}
       <div className="relative w-full aspect-[3/2] md:h-[45vh] md:aspect-auto">
         <ArtistHeroImage artist={artist} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+        {/* 設計圖冇漸變圖層 */}
         
         {/* 返回按鈕 */}
         <button 
@@ -226,7 +226,7 @@ export default function ArtistPage() {
 
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-4xl font-bold text-white">{artist.name}</h1>
+            <h1 className="text-3xl font-bold text-white">{artist.name}</h1>
             {/* 歌手資訊按鈕 */}
             <button
               onClick={() => setShowInfo(!showInfo)}
@@ -294,7 +294,7 @@ export default function ArtistPage() {
 
       {/* 熱門歌曲（前5首 - 有相片） */}
       <section className="px-4 mt-6">
-        <h2 className="text-white text-xl font-bold mb-4">熱門</h2>
+        <h2 className="text-white text-lg font-bold mb-3">熱門</h2>
         <div className="space-y-1">
           {hotTabs.map((tab, index) => (
             <div 
@@ -306,7 +306,7 @@ export default function ArtistPage() {
                 {index + 1}
               </span>
               
-              {/* 歌曲封面 - 縮小到 48px */}
+              {/* 歌曲封面 */}
               <div className="w-12 h-12 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
                 {getSongThumbnail(tab) ? (
                   <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover" />
@@ -317,7 +317,7 @@ export default function ArtistPage() {
               
               {/* 歌曲資訊 */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                <h3 className="text-white text-base font-medium truncate">{tab.title}</h3>
                 <p className="text-[#B3B3B3] text-xs mt-0.5">{tab.viewCount?.toLocaleString() || 0} 瀏覽</p>
               </div>
               
