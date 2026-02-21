@@ -236,10 +236,7 @@ export default function ArtistPage() {
             </button>
           </div>
           
-          {/* 簡單資訊：歌曲數 */}
-          <p className="text-[#B3B3B3] text-sm">
-            {artist.songCount || hotTabs.length + allTabs.length} 首歌曲
-          </p>
+          {/* 設計圖冇顯示歌手資訊 */}
         </div>
       </div>
 
@@ -298,19 +295,19 @@ export default function ArtistPage() {
       {/* 熱門歌曲（前5首 - 有相片） */}
       <section className="px-4 mt-6">
         <h2 className="text-white text-xl font-bold mb-4">熱門</h2>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {hotTabs.map((tab, index) => (
             <div 
               key={tab.id}
               onClick={() => router.push(`/tabs/${tab.id}`)}
-              className="flex items-center p-2 hover:bg-[#1a1a1a] rounded-lg cursor-pointer group"
+              className="flex items-center py-2 px-1 hover:bg-[#1a1a1a] rounded-lg cursor-pointer group"
             >
               <span className="text-[#B3B3B3] w-6 text-center text-sm font-medium mr-2">
                 {index + 1}
               </span>
               
-              {/* 歌曲封面 */}
-              <div className="w-14 h-14 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
+              {/* 歌曲封面 - 縮小到 48px */}
+              <div className="w-12 h-12 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
                 {getSongThumbnail(tab) ? (
                   <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover" />
                 ) : (
@@ -320,14 +317,14 @@ export default function ArtistPage() {
               
               {/* 歌曲資訊 */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-white font-medium truncate mb-1">{tab.title}</h3>
-                <p className="text-[#B3B3B3] text-xs">{tab.viewCount?.toLocaleString() || 0} 瀏覽</p>
+                <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                <p className="text-[#B3B3B3] text-xs mt-0.5">{tab.viewCount?.toLocaleString() || 0} 瀏覽</p>
               </div>
               
-              {/* 三點按鈕（無Key波波） */}
+              {/* 三點按鈕 - 一直顯示 */}
               <button 
                 onClick={(e) => handleMoreClick(e, tab)}
-                className="p-2 text-[#B3B3B3] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-2 text-[#B3B3B3] hover:text-white"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
