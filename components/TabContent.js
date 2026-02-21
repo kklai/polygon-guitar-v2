@@ -986,14 +986,20 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
       inBracket = true;
     } else if (char === ')') {
       buffer += ')';
-      parts.push({ text: buffer, isInside: true });
+      // 將括號內的半形空格轉為全形空格
+      const normalizedBuffer = buffer.replace(/ /g, '\u3000');
+      parts.push({ text: normalizedBuffer, isInside: true });
       buffer = '';
       inBracket = false;
     } else {
       buffer += char;
     }
   }
-  if (buffer) parts.push({ text: buffer, isInside: inBracket });
+  if (buffer) {
+    // 處理剩餘內容
+    const normalizedBuffer = inBracket ? buffer.replace(/ /g, '\u3000') : buffer;
+    parts.push({ text: normalizedBuffer, isInside: inBracket });
+  }
 
   return { chordLine: newChordLine, lyricParts: parts, error: mismatch };
 }
@@ -1180,7 +1186,9 @@ const TabContent = ({
         inBracket = true;
       } else if (char === ')') {
         // 括號內的內容（包括空字符串）
-        parts.push({ type: 'inside', text: buffer }); // buffer 可能為空，但空括號也要顯示
+        // 將半形空格轉為全形空格，確保對齊
+        const normalizedBuffer = buffer.replace(/ /g, '\u3000');
+        parts.push({ type: 'inside', text: normalizedBuffer }); // buffer 可能為空，但空括號也要顯示
         buffer = '';
         inBracket = false;
       } else {
