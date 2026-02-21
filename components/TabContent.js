@@ -1059,7 +1059,7 @@ const TabContent = ({
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
-      numericNotation: '#E0E0E0', // 淺灰色
+      numericNotation: '#CCCCCC', // 淺灰色
       prefixSuffix: '#808080'
     },
     day: {
@@ -1069,7 +1069,7 @@ const TabContent = ({
       lyricInside: '#000000',
       chord: '#8B5CF6', // 紫色
       sectionMarker: '#000000',
-      numericNotation: '#FF1493', // 深粉紅色
+      numericNotation: '#CCCCCC', // 淺灰色
       prefixSuffix: '#666666'
     }
   };
@@ -1168,24 +1168,31 @@ const TabContent = ({
   const processLyricLine = (line) => {
     const parts = [];
     let buffer = '';
+    let inBracket = false;
+    
     for (let char of line) {
       if (char === '(') {
+        // 括號前的內容
         if (buffer) {
-          parts.push({ type: 'outside', text: buffer });
+          parts.push({ type: inBracket ? 'inside' : 'outside', text: buffer });
           buffer = '';
         }
+        inBracket = true;
       } else if (char === ')') {
-        if (buffer) {
-          parts.push({ type: 'inside', text: buffer });
-          buffer = '';
-        }
+        // 括號內的內容（包括空字符串）
+        parts.push({ type: 'inside', text: buffer }); // buffer 可能為空，但空括號也要顯示
+        buffer = '';
+        inBracket = false;
       } else {
         buffer += char;
       }
     }
+    
+    // 剩餘內容
     if (buffer) {
-      parts.push({ type: 'outside', text: buffer });
+      parts.push({ type: inBracket ? 'inside' : 'outside', text: buffer });
     }
+    
     return parts;
   };
 
