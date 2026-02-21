@@ -1059,7 +1059,7 @@ const TabContent = ({
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
-      numericNotation: '#FF69B4', // 粉紅色
+      numericNotation: '#E0E0E0', // 淺灰色
       prefixSuffix: '#808080'
     },
     day: {
