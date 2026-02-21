@@ -1049,6 +1049,7 @@ const TabContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
   const [internalTheme, setInternalTheme] = useState('night'); // 'night' | 'day'
+  const [hideNotation, setHideNotation] = useState(false); // 隱藏簡譜功能
   
   // 優先使用外部傳入的值，否則使用內部 state
   const theme = externalTheme !== undefined ? externalTheme : internalTheme;
@@ -1367,8 +1368,8 @@ const TabContent = ({
                 {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
               
-              {/* 中間的簡譜行 - 支持與歌詞對齊 */}
-              {notationLines.map(({ index, line: notationLine }) => {
+              {/* 中間的簡譜行 - 支持與歌詞對齊（可隱藏） */}
+              {!hideNotation && notationLines.map(({ index, line: notationLine }) => {
                 const notationFontSize = getLineFontSize(notationLine);
                 
                 // 嘗試對齊簡譜與歌詞
@@ -1654,6 +1655,13 @@ const TabContent = ({
                   <button onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm" disabled={scrollSpeed >= 4}>+</button>
                 </div>
               )}
+              <div className="w-px h-5 md:h-6 bg-gray-700 mx-1" />
+              <button onClick={() => setHideNotation(!hideNotation)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${hideNotation ? 'bg-gray-600 text-gray-300' : 'bg-gray-800 text-white hover:bg-gray-700'}`} title={hideNotation ? '顯示簡譜' : '隱藏簡譜'}>
+                <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={hideNotation ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
+                </svg>
+                <span className="hidden sm:inline">{hideNotation ? '顯示簡譜' : '隱藏簡譜'}</span>
+              </button>
             </div>
             <button onClick={handleCopy} className="p-2 md:p-2.5 text-gray-400 hover:text-white transition" title="複製歌詞">
               <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
