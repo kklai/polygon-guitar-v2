@@ -197,7 +197,7 @@ const SECTION_MARKERS = [
   'Intro', 'Outro', 
   'Verse', 'Verse 1', 'Verse 2', 'Verse 3', 'Verse 4',
   'Chorus', 'Chorus 1', 'Chorus 2', 'Chorus 3',
-  'Prechorus', 'Pre-chorus', 'Pre Chorus', 'Pre Chorus 1', 'Pre Chorus 2',
+  'Prechorus', 'Pre-chorus', 'Pre chorus', 'Pre Chorus', 'Pre Chorus 1', 'Pre Chorus 2',
   'Bridge', 
   'Interlude', 
   'Solo', 'Guitar Solo',
@@ -329,10 +329,21 @@ function isNumericNotationLine(line) {
   // 2. 可以包含括號內的數字 (6.)、(2) 等
   // 3. 很少或沒有中文字符（少於 3 個）
   // 4. 冇和弦豎線 |
+  // 5. 英文字母要少（簡譜只有 b, # 是合法的）
   
   const digits = (line.match(/\d/g) || []).length;
   const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
   const hasChordBar = /\|[\s]*[A-G]/.test(line);
+  
+  // 檢查英文字母（簡譜只應有 b, # 或少量其他字母）
+  const allLetters = (line.match(/[a-zA-Z]/g) || []);
+  const allowedLetters = (line.match(/[b#]/gi) || []);
+  const otherLetters = allLetters.filter(c => !/[b#]/i.test(c));
+  
+  // 如果有很多其他英文字母（如 D7add4, xx0012 等），這不是簡譜
+  if (otherLetters.length > 3) {
+    return false;
+  }
   
   // 數字多（>3）、中文字少（<3）、冇和弦 = 簡譜
   if (digits > 3 && chineseChars < 3 && !hasChordBar) {
@@ -343,12 +354,181 @@ function isNumericNotationLine(line) {
   if (line.includes('(')) {
     const numericBracketPattern = /\(\d+\.?\)/g;
     const numericBrackets = line.match(numericBracketPattern) || [];
-    if (numericBrackets.length >= 1 && digits > 3 && chineseChars < 3) {
+    if (numericBrackets.length >= 1 && digits > 3 && chineseChars < 3 && otherLetters.length <= 3) {
       return true;
     }
   }
   
   return false;
+}
+
+// 從簡譜行提取所有數字
+function extractNotationNumbers(line) {
+  const numbers = [];
+  const regex = /(\d+\.?\d*|\d)/g;
+  let match;
+  while ((match = regex.exec(line)) !== null) {
+    numbers.push({
+      value: match[0],
+      index: match.index
+    });
+  }
+  return numbers;
+}
+
+// 從歌詞行提取所有中文字符及其位置
+function extractLyricChars(line) {
+  const chars = [];
+  const chineseRegex = /[\u4e00-\u9fff]/g;
+  let match;
+  while ((match = chineseRegex.exec(line)) !== null) {
+    chars.push({
+      char: match[0],
+      index: match.index
+    });
+  }
+  return chars;
+}
+
+// 從歌詞行提取顯示單元（括號組 + 非括號文字）
+function extractLyricUnits(line) {
+  const units = [];
+  let i = 0;
+  
+  while (i < line.length) {
+    if (line[i] === '(') {
+      // 找到完整的括號對
+      let bracketContent = '(';
+      let j = i + 1;
+      while (j < line.length && line[j] !== ')') {
+        bracketContent += line[j];
+        j++;
+      }
+      if (j < line.length && line[j] === ')') {
+        bracketContent += ')';
+        j++;
+      }
+      units.push({
+        type: 'bracket',
+        content: bracketContent,
+        startIndex: i,
+        endIndex: j,
+        hasChinese: /[\u4e00-\u9fff]/.test(bracketContent)
+      });
+      i = j;
+    } else {
+      // 非括號文字
+      let text = '';
+      let startIndex = i;
+      while (i < line.length && line[i] !== '(') {
+        text += line[i];
+        i++;
+      }
+      if (text) {
+        units.push({
+          type: 'text',
+          content: text,
+          startIndex: startIndex,
+          endIndex: i,
+          chineseChars: (text.match(/[\u4e00-\u9fff]/g) || []).length
+        });
+      }
+    }
+  }
+  
+  return units;
+}
+
+// 將簡譜數字與歌詞字對齊
+function alignNotationWithLyrics(notationLine, lyricLine) {
+  const numbers = extractNotationNumbers(notationLine);
+  const lyricChars = extractLyricChars(lyricLine);
+  const lyricUnits = extractLyricUnits(lyricLine);
+  
+  // 如果數量不匹配，返回 null（使用普通渲染）
+  if (numbers.length !== lyricChars.length || numbers.length === 0) {
+    return null;
+  }
+  
+  // 為每個中文字分配一個簡譜數字
+  const result = [];
+  let charIndex = 0;
+  
+  for (const unit of lyricUnits) {
+    if (unit.type === 'bracket') {
+      // 括號單元 - 可能包含多個中文字
+      const unitChineseChars = (unit.content.match(/[\u4e00-\u9fff]/g) || []);
+      
+      if (unitChineseChars.length === 0) {
+        // 空括號或無中文字
+        result.push({
+          type: 'bracket',
+          content: unit.content,
+          notation: null
+        });
+      } else if (unitChineseChars.length === 1) {
+        // 單個中文字在括號內
+        result.push({
+          type: 'pair',
+          notation: numbers[charIndex]?.value || '',
+          lyric: unit.content,
+          isInside: true
+        });
+        charIndex++;
+      } else {
+        // 多個中文字在括號內 - 只取第一個字對應的簡譜
+        result.push({
+          type: 'bracket',
+          content: unit.content,
+          notation: numbers[charIndex]?.value || ''
+        });
+        charIndex += unitChineseChars.length;
+      }
+    } else {
+      // 純文字單元
+      const text = unit.content;
+      const chineseMatches = [...text.matchAll(/[\u4e00-\u9fff]/g)];
+      
+      if (chineseMatches.length === 0) {
+        // 無中文字
+        result.push({
+          type: 'text',
+          content: text
+        });
+      } else {
+        // 有需要對齊的中文字
+        let lastIndex = 0;
+        for (const match of chineseMatches) {
+          const charPos = match.index;
+          // 字前的非中文字
+          if (charPos > lastIndex) {
+            result.push({
+              type: 'text',
+              content: text.substring(lastIndex, charPos)
+            });
+          }
+          // 這個中文字
+          result.push({
+            type: 'pair',
+            notation: numbers[charIndex]?.value || '',
+            lyric: match[0],
+            isInside: false
+          });
+          charIndex++;
+          lastIndex = charPos + 1;
+        }
+        // 剩餘的非中文字
+        if (lastIndex < text.length) {
+          result.push({
+            type: 'text',
+            content: text.substring(lastIndex)
+          });
+        }
+      }
+    }
+  }
+  
+  return result;
 }
 
 // 處理簡譜行（數字旋律譜）- 括號內所有內容（數字+歌詞）標記為白色
@@ -879,7 +1059,7 @@ const TabContent = ({
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
-      numericNotation: '#FF69B4', // 粉紅色
+      numericNotation: '#E0E0E0', // 淺灰色
       prefixSuffix: '#808080'
     },
     day: {
@@ -1033,6 +1213,29 @@ const TabContent = ({
       // 計算當前行的字體大小
       const lineFontSize = getLineFontSize(line);
       
+      // ========== 優先檢查 Section Marker ==========
+      const sectionCheck = extractSectionMarker(line);
+      if (sectionCheck.hasMarker) {
+        elements.push(
+          <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+            <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+              {sectionCheck.marker}
+            </span>
+          </div>
+        );
+        const restLine = sectionCheck.rest.trim();
+        if (restLine) {
+          const transposedRest = transposeChordLine(restLine, transposeSemitones);
+          elements.push(
+            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+              {transposedRest}
+            </div>
+          );
+        }
+        i++;
+        continue;
+      }
+      
       // 檢查是否為歌詞行（有中文字且冇 | 和弦）
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const hasChordBar = /\|[\s]*[A-G]/.test(line);
@@ -1056,17 +1259,16 @@ const TabContent = ({
         continue;
       }
       
-      // 檢查是否為和弦行
-      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\b/g;
+      // 檢查是否為和弦行（添加 \d* 支持 Em9 等數字結尾和弦）
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/g;
       const chordMatches = line.match(strictChordPattern) || [];
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
       const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
       const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : validChordMatches.length >= 2;
       const isChord = hasChordPattern && chineseChars.length < 3;
       
-      // 檢查是否為簡譜行（純數字，冇中文字，冇 | 和弦）
-      const digits = (line.match(/\d/g) || []).length;
-      const isNumericNotation = digits > 3 && chineseChars.length < 3 && !hasChordBar;
+      // 檢查是否為簡譜行（使用函數，包含英文字母檢查）
+      const isNumericNotation = isNumericNotationLine(line) && !hasChordBar;
       
       // 處理簡譜行
       if (isNumericNotation) {
@@ -1095,30 +1297,37 @@ const TabContent = ({
       
       // 處理和弦行
       if (isChord) {
-        // 搵下下面嘅歌詞行（跳過簡譜行）
+        // 收集中間的所有簡譜行，找到最終的歌詞行
+        const notationLines = [];
         let targetLyricIndex = i + 1;
+        
         while (targetLyricIndex < lines.length) {
           const targetLine = lines[targetLyricIndex];
+          if (!targetLine) break;
+          
           const targetChinese = (targetLine.match(/[\u4e00-\u9fff]/g) || []).length;
           const targetHasChord = /\|[\s]*[A-G]/.test(targetLine);
           const targetDigits = (targetLine.match(/\d/g) || []).length;
           
-          // 如果係歌詞行（有中文字且冇和弦），就對齊
+          // 如果係歌詞行（有中文字且冇和弦），停止搜索
           if (targetChinese > 0 && !targetHasChord) {
             break;
           }
-          // 如果係簡譜行，繼續搵
+          // 如果係簡譜行，收集並繼續搵
           if (targetDigits > 3 && targetChinese < 3 && !targetHasChord) {
+            notationLines.push({ index: targetLyricIndex, line: targetLine });
             targetLyricIndex++;
             continue;
           }
+          // 其他情況停止
           break;
         }
         
         const lyricLine = lines[targetLyricIndex] || '';
+        const hasLyric = lyricLine && (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length > 0;
         
-        if (lyricLine && (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length > 0) {
-          // 有歌詞行，對齊處理
+        if (hasLyric) {
+          // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
           const result = processPair(cleanLine, lyricLine, transposeSemitones);
           
@@ -1130,17 +1339,147 @@ const TabContent = ({
                 {result.chordLine}
                 {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
               </div>
+              
+              {/* 中間的簡譜行 - 支持與歌詞對齊 */}
+              {notationLines.map(({ index, line: notationLine }) => {
+                const notationFontSize = getLineFontSize(notationLine);
+                
+                // 嘗試對齊簡譜與歌詞
+                const aligned = alignNotationWithLyrics(notationLine, lyricLine);
+                
+                if (aligned) {
+                  // 對齊模式：簡譜數字對應歌詞括號
+                  return (
+                    <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
+                      {/* 簡譜行 */}
+                      <div style={{ 
+                        fontSize: `${notationFontSize}px`, 
+                        whiteSpace: 'pre-wrap',
+                        overflowWrap: 'break-word',
+                        fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                        color: colors.numericNotation,
+                        marginBottom: '0.1em',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-end'
+                      }}>
+                        {aligned.map((item, idx) => {
+                          if (item.type === 'text' || item.type === 'bracket') {
+                            // 無對應簡譜的文字 - 透明佔位
+                            return (
+                              <span key={idx} style={{ 
+                                visibility: 'hidden',
+                                whiteSpace: 'pre'
+                              }}>
+                                {item.content}
+                              </span>
+                            );
+                          } else if (item.type === 'pair') {
+                            // 簡譜數字 - 置中對齊到對應歌詞字
+                            return (
+                              <span key={idx} style={{
+                                display: 'inline-flex',
+                                justifyContent: 'center',
+                                minWidth: `${getTextWidth(item.lyric) * (notationFontSize / 2)}px`,
+                                color: colors.numericNotation,
+                                fontWeight: 'bold'
+                              }}>
+                                {item.notation}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // 普通模式：直接渲染簡譜
+                  const notationParts = processNumericNotationLine(notationLine);
+                  return (
+                    <div key={index} style={{ 
+                      fontSize: `${notationFontSize}px`, 
+                      marginBottom: `${notationFontSize * 0.3}px`,
+                      whiteSpace: 'pre-wrap', 
+                      overflowWrap: 'break-word',
+                      fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                    }}>
+                      {notationParts.map((part, idx) => (
+                        <span key={idx} style={{
+                          color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
+                          fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                        }}>
+                          {part.content}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                }
+              })}
+              
               {/* 歌詞行 - 括號外灰色，括號內白色 */}
-              <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                {result.lyricParts.map((part, idx) => (
-                  <span key={idx} style={{ 
-                    color: part.isInside ? colors.lyricInside : colors.lyricNormal,
-                    fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
-                  }}>
-                    {part.text}
-                  </span>
-                ))}
-              </div>
+              {notationLines.length > 0 && notationLines.some(({ line: nl }) => alignNotationWithLyrics(nl, lyricLine)) ? (
+                // 對齊模式的歌詞顯示
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  {(() => {
+                    const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
+                    if (aligned) {
+                      return aligned.map((item, idx) => {
+                        if (item.type === 'text') {
+                          // 非括號文字 - 灰色
+                          return (
+                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                              {item.content}
+                            </span>
+                          );
+                        } else if (item.type === 'bracket') {
+                          // 括號（無對應簡譜或空括號）
+                          return (
+                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                              {item.content}
+                            </span>
+                          );
+                        } else if (item.type === 'pair') {
+                          // 對齊的歌詞字
+                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                          return (
+                            <span key={idx} style={{
+                              display: 'inline-flex',
+                              justifyContent: 'center',
+                              minWidth: `${getTextWidth(item.lyric) * (lineFontSize / 2)}px`,
+                              color: color,
+                              fontWeight: theme === 'day' ? 'bold' : 'normal'
+                            }}>
+                              {item.lyric}
+                            </span>
+                          );
+                        }
+                        return null;
+                      });
+                    }
+                    return result.lyricParts.map((part, idx) => (
+                      <span key={idx} style={{ 
+                        color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                        fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                      }}>
+                        {part.text}
+                      </span>
+                    ));
+                  })()}
+                </div>
+              ) : (
+                // 普通模式的歌詞顯示
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                  {result.lyricParts.map((part, idx) => (
+                    <span key={idx} style={{ 
+                      color: part.isInside ? colors.lyricInside : colors.lyricNormal,
+                      fontWeight: part.isInside && theme === 'day' ? 'bold' : 'normal'
+                    }}>
+                      {part.text}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           );
           i = targetLyricIndex + 1;
@@ -1158,32 +1497,6 @@ const TabContent = ({
           i++;
         }
         continue;
-      }
-      
-      // 處理 Section Marker
-      const isSectionMarker = isSectionMarkerLine(line);
-      if (isSectionMarker) {
-        const sectionInfo = extractSectionMarker(line);
-        if (sectionInfo.hasMarker) {
-          elements.push(
-            <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                {sectionInfo.marker}
-              </span>
-            </div>
-          );
-          const restLine = sectionInfo.rest.trim();
-          if (restLine) {
-            const transposedRest = transposeChordLine(restLine, transposeSemitones);
-            elements.push(
-              <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
-                {transposedRest}
-              </div>
-            );
-          }
-          i++;
-          continue;
-        }
       }
       
       // 其他行，普通顯示
