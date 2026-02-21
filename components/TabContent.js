@@ -1363,13 +1363,16 @@ const TabContent = ({
                 const aligned = alignNotationWithLyrics(notationLine, lyricLine);
                 
                 if (aligned) {
-                  // 對齊模式：簡譜數字對應歌詞括號
+                  // 對齊模式：簡譜數字對應歌詞字
+                  const pairCount = aligned.filter(item => item.type === 'pair').length;
+                  const unitWidth = pairCount > 0 ? `${100 / pairCount}%` : 'auto';
+                  
                   return (
                     <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
                       {/* 簡譜行 */}
                       <div style={{ 
                         fontSize: `${notationFontSize}px`, 
-                        whiteSpace: 'pre-wrap',
+                        whiteSpace: 'normal',
                         overflowWrap: 'break-word',
                         fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                         color: colors.numericNotation,
@@ -1380,22 +1383,23 @@ const TabContent = ({
                       }}>
                         {aligned.map((item, idx) => {
                           if (item.type === 'text' || item.type === 'bracket') {
-                            // 無對應簡譜的文字 - 透明佔位
+                            // 無對應簡譜的文字 - 佔位但不顯示
                             return (
                               <span key={idx} style={{ 
                                 visibility: 'hidden',
-                                whiteSpace: 'pre'
+                                width: 'auto'
                               }}>
                                 {item.content}
                               </span>
                             );
                           } else if (item.type === 'pair') {
-                            // 簡譜數字 - 置中對齊到對應歌詞字
+                            // 簡譜數字 - 固定寬度置中
                             return (
                               <span key={idx} style={{
                                 display: 'inline-flex',
                                 justifyContent: 'center',
-                                minWidth: `${getTextWidth(item.lyric) * (notationFontSize / 2)}px`,
+                                width: unitWidth,
+                                minWidth: '1.5em',
                                 color: colors.numericNotation,
                                 fontWeight: 'bold'
                               }}>
@@ -1437,47 +1441,56 @@ const TabContent = ({
                 // 對齊模式的歌詞顯示
                 <div style={{ 
                   fontSize: `${lineFontSize}px`, 
-                  whiteSpace: 'pre-wrap', 
+                  whiteSpace: 'normal', 
                   overflowWrap: 'break-word', 
-                  lineHeight: '1.2',
-                  fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                  lineHeight: '1.6',
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                 }}>
                   {(() => {
                     const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
                     if (aligned) {
-                      return aligned.map((item, idx) => {
-                        if (item.type === 'text') {
-                          // 非括號文字 - 灰色
-                          return (
-                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
-                              {item.content}
-                            </span>
-                          );
-                        } else if (item.type === 'bracket') {
-                          // 括號（無對應簡譜或空括號或多個字）
-                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                          return (
-                            <span key={idx} style={{ color: color, whiteSpace: 'pre' }}>
-                              {item.content}
-                            </span>
-                          );
-                        } else if (item.type === 'pair') {
-                          // 對齊的歌詞字
-                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                          return (
-                            <span key={idx} style={{
-                              display: 'inline-flex',
-                              justifyContent: 'center',
-                              minWidth: `${getTextWidth(item.lyric) * (lineFontSize / 2)}px`,
-                              color: color,
-                              fontWeight: theme === 'day' ? 'bold' : 'normal'
-                            }}>
-                              {item.lyric}
-                            </span>
-                          );
-                        }
-                        return null;
-                      });
+                      // 計算有多少個對齊單元（pair）
+                      const pairCount = aligned.filter(item => item.type === 'pair').length;
+                      const unitWidth = pairCount > 0 ? `${100 / pairCount}%` : 'auto';
+                      
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline' }}>
+                          {aligned.map((item, idx) => {
+                            if (item.type === 'text') {
+                              // 非對齊文字 - 灰色，不佔用flex空間
+                              return (
+                                <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                                  {item.content}
+                                </span>
+                              );
+                            } else if (item.type === 'bracket') {
+                              // 括號（無對應簡譜）
+                              const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                              return (
+                                <span key={idx} style={{ color: color, whiteSpace: 'pre' }}>
+                                  {item.content}
+                                </span>
+                              );
+                            } else if (item.type === 'pair') {
+                              // 對齊單元：固定寬度，歌詞置中
+                              const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                              return (
+                                <span key={idx} style={{
+                                  display: 'inline-flex',
+                                  justifyContent: 'center',
+                                  width: unitWidth,
+                                  minWidth: '1.5em',
+                                  color: color,
+                                  fontWeight: theme === 'day' ? 'bold' : 'normal'
+                                }}>
+                                  {item.lyric}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      );
                     }
                     return result.lyricParts.map((part, idx) => (
                       <span key={idx} style={{ 
