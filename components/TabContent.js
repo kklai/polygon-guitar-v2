@@ -376,69 +376,156 @@ function extractNotationNumbers(line) {
   return numbers;
 }
 
-// 從歌詞行提取所有括號對位置
-function extractLyricBrackets(line) {
-  const brackets = [];
-  const regex = /\([^)]*\)/g;
+// 從歌詞行提取所有中文字符及其位置
+function extractLyricChars(line) {
+  const chars = [];
+  const chineseRegex = /[\u4e00-\u9fff]/g;
   let match;
-  while ((match = regex.exec(line)) !== null) {
-    brackets.push({
-      content: match[0],
-      index: match.index,
-      length: match[0].length
+  while ((match = chineseRegex.exec(line)) !== null) {
+    chars.push({
+      char: match[0],
+      index: match.index
     });
   }
-  return brackets;
+  return chars;
 }
 
-// 將簡譜數字與歌詞括號對齊
+// 從歌詞行提取顯示單元（括號組 + 非括號文字）
+function extractLyricUnits(line) {
+  const units = [];
+  let i = 0;
+  
+  while (i < line.length) {
+    if (line[i] === '(') {
+      // 找到完整的括號對
+      let bracketContent = '(';
+      let j = i + 1;
+      while (j < line.length && line[j] !== ')') {
+        bracketContent += line[j];
+        j++;
+      }
+      if (j < line.length && line[j] === ')') {
+        bracketContent += ')';
+        j++;
+      }
+      units.push({
+        type: 'bracket',
+        content: bracketContent,
+        startIndex: i,
+        endIndex: j,
+        hasChinese: /[\u4e00-\u9fff]/.test(bracketContent)
+      });
+      i = j;
+    } else {
+      // 非括號文字
+      let text = '';
+      let startIndex = i;
+      while (i < line.length && line[i] !== '(') {
+        text += line[i];
+        i++;
+      }
+      if (text) {
+        units.push({
+          type: 'text',
+          content: text,
+          startIndex: startIndex,
+          endIndex: i,
+          chineseChars: (text.match(/[\u4e00-\u9fff]/g) || []).length
+        });
+      }
+    }
+  }
+  
+  return units;
+}
+
+// 將簡譜數字與歌詞字對齊
 function alignNotationWithLyrics(notationLine, lyricLine) {
   const numbers = extractNotationNumbers(notationLine);
-  const brackets = extractLyricBrackets(lyricLine);
+  const lyricChars = extractLyricChars(lyricLine);
+  const lyricUnits = extractLyricUnits(lyricLine);
   
   // 如果數量不匹配，返回 null（使用普通渲染）
-  if (numbers.length !== brackets.length || numbers.length === 0) {
+  if (numbers.length !== lyricChars.length || numbers.length === 0) {
     return null;
   }
   
-  // 計算每個位置的寬度（假設使用等寬字體）
+  // 為每個中文字分配一個簡譜數字
   const result = [];
-  let lastEnd = 0;
+  let charIndex = 0;
   
-  for (let i = 0; i < brackets.length; i++) {
-    const bracket = brackets[i];
-    const number = numbers[i];
-    
-    // 括號前的歌詞
-    if (bracket.index > lastEnd) {
-      const beforeText = lyricLine.substring(lastEnd, bracket.index);
-      result.push({
-        type: 'lyric',
-        content: beforeText,
-        isInside: false
-      });
+  for (const unit of lyricUnits) {
+    if (unit.type === 'bracket') {
+      // 括號單元 - 可能包含多個中文字
+      const unitChineseChars = (unit.content.match(/[\u4e00-\u9fff]/g) || []);
+      
+      if (unitChineseChars.length === 0) {
+        // 空括號或無中文字
+        result.push({
+          type: 'bracket',
+          content: unit.content,
+          notation: null
+        });
+      } else if (unitChineseChars.length === 1) {
+        // 單個中文字在括號內
+        result.push({
+          type: 'pair',
+          notation: numbers[charIndex]?.value || '',
+          lyric: unit.content,
+          isInside: true
+        });
+        charIndex++;
+      } else {
+        // 多個中文字在括號內 - 只取第一個字對應的簡譜
+        result.push({
+          type: 'bracket',
+          content: unit.content,
+          notation: numbers[charIndex]?.value || ''
+        });
+        charIndex += unitChineseChars.length;
+      }
+    } else {
+      // 純文字單元
+      const text = unit.content;
+      const chineseMatches = [...text.matchAll(/[\u4e00-\u9fff]/g)];
+      
+      if (chineseMatches.length === 0) {
+        // 無中文字
+        result.push({
+          type: 'text',
+          content: text
+        });
+      } else {
+        // 有需要對齊的中文字
+        let lastIndex = 0;
+        for (const match of chineseMatches) {
+          const charPos = match.index;
+          // 字前的非中文字
+          if (charPos > lastIndex) {
+            result.push({
+              type: 'text',
+              content: text.substring(lastIndex, charPos)
+            });
+          }
+          // 這個中文字
+          result.push({
+            type: 'pair',
+            notation: numbers[charIndex]?.value || '',
+            lyric: match[0],
+            isInside: false
+          });
+          charIndex++;
+          lastIndex = charPos + 1;
+        }
+        // 剩餘的非中文字
+        if (lastIndex < text.length) {
+          result.push({
+            type: 'text',
+            content: text.substring(lastIndex)
+          });
+        }
+      }
     }
-    
-    // 簡譜數字 + 括號內歌詞（組合成一個單元）
-    const bracketContent = bracket.content; // 包括括號
-    result.push({
-      type: 'pair',
-      notation: number.value,
-      lyric: bracketContent,
-      notationWidth: getTextWidth(number.value),
-      lyricWidth: getTextWidth(bracketContent)
-    });
-    
-    lastEnd = bracket.index + bracket.length;
-  }
-  
-  // 剩餘的歌詞
-  if (lastEnd < lyricLine.length) {
-    result.push({
-      type: 'lyric',
-      content: lyricLine.substring(lastEnd),
-      isInside: false
-    });
   }
   
   return result;
@@ -1277,8 +1364,8 @@ const TabContent = ({
                         alignItems: 'flex-end'
                       }}>
                         {aligned.map((item, idx) => {
-                          if (item.type === 'lyric') {
-                            // 透明佔位，保持對齊
+                          if (item.type === 'text' || item.type === 'bracket') {
+                            // 無對應簡譜的文字 - 透明佔位
                             return (
                               <span key={idx} style={{ 
                                 visibility: 'hidden',
@@ -1288,12 +1375,12 @@ const TabContent = ({
                               </span>
                             );
                           } else if (item.type === 'pair') {
-                            // 簡譜數字 - 置中對齊
+                            // 簡譜數字 - 置中對齊到對應歌詞字
                             return (
                               <span key={idx} style={{
                                 display: 'inline-flex',
                                 justifyContent: 'center',
-                                minWidth: `${Math.max(item.notationWidth, item.lyricWidth) * (notationFontSize / 2)}px`,
+                                minWidth: `${getTextWidth(item.lyric) * (notationFontSize / 2)}px`,
                                 color: colors.numericNotation,
                                 fontWeight: 'bold'
                               }}>
@@ -1338,19 +1425,29 @@ const TabContent = ({
                     const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
                     if (aligned) {
                       return aligned.map((item, idx) => {
-                        if (item.type === 'lyric') {
+                        if (item.type === 'text') {
+                          // 非括號文字 - 灰色
+                          return (
+                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
+                              {item.content}
+                            </span>
+                          );
+                        } else if (item.type === 'bracket') {
+                          // 括號（無對應簡譜或空括號）
                           return (
                             <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
                               {item.content}
                             </span>
                           );
                         } else if (item.type === 'pair') {
+                          // 對齊的歌詞字
+                          const color = item.isInside ? colors.lyricInside : colors.lyricNormal;
                           return (
                             <span key={idx} style={{
                               display: 'inline-flex',
                               justifyContent: 'center',
-                              minWidth: `${Math.max(item.notationWidth, item.lyricWidth) * (lineFontSize / 2)}px`,
-                              color: colors.lyricInside,
+                              minWidth: `${getTextWidth(item.lyric) * (lineFontSize / 2)}px`,
+                              color: color,
                               fontWeight: theme === 'day' ? 'bold' : 'normal'
                             }}>
                               {item.lyric}
