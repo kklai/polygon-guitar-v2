@@ -1061,7 +1061,7 @@ const TabContent = ({
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
-      numericNotation: '#E0E0E0', // 淺灰色
+      numericNotation: '#CCCCCC', // 淺灰色
       prefixSuffix: '#808080'
     },
     day: {
@@ -1071,7 +1071,7 @@ const TabContent = ({
       lyricInside: '#000000',
       chord: '#8B5CF6', // 紫色
       sectionMarker: '#000000',
-      numericNotation: '#FF1493', // 深粉紅色
+      numericNotation: '#CCCCCC', // 淺灰色
       prefixSuffix: '#666666'
     }
   };
