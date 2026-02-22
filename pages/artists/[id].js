@@ -197,16 +197,18 @@ export default function ArtistPage() {
 
   // 取得歌曲縮圖 - 順序：YouTube > thumbnail > 歌手相片
   const getSongThumbnail = (tab) => {
-    // 1. 優先使用 YouTube 縮圖
+    // 1. 優先使用 Spotify 專輯相
+    if (tab.albumImage) return tab.albumImage;
+    // 2. 其次使用 YouTube 縮圖
     if (tab.youtubeUrl) {
       const videoId = extractYouTubeId(tab.youtubeUrl);
       if (videoId) {
         return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
       }
     }
-    // 2. 其次使用歌曲自己的縮圖
+    // 3. 使用歌曲自己的縮圖
     if (tab.thumbnail) return tab.thumbnail;
-    // 3. 使用歌手圖片
+    // 4. 使用歌手圖片
     return artist?.photoURL || artist?.wikiPhotoURL || null;
   };
 
@@ -241,7 +243,7 @@ export default function ArtistPage() {
             {/* Admin 編輯按鈕 */}
             {isAdmin && (
               <button
-                onClick={() => router.push(`/admin/artists-v2`)}
+                onClick={() => router.push(`/admin/artists-v2?edit=${artist.id}`)}
                 className="p-1.5 bg-[#FFD700]/80 backdrop-blur-sm rounded-full text-black hover:bg-[#FFD700] transition ml-1"
                 title="編輯歌手"
               >

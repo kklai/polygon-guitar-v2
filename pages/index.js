@@ -447,7 +447,10 @@ export default function Home() {
     if (item.coverImage) {
       return item.coverImage
     }
-    // 如果是歌曲
+    // 如果是歌曲：優先順序 Spotify 專輯相 > YouTube > 歌手相 > thumbnail
+    if (item.albumImage) {
+      return item.albumImage
+    }
     if (item.youtubeVideoId) {
       return `https://img.youtube.com/vi/${item.youtubeVideoId}/mqdefault.jpg`
     }

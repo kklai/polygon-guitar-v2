@@ -85,6 +85,22 @@ export default function ArtistsV2Page() {
     fetchArtists()
   }, [])
 
+  // 處理 URL 查詢參數（從歌手頁面跳轉過嚟）
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const editId = urlParams.get('edit')
+      if (editId && artists.length > 0) {
+        const artist = artists.find(a => a.id === editId)
+        if (artist) {
+          handleEdit(artist)
+          // 清除 URL 參數
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+      }
+    }
+  }, [artists])
+
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type })
     setTimeout(() => setMessage(null), 3000)
