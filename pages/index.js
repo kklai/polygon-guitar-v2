@@ -582,14 +582,30 @@ export default function Home() {
         {(() => {
           // 預設區域配置
           const defaultSectionOrder = [
-            { id: 'categories', enabled: true },
-            { id: 'recent', enabled: true },
-            { id: 'hotTabs', enabled: true },
-            { id: 'hotArtists', enabled: true },
-            { id: 'autoPlaylists', enabled: true },
-            { id: 'latest', enabled: true },
-            { id: 'manualPlaylists', enabled: true }
+            { id: 'categories', enabled: true, customLabel: '' },
+            { id: 'recent', enabled: true, customLabel: '' },
+            { id: 'hotTabs', enabled: true, customLabel: '' },
+            { id: 'hotArtists', enabled: true, customLabel: '' },
+            { id: 'autoPlaylists', enabled: true, customLabel: '' },
+            { id: 'latest', enabled: true, customLabel: '' },
+            { id: 'manualPlaylists', enabled: true, customLabel: '' }
           ]
+          
+          // 區域標題映射
+          const sectionLabels = {
+            categories: '歌手分類',
+            recent: '最近瀏覽',
+            hotTabs: '熱門結他譜',
+            hotArtists: '熱門歌手',
+            autoPlaylists: '熱門歌單',
+            latest: '最新上架',
+            manualPlaylists: '推薦歌單'
+          }
+          
+          // 獲取區域顯示標題（使用自定義名稱或默認名稱）
+          const getSectionLabel = (section) => {
+            return section.customLabel || sectionLabels[section.id] || section.id
+          }
           
           // 獲取當前 sectionOrder，如果無效則使用預設
           let sectionOrder = homeSettings.sectionOrder || defaultSectionOrder
@@ -610,16 +626,17 @@ export default function Home() {
                   <section key={section.id} className="mb-6 pt-2">
                     <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
                       {categories.map((category) => (
-                        <button
+                        <div
                           key={category.id}
                           onClick={() => handleCategoryClick(category.id)}
-                          className="flex-shrink-0 flex flex-col group"
+                          className="flex-shrink-0 flex flex-col cursor-pointer"
                         >
                           <div className="relative w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] aspect-square rounded-[4px] overflow-hidden">
                             <img
                               src={category.image}
                               alt={category.name}
-                              className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                              className="absolute inset-0 w-full h-full object-cover object-top"
+                              draggable="false"
                             />
                             <div className="absolute bottom-2 right-0 w-1/2">
                               <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
@@ -636,38 +653,39 @@ export default function Home() {
                               {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
                             </p>
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </section>
                 )
 
               case 'recent':
-                return <RecentItems key={section.id} items={recentItems} />
+                return <RecentItems key={section.id} items={recentItems} title={getSectionLabel(section)} />
 
               case 'hotTabs':
                 return hotTabs.length > 0 && (
                   <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門結他譜</h2>
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
                     <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                       {hotTabs.map((song) => (
                         <button
                           key={song.id}
                           onClick={() => handleSongClick(song.id)}
-                          className="flex-shrink-0 flex flex-col group text-left w-32"
+                          className="flex-shrink-0 flex flex-col text-left w-32"
                         >
-                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative">
+                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg relative">
                             {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
                               <img
                                 src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
                                 alt={song.title}
                                 className="w-full h-full object-cover"
+                                draggable="false"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
                             )}
                           </div>
-                          <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                          <h3 className="text-sm text-white font-medium truncate">
                             {song.title}
                           </h3>
                           <p className="text-xs text-gray-500 truncate">{song.artist}</p>
@@ -680,26 +698,27 @@ export default function Home() {
               case 'hotArtists':
                 return hotArtists.all?.length > 0 && (
                   <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌手</h2>
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
                     <div className="flex overflow-x-auto scrollbar-hide px-6 gap-6">
                       {hotArtists.all.map((artist) => (
                         <button
                           key={artist.id}
                           onClick={() => handleArtistClick(artist)}
-                          className="flex-shrink-0 flex flex-col items-center group"
+                          className="flex-shrink-0 flex flex-col items-center"
                         >
-                          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
                             {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
                               <img 
                                 src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
                                 alt={artist.name} 
-                                className="w-full h-full object-cover" 
+                                className="w-full h-full object-cover"
+                                draggable="false"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                             )}
                           </div>
-                          <span className="text-sm text-gray-300 text-center max-w-[100px] truncate group-hover:text-white transition">
+                          <span className="text-sm text-gray-300 text-center max-w-[100px] truncate">
                             {artist.name}
                           </span>
                         </button>
@@ -711,26 +730,27 @@ export default function Home() {
               case 'autoPlaylists':
                 return autoPlaylists.length > 0 && (
                   <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌單</h2>
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
                     <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                       {autoPlaylists.map((playlist) => (
                         <button
                           key={playlist.id}
                           onClick={() => handlePlaylistClick(playlist.id)}
-                          className="flex-shrink-0 flex flex-col group text-left w-36"
+                          className="flex-shrink-0 flex flex-col text-left w-36"
                         >
-                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 shadow-lg">
                             {getThumbnail(playlist) ? (
                               <img
                                 src={getThumbnail(playlist)}
                                 alt={playlist.title}
                                 className="w-full h-full object-cover"
+                                draggable="false"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                             )}
                           </div>
-                          <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                          <h3 className="text-base text-white font-medium truncate">
                             {playlist.title}
                           </h3>
                           {playlist.description && (
@@ -747,26 +767,27 @@ export default function Home() {
               case 'latest':
                 return latestSongs.length > 0 && (
                   <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">最新上架</h2>
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
                     <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                       {latestSongs.map((song) => (
                         <button
                           key={song.id}
                           onClick={() => handleSongClick(song.id)}
-                          className="flex-shrink-0 flex flex-col group text-left w-32"
+                          className="flex-shrink-0 flex flex-col text-left w-32"
                         >
-                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
                             {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
                               <img
                                 src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
                                 alt={song.title}
                                 className="w-full h-full object-cover"
+                                draggable="false"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
                             )}
                           </div>
-                          <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                          <h3 className="text-sm text-white font-medium truncate">
                             {song.title}
                           </h3>
                           <p className="text-xs text-gray-500 truncate">{song.artist}</p>
@@ -779,26 +800,27 @@ export default function Home() {
               case 'manualPlaylists':
                 return manualPlaylists.length > 0 && (
                   <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">推薦歌單</h2>
+                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
                     <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                       {manualPlaylists.map((playlist) => (
                         <button
                           key={playlist.id}
                           onClick={() => handlePlaylistClick(playlist.id)}
-                          className="flex-shrink-0 flex flex-col group text-left w-36"
+                          className="flex-shrink-0 flex flex-col text-left w-36"
                         >
-                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg">
+                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
                             {getThumbnail(playlist) ? (
                               <img
                                 src={getThumbnail(playlist)}
                                 alt={playlist.title}
                                 className="w-full h-full object-cover"
+                                draggable="false"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                             )}
                           </div>
-                          <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                          <h3 className="text-base text-white font-medium truncate">
                             {playlist.title}
                           </h3>
                         </button>

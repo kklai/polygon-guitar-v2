@@ -1,8 +1,25 @@
 import Link from 'next/link'
+import { useState } from 'react'
 
-export default function TabCard({ tab, compact = false }) {
+export default function TabCard({ tab, compact = false, artistPhoto = null }) {
   // 計算歌手的 normalizedName 用于链接
   const artistNormalizedName = tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')
+  const [imageError, setImageError] = useState(false)
+  
+  // 獲取封面圖 - 優先順序：Spotify > YouTube > 歌手相 > fallback
+  const getCoverImage = () => {
+    if (tab.albumImage && !imageError) return tab.albumImage
+    if (tab.youtubeVideoId && !imageError) return `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`
+    if (tab.youtubeUrl && !imageError) {
+      const match = tab.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
+      if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
+    }
+    if (tab.thumbnail && !imageError) return tab.thumbnail
+    if (artistPhoto && !imageError) return artistPhoto
+    return null
+  }
+  
+  const coverImage = getCoverImage()
 
   if (compact) {
     // 簡潔模式 - 用於個人主頁列表
@@ -33,7 +50,29 @@ export default function TabCard({ tab, compact = false }) {
   }
 
   return (
-    <div className="bg-[#121212] rounded-lg shadow-md hover:shadow-xl transition-shadow p-5 border border-gray-800 hover:border-[#FFD700]">
+    <div className="bg-[#121212] rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden border border-gray-800 hover:border-[#FFD700]">
+      {/* 封面圖片 */}
+      <Link href={`/tabs/${tab.id}`}>
+        <div className="w-full aspect-square bg-gray-800 overflow-hidden cursor-pointer">
+          {coverImage ? (
+            <img
+              src={coverImage}
+              alt={tab.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+              <span className="text-4xl mb-2">🎵</span>
+              <span className="text-xs text-gray-500 text-center px-4">{tab.artist}</span>
+            </div>
+          )}
+        </div>
+      </Link>
+      
+      <div className="p-4">
       {/* 歌名 */}
       <Link href={`/tabs/${tab.id}`}>
         <h3 className="text-lg font-bold text-white mb-2 line-clamp-1 cursor-pointer hover:text-[#FFD700] transition">
@@ -97,6 +136,7 @@ export default function TabCard({ tab, compact = false }) {
           {new Date(tab.createdAt).toLocaleDateString('zh-HK')}
         </span>
       </div>
+      </div>{/* 關閉 p-4 */}
     </div>
   )
 }

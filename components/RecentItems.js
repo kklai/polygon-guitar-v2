@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
-export default function RecentItems({ items = [] }) {
+export default function RecentItems({ items = [], title = '最近瀏覽' }) {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -29,7 +29,7 @@ export default function RecentItems({ items = [] }) {
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-2 px-6">
-        <h2 className="text-white text-xl font-bold">最近瀏覽</h2>
+        <h2 className="text-white text-xl font-bold">{title}</h2>
         <button 
           onClick={() => router.push('/history')}
           className="text-[#B3B3B3] text-sm hover:text-white"
@@ -44,7 +44,7 @@ export default function RecentItems({ items = [] }) {
             <div 
               key={index}
               onClick={() => handleClick(item)}
-              className="flex-shrink-0 cursor-pointer group"
+              className="flex-shrink-0 cursor-pointer"
               style={{ width: '100px' }}
             >
               {/* 圖片區域 */}
@@ -56,7 +56,7 @@ export default function RecentItems({ items = [] }) {
                   <img 
                     src={item.image} 
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    className="w-full h-full object-cover"
                   />
                 ) : item.type === 'liked-songs' ? (
                   // 我的喜愛特殊樣式

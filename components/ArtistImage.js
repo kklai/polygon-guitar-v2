@@ -143,13 +143,16 @@ export function ArtistHeroImage({ artist, className = '' }) {
   }
 
   return (
-    <img
-      src={imageUrl}
-      alt={artist?.name || '歌手'}
-      loading="lazy"
-      decoding="async"
-      className={`w-full h-full object-cover object-top ${className}`}
-      onError={() => setError(true)}
-    />
+    <div className="w-full h-full overflow-hidden">
+      <img
+        src={imageUrl}
+        alt={artist?.name || '歌手'}
+        loading="lazy"
+        decoding="async"
+        className={`w-full h-full object-cover ${className}`}
+        style={{ objectPosition: 'center top' }}
+        onError={() => setError(true)}
+      />
+    </div>
   )
 }

@@ -60,13 +60,13 @@ function HomeSettings() {
       sortBy: 'viewCount'
     },
     sectionOrder: [
-      { id: 'categories', enabled: true },
-      { id: 'recent', enabled: true },
-      { id: 'hotTabs', enabled: true },
-      { id: 'hotArtists', enabled: true },
-      { id: 'autoPlaylists', enabled: true },
-      { id: 'latest', enabled: true },
-      { id: 'manualPlaylists', enabled: true }
+      { id: 'categories', enabled: true, customLabel: '' },
+      { id: 'recent', enabled: true, customLabel: '' },
+      { id: 'hotTabs', enabled: true, customLabel: '' },
+      { id: 'hotArtists', enabled: true, customLabel: '' },
+      { id: 'autoPlaylists', enabled: true, customLabel: '' },
+      { id: 'latest', enabled: true, customLabel: '' },
+      { id: 'manualPlaylists', enabled: true, customLabel: '' }
     ]
   })
   
@@ -961,43 +961,62 @@ function HomeSettings() {
                 {settings.sectionOrder?.map((section, index) => {
                   const option = SECTION_OPTIONS.find(o => o.id === section.id)
                   if (!option) return null
+                  const displayLabel = section.customLabel || option.label
                   return (
                     <div 
                       key={section.id}
-                      className={`flex items-center gap-4 p-3 rounded-lg border ${
+                      className={`flex flex-col gap-3 p-3 rounded-lg border ${
                         section.enabled 
                           ? 'bg-gray-900/50 border-gray-800' 
                           : 'bg-gray-900/30 border-gray-800/50 opacity-50'
                       }`}
                     >
-                      <span className="text-xl">{option.icon}</span>
-                      <span className="flex-1 text-white font-medium">{option.label}</span>
-                      
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => moveSection(index, 'up')}
-                          disabled={index === 0}
-                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={() => moveSection(index, 'down')}
-                          disabled={index === settings.sectionOrder.length - 1}
-                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
-                        >
-                          ↓
-                        </button>
-                        <button
-                          onClick={() => toggleSection(index)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition ${
-                            section.enabled
-                              ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                          }`}
-                        >
-                          {section.enabled ? '顯示' : '隱藏'}
-                        </button>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xl">{option.icon}</span>
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={displayLabel}
+                            onChange={(e) => {
+                              const newOrder = [...settings.sectionOrder]
+                              newOrder[index] = { ...section, customLabel: e.target.value }
+                              setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
+                              setHasChanges(true)
+                            }}
+                            placeholder={option.label}
+                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 focus:border-[#FFD700] focus:outline-none transition px-1 -ml-1"
+                          />
+                          {section.customLabel && (
+                            <span className="text-xs text-gray-500 ml-1">原名：{option.label}</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => moveSection(index, 'up')}
+                            disabled={index === 0}
+                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            onClick={() => moveSection(index, 'down')}
+                            disabled={index === settings.sectionOrder.length - 1}
+                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            onClick={() => toggleSection(index)}
+                            className={`px-3 py-1 rounded text-sm font-medium transition ${
+                              section.enabled
+                                ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
+                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            }`}
+                          >
+                            {section.enabled ? '顯示' : '隱藏'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
