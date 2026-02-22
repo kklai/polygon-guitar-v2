@@ -67,15 +67,16 @@ function UpdateTrackInfoPage() {
         return { found: false, error: data.error || '未找到' }
       }
       
+      const firstRelease = data.result.releases?.[0]
       return {
         found: true,
         track: {
           id: data.result.id,
           name: data.result.title,
           artist: data.result.artist,
-          album: data.result.releases?.[0]?.title,
+          album: firstRelease?.title || null,
           albumImage: null, // MusicBrainz 沒有專輯封面
-          releaseYear: data.result.releases?.[0]?.date?.split('-')[0],
+          releaseYear: firstRelease?.date ? firstRelease.date.split('-')[0] : null,
           spotifyUrl: null
         },
         details: {
