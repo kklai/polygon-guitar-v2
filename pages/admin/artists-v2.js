@@ -16,6 +16,7 @@ import {
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
+import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 
 const GENDER_OPTIONS = [
   { value: '', label: '未設定' },
@@ -151,6 +152,28 @@ export default function ArtistsV2Page() {
       birthYear: artist.birthYear || '',
       debutYear: artist.debutYear || ''
     })
+  }
+
+  // 處理照片上傳
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      showMessage(validation.error, 'error')
+      return
+    }
+
+    try {
+      showMessage('上傳中...')
+      const url = await uploadToCloudinary(file, editForm.name || 'artist', 'artists')
+      setEditForm(prev => ({ ...prev, photoURL: url }))
+      showMessage('上傳成功')
+    } catch (error) {
+      console.error('Upload error:', error)
+      showMessage('上傳失敗: ' + error.message, 'error')
+    }
   }
 
   // 保存編輯
@@ -656,12 +679,23 @@ export default function ArtistsV2Page() {
                       <label className="block text-[#B3B3B3] text-sm mb-2">
                         照片 URL (Cloudinary)
                       </label>
-                      <input
-                        type="text"
-                        value={editForm.photoURL}
-                        onChange={(e) => setEditForm({...editForm, photoURL: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editForm.photoURL}
+                          onChange={(e) => setEditForm({...editForm, photoURL: e.target.value})}
+                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        />
+                        <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
+                          上傳
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                       {editForm.photoURL && (
                         <img 
                           src={editForm.photoURL} 
