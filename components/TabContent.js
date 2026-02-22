@@ -382,13 +382,14 @@ function extractNotationNumbers(line) {
   return numbers;
 }
 
-// 從歌詞行提取所有字符（中文每個字算一個，英文每個單詞算一個）
+// 從歌詞行提取字符（中文每個字算一個，英文每個單詞算一個，空格和括號不計）
 function extractLyricChars(line) {
   const chars = [];
-  // 匹配中文字或英文單詞
+  // 先移除括號，再匹配中文字或英文單詞
+  const lineWithoutBrackets = line.replace(/[()]/g, '');
   const charRegex = /[\u4e00-\u9fff]|[a-zA-Z]+/g;
   let match;
-  while ((match = charRegex.exec(line)) !== null) {
+  while ((match = charRegex.exec(lineWithoutBrackets)) !== null) {
     chars.push({
       char: match[0],
       index: match.index
@@ -432,7 +433,7 @@ function extractLyricUnits(line) {
         i++;
       }
       if (text) {
-        // 計算字符數：中文每個字算一個，英文每個單詞算一個
+        // 計算字符數：中文每個字算一個，英文每個單詞算一個（空格不計）
         const chineseCount = (text.match(/[\u4e00-\u9fff]/g) || []).length;
         const englishWords = (text.match(/[a-zA-Z]+/g) || []).length;
         units.push({
@@ -466,9 +467,10 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
   
   for (const unit of lyricUnits) {
     if (unit.type === 'bracket') {
-      // 括號單元 - 可能包含多個字符（中文每字一個，英文每個單詞一個）
-      const chineseCount = (unit.content.match(/[\u4e00-\u9fff]/g) || []).length;
-      const englishWords = (unit.content.match(/[a-zA-Z]+/g) || []).length;
+      // 括號單元 - 只計算中文和英文單詞（括號本身不計）
+      const innerContent = unit.content.slice(1, -1); // 去掉首尾括號
+      const chineseCount = (innerContent.match(/[\u4e00-\u9fff]/g) || []).length;
+      const englishWords = (innerContent.match(/[a-zA-Z]+/g) || []).length;
       const unitCharCount = chineseCount + englishWords;
       
       if (unitCharCount === 0) {
