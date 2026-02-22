@@ -176,6 +176,28 @@ export default function ArtistsV2Page() {
     }
   }
 
+  // 處理 Hero 照片上傳
+  const handleHeroUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      showMessage(validation.error, 'error')
+      return
+    }
+
+    try {
+      showMessage('上傳 Hero 照片中...')
+      const url = await uploadToCloudinary(file, `${editForm.name || 'artist'}_hero`, 'artists/hero')
+      setEditForm(prev => ({ ...prev, heroPhoto: url }))
+      showMessage('Hero 照片上傳成功')
+    } catch (error) {
+      console.error('Hero upload error:', error)
+      showMessage('Hero 上傳失敗: ' + error.message, 'error')
+    }
+  }
+
   // 保存編輯
   const handleSave = async () => {
     try {
@@ -789,12 +811,23 @@ export default function ArtistsV2Page() {
                       <label className="block text-[#B3B3B3] text-sm mb-2">
                         Hero 照片 URL (Base64 或連結)
                       </label>
-                      <textarea
-                        value={editForm.heroPhoto}
-                        onChange={(e) => setEditForm({...editForm, heroPhoto: e.target.value})}
-                        rows={3}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none text-xs font-mono"
-                      />
+                      <div className="flex gap-2">
+                        <textarea
+                          value={editForm.heroPhoto}
+                          onChange={(e) => setEditForm({...editForm, heroPhoto: e.target.value})}
+                          rows={3}
+                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none text-xs font-mono"
+                        />
+                        <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer self-start">
+                          上傳
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleHeroUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                       {editForm.heroPhoto && editForm.heroPhoto.startsWith('http') && (
                         <img 
                           src={editForm.heroPhoto} 
