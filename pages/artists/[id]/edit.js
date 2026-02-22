@@ -18,6 +18,7 @@ function EditArtist() {
     photoURL: '',      // 用戶上傳的 Cloudinary 相片
     wikiPhotoURL: '',  // 維基百科相片
     photo: '',         // 舊資料兼容
+    heroPhoto: '',     // Hero 照片
     bio: '',
     year: '',
     artistType: '' // male, female, group
@@ -81,6 +82,7 @@ function EditArtist() {
         photoURL: data.photoURL || '',
         wikiPhotoURL: data.wikiPhotoURL || '',
         photo: data.photo || '',
+        heroPhoto: data.heroPhoto || '',
         bio: data.bio || '',
         year: data.year || '',
         artistType: data.artistType || ''
@@ -127,6 +129,7 @@ function EditArtist() {
         photoURL: formData.photoURL,
         wikiPhotoURL: formData.wikiPhotoURL,
         photo: formData.photo,  // 舊資料兼容
+        heroPhoto: formData.heroPhoto,
         bio: formData.bio,
         year: formData.year,
         artistType: formData.artistType || 'other',
@@ -178,6 +181,34 @@ function EditArtist() {
     } catch (error) {
       console.error('Upload error:', error)
       setUploadError('上傳失敗：' + error.message)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  // 處理 Hero 照片上傳
+  const handleHeroUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setUploadError(validation.error)
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const result = await uploadToCloudinary(file, `${formData.name || 'artist'}_hero`, 'artists/hero')
+      setFormData(prev => ({
+        ...prev,
+        heroPhoto: result
+      }))
+    } catch (error) {
+      console.error('Hero upload error:', error)
+      setUploadError('Hero 上傳失敗：' + error.message)
     } finally {
       setIsUploading(false)
     }
@@ -646,6 +677,51 @@ function EditArtist() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Hero Photo */}
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">
+                <span className="text-[#FFD700]">Hero 照片</span>（歌手頁面頂部背景）
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  name="heroPhoto"
+                  value={formData.heroPhoto}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="flex-1 px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                />
+                <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
+                  {isUploading ? '上傳中...' : '選擇檔案'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHeroUpload}
+                    disabled={isUploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                建議尺寸：1200 x 800 像素或以上
+              </p>
+              {formData.heroPhoto && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-400 mb-2">預覽：</p>
+                  <img 
+                    src={formData.heroPhoto} 
+                    alt="Hero 照片"
+                    className="w-full h-32 object-cover rounded-lg border-2 border-[#FFD700]"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.nextSibling.style.display = 'block'
+                    }}
+                  />
+                  <p className="hidden text-red-400 text-sm">圖片載入失敗</p>
+                </div>
+              )}
             </div>
 
             {/* Year */}
