@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
+import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
 
 function EditArtist() {
   const router = useRouter()
@@ -33,6 +34,8 @@ function EditArtist() {
   const [fixMessage, setFixMessage] = useState(null)
   const [relatedSongsCount, setRelatedSongsCount] = useState(0)
   const [actualDocId, setActualDocId] = useState(null) // 儲存實際嘅 document ID（處理簡繁體）
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
 
   // 載入歌手資料
   useEffect(() => {
@@ -148,6 +151,35 @@ function EditArtist() {
     }))
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  // 處理照片上傳
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 驗證檔案
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setUploadError(validation.error)
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const result = await uploadToCloudinary(file, formData.name || 'artist')
+      setFormData(prev => ({
+        ...prev,
+        photoURL: result
+      }))
+    } catch (error) {
+      console.error('Upload error:', error)
+      setUploadError('上傳失敗：' + error.message)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -537,17 +569,32 @@ function EditArtist() {
                 <label htmlFor="photoURL" className="block text-sm font-medium text-white mb-1">
                   <span className="text-[#FFD700]">用戶上傳相片</span> (photoURL)
                 </label>
-                <input
-                  type="url"
-                  id="photoURL"
-                  name="photoURL"
-                  value={formData.photoURL}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    id="photoURL"
+                    name="photoURL"
+                    value={formData.photoURL}
+                    onChange={handleChange}
+                    placeholder="https://..."
+                    className="flex-1 px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  />
+                  <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
+                    {isUploading ? '上傳中...' : '選擇檔案'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {uploadError && (
+                  <p className="text-xs text-red-400 mt-1">{uploadError}</p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
-                  優先顯示此相片（Cloudinary 上傳）
+                  支援 JPG、PNG、GIF，最大 10MB
                 </p>
                 {formData.photoURL && (
                   <div className="mt-3">
