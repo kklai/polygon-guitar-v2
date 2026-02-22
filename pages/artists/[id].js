@@ -243,7 +243,7 @@ export default function ArtistPage() {
             {/* Admin 編輯按鈕 */}
             {isAdmin && (
               <button
-                onClick={() => router.push(`/admin/artists-v2?edit=${artist.id}`)}
+                onClick={() => router.push(`/artists/${artist.normalizedName || artist.id}/edit`)}
                 className="p-1.5 bg-[#FFD700]/80 backdrop-blur-sm rounded-full text-black hover:bg-[#FFD700] transition ml-1"
                 title="編輯歌手"
               >
