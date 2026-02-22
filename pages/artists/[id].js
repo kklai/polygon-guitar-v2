@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
-import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info, Edit } from 'lucide-react';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
@@ -11,6 +11,7 @@ import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist } fro
 import { recordArtistView } from '../../lib/recentViews';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ArtistPage() {
   const router = useRouter();
@@ -27,6 +28,9 @@ export default function ArtistPage() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false); // 控制歌手資訊顯示
+  
+  // 使用 AuthContext 獲取 Admin 狀態
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
@@ -234,6 +238,16 @@ export default function ArtistPage() {
             >
               <Info className="w-5 h-5" />
             </button>
+            {/* Admin 編輯按鈕 */}
+            {isAdmin && (
+              <button
+                onClick={() => router.push(`/admin/artists-v2`)}
+                className="p-1.5 bg-[#FFD700]/80 backdrop-blur-sm rounded-full text-black hover:bg-[#FFD700] transition ml-1"
+                title="編輯歌手"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+            )}
           </div>
           
           {/* 設計圖冇顯示歌手資訊 */}
