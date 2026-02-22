@@ -196,12 +196,53 @@ export default function ArtistsV2Page() {
       if (nameChanged) {
         console.log('Name changed, updating songs...')
         try {
-          // 查詢所有該歌手的歌譜
-          const songsQuery = query(
-            collection(db, 'songs'),
-            where('artistId', '==', selectedArtist.id)
-          )
-          const songsSnapshot = await getDocs(songsQuery)
+          // 查詢所有該歌手的歌譜（用多個條件查詢，兼容唔同欄位名）
+          const possibleIds = [
+            selectedArtist.id,
+            selectedArtist.normalizedName,
+            selectedArtist.name?.toLowerCase().replace(/\s+/g, '-'),
+            editForm.name?.toLowerCase().replace(/\s+/g, '-')
+          ].filter(Boolean)
+          
+          // 收集所有匹配的歌譜（避免重複）
+          const songMap = new Map()
+          
+          // 方法1：用 artistId 查詢
+          for (const id of possibleIds) {
+            try {
+              const songsQuery = query(
+                collection(db, 'songs'),
+                where('artistId', '==', id)
+              )
+              const snapshot = await getDocs(songsQuery)
+              snapshot.docs.forEach(doc => songMap.set(doc.id, doc))
+            } catch (e) { /* ignore */ }
+          }
+          
+          // 方法2：用 artistSlug 查詢
+          for (const id of possibleIds) {
+            try {
+              const songsQuery = query(
+                collection(db, 'songs'),
+                where('artistSlug', '==', id)
+              )
+              const snapshot = await getDocs(songsQuery)
+              snapshot.docs.forEach(doc => songMap.set(doc.id, doc))
+            } catch (e) { /* ignore */ }
+          }
+          
+          // 方法3：用 artistName 查詢
+          try {
+            const songsQuery = query(
+              collection(db, 'songs'),
+              where('artistName', '==', selectedArtist.name)
+            )
+            const snapshot = await getDocs(songsQuery)
+            snapshot.docs.forEach(doc => songMap.set(doc.id, doc))
+          } catch (e) { /* ignore */ }
+          
+          // 轉為陣列
+          const songsSnapshot = { docs: Array.from(songMap.values()) }
           console.log('Found songs:', songsSnapshot.docs.length)
           
           // 批量更新歌譜（每批最多 500 個）
@@ -233,8 +274,8 @@ export default function ArtistsV2Page() {
           console.log('Updated songs:', updatedTabCount)
         } catch (songError) {
           console.error('Error updating songs:', songError)
-          showMessage('更新歌譜失敗: ' + songError.message, 'error')
-          return
+          // 唔阻礙歌手資料保存，只記錄錯誤
+          showMessage('警告：更新歌譜時出錯，但歌手資料仍會保存', 'error')
         }
       }
       
