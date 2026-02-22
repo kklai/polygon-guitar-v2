@@ -30,7 +30,7 @@ function EditArtist() {
   const [searchPreview, setSearchPreview] = useState(null)
   const [originalName, setOriginalName] = useState('') // 記錄原始歌手名
   const [showNameChangeWarning, setShowNameChangeWarning] = useState(false)
-  const [updateSongsWithNewName, setUpdateSongsWithNewName] = useState(false)
+  const [updateSongsWithNewName, setUpdateSongsWithNewName] = useState(true) // 默認自動更新歌曲
   const [isFixingSongs, setIsFixingSongs] = useState(false)
   const [fixMessage, setFixMessage] = useState(null)
   const [relatedSongsCount, setRelatedSongsCount] = useState(0)
