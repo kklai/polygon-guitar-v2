@@ -286,12 +286,15 @@ export default function ArtistsV2Page() {
           // 批量更新歌譜（每批最多 500 個）
           let batch = writeBatch(db)
           let batchCount = 0
+          const newArtistId = editForm.name.toLowerCase().replace(/\s+/g, '-')
           
           for (const songDoc of songsSnapshot.docs) {
             const songRef = doc(db, 'songs', songDoc.id)
             batch.update(songRef, {
               artist: editForm.name,
               artistName: editForm.name,
+              artistId: newArtistId,
+              artistSlug: newArtistId,
               updatedAt: new Date().toISOString()
             })
             batchCount++
@@ -317,10 +320,12 @@ export default function ArtistsV2Page() {
         }
       }
       
-      // 更新歌手資料
+      // 更新歌手資料（包括 normalizedName）
       console.log('Updating artist...')
+      const newNormalizedName = editForm.name.toLowerCase().replace(/\s+/g, '-')
       const updateData = {
         name: editForm.name,
+        normalizedName: newNormalizedName,
         artistType: editForm.artistType || '',
         gender: editForm.artistType || '',
         bio: editForm.bio || '',

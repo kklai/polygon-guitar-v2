@@ -313,6 +313,7 @@ function EditArtist() {
           batch.update(doc.ref, {
             artist: formData.name,
             artistId: newArtistId,
+            artistSlug: newArtistId,
             updatedAt: new Date().toISOString()
           })
           updatedCount++
@@ -333,6 +334,7 @@ function EditArtist() {
           batch.update(doc.ref, {
             artist: formData.name,
             artistId: newArtistId,
+            artistSlug: newArtistId,
             updatedAt: new Date().toISOString()
           })
           updatedCount++
