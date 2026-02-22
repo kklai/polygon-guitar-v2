@@ -382,12 +382,13 @@ function extractNotationNumbers(line) {
   return numbers;
 }
 
-// 從歌詞行提取所有中文字符及其位置
+// 從歌詞行提取所有字符（中文每個字算一個，英文每個字母算一個）
 function extractLyricChars(line) {
   const chars = [];
-  const chineseRegex = /[\u4e00-\u9fff]/g;
+  // 匹配中文字或英文字母（包括空格和標點）
+  const charRegex = /[\u4e00-\u9fff]|[a-zA-Z]/g;
   let match;
-  while ((match = chineseRegex.exec(line)) !== null) {
+  while ((match = charRegex.exec(line)) !== null) {
     chars.push({
       char: match[0],
       index: match.index
@@ -431,12 +432,15 @@ function extractLyricUnits(line) {
         i++;
       }
       if (text) {
+        // 計算字符數：中文每個字算一個，英文每個字母算一個
+        const chineseCount = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+        const englishCount = (text.match(/[a-zA-Z]/g) || []).length;
         units.push({
           type: 'text',
           content: text,
           startIndex: startIndex,
           endIndex: i,
-          chineseChars: (text.match(/[\u4e00-\u9fff]/g) || []).length
+          chineseChars: chineseCount + englishCount
         });
       }
     }
@@ -462,19 +466,21 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
   
   for (const unit of lyricUnits) {
     if (unit.type === 'bracket') {
-      // 括號單元 - 可能包含多個中文字
-      const unitChineseChars = (unit.content.match(/[\u4e00-\u9fff]/g) || []);
+      // 括號單元 - 可能包含多個字符（中文每字一個，英文每字母一個）
+      const chineseCount = (unit.content.match(/[\u4e00-\u9fff]/g) || []).length;
+      const englishCount = (unit.content.match(/[a-zA-Z]/g) || []).length;
+      const unitCharCount = chineseCount + englishCount;
       
-      if (unitChineseChars.length === 0) {
-        // 空括號或無中文字 - 白色
+      if (unitCharCount === 0) {
+        // 空括號或無字符 - 白色
         result.push({
           type: 'bracket',
           content: unit.content,
           notation: null,
           isInside: true
         });
-      } else if (unitChineseChars.length === 1) {
-        // 單個中文字在括號內
+      } else if (unitCharCount === 1) {
+        // 單個字符在括號內
         result.push({
           type: 'pair',
           notation: numbers[charIndex]?.value || '',
@@ -483,39 +489,40 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
         });
         charIndex++;
       } else {
-        // 多個中文字在括號內 - 只取第一個字對應的簡譜，也是白色
+        // 多個字符在括號內 - 只取第一個對應的簡譜，也是白色
         result.push({
           type: 'bracket',
           content: unit.content,
           notation: numbers[charIndex]?.value || '',
           isInside: true
         });
-        charIndex += unitChineseChars.length;
+        charIndex += unitCharCount;
       }
     } else {
       // 純文字單元
       const text = unit.content;
-      const chineseMatches = [...text.matchAll(/[\u4e00-\u9fff]/g)];
+      // 匹配中文字或英文字母
+      const charMatches = [...text.matchAll(/[\u4e00-\u9fff]|[a-zA-Z]/g)];
       
-      if (chineseMatches.length === 0) {
-        // 無中文字
+      if (charMatches.length === 0) {
+        // 無字符
         result.push({
           type: 'text',
           content: text
         });
       } else {
-        // 有需要對齊的中文字
+        // 有需要對齊的字符
         let lastIndex = 0;
-        for (const match of chineseMatches) {
+        for (const match of charMatches) {
           const charPos = match.index;
-          // 字前的非中文字
+          // 字前的其他文字
           if (charPos > lastIndex) {
             result.push({
               type: 'text',
               content: text.substring(lastIndex, charPos)
             });
           }
-          // 這個中文字
+          // 這個字符
           result.push({
             type: 'pair',
             notation: numbers[charIndex]?.value || '',
