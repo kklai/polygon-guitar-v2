@@ -113,8 +113,6 @@ function EditArtist() {
 
     setIsSubmitting(true)
     try {
-      const newNormalizedName = formData.name.toLowerCase().replace(/\s+/g, '-')
-      
       // 如果歌手名變更，自動更新所有相關歌曲（強制同步）
       if (originalName && formData.name !== originalName) {
         console.log('歌手名變更，自動更新相關歌曲...')
@@ -133,11 +131,12 @@ function EditArtist() {
         bio: formData.bio,
         year: formData.year,
         artistType: formData.artistType || 'other',
-        normalizedName: newNormalizedName, // 更新 normalizedName
+        // 保留原有 normalizedName 不變，確保舊連結繼續有效
         updatedAt: new Date().toISOString()
       })
       
-      router.push(`/artists/${newNormalizedName}`)
+      // 保留原有 URL，唔會因改名而改變連結
+      router.push(`/artists/${id}`)
     } catch (error) {
       console.error('Update artist error:', error)
       alert('更新失敗：' + error.message)
@@ -278,15 +277,14 @@ function EditArtist() {
     }
   }
 
-  // 修復歌曲數據（更新 artist 和 artistId）
+  // 修復歌曲數據（只更新顯示名稱，保留原有 URL slug）
   const handleFixSongsData = async (silent = false) => {
-    if (!silent && !confirm('確定要修復所有相關歌曲的數據嗎？這會更新歌曲的歌手名稱和 artistId。')) return
+    if (!silent && !confirm('確定要修復所有相關歌曲的數據嗎？這會更新歌曲的歌手顯示名稱（URL 連結保持不變）。')) return
     
     setIsFixingSongs(true)
     setFixMessage(null)
     
     try {
-      const newArtistId = formData.name.toLowerCase().replace(/\s+/g, '-')
       const oldArtistId = originalName.toLowerCase().replace(/\s+/g, '-')
       
       // 查找所有相關歌曲（用舊的 artistId 或 artist 名）
@@ -312,8 +310,8 @@ function EditArtist() {
         snapshot.docs.forEach(doc => {
           batch.update(doc.ref, {
             artist: formData.name,
-            artistId: newArtistId,
-            artistSlug: newArtistId,
+            artistName: formData.name,
+            // 保留 artistId 和 artistSlug 不變，確保舊連結繼續有效
             updatedAt: new Date().toISOString()
           })
           updatedCount++
@@ -328,13 +326,13 @@ function EditArtist() {
       const snapshot2 = await getDocs(q2)
       
       snapshot2.docs.forEach(doc => {
-        // 避免重複更新
+        // 避免重複更新，同時保留原有 artistId/artistSlug
         const data = doc.data()
-        if (data.artist !== formData.name || data.artistId !== newArtistId) {
+        if (data.artist !== formData.name) {
           batch.update(doc.ref, {
             artist: formData.name,
-            artistId: newArtistId,
-            artistSlug: newArtistId,
+            artistName: formData.name,
+            // 保留 artistId 和 artistSlug 不變，確保舊連結繼續有效
             updatedAt: new Date().toISOString()
           })
           updatedCount++
@@ -355,8 +353,8 @@ function EditArtist() {
         console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料`)
       }
       
-      // 更新相關歌曲計數
-      await checkRelatedSongs(formData.name, newArtistId)
+      // 更新相關歌曲計數（使用原有 ID，因為 URL slug 冇改變）
+      await checkRelatedSongs(formData.name, id)
       
     } catch (error) {
       console.error('Fix songs error:', error)

@@ -111,8 +111,8 @@ export default function Search() {
   }
 
   const handleArtistClick = (artist) => {
-    const slug = artist.normalizedName || artist.id
-    router.push(`/artists/${slug}`)
+    // 使用 artist.id 確保連結不變（即使歌手改名）
+    router.push(`/artists/${artist.id}`)
   }
   
   const handleCategoryClick = (category) => {

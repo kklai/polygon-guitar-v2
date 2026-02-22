@@ -476,10 +476,9 @@ export default function Home() {
     router.push(`/artists?category=${categoryId}`)
   }
 
-  // 處理歌手點擊
+  // 處理歌手點擊（使用 artist.id 確保連結不變）
   const handleArtistClick = (artist) => {
-    const slug = artist.normalizedName || artist.id
-    router.push(`/artists/${slug}`)
+    router.push(`/artists/${artist.id}`)
   }
 
   // 處理歌曲點擊

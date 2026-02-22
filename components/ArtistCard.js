@@ -5,7 +5,7 @@ export default function ArtistCard({ artist }) {
   
   return (
     <Link
-      href={`/artists/${artist.normalizedName}`}
+      href={`/artists/${artist.id}`}
       className="group block text-center"
     >
       {/* 圓形頭像 */}

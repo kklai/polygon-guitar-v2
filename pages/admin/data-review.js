@@ -472,7 +472,7 @@ function DataReview() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => router.push(`/artists/${artist.normalizedName || artist.id}`)}
+                        onClick={() => router.push(`/artists/${artist.id}`)}
                         className="px-3 py-1.5 bg-[#282828] text-white rounded text-sm hover:bg-[#3E3E3E] transition"
                       >
                         查看
