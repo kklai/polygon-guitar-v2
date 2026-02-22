@@ -1281,17 +1281,19 @@ const TabContent = ({
         elements.push(
           <div key={i} style={{ fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
             {lyricParts.map((part, idx) => {
-              // 決定顏色：括號本身在 hideBrackets 模式時變成背景色（隱藏）
+              // 決定樣式：括號本身在 hideBrackets 模式時隱藏
               let partColor;
+              let partOpacity = 1;
               if (part.type === 'bracket-open' || part.type === 'bracket-close') {
-                partColor = hideBrackets ? (theme === 'day' ? '#F5F5F5' : '#121212') : colors.lyricNormal;
+                partColor = colors.lyricNormal;
+                partOpacity = hideBrackets ? 0 : 1;
               } else if (part.type === 'inside') {
                 partColor = colors.lyricInside;
               } else {
                 partColor = colors.lyricNormal;
               }
               return (
-                <span key={idx} style={{ color: partColor }}>
+                <span key={idx} style={{ color: partColor, opacity: partOpacity }}>
                   {part.text}
                 </span>
               );
@@ -1480,13 +1482,13 @@ const TabContent = ({
                           const content = item.content;
                           // 提取括號內文字（去掉首尾括號）
                           const innerText = content.slice(1, -1);
-                          const bracketColor = hideBrackets ? (theme === 'day' ? '#F5F5F5' : '#121212') : colors.lyricNormal;
                           const textColor = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                          const bracketOpacity = hideBrackets ? 0 : 1;
                           return (
                             <span key={idx} style={{ whiteSpace: 'pre' }}>
-                              <span style={{ color: bracketColor }}>(</span>
+                              <span style={{ color: colors.lyricNormal, opacity: bracketOpacity }}>(</span>
                               <span style={{ color: textColor }}>{innerText}</span>
-                              <span style={{ color: bracketColor }}>)</span>
+                              <span style={{ color: colors.lyricNormal, opacity: bracketOpacity }}>)</span>
                             </span>
                           );
                         } else if (item.type === 'pair') {
@@ -1496,8 +1498,8 @@ const TabContent = ({
                           const innerText = lyric.startsWith('(') && lyric.endsWith(')') 
                             ? lyric.slice(1, -1) 
                             : lyric;
-                          const bracketColor = hideBrackets ? (theme === 'day' ? '#F5F5F5' : '#121212') : colors.lyricNormal;
                           const textColor = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                          const bracketOpacity = hideBrackets ? 0 : 1;
                           return (
                             <span key={idx} style={{
                               display: 'inline-flex',
@@ -1505,9 +1507,9 @@ const TabContent = ({
                               minWidth: `${getTextWidth(lyric) * (lineFontSize / 2)}px`,
                               fontWeight: theme === 'day' ? 'bold' : 'normal'
                             }}>
-                              {item.isInside && <span style={{ color: bracketColor }}>(</span>}
+                              {item.isInside && <span style={{ color: colors.lyricNormal, opacity: bracketOpacity }}>(</span>}
                               <span style={{ color: textColor }}>{innerText}</span>
-                              {item.isInside && <span style={{ color: bracketColor }}>)</span>}
+                              {item.isInside && <span style={{ color: colors.lyricNormal, opacity: bracketOpacity }}>)</span>}
                             </span>
                           );
                         }
@@ -1515,10 +1517,12 @@ const TabContent = ({
                       });
                     }
                     return result.lyricParts.map((part, idx) => {
-                      // 決定顏色：括號本身在 hideBrackets 模式時變成背景色（隱藏）
+                      // 決定樣式：括號本身在 hideBrackets 模式時隱藏
                       let partColor;
+                      let partOpacity = 1;
                       if (part.type === 'bracket-open' || part.type === 'bracket-close') {
-                        partColor = hideBrackets ? (theme === 'day' ? '#F5F5F5' : '#121212') : colors.lyricNormal;
+                        partColor = colors.lyricNormal;
+                        partOpacity = hideBrackets ? 0 : 1;
                       } else if (part.isInside || part.type === 'inside') {
                         partColor = colors.lyricInside;
                       } else {
@@ -1527,6 +1531,7 @@ const TabContent = ({
                       return (
                         <span key={idx} style={{ 
                           color: partColor,
+                          opacity: partOpacity,
                           fontWeight: (part.isInside || part.type === 'inside') && theme === 'day' ? 'bold' : 'normal'
                         }}>
                           {part.text}
@@ -1539,10 +1544,12 @@ const TabContent = ({
                 // 普通模式的歌詞顯示
                 <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => {
-                    // 決定顏色：括號本身在 hideBrackets 模式時變成背景色（隱藏）
+                    // 決定樣式：括號本身在 hideBrackets 模式時隱藏
                     let partColor;
+                    let partOpacity = 1;
                     if (part.type === 'bracket-open' || part.type === 'bracket-close') {
-                      partColor = hideBrackets ? (theme === 'day' ? '#F5F5F5' : '#121212') : colors.lyricNormal;
+                      partColor = colors.lyricNormal;
+                      partOpacity = hideBrackets ? 0 : 1;
                     } else if (part.isInside || part.type === 'inside') {
                       partColor = colors.lyricInside;
                     } else {
@@ -1551,6 +1558,7 @@ const TabContent = ({
                     return (
                       <span key={idx} style={{ 
                         color: partColor,
+                        opacity: partOpacity,
                         fontWeight: (part.isInside || part.type === 'inside') && theme === 'day' ? 'bold' : 'normal'
                       }}>
                         {part.text}
