@@ -244,7 +244,7 @@ export default function ArtistPage() {
             {isAdmin && (
               <button
                 onClick={() => router.push(`/artists/${artist.normalizedName || artist.id}/edit`)}
-                className="p-1.5 bg-[#FFD700]/80 backdrop-blur-sm rounded-full text-black hover:bg-[#FFD700] transition ml-1"
+                className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition ml-1"
                 title="編輯歌手"
               >
                 <Edit className="w-5 h-5" />
