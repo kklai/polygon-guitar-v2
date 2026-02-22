@@ -195,7 +195,7 @@ export default function TabDetail() {
         <meta property="og:type" content="article" />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
+        <meta property="og:image" content={tab.albumImage || tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
@@ -206,7 +206,7 @@ export default function TabDetail() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
+        <meta name="twitter:image" content={tab.albumImage || tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
         
         {/* 結構化數據 JSON-LD */}
         <script
@@ -225,9 +225,10 @@ export default function TabDetail() {
           <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
-              {tab.thumbnail || tab.youtubeVideoId ? (
+              {/* 優先顯示 Spotify 專輯相，其次 thumbnail，再其次 YouTube */}
+              {tab.albumImage || tab.thumbnail || tab.youtubeVideoId ? (
                 <img 
-                  src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
+                  src={tab.albumImage || tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
                   alt={tab.title}
                   className="w-full h-full object-cover"
                 />

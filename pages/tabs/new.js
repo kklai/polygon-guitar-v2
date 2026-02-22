@@ -184,7 +184,7 @@ export default function NewTab() {
   const handleArtistFill = (data) => {
     setFormData(prev => ({
       ...prev,
-      artist: data.name || prev.artist,
+      // 不更新歌手名（保留用戶原始輸入）
       artistPhoto: data.photo || '',
       artistBio: data.bio || '',
       artistYear: data.year || '',
@@ -207,10 +207,8 @@ export default function NewTab() {
   const handleUseSpotifyTrack = (trackData) => {
     setFormData(prev => ({
       ...prev,
-      // 更新歌手和歌名（如果用戶選擇了不同的）
-      artist: trackData.artist || prev.artist,
-      title: trackData.title || prev.title,
-      // 歌曲資訊
+      // 不更新歌手和歌名（保留用戶原始輸入）
+      // 只更新歌曲資訊和 Spotify 資訊
       songYear: trackData.songYear || prev.songYear,
       album: trackData.album || prev.album,
       // Spotify 資訊
