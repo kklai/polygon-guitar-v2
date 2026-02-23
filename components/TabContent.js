@@ -178,75 +178,27 @@ function getTextWidth(text) {
   return width;
 }
 
-// 計算每個括號內容嘅中心位置（讓和弦名置中對齊）
+// 計算開括號位置（左對齊）
 function findBracketPositions(lyricLine) {
   const positions = [];
   let currentWidth = 0;
-  let i = 0;
-  
-  while (i < lyricLine.length) {
-    const char = lyricLine[i];
-    
-    if (char === '(' || char === '（') {
-      // 找到對應嘅閉合括號
-      const openBracket = char;
-      const closeBracket = openBracket === '(' ? ')' : '）';
-      let j = i + 1;
-      let contentWidth = 0;
-      
-      // 計算括號內內容嘅寬度
-      while (j < lyricLine.length && lyricLine[j] !== closeBracket) {
-        contentWidth += getCharWidth(lyricLine[j]);
-        j++;
-      }
-      
-      // 中心位置 = 開括號位置 + 開括號寬度 + 內容寬度/2
-      const openBracketWidth = (openBracket === '(' ? 1 : 2);
-      const centerPos = currentWidth + openBracketWidth + contentWidth / 2;
-      positions.push(centerPos);
-      
-      // 跳到閉合括號後
-      i = j + 1;
-      currentWidth += openBracketWidth + contentWidth + (lyricLine[j] === closeBracket ? (closeBracket === ')' ? 1 : 2) : 0);
-    } else {
-      currentWidth += getCharWidth(char);
-      i++;
-    }
+  for (let char of lyricLine) {
+    if (char === '(' || char === '（') positions.push(currentWidth);
+    currentWidth += getCharWidth(char);
   }
   return positions;
 }
 
-// 計算隱藏括號後嘅調整位置（置中對齊）
+// 計算隱藏括號後嘅調整位置（左對齊）
 function findAdjustedBracketPositions(lyricLine) {
   const positions = [];
   let visibleWidth = 0;
-  let i = 0;
   
-  while (i < lyricLine.length) {
-    const char = lyricLine[i];
-    
+  for (let char of lyricLine) {
     if (char === '(' || char === '（') {
-      const closeBracket = char === '(' ? ')' : '）';
-      let j = i + 1;
-      let contentWidth = 0;
-      
-      while (j < lyricLine.length && lyricLine[j] !== closeBracket) {
-        contentWidth += getCharWidth(lyricLine[j]);
-        j++;
-      }
-      
-      // 隱藏括號後，中心位置 = 當前可視寬度 + 內容寬度/2
-      const centerPos = visibleWidth + contentWidth / 2;
-      positions.push(centerPos);
-      
-      // 內容寬度加入可視寬度
-      visibleWidth += contentWidth;
-      i = j + 1;
-    } else if (char === ')' || char === '）') {
-      i++;
-    } else {
+      positions.push(visibleWidth);
+    } else if (char !== ')' && char !== '）') {
       visibleWidth += getCharWidth(char);
-      i++;
     }
   }
   return positions;
@@ -1048,13 +1000,9 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     const token = tokens[idx];
     const targetPos = tokenPositions[idx];
     
-    // targetPos 而家係中心位置
-    // 讓和弦名置中對齊：startCol = targetPos - 和弦名寬度/2
-    const chordNameWidth = token.isBarStart ? token.nameWidth : token.width;
-    let startCol = Math.round(targetPos - chordNameWidth / 2);
-    // 確保唔會負數
-    if (startCol < 0) startCol = 0;
-    // 如果 token 有 |，再減 1 讓 | 喺左邊
+    // 左對齊：讓和弦名（唔包 |）左對齊括號位置
+    let startCol = targetPos;
+    // 如果 token 有 |，減 1 讓和弦名（而唔係 |）對齊
     if (token.isBarStart) startCol -= 1;
     if (startCol < 0) startCol = 0;
     
