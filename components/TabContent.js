@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { extractChords, ChordDiagramModal, SingleChordDiagram } from './ChordDiagram';
 
 // ============ 智能字體大小計算 ============
 // 根據內容長度計算合適的字體大小
@@ -1631,6 +1632,13 @@ const TabContent = ({
 
   const ControlBar = () => {
     const [showInfo, setShowInfo] = useState(false);
+    const [showChordDiagram, setShowChordDiagram] = useState(false);
+    
+    // 提取本曲所有獨特和弦
+    const uniqueChords = (() => {
+      if (!content) return [];
+      return extractChords(content);
+    })();
     
     const chordStats = (() => {
       if (!content) return { total: 0, barreCount: 0 };
@@ -1667,12 +1675,16 @@ const TabContent = ({
               {chordStats.total > 0 && (
                 <>
                   <span className="text-gray-600">|</span>
-                  <span className="text-gray-400">
-                    和弦數 <span className="text-[#FFD700]">{chordStats.total}</span>
+                  <button 
+                    onClick={() => setShowChordDiagram(true)}
+                    className="text-gray-400 hover:text-[#FFD700] transition flex items-center gap-1"
+                    title="查看和弦圖"
+                  >
+                    和弦數 <span className="text-[#FFD700] underline">{chordStats.total}</span>
                     {chordStats.barreCount > 0 && (
                       <span className="text-orange-400">({chordStats.barreCount}Barre)</span>
                     )}
-                  </span>
+                  </button>
                 </>
               )}
             </div>
@@ -1765,6 +1777,14 @@ const TabContent = ({
             </button>
           </div>
         </div>
+        
+        {/* 和弦圖彈窗 */}
+        <ChordDiagramModal 
+          chords={uniqueChords}
+          isOpen={showChordDiagram}
+          onClose={() => setShowChordDiagram(false)}
+          theme={theme}
+        />
       </div>
     );
   };
