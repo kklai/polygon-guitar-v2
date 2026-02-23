@@ -1069,7 +1069,13 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
 
 // ============ 自動拆分長歌詞行 ============
 // 將長的和弦行和歌詞行拆分成多對，保持每對不換行
-function splitLongPair(chordLine, lyricLine, maxChars = 28) {
+// 只在手機版（屏幕寬度 < 768px）時啟用
+function splitLongPair(chordLine, lyricLine, maxChars = 28, isMobile = false) {
+  // 如果不是手機版，直接返回原樣（不拆分）
+  if (!isMobile) {
+    return [{ chordLine, lyricLine }];
+  }
+  
   // 如果歌詞不長，直接返回原樣
   const lyricLength = Array.from(lyricLine).length;
   if (lyricLength <= maxChars) {
@@ -1078,9 +1084,8 @@ function splitLongPair(chordLine, lyricLine, maxChars = 28) {
   
   // 解析和弦行，找到每個小節
   const bars = [];
-  let currentBar = { chords: '', start: 0, end: 0 };
+  let currentBar = { chords: '', start: 0, end: 0, chordCount: 0 };
   let inBar = false;
-  let barStartPos = 0;
   
   const chordChars = Array.from(chordLine);
   for (let i = 0; i < chordChars.length; i++) {
@@ -1092,10 +1097,13 @@ function splitLongPair(chordLine, lyricLine, maxChars = 28) {
         bars.push({ ...currentBar });
       }
       inBar = true;
-      barStartPos = i;
-      currentBar = { chords: '|', start: i, end: i };
+      currentBar = { chords: '|', start: i, end: i, chordCount: 0 };
     } else if (inBar) {
       currentBar.chords += char;
+      // 計算這個小節有多少個和弦
+      if (/[A-G]/.test(char) && (i === 0 || !/[A-G#b]/.test(chordChars[i-1]))) {
+        currentBar.chordCount++;
+      }
     }
   }
   
@@ -1110,30 +1118,90 @@ function splitLongPair(chordLine, lyricLine, maxChars = 28) {
     return [{ chordLine, lyricLine }];
   }
   
-  // 計算每個小節對應的歌詞長度（按比例）
-  const totalChordLen = chordLine.length;
+  // 找到歌詞中所有括號的位置，避免在括號內切割
+  const bracketRanges = [];
+  let inBracket = false;
+  let bracketStart = 0;
   const lyricChars = Array.from(lyricLine);
+  
+  for (let i = 0; i < lyricChars.length; i++) {
+    const char = lyricChars[i];
+    if (char === '(' || char === '（') {
+      inBracket = true;
+      bracketStart = i;
+    } else if (char === ')' || char === '）') {
+      if (inBracket) {
+        bracketRanges.push({ start: bracketStart, end: i });
+      }
+      inBracket = false;
+    }
+  }
+  
+  // 輔助函數：檢查位置是否在括號內
+  const isInBracket = (pos) => {
+    return bracketRanges.some(r => pos > r.start && pos < r.end);
+  };
+  
+  // 輔助函數：找到最佳的切割位置（優先在空格，避免在括號內）
+  const findBestSplitPos = (startPos, targetEnd) => {
+    // 先嘗試在 targetEnd 附近找空格
+    let bestPos = targetEnd;
+    
+    // 向前找空格（優先）
+    for (let i = targetEnd; i > startPos; i--) {
+      if (lyricChars[i] === ' ' && !isInBracket(i)) {
+        return i;
+      }
+    }
+    
+    // 向後找空格
+    for (let i = targetEnd; i < lyricChars.length && i < targetEnd + 5; i++) {
+      if (lyricChars[i] === ' ' && !isInBracket(i)) {
+        return i;
+      }
+    }
+    
+    // 如果 targetEnd 在括號內，向前找到括號外
+    if (isInBracket(targetEnd)) {
+      for (let i = targetEnd; i >= startPos; i--) {
+        if (!isInBracket(i)) {
+          // 確保不會切在括號內
+          const range = bracketRanges.find(r => i >= r.start && i <= r.end);
+          if (range && i > range.start) {
+            return range.start; // 切在括號開始前
+          }
+          return i;
+        }
+      }
+    }
+    
+    return Math.min(targetEnd, lyricChars.length);
+  };
   
   const pairs = [];
   let currentPairChords = '';
   let currentPairLyricStart = 0;
   let currentPairLyricLen = 0;
+  const totalChordCount = bars.reduce((sum, b) => sum + b.chordCount, 1);
   
   for (let i = 0; i < bars.length; i++) {
     const bar = bars[i];
-    const barChordLen = bar.end - bar.start;
-    // 按比例估算這個小節的歌詞長度
-    const estimatedLyricLen = Math.round((barChordLen / totalChordLen) * lyricChars.length);
+    // 按和弦數量比例估算歌詞長度
+    const estimatedLyricLen = Math.round((bar.chordCount / totalChordCount) * lyricChars.length);
     
     // 如果加上這個小節會超過限制，先保存當前pair
     if (currentPairLyricLen + estimatedLyricLen > maxChars && currentPairChords) {
-      const lyricEnd = Math.min(currentPairLyricStart + currentPairLyricLen + 2, lyricChars.length);
+      // 找到最佳切割位置
+      const targetEnd = Math.min(currentPairLyricStart + currentPairLyricLen + 2, lyricChars.length);
+      const bestEnd = findBestSplitPos(currentPairLyricStart, targetEnd);
+      
       pairs.push({
         chordLine: currentPairChords,
-        lyricLine: lyricChars.slice(currentPairLyricStart, lyricEnd).join('')
+        lyricLine: lyricChars.slice(currentPairLyricStart, bestEnd + 1).join('').trimEnd()
       });
+      
       currentPairChords = bar.chords;
-      currentPairLyricStart = lyricEnd;
+      currentPairLyricStart = bestEnd + 1;
       currentPairLyricLen = estimatedLyricLen;
     } else {
       currentPairChords += bar.chords;
@@ -1145,7 +1213,7 @@ function splitLongPair(chordLine, lyricLine, maxChars = 28) {
   if (currentPairChords) {
     pairs.push({
       chordLine: currentPairChords,
-      lyricLine: lyricChars.slice(currentPairLyricStart).join('')
+      lyricLine: lyricChars.slice(currentPairLyricStart).join('').trimEnd()
     });
   }
   
@@ -1191,6 +1259,17 @@ const TabContent = ({
   const [internalTheme, setInternalTheme] = useState('night'); // 'night' | 'day'
   const [hideNotation, setHideNotation] = useState(false); // 隱藏簡譜功能
   const [hideBrackets, setHideBrackets] = useState(false); // 隱藏括號功能
+  const [isMobile, setIsMobile] = useState(false); // 手機版檢測
+  
+  // 檢測是否為手機版
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // 優先使用外部傳入的值，否則使用內部 state
   const theme = externalTheme !== undefined ? externalTheme : internalTheme;
@@ -1531,9 +1610,9 @@ const TabContent = ({
           // 判斷是否需要拆分：有簡譜行時不拆分，保持原有行為
           const shouldSplit = notationLines.length === 0;
           
-          // 使用 splitLongPair 拆分長歌詞（只在沒有簡譜行時）
+          // 使用 splitLongPair 拆分長歌詞（只在沒有簡譜行時，且是手機版）
           const pairs = shouldSplit 
-            ? splitLongPair(cleanLine, lyricLine, 24) // 手機屏幕約24個中文字
+            ? splitLongPair(cleanLine, lyricLine, 24, isMobile) // 手機屏幕約24個中文字
             : [{ chordLine: cleanLine, lyricLine }];
           
           pairs.forEach((pair, pairIndex) => {
