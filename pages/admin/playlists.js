@@ -289,14 +289,14 @@ function PlaylistAdmin() {
                 {autoPlaylists.map((playlist, index) => (
                   <div key={playlist.id} className="p-3 bg-[#121212] rounded-lg border border-gray-800 hover:border-gray-700 transition">
                     <div className="flex items-center gap-4">
-                      {/* Cover - 小尺寸 */}
-                      <div className="relative w-14 h-14 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                      {/* Cover - 手機 40x40，桌面 56x56 */}
+                      <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
                           <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl">📊</div>
+                          <div className="w-full h-full flex items-center justify-center text-base sm:text-xl">📊</div>
                         )}
-                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                           {uploadingCover === playlist.id ? (
                             <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -316,10 +316,10 @@ function PlaylistAdmin() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="text-white font-medium truncate">{playlist.title}</h3>
-                          <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">自動</span>
+                          <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded hidden sm:inline">自動</span>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">{playlist.description}</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description}</p>
+                        <p className="text-xs text-gray-600 hidden sm:block">
                           {playlist.songIds?.length || 0} 首 • 更新於 {formatTimeAgo(playlist.lastUpdated)}
                         </p>
                       </div>
@@ -327,20 +327,21 @@ function PlaylistAdmin() {
                       {/* Actions */}
                       <div className="flex items-center gap-1">
                         <button onClick={() => moveUp(playlist, index, autoPlaylists)} disabled={index === 0}
-                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
+                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                           </svg>
                         </button>
                         <button onClick={() => moveDown(playlist, index, autoPlaylists)} disabled={index === autoPlaylists.length - 1}
-                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
+                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         <button onClick={() => togglePlaylistActive(playlist)}
-                          className={`w-10 h-5 rounded-full transition relative ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
-                          <span className={`absolute top-1 w-3 h-3 rounded-full bg-white transition ${playlist.isActive ? 'left-6' : 'left-1'}`} />
+                          className={`w-8 h-4 sm:w-10 sm:h-5 rounded-full transition relative ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
+                          <span className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition" 
+                            style={{ left: playlist.isActive ? '18px' : '2px' }} />
                         </button>
                       </div>
                     </div>
@@ -396,27 +397,27 @@ function PlaylistAdmin() {
                     onDragStart={(e) => handleDragStart(e, index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
-                    className={`p-3 bg-[#121212] rounded-lg border transition cursor-move ${
+                    className={`p-2 sm:p-3 bg-[#121212] rounded-lg border transition cursor-move ${
                       draggingIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       {/* Drag Handle */}
-                      <div className="flex items-center gap-2 text-gray-600">
+                      <div className="flex items-center gap-1 sm:gap-2 text-gray-600">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                         </svg>
-                        <span className="text-sm text-gray-500 w-6">{index + 1}</span>
+                        <span className="text-xs sm:text-sm text-gray-500 w-4 sm:w-6">{index + 1}</span>
                       </div>
                       
-                      {/* Cover - 小尺寸 48x48 */}
-                      <div className="relative w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                      {/* Cover - 手機 40x40，桌面 48x48 */}
+                      <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
                           <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg">✨</div>
+                          <div className="w-full h-full flex items-center justify-center text-base sm:text-lg">✨</div>
                         )}
-                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                           {uploadingCover === playlist.id ? (
                             <svg className="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -436,38 +437,38 @@ function PlaylistAdmin() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{playlist.title}</h3>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          <span className={`text-xs px-1.5 py-0.5 rounded hidden sm:inline ${
                             playlist.isActive ? 'bg-green-900/50 text-green-400' : 'bg-gray-700 text-gray-400'
                           }`}>
                             {playlist.isActive ? '顯示' : '隱藏'}
                           </span>
-                          <span className="text-xs bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded hidden sm:inline">
                             {getTypeLabel(playlist.manualType)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">{playlist.description || '無描述'}</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description || '無描述'}</p>
+                        <p className="text-xs text-gray-600 hidden sm:block">
                           {playlist.songIds?.length || 0} 首 • By {playlist.curatedBy || 'Polygon'} • {formatTimeAgo(playlist.updatedAt)}
                         </p>
                       </div>
                       
                       {/* Actions */}
                       <div className="flex items-center gap-1">
-                        {/* 上下移動按（備選） */}
+                        {/* 上下移動按（備選）- 桌面版 */}
                         <button onClick={() => moveUp(playlist, index, manualPlaylists)} disabled={index === 0}
-                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
+                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                           </svg>
                         </button>
                         <button onClick={() => moveDown(playlist, index, manualPlaylists)} disabled={index === manualPlaylists.length - 1}
-                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
+                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         
-                        <div className="w-px h-6 bg-gray-800 mx-1" />
+                        <div className="w-px h-6 bg-gray-800 mx-1 hidden sm:block" />
                         
                         {/* 編輯 */}
                         <Link href={`/admin/playlists/edit/${playlist.id}`}
