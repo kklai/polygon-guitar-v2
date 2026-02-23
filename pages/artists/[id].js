@@ -62,15 +62,10 @@ export default function ArtistPage() {
       // 按瀏覽數排序
       tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
       
-      // 如果總歌曲數 <= 5，全部顯示喺「熱門」區，唔顯示「所有歌曲」區
-      if (tabs.length <= 5) {
-        setHotTabs(tabs);
-        setAllTabs([]);
-      } else {
-        // 前5首為熱門
-        setHotTabs(tabs.slice(0, 5));
-        setAllTabs(tabs.slice(5));
-      }
+      // 前5首為熱門
+      setHotTabs(tabs.slice(0, 5));
+      // 所有歌曲區顯示全部歌曲（包括熱門）
+      setAllTabs(tabs);
     } catch (error) {
       console.error('載入歌手資料失敗:', error);
     } finally {
