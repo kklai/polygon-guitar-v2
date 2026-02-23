@@ -1012,11 +1012,8 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     if (startCol < currentCol) startCol = currentCol;
     
     const spacesNeeded = startCol - currentCol;
-    const fullSpaces = Math.floor(spacesNeeded / 2);
-    const halfSpace = spacesNeeded % 2;
-    
-    newChordLine += '\u3000'.repeat(fullSpaces);
-    if (halfSpace) newChordLine += ' ';
+    // 統一使用半形空格，確保與 getCharWidth 計算一致
+    newChordLine += ' '.repeat(spacesNeeded);
     
     newChordLine += token.fullToken;
     currentCol = startCol + token.width;
