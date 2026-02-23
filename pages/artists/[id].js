@@ -207,10 +207,10 @@ export default function ArtistPage() {
     return artist?.photoURL || artist?.wikiPhotoURL || null;
   };
 
-  if (loading || !artist) return <Layout><div className="min-h-screen bg-black" /></Layout>;
+  if (loading || !artist) return <Layout fullWidth><div className="min-h-screen bg-black" /></Layout>;
 
   return (
-    <Layout>
+    <Layout fullWidth>
     <div className="min-h-screen bg-black pb-20">
       {/* Hero - 手機版 3:2 比例，桌面版維持 45vh */}
       <div className="relative w-full aspect-[3/2] md:h-[45vh] md:aspect-auto">
