@@ -156,64 +156,75 @@ export default function PlaylistDetail() {
   return (
     <Layout fullWidth>
       <div className="min-h-screen bg-black pb-24">
-        {/* Hero Section */}
-        <div className={`relative h-64 ${getGradient(playlist)}`}>
-          {/* 封面背景圖 */}
-          {playlist.coverImage && (
-            <div className="absolute inset-0">
-              <img 
-                src={playlist.coverImage} 
-                alt={playlist.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
-            </div>
-          )}
-          
-          {/* Back Button */}
+        {/* Header */}
+        <div className="px-4 py-4 flex items-center">
           <Link
             href="/"
-            className="absolute top-4 left-4 z-10 inline-flex items-center text-white/80 hover:text-white transition bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full"
+            className="inline-flex items-center text-white/80 hover:text-white transition"
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             返回
           </Link>
+        </div>
 
-          {/* Playlist Info */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
-            {/* Source Badge */}
-            <div className="mb-2">
-              {playlist.source === 'auto' ? (
-                <span className="inline-flex items-center gap-1 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  系統自動生成
-                </span>
+        {/* Playlist Info Section - 簡潔設計 */}
+        <div className="px-6 pb-6">
+          {/* 1:1 正方形封面圖 */}
+          <div className="flex justify-center mb-6">
+            <div className="w-full max-w-[280px] aspect-square rounded-lg overflow-hidden bg-[#282828]">
+              {playlist.coverImage ? (
+                <img 
+                  src={playlist.coverImage} 
+                  alt={playlist.title}
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs bg-[#FFD700]/20 text-[#FFD700] px-2 py-1 rounded">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
-                  編輯精選
-                </span>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-orange-500">
+                  <span className="text-6xl">🎵</span>
+                </div>
               )}
             </div>
-            
-            <h1 className="text-4xl font-bold text-white mb-2">{playlist.title}</h1>
-            <p className="text-gray-400">{playlist.description}</p>
-            <p className="text-sm text-gray-500 mt-2">
-              共 {songs.length} 首
-              {playlist.source === 'auto' && playlist.lastUpdated && (
-                <span> • 更新於 {formatTimeAgo(playlist.lastUpdated)}</span>
-              )}
-              {playlist.source === 'manual' && playlist.curatedBy && (
-                <span> • By {playlist.curatedBy}</span>
-              )}
-            </p>
           </div>
+
+          {/* Source Badge */}
+          <div className="mb-3">
+            {playlist.source === 'auto' ? (
+              <span className="inline-flex items-center gap-1 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                系統自動生成
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs bg-[#FFD700]/20 text-[#FFD700] px-2 py-1 rounded">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                編輯精選
+              </span>
+            )}
+          </div>
+          
+          {/* Title */}
+          <h1 className="text-3xl font-bold text-white mb-2">{playlist.title}</h1>
+          
+          {/* Description */}
+          {playlist.description && (
+            <p className="text-gray-400 text-sm mb-3 leading-relaxed">{playlist.description}</p>
+          )}
+          
+          {/* Meta info */}
+          <p className="text-sm text-gray-500">
+            共 {songs.length} 首
+            {playlist.source === 'auto' && playlist.lastUpdated && (
+              <span> • 更新於 {formatTimeAgo(playlist.lastUpdated)}</span>
+            )}
+            {playlist.source === 'manual' && playlist.curatedBy && (
+              <span> • By {playlist.curatedBy}</span>
+            )}
+          </p>
         </div>
 
         {/* Play All Button + View Mode Toggle */}
