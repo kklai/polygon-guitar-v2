@@ -170,10 +170,10 @@ export default function PlaylistDetail() {
         </div>
 
         {/* Playlist Info Section - 簡潔設計 */}
-        <div className="px-6 pb-6">
-          {/* 1:1 正方形封面圖 */}
-          <div className="flex justify-center mb-6">
-            <div className="w-full max-w-[280px] aspect-square rounded-lg overflow-hidden bg-[#282828]">
+        <div className="px-6 pb-4">
+          {/* 1:1 正方形封面圖 - 更細 */}
+          <div className="flex justify-center mb-4">
+            <div className="w-[200px] aspect-square rounded-lg overflow-hidden bg-[#282828]">
               {playlist.coverImage ? (
                 <img 
                   src={playlist.coverImage} 
@@ -182,41 +182,22 @@ export default function PlaylistDetail() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-orange-500">
-                  <span className="text-6xl">🎵</span>
+                  <span className="text-5xl">🎵</span>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Source Badge */}
-          <div className="mb-3">
-            {playlist.source === 'auto' ? (
-              <span className="inline-flex items-center gap-1 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                系統自動生成
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs bg-[#FFD700]/20 text-[#FFD700] px-2 py-1 rounded">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-                編輯精選
-              </span>
-            )}
-          </div>
           
-          {/* Title */}
-          <h1 className="text-3xl font-bold text-white mb-2">{playlist.title}</h1>
+          {/* Title - 更小字體 */}
+          <h1 className="text-2xl font-bold text-white mb-2">{playlist.title}</h1>
           
-          {/* Description */}
+          {/* Description - 更小字體 */}
           {playlist.description && (
-            <p className="text-gray-400 text-sm mb-3 leading-relaxed">{playlist.description}</p>
+            <p className="text-gray-400 text-xs mb-2 leading-relaxed">{playlist.description}</p>
           )}
           
-          {/* Meta info */}
-          <p className="text-sm text-gray-500">
+          {/* Meta info - 更小字體 */}
+          <p className="text-xs text-gray-500">
             共 {songs.length} 首
             {playlist.source === 'auto' && playlist.lastUpdated && (
               <span> • 更新於 {formatTimeAgo(playlist.lastUpdated)}</span>
@@ -229,38 +210,15 @@ export default function PlaylistDetail() {
 
         {/* Play All Button + View Mode Toggle */}
         {songs.length > 0 && (
-          <div className="px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => handleSongClick(songs[0].id)}
-                className="w-14 h-14 bg-[#FFD700] rounded-full flex items-center justify-center hover:scale-105 transition shadow-lg"
-              >
-                <svg className="w-7 h-7 text-black ml-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              </button>
-              
-              {/* Share Button */}
-              <button
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: playlist.title,
-                      text: playlist.description,
-                      url: window.location.href
-                    })
-                  } else {
-                    navigator.clipboard.writeText(window.location.href)
-                    alert('連結已複製到剪貼簿')
-                  }
-                }}
-                className="p-3 text-gray-400 hover:text-white transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
-            </div>
+          <div className="px-6 py-3 flex items-center justify-between">
+            <button
+              onClick={() => handleSongClick(songs[0].id)}
+              className="w-12 h-12 bg-[#FFD700] rounded-full flex items-center justify-center hover:scale-105 transition shadow-lg"
+            >
+              <svg className="w-6 h-6 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
 
             {/* View Mode Toggle */}
             <div className="flex bg-gray-800 rounded-lg p-1">
@@ -410,6 +368,32 @@ export default function PlaylistDetail() {
             >
               返回首頁
             </Link>
+          </div>
+        )}
+
+        {/* Share Section - 底部分享區 */}
+        {songs.length > 0 && (
+          <div className="px-6 py-6 border-t border-gray-800 mt-4">
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: playlist.title,
+                    text: playlist.description,
+                    url: window.location.href
+                  })
+                } else {
+                  navigator.clipboard.writeText(window.location.href)
+                  alert('連結已複製到剪貼簿')
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              分享歌單
+            </button>
           </div>
         )}
       </div>
