@@ -1000,10 +1000,9 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     const token = tokens[idx];
     const targetPos = tokenPositions[idx];
     
-    // 左對齊：讓和弦名（唔包 |）左對齊括號位置
+    // 左對齊：讓和弦名左對齊括號位置
+    // 注意：唔減去 | 嘅寬度，因為 targetPos 已經係正確對齊位置
     let startCol = targetPos;
-    // 如果 token 有 |，減 1 讓和弦名（而唔係 |）對齊
-    if (token.isBarStart) startCol -= 1;
     if (startCol < 0) startCol = 0;
     
     if (startCol < currentCol) startCol = currentCol;
