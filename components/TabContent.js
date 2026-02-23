@@ -1493,7 +1493,7 @@ const TabContent = ({
                   if (aligned) {
                     // 對齊模式：簡譜數字對應歌詞括號
                     return (
-                      <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
+                      <div key={index} style={{ marginBottom: '2px' }}>
                         {/* 簡譜行 */}
                         <div style={{ 
                           fontSize: `${notationFontSize}px`, 
@@ -1501,7 +1501,6 @@ const TabContent = ({
                           overflowWrap: 'break-word',
                           fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                           color: colors.numericNotation,
-                          marginBottom: '0.1em',
                           display: 'flex',
                           flexWrap: 'wrap',
                           alignItems: 'flex-end'
@@ -1546,7 +1545,7 @@ const TabContent = ({
                     return (
                       <div key={index} style={{ 
                         fontSize: `${notationFontSize}px`, 
-                        marginBottom: `${notationFontSize * 0.3}px`,
+                        marginBottom: '2px',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
                         fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
