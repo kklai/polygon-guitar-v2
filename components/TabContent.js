@@ -182,7 +182,7 @@ function findBracketPositions(lyricLine) {
   const positions = [];
   let currentWidth = 0;
   for (let char of lyricLine) {
-    if (char === '(') positions.push(currentWidth);
+    if (char === '(' || char === '（') positions.push(currentWidth);
     currentWidth += getCharWidth(char);
   }
   return positions;
@@ -355,9 +355,9 @@ function isNumericNotationLine(line) {
     return true;
   }
   
-  // 舊版兼容：有括號數字模式
-  if (line.includes('(')) {
-    const numericBracketPattern = /\(\d+\.?\)/g;
+  // 舊版兼容：有括號數字模式（半形或全形）
+  if (line.includes('(') || line.includes('（')) {
+    const numericBracketPattern = /[\(（]\d+\.?[\)）]/g;
     const numericBrackets = line.match(numericBracketPattern) || [];
     if (numericBrackets.length >= 1 && (notationCount > 3 || digits > 3) && chineseChars < 3 && otherLetters.length <= 3) {
       return true;
@@ -385,8 +385,8 @@ function extractNotationNumbers(line) {
 // 從歌詞行提取字符（中文每個字算一個，英文每個單詞算一個，空格和括號不計）
 function extractLyricChars(line) {
   const chars = [];
-  // 先移除括號，再匹配中文字或英文單詞
-  const lineWithoutBrackets = line.replace(/[()]/g, '');
+  // 先移除括號（半形 + 全形），再匹配中文字或英文單詞
+  const lineWithoutBrackets = line.replace(/[()（）]/g, '');
   const charRegex = /[\u4e00-\u9fff]|[a-zA-Z]+/g;
   let match;
   while ((match = charRegex.exec(lineWithoutBrackets)) !== null) {
@@ -404,16 +404,18 @@ function extractLyricUnits(line) {
   let i = 0;
   
   while (i < line.length) {
-    if (line[i] === '(') {
-      // 找到完整的括號對
-      let bracketContent = '(';
+    if (line[i] === '(' || line[i] === '（') {
+      // 找到完整的括號對（半形或全形）
+      const openBracket = line[i];
+      const closeBracket = openBracket === '(' ? ')' : '）';
+      let bracketContent = openBracket;
       let j = i + 1;
-      while (j < line.length && line[j] !== ')') {
+      while (j < line.length && line[j] !== closeBracket) {
         bracketContent += line[j];
         j++;
       }
-      if (j < line.length && line[j] === ')') {
-        bracketContent += ')';
+      if (j < line.length && line[j] === closeBracket) {
+        bracketContent += closeBracket;
         j++;
       }
       units.push({
@@ -428,7 +430,7 @@ function extractLyricUnits(line) {
       // 非括號文字
       let text = '';
       let startIndex = i;
-      while (i < line.length && line[i] !== '(') {
+      while (i < line.length && line[i] !== '(' && line[i] !== '（') {
         text += line[i];
         i++;
       }
@@ -551,11 +553,11 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
 // 處理簡譜行（數字旋律譜）- 括號內所有內容（數字+歌詞）標記為白色
 function processNumericNotationLine(line) {
   // 如果冇括號，成行都係簡譜數字（粉紅色）
-  if (!line.includes('(')) {
+  if (!line.includes('(') && !line.includes('（')) {
     return [{ type: 'outside', content: line }];
   }
   
-  // 解析括號內容：(內容) - 包括數字簡譜和歌詞
+  // 解析括號內容：(內容) 或 （內容）- 包括數字簡譜和歌詞
   const parts = [];
   let buffer = '';
   let i = 0;
@@ -563,22 +565,25 @@ function processNumericNotationLine(line) {
   while (i < line.length) {
     const char = line[i];
     
-    if (char === '(') {
+    if (char === '(' || char === '（') {
       // 保存括號前的內容（簡譜數字）
       if (buffer) {
         parts.push({ type: 'outside', content: buffer });
         buffer = '';
       }
       
+      // 確定對應的閉合括號
+      const closeBracket = char === '(' ? ')' : '）';
+      
       // 讀取括號內容（包括數字和歌詞）
-      let bracketContent = '(';
+      let bracketContent = char;
       i++;
-      while (i < line.length && line[i] !== ')') {
+      while (i < line.length && line[i] !== closeBracket) {
         bracketContent += line[i];
         i++;
       }
-      if (i < line.length && line[i] === ')') {
-        bracketContent += ')';
+      if (i < line.length && line[i] === closeBracket) {
+        bracketContent += closeBracket;
         i++;
       }
       
@@ -648,8 +653,8 @@ function extractNumericNotationComponents(line) {
 
 // 檢查是否為混合行（同時包含和弦和歌詞）
 function isMixedLine(line) {
-  // 必須包含括號（歌詞標記）
-  if (!line.includes('(')) return false;
+  // 必須包含括號（歌詞標記）- 半形或全形
+  if (!line.includes('(') && !line.includes('（')) return false;
   
   // 排除數字譜行（大量數字、少中文字）
   const digits = (line.match(/\d/g) || []).length;
@@ -663,13 +668,13 @@ function isMixedLine(line) {
   if (sectionInfo.hasMarker) {
     // 有 Section Marker 的行，檢查剩餘部分是否包含 |
     const rest = sectionInfo.rest;
-    return /\|/.test(rest) && /\(/.test(rest);
+    return /\|/.test(rest) && (/\(/.test(rest) || /\（/.test(rest));
   }
   
   // 沒有 Section Marker，檢查是否包含 | 開頭的和弦 + 括號歌詞
   // 但排除純歌詞行（只有中文字和括號）
   const hasChordBar = /\|[\s]*[A-G][#b]?/.test(line);
-  const hasLyricBracket = /\([^A-G]/.test(line); // 括號內不是和弦（避免誤判）
+  const hasLyricBracket = /[\(（][^A-G]/.test(line); // 括號內不是和弦（避免誤判）
   
   // 如果中文字比例高，視為歌詞行而非混合行
   const chineseRatio = chineseChars.length / line.length;
@@ -721,8 +726,8 @@ function extractChordPart(segment) {
       if (charCode >= 0x4E00 && charCode <= 0x9FFF) {
         foundLyric = true;
         lyricPart += char;
-      } else if (char === '(') {
-        // 遇到 ( 也開始歌詞部分
+      } else if (char === '(' || char === '（') {
+        // 遇到 ( 或 （ 也開始歌詞部分
         foundLyric = true;
         lyricPart += char;
       } else {
@@ -788,14 +793,14 @@ function processMixedLine(line, transposeSemitones = 0) {
       let buffer = '';
       let inBracket = false;
       for (let char of seg.lyric) {
-        if (char === '(') {
+        if (char === '(' || char === '（') {
           if (buffer) lyricParts.push({ text: buffer, isInside: false, type: 'text' });
-          lyricParts.push({ text: '(', isInside: false, type: 'bracket-open' });
+          lyricParts.push({ text: char, isInside: false, type: 'bracket-open' });
           buffer = '';
           inBracket = true;
-        } else if (char === ')') {
+        } else if (char === ')' || char === '）') {
           if (buffer) lyricParts.push({ text: buffer, isInside: true, type: 'inside' });
-          lyricParts.push({ text: ')', isInside: false, type: 'bracket-close' });
+          lyricParts.push({ text: char, isInside: false, type: 'bracket-close' });
           buffer = '';
           inBracket = false;
         } else {
@@ -998,21 +1003,21 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   let inBracket = false;
   
   for (let char of normalizedLyric) {
-    if (char === '(') {
+    if (char === '(' || char === '（') {
       // 括號前的內容
       if (buffer) parts.push({ text: buffer, isInside: false, type: 'text' });
-      // 開括號獨立記錄
-      parts.push({ text: '(', isInside: false, type: 'bracket-open' });
+      // 開括號獨立記錄（保留原始字符）
+      parts.push({ text: char, isInside: false, type: 'bracket-open' });
       buffer = '';
       inBracket = true;
-    } else if (char === ')') {
+    } else if (char === ')' || char === '）') {
       // 括號內容
       if (buffer) {
         const normalizedBuffer = buffer.replace(/ /g, '\u3000');
         parts.push({ text: normalizedBuffer, isInside: true, type: 'inside' });
       }
-      // 閉括號獨立記錄
-      parts.push({ text: ')', isInside: false, type: 'bracket-close' });
+      // 閉括號獨立記錄（保留原始字符）
+      parts.push({ text: char, isInside: false, type: 'bracket-close' });
       buffer = '';
       inBracket = false;
     } else {
@@ -1207,23 +1212,23 @@ const TabContent = ({
     let inBracket = false;
     
     for (let char of line) {
-      if (char === '(') {
+      if (char === '(' || char === '（') {
         // 括號前的內容
         if (buffer) {
           parts.push({ type: inBracket ? 'inside' : 'outside', text: buffer });
           buffer = '';
         }
-        // 將開括號作為獨立部分
-        parts.push({ type: 'bracket-open', text: '(' });
+        // 將開括號作為獨立部分（保留原始字符）
+        parts.push({ type: 'bracket-open', text: char });
         inBracket = true;
-      } else if (char === ')') {
+      } else if (char === ')' || char === '）') {
         // 括號內的內容（包括空字符串）
         // 將半形空格轉為全形空格，確保對齊
         const normalizedBuffer = buffer.replace(/ /g, '\u3000');
         parts.push({ type: 'inside', text: normalizedBuffer }); // buffer 可能為空，但空括號也要顯示
         buffer = '';
-        // 將閉括號作為獨立部分
-        parts.push({ type: 'bracket-close', text: ')' });
+        // 將閉括號作為獨立部分（保留原始字符）
+        parts.push({ type: 'bracket-close', text: char });
         inBracket = false;
       } else {
         buffer += char;
@@ -1442,9 +1447,9 @@ const TabContent = ({
                             );
                           } else if (item.type === 'pair') {
                             // 簡譜數字 - 置中對齊到對應歌詞字
-                            // 計算字寬時，如果隱藏括號，去掉括號後計算
+                            // 計算字寬時，如果隱藏括號，去掉括號後計算（半形或全形）
                             const displayLyric = (hideBrackets && item.isInside) 
-                              ? item.lyric.replace(/^\(|\)$/g, '') 
+                              ? item.lyric.replace(/^[\(（]|[\)）]$/g, '') 
                               : item.lyric;
                             return (
                               <span key={idx} style={{
@@ -1517,20 +1522,26 @@ const TabContent = ({
                         } else if (item.type === 'pair') {
                           // 對齊的歌詞字 - 隱藏時不 render 括號
                           const lyric = item.lyric;
-                          const innerText = lyric.startsWith('(') && lyric.endsWith(')') 
-                            ? lyric.slice(1, -1) 
-                            : lyric;
+                          // 檢查半形或全形括號
+                          const hasParen = (lyric.startsWith('(') && lyric.endsWith(')')) || 
+                                           (lyric.startsWith('（') && lyric.endsWith('）'));
+                          const innerText = hasParen ? lyric.slice(1, -1) : lyric;
+                          // 根據原始括號類型決定顯示用嘅括號
+                          const openParen = lyric.startsWith('（') ? '（' : '(';
+                          const closeParen = lyric.endsWith('）') ? '）' : ')';
                           const textColor = item.isInside ? colors.lyricInside : colors.lyricNormal;
+                          // 計算寬度：隱藏括號時用 innerText，否則用完整 lyric
+                          const widthText = (hideBrackets && item.isInside) ? innerText : lyric;
                           return (
                             <span key={idx} style={{
                               display: 'inline-flex',
                               justifyContent: 'center',
-                              minWidth: `${getTextWidth(lyric) * (lineFontSize / 2)}px`,
+                              minWidth: `${getTextWidth(widthText) * (lineFontSize / 2)}px`,
                               fontWeight: theme === 'day' ? 'bold' : 'normal'
                             }}>
-                              {!hideBrackets && item.isInside && <span style={{ color: colors.lyricNormal }}>(</span>}
+                              {!hideBrackets && item.isInside && <span style={{ color: colors.lyricNormal }}>{openParen}</span>}
                               <span style={{ color: textColor }}>{innerText}</span>
-                              {!hideBrackets && item.isInside && <span style={{ color: colors.lyricNormal }}>)</span>}
+                              {!hideBrackets && item.isInside && <span style={{ color: colors.lyricNormal }}>{closeParen}</span>}
                             </span>
                           );
                         }
