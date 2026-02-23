@@ -772,7 +772,7 @@ export default function Home() {
                           onClick={() => handleSongClick(song.id)}
                           className="flex-shrink-0 flex flex-col text-left w-36"
                         >
-                          <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                          <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
                             {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
                               <img
                                 src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
