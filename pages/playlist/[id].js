@@ -208,49 +208,7 @@ export default function PlaylistDetail() {
           </p>
         </div>
 
-        {/* Play All Button + View Mode Toggle */}
-        {songs.length > 0 && (
-          <div className="px-6 py-3 flex items-center justify-between">
-            <button
-              onClick={() => handleSongClick(songs[0].id)}
-              className="w-12 h-12 bg-[#FFD700] rounded-full flex items-center justify-center hover:scale-105 transition shadow-lg"
-            >
-              <svg className="w-6 h-6 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </button>
 
-            {/* View Mode Toggle */}
-            <div className="flex bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded transition ${
-                  viewMode === 'list' 
-                    ? 'bg-[#FFD700] text-black' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="列表視圖"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded transition ${
-                  viewMode === 'grid' 
-                    ? 'bg-[#FFD700] text-black' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-                title="網格視圖"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Auto Playlist Notice */}
         {playlist.source === 'auto' && (
@@ -371,9 +329,44 @@ export default function PlaylistDetail() {
           </div>
         )}
 
-        {/* Share Section - 底部分享區 */}
+        {/* Bottom Controls - 視圖切換 + 分享 */}
         {songs.length > 0 && (
           <div className="px-6 py-6 border-t border-gray-800 mt-4">
+            {/* View Mode Toggle */}
+            <div className="flex justify-center mb-4">
+              <div className="flex bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-4 py-2 rounded transition flex items-center gap-2 ${
+                    viewMode === 'list' 
+                      ? 'bg-[#FFD700] text-black' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="列表視圖"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span className="text-sm">列表</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-4 py-2 rounded transition flex items-center gap-2 ${
+                    viewMode === 'grid' 
+                      ? 'bg-[#FFD700] text-black' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="網格視圖"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                  <span className="text-sm">網格</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Share Button */}
             <button
               onClick={() => {
                 if (navigator.share) {
