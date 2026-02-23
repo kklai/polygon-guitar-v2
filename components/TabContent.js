@@ -999,14 +999,20 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   
   for (let char of normalizedLyric) {
     if (char === '(') {
-      if (buffer) parts.push({ text: buffer, isInside: false });
-      buffer = '(';
+      // 括號前的內容
+      if (buffer) parts.push({ text: buffer, isInside: false, type: 'text' });
+      // 開括號獨立記錄
+      parts.push({ text: '(', isInside: false, type: 'bracket-open' });
+      buffer = '';
       inBracket = true;
     } else if (char === ')') {
-      buffer += ')';
-      // 將括號內的半形空格轉為全形空格
-      const normalizedBuffer = buffer.replace(/ /g, '\u3000');
-      parts.push({ text: normalizedBuffer, isInside: true });
+      // 括號內容
+      if (buffer) {
+        const normalizedBuffer = buffer.replace(/ /g, '\u3000');
+        parts.push({ text: normalizedBuffer, isInside: true, type: 'inside' });
+      }
+      // 閉括號獨立記錄
+      parts.push({ text: ')', isInside: false, type: 'bracket-close' });
       buffer = '';
       inBracket = false;
     } else {
@@ -1016,7 +1022,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0) {
   if (buffer) {
     // 處理剩餘內容
     const normalizedBuffer = inBracket ? buffer.replace(/ /g, '\u3000') : buffer;
-    parts.push({ text: normalizedBuffer, isInside: inBracket });
+    parts.push({ text: normalizedBuffer, isInside: inBracket, type: inBracket ? 'inside' : 'text' });
   }
 
   return { chordLine: newChordLine, lyricParts: parts, error: mismatch };
