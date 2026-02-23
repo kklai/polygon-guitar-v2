@@ -1067,6 +1067,91 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
   return { chordLine: newChordLine, lyricParts: parts, error: mismatch };
 }
 
+// ============ 自動拆分長歌詞行 ============
+// 將長的和弦行和歌詞行拆分成多對，保持每對不換行
+function splitLongPair(chordLine, lyricLine, maxChars = 28) {
+  // 如果歌詞不長，直接返回原樣
+  const lyricLength = Array.from(lyricLine).length;
+  if (lyricLength <= maxChars) {
+    return [{ chordLine, lyricLine }];
+  }
+  
+  // 解析和弦行，找到每個小節
+  const bars = [];
+  let currentBar = { chords: '', start: 0, end: 0 };
+  let inBar = false;
+  let barStartPos = 0;
+  
+  const chordChars = Array.from(chordLine);
+  for (let i = 0; i < chordChars.length; i++) {
+    const char = chordChars[i];
+    
+    if (char === '|') {
+      if (inBar && currentBar.chords.trim()) {
+        currentBar.end = i;
+        bars.push({ ...currentBar });
+      }
+      inBar = true;
+      barStartPos = i;
+      currentBar = { chords: '|', start: i, end: i };
+    } else if (inBar) {
+      currentBar.chords += char;
+    }
+  }
+  
+  // 添加最後一個小節
+  if (inBar && currentBar.chords.trim() && currentBar.chords !== '|') {
+    currentBar.end = chordChars.length;
+    bars.push({ ...currentBar });
+  }
+  
+  // 如果沒有找到小節線，直接返回原樣
+  if (bars.length === 0) {
+    return [{ chordLine, lyricLine }];
+  }
+  
+  // 計算每個小節對應的歌詞長度（按比例）
+  const totalChordLen = chordLine.length;
+  const lyricChars = Array.from(lyricLine);
+  
+  const pairs = [];
+  let currentPairChords = '';
+  let currentPairLyricStart = 0;
+  let currentPairLyricLen = 0;
+  
+  for (let i = 0; i < bars.length; i++) {
+    const bar = bars[i];
+    const barChordLen = bar.end - bar.start;
+    // 按比例估算這個小節的歌詞長度
+    const estimatedLyricLen = Math.round((barChordLen / totalChordLen) * lyricChars.length);
+    
+    // 如果加上這個小節會超過限制，先保存當前pair
+    if (currentPairLyricLen + estimatedLyricLen > maxChars && currentPairChords) {
+      const lyricEnd = Math.min(currentPairLyricStart + currentPairLyricLen + 2, lyricChars.length);
+      pairs.push({
+        chordLine: currentPairChords,
+        lyricLine: lyricChars.slice(currentPairLyricStart, lyricEnd).join('')
+      });
+      currentPairChords = bar.chords;
+      currentPairLyricStart = lyricEnd;
+      currentPairLyricLen = estimatedLyricLen;
+    } else {
+      currentPairChords += bar.chords;
+      currentPairLyricLen += estimatedLyricLen;
+    }
+  }
+  
+  // 添加最後一個pair
+  if (currentPairChords) {
+    pairs.push({
+      chordLine: currentPairChords,
+      lyricLine: lyricChars.slice(currentPairLyricStart).join('')
+    });
+  }
+  
+  return pairs.length > 0 ? pairs : [{ chordLine, lyricLine }];
+}
+
 // ============ 主組件 ============
 const TabContent = ({ 
   content, 
@@ -1442,180 +1527,110 @@ const TabContent = ({
         if (hasLyric) {
           // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-          const result = processPair(cleanLine, lyricLine, transposeSemitones, hideBrackets);
           
-          elements.push(
-            <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-              {/* 和弦行 */}
-              <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                {result.chordLine}
-                {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-              </div>
-              
-              {/* 中間的簡譜行 - 支持與歌詞對齊（可隱藏） */}
-              {!hideNotation && notationLines.map(({ index, line: notationLine }) => {
-                const notationFontSize = getLineFontSize(notationLine);
-                
-                // 嘗試對齊簡譜與歌詞
-                const aligned = alignNotationWithLyrics(notationLine, lyricLine);
-                
-                if (aligned) {
-                  // 對齊模式：簡譜數字對應歌詞括號
-                  return (
-                    <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
-                      {/* 簡譜行 */}
-                      <div style={{ 
-                        fontSize: `${notationFontSize}px`, 
-                        whiteSpace: 'pre-wrap',
-                        overflowWrap: 'break-word',
-                        fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
-                        color: colors.numericNotation,
-                        marginBottom: '0.1em',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'flex-end'
-                      }}>
-                        {aligned.map((item, idx) => {
-                          if (item.type === 'text' || item.type === 'bracket') {
-                            // 無對應簡譜的文字 - 透明佔位
-                            return (
-                              <span key={idx} style={{ 
-                                visibility: 'hidden',
-                                whiteSpace: 'pre'
-                              }}>
-                                {item.content}
-                              </span>
-                            );
-                          } else if (item.type === 'pair') {
-                            // 簡譜數字 - 置中對齊到對應歌詞字
-                            // 計算字寬時，如果隱藏括號，去掉括號後計算（半形或全形）
-                            const displayLyric = (hideBrackets && item.isInside) 
-                              ? item.lyric.replace(/^[\(（]|[\)）]$/g, '') 
-                              : item.lyric;
-                            return (
-                              <span key={idx} style={{
-                                display: 'inline-flex',
-                                justifyContent: 'center',
-                                minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
-                                color: colors.numericNotation,
-                                fontWeight: 'bold'
-                              }}>
-                                {item.notation}
-                              </span>
-                            );
-                          }
-                          return null;
-                        })}
-                      </div>
-                    </div>
-                  );
-                } else {
-                  // 普通模式：直接渲染簡譜
-                  const notationParts = processNumericNotationLine(notationLine);
-                  return (
-                    <div key={index} style={{ 
-                      fontSize: `${notationFontSize}px`, 
-                      marginBottom: `${notationFontSize * 0.3}px`,
-                      whiteSpace: 'pre-wrap', 
-                      overflowWrap: 'break-word',
-                      fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
-                    }}>
-                      {notationParts.map((part, idx) => (
-                        <span key={idx} style={{
-                          color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
-                          fontWeight: part.type === 'inside' ? 'bold' : 'normal'
-                        }}>
-                          {part.content}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                }
-              })}
-              
-              {/* 歌詞行 - 括號外灰色，括號內白色 */}
-              {notationLines.length > 0 && notationLines.some(({ line: nl }) => alignNotationWithLyrics(nl, lyricLine)) ? (
-                // 對齊模式的歌詞顯示
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
-                  {(() => {
-                    const aligned = alignNotationWithLyrics(notationLines[notationLines.length - 1].line, lyricLine);
-                    if (aligned) {
-                      return aligned.map((item, idx) => {
-                        if (item.type === 'text') {
-                          // 非括號文字 - 灰色
-                          return (
-                            <span key={idx} style={{ color: colors.lyricNormal, whiteSpace: 'pre' }}>
-                              {item.content}
-                            </span>
-                          );
-                        } else if (item.type === 'bracket') {
-                          // 括號（無對應簡譜或空括號）- 隱藏時不 render 括號
-                          const content = item.content;
-                          const innerText = content.slice(1, -1);
-                          const textColor = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                          return (
-                            <span key={idx} style={{ whiteSpace: 'pre' }}>
-                              {!hideBrackets && <span style={{ color: textColor }}>{content.charAt(0)}</span>}
-                              <span style={{ color: textColor }}>{innerText}</span>
-                              {!hideBrackets && <span style={{ color: textColor }}>{content.charAt(content.length - 1)}</span>}
-                            </span>
-                          );
-                        } else if (item.type === 'pair') {
-                          // 對齊的歌詞字 - 隱藏時不 render 括號
-                          const lyric = item.lyric;
-                          // 檢查半形或全形括號
-                          const hasParen = (lyric.startsWith('(') && lyric.endsWith(')')) || 
-                                           (lyric.startsWith('（') && lyric.endsWith('）'));
-                          const innerText = hasParen ? lyric.slice(1, -1) : lyric;
-                          // 根據原始括號類型決定顯示用嘅括號
-                          const openParen = lyric.startsWith('（') ? '（' : '(';
-                          const closeParen = lyric.endsWith('）') ? '）' : ')';
-                          const textColor = item.isInside ? colors.lyricInside : colors.lyricNormal;
-                          // 計算寬度：隱藏括號時用 innerText，否則用完整 lyric
-                          const widthText = (hideBrackets && item.isInside) ? innerText : lyric;
-                          return (
-                            <span key={idx} style={{
-                              display: 'inline-flex',
-                              justifyContent: 'center',
-                              minWidth: `${getTextWidth(widthText) * (lineFontSize / 2)}px`,
-                              fontWeight: theme === 'day' ? 'bold' : 'normal'
-                            }}>
-                              {!hideBrackets && item.isInside && <span style={{ color: textColor }}>{openParen}</span>}
-                              <span style={{ color: textColor }}>{innerText}</span>
-                              {!hideBrackets && item.isInside && <span style={{ color: textColor }}>{closeParen}</span>}
-                            </span>
-                          );
-                        }
-                        return null;
-                      });
-                    }
-                    return result.lyricParts.map((part, idx) => {
-                      // 隱藏括號時，直接不 render 括號
-                      if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
-                        return null;
-                      }
-                      // 決定顏色：括號內、括號本身都係白色
-                      let partColor;
-                      if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
-                        partColor = colors.lyricInside;
-                      } else {
-                        partColor = colors.lyricNormal;
-                      }
-                      return (
-                        <span key={idx} style={{ 
-                          color: partColor,
-                          fontWeight: (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') && theme === 'day' ? 'bold' : 'normal'
-                        }}>
-                          {part.text}
-                        </span>
-                      );
-                    });
-                  })()}
+          // 判斷是否需要拆分：有簡譜行時不拆分，保持原有行為
+          const shouldSplit = notationLines.length === 0;
+          
+          // 使用 splitLongPair 拆分長歌詞（只在沒有簡譜行時）
+          const pairs = shouldSplit 
+            ? splitLongPair(cleanLine, lyricLine, 24) // 手機屏幕約24個中文字
+            : [{ chordLine: cleanLine, lyricLine }];
+          
+          pairs.forEach((pair, pairIndex) => {
+            const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets);
+            
+            elements.push(
+              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairIndex < pairs.length - 1 ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.6}px` }}>
+                {/* 和弦行 */}
+                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {pairIndex === 0 && prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
+                  {result.chordLine}
+                  {pairIndex === pairs.length - 1 && suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
                 </div>
-              ) : (
-                // 普通模式的歌詞顯示
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', lineHeight: '1.2' }}>
+                
+                {/* 只在第一個 pair 顯示簡譜行（如果有） */}
+                {pairIndex === 0 && !hideNotation && notationLines.map(({ index, line: notationLine }) => {
+                  const notationFontSize = getLineFontSize(notationLine);
+                  
+                  // 嘗試對齊簡譜與歌詞
+                  const aligned = alignNotationWithLyrics(notationLine, lyricLine);
+                  
+                  if (aligned) {
+                    // 對齊模式：簡譜數字對應歌詞括號
+                    return (
+                      <div key={index} style={{ marginBottom: `${notationFontSize * 0.3}px` }}>
+                        {/* 簡譜行 */}
+                        <div style={{ 
+                          fontSize: `${notationFontSize}px`, 
+                          whiteSpace: 'pre-wrap',
+                          overflowWrap: 'break-word',
+                          fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                          color: colors.numericNotation,
+                          marginBottom: '0.1em',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'flex-end'
+                        }}>
+                          {aligned.map((item, idx) => {
+                            if (item.type === 'text' || item.type === 'bracket') {
+                              // 無對應簡譜的文字 - 透明佔位
+                              return (
+                                <span key={idx} style={{ 
+                                  visibility: 'hidden',
+                                  whiteSpace: 'pre'
+                                }}>
+                                  {item.content}
+                                </span>
+                              );
+                            } else if (item.type === 'pair') {
+                              // 簡譜數字 - 置中對齊到對應歌詞字
+                              // 計算字寬時，如果隱藏括號，去掉括號後計算（半形或全形）
+                              const displayLyric = (hideBrackets && item.isInside) 
+                                ? item.lyric.replace(/^[\(（]|[\)）]$/g, '') 
+                                : item.lyric;
+                              return (
+                                <span key={idx} style={{
+                                  display: 'inline-flex',
+                                  justifyContent: 'center',
+                                  minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
+                                  color: colors.numericNotation,
+                                  fontWeight: 'bold'
+                                }}>
+                                  {item.notation}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    // 普通模式：直接渲染簡譜
+                    const notationParts = processNumericNotationLine(notationLine);
+                    return (
+                      <div key={index} style={{ 
+                        fontSize: `${notationFontSize}px`, 
+                        marginBottom: `${notationFontSize * 0.3}px`,
+                        whiteSpace: 'pre-wrap', 
+                        overflowWrap: 'break-word',
+                        fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                      }}>
+                        {notationParts.map((part, idx) => (
+                          <span key={idx} style={{
+                            color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
+                            fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                          }}>
+                            {part.content}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }
+                })}
+                
+                {/* 歌詞行 - 括號外灰色，括號內白色 */}
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre', lineHeight: '1.2', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {result.lyricParts.map((part, idx) => {
                     // 隱藏括號時，直接不 render 括號
                     if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
@@ -1638,9 +1653,10 @@ const TabContent = ({
                     );
                   })}
                 </div>
-              )}
-            </div>
-          );
+              </div>
+            );
+          });
+          
           i = targetLyricIndex + 1;
         } else {
           // 冇歌詞行，單獨顯示和弦
