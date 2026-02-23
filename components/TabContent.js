@@ -189,25 +189,22 @@ function findBracketPositions(lyricLine) {
 }
 
 // 計算隱藏括號後嘅調整位置
+// 原理：模擬「如果冇括號」嘅情況，計算每個開括號會喺邊個位置
 function findAdjustedBracketPositions(lyricLine) {
   const positions = [];
-  let currentWidth = 0;
-  let bracketWidthToSubtract = 0;
+  let visibleWidth = 0; // 隱藏括號後嘅可視寬度
   
   for (let char of lyricLine) {
-    const charWidth = getCharWidth(char);
-    
     if (char === '(' || char === '（') {
-      // 記錄調整後嘅位置（減去之前所有括號嘅寬度）
-      positions.push(currentWidth - bracketWidthToSubtract);
-      // 半形括號寬度1，全形括號寬度2
-      bracketWidthToSubtract += (char === '(' ? 1 : 2);
+      // 開括號嘅位置 = 當前可視寬度（因為括號本身隱藏）
+      positions.push(visibleWidth);
+      // 括號隱藏後唔佔位，所以唔增加 visibleWidth
     } else if (char === ')' || char === '）') {
-      // 閉合括號都要減去寬度
-      bracketWidthToSubtract += (char === ')' ? 1 : 2);
+      // 閉合括號都唔佔位
+    } else {
+      // 非括號字符正常計算寬度
+      visibleWidth += getCharWidth(char);
     }
-    
-    currentWidth += charWidth;
   }
   return positions;
 }
