@@ -696,12 +696,12 @@ export default function Home() {
                 return hotArtists.all?.length > 0 && (
                   <section key={section.id} className="mb-10">
                     <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-6">
+                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                       {hotArtists.all.map((artist) => (
                         <button
                           key={artist.id}
                           onClick={() => handleArtistClick(artist)}
-                          className="flex-shrink-0 flex flex-col items-center"
+                          className="flex-shrink-0 flex flex-col text-left w-32"
                         >
                           <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
                             {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
@@ -715,7 +715,7 @@ export default function Home() {
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
                             )}
                           </div>
-                          <span className="text-sm text-gray-300 text-center max-w-[100px] truncate">
+                          <span className="text-sm text-gray-300 truncate">
                             {artist.name}
                           </span>
                         </button>
