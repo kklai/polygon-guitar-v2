@@ -14,8 +14,6 @@ export default function PlaylistDetail() {
   const [songs, setSongs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'grid'
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [shareImageUrl, setShareImageUrl] = useState(null)
 
   useEffect(() => {
     if (id) {
@@ -97,145 +95,6 @@ export default function PlaylistDetail() {
 
   const handleSongClick = (songId) => {
     router.push(`/tabs/${songId}`)
-  }
-
-  // 生成 IG 分享圖片
-  const generateShareImage = async () => {
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    const size = 1080 // Instagram 正方形尺寸
-    canvas.width = size
-    canvas.height = size
-
-    // 背景 - 深色漸變
-    const gradient = ctx.createLinearGradient(0, 0, size, size)
-    gradient.addColorStop(0, '#1a1a2e')
-    gradient.addColorStop(0.5, '#16213e')
-    gradient.addColorStop(1, '#0f3460')
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, size, size)
-
-    // 添加裝飾圓形
-    ctx.beginPath()
-    ctx.arc(size * 0.8, size * 0.2, 150, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255, 215, 0, 0.1)'
-    ctx.fill()
-
-    ctx.beginPath()
-    ctx.arc(size * 0.2, size * 0.8, 100, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255, 215, 0, 0.05)'
-    ctx.fill()
-
-    // 頂部 Logo 區域
-    ctx.fillStyle = '#FFD700'
-    ctx.font = 'bold 48px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('🎸', size / 2, 100)
-    
-    ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 36px sans-serif'
-    ctx.fillText('Polygon Guitar', size / 2, 150)
-
-    // 歌單封面
-    const coverSize = 400
-    const coverX = (size - coverSize) / 2
-    const coverY = 200
-
-    // 封面背景（圓角矩形）
-    ctx.save()
-    ctx.beginPath()
-    ctx.roundRect(coverX, coverY, coverSize, coverSize, 20)
-    ctx.clip()
-
-    // 嘗試載入封面圖片
-    if (playlist.coverImage) {
-      try {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        await new Promise((resolve, reject) => {
-          img.onload = resolve
-          img.onerror = reject
-          img.src = playlist.coverImage
-        })
-        ctx.drawImage(img, coverX, coverY, coverSize, coverSize)
-      } catch (e) {
-        // 如果圖片載入失敗，使用漸變背景
-        const coverGradient = ctx.createLinearGradient(coverX, coverY, coverX + coverSize, coverY + coverSize)
-        coverGradient.addColorStop(0, '#FFD700')
-        coverGradient.addColorStop(1, '#FF8C00')
-        ctx.fillStyle = coverGradient
-        ctx.fillRect(coverX, coverY, coverSize, coverSize)
-        
-        ctx.fillStyle = '#000'
-        ctx.font = 'bold 120px sans-serif'
-        ctx.fillText('🎵', size / 2, coverY + coverSize / 2 + 40)
-      }
-    } else {
-      // 默認漸變背景
-      const coverGradient = ctx.createLinearGradient(coverX, coverY, coverX + coverSize, coverY + coverSize)
-      coverGradient.addColorStop(0, '#FFD700')
-      coverGradient.addColorStop(1, '#FF8C00')
-      ctx.fillStyle = coverGradient
-      ctx.fillRect(coverX, coverY, coverSize, coverSize)
-      
-      ctx.fillStyle = '#000'
-      ctx.font = 'bold 120px sans-serif'
-      ctx.fillText('🎵', size / 2, coverY + coverSize / 2 + 40)
-    }
-    ctx.restore()
-
-    // 歌單標題
-    ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 56px sans-serif'
-    ctx.textAlign = 'center'
-    
-    // 標題換行處理
-    const title = playlist.title || '歌單'
-    const maxWidth = 900
-    const words = title.split('')
-    let line = ''
-    let lines = []
-    
-    for (let i = 0; i < words.length; i++) {
-      const testLine = line + words[i]
-      const metrics = ctx.measureText(testLine)
-      if (metrics.width > maxWidth && i > 0) {
-        lines.push(line)
-        line = words[i]
-      } else {
-        line = testLine
-      }
-    }
-    lines.push(line)
-    
-    // 限制最多2行
-    if (lines.length > 2) {
-      lines = lines.slice(0, 2)
-      lines[1] = lines[1].slice(0, -2) + '...'
-    }
-    
-    lines.forEach((line, index) => {
-      ctx.fillText(line, size / 2, 680 + index * 70)
-    })
-
-    // 歌曲數量
-    ctx.fillStyle = '#B3B3B3'
-    ctx.font = '36px sans-serif'
-    ctx.fillText(`共 ${songs.length} 首歌曲`, size / 2, 680 + lines.length * 70 + 40)
-
-    // 底部鏈接提示
-    ctx.fillStyle = '#FFD700'
-    ctx.font = '32px sans-serif'
-    ctx.fillText('polygon.guitars', size / 2, 980)
-    
-    ctx.fillStyle = '#666'
-    ctx.font = '24px sans-serif'
-    ctx.fillText('掃描或點擊連結查看完整歌單', size / 2, 1020)
-
-    // 生成圖片
-    const dataUrl = canvas.toDataURL('image/png')
-    setShareImageUrl(dataUrl)
-    setShowShareModal(true)
   }
 
   // 格式化時間
@@ -506,18 +365,6 @@ export default function PlaylistDetail() {
                 </button>
               </div>
             </div>
-
-            {/* Share to IG Button */}
-            <button
-              onClick={generateShareImage}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-lg text-white font-medium hover:opacity-90 transition mb-3"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              生成 IG 分享圖
-            </button>
 
             {/* Copy Link Button */}
             <button
