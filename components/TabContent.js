@@ -1037,6 +1037,10 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
   let inBracket = false;
   
   for (let char of normalizedLyric) {
+    // 跳過換行符
+    if (char === '\n' || char === '\r') {
+      continue;
+    }
     if (char === '(' || char === '（') {
       // 括號前的內容
       if (buffer) parts.push({ text: buffer, isInside: false, type: 'text' });
@@ -1581,12 +1585,14 @@ const TabContent = ({
                     } else {
                       partColor = colors.lyricNormal;
                     }
+                    // 移除換行符
+                    const cleanText = (part.text || '').replace(/\r?\n/g, '');
                     return (
                       <span key={idx} style={{ 
                         color: partColor,
                         fontWeight: (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') && theme === 'day' ? 'bold' : 'normal'
                       }}>
-                        {part.text}
+                        {cleanText}
                       </span>
                     );
                   })}
