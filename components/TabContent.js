@@ -1317,14 +1317,16 @@ const TabContent = ({
         continue;
       }
       
-      // 檢查是否為歌詞行（有中文字或英文單詞，且冇 | 和弦，且冇單獨和弦）
+      // 檢查是否為歌詞行（有中文字或英文單詞，且冇和弦行特徵）
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const englishWords = line.match(/[a-zA-Z]+/g) || [];
+      // 檢查是否有 | 開頭的和弦標記
       const hasChordBar = /\|[\s]*[A-G]/.test(line);
-      // 檢查是否為純和弦行（每個 token 都係和弦）
-      const tokens = line.trim().split(/\s+/);
+      // 檢查是否為純和弦行（每個 token 都係和弦或 |）
+      const tokens = line.trim().split(/\s+/).filter(t => t !== '|');
       const isChordOnlyLine = tokens.length > 0 && tokens.every(t => /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|7|9|11|13)?(?:\/[A-G][#b]?)?$/.test(t));
-      const isLyric = (chineseChars.length > 0 || englishWords.length > 0) && !hasChordBar && !isChordOnlyLine;
+      // 歌詞行：有中文字或英文單詞，且唔係和弦行
+      const isLyric = (chineseChars.length > 0 || (englishWords.length > 0 && !isChordOnlyLine)) && !hasChordBar && !isChordOnlyLine;
       
       // 如果是歌詞行，優先處理
       if (isLyric) {
