@@ -327,13 +327,13 @@ function PlaylistAdmin() {
                       {/* Actions */}
                       <div className="flex items-center gap-1">
                         <button onClick={() => moveUp(playlist, index, autoPlaylists)} disabled={index === 0}
-                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
+                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                           </svg>
                         </button>
                         <button onClick={() => moveDown(playlist, index, autoPlaylists)} disabled={index === autoPlaylists.length - 1}
-                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
+                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
@@ -454,21 +454,21 @@ function PlaylistAdmin() {
                       
                       {/* Actions */}
                       <div className="flex items-center gap-1">
-                        {/* 上下移動按（備選）- 桌面版 */}
+                        {/* 上下移動按 */}
                         <button onClick={() => moveUp(playlist, index, manualPlaylists)} disabled={index === 0}
-                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
+                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                           </svg>
                         </button>
                         <button onClick={() => moveDown(playlist, index, manualPlaylists)} disabled={index === manualPlaylists.length - 1}
-                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition hidden sm:block">
+                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         
-                        <div className="w-px h-6 bg-gray-800 mx-1 hidden sm:block" />
+                        <div className="w-px h-6 bg-gray-800 mx-1" />
                         
                         {/* 編輯 */}
                         <Link href={`/admin/playlists/edit/${playlist.id}`}
