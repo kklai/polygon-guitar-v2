@@ -992,22 +992,33 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     }
   }
 
-  // 重建和弦行 - 直接定位，唔累積誤差
+  // 重建和弦行 - 使用全形空格確保與中文字對齊
   let newChordLine = '';
+  let currentVisualWidth = 0;
   
   for (let idx = 0; idx < tokens.length; idx++) {
     const token = tokens[idx];
     const targetPos = tokenPositions[idx];
     
-    // 直接定位到 targetPos，唔理會前面嘅內容（假設唔會重疊）
+    // 直接定位到 targetPos
     let startCol = targetPos;
     if (token.isBarStart) startCol -= 0.5;
     startCol = Math.round(startCol);
     if (startCol < 0) startCol = 0;
     
-    // 直接用空格填充到目標位置
-    newChordLine = newChordLine.padEnd(startCol, ' ');
+    // 計算需要填充嘅視覺寬度
+    const spacesNeeded = startCol - currentVisualWidth;
+    if (spacesNeeded > 0) {
+      // 全形空格 　 寬度為 2，用嚟對齊中文字
+      const fullWidthSpaces = Math.floor(spacesNeeded / 2);
+      const halfWidthSpace = spacesNeeded % 2;
+      newChordLine += '\u3000'.repeat(fullWidthSpaces);
+      if (halfWidthSpace) newChordLine += ' ';
+      currentVisualWidth += spacesNeeded;
+    }
+    
     newChordLine += token.fullToken;
+    currentVisualWidth += token.width;
   }
 
   const parts = [];
