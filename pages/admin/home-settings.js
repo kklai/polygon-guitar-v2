@@ -97,6 +97,8 @@ function HomeSettings() {
   
   // 熱門歌曲搜索
   const [tabSearchTerm, setTabSearchTerm] = useState('')
+  const [tabSearchResults, setTabSearchResults] = useState([])
+  const [isSearchingTabs, setIsSearchingTabs] = useState(false)
   const [selectedTabIds, setSelectedTabIds] = useState([])
   
   const [message, setMessage] = useState('')
@@ -105,6 +107,31 @@ function HomeSettings() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // 歌曲搜索 - 類似外面的 search bar
+  useEffect(() => {
+    const search = async () => {
+      if (!tabSearchTerm || tabSearchTerm.trim().length < 2) {
+        setTabSearchResults([])
+        return
+      }
+      
+      setIsSearchingTabs(true)
+      try {
+        const results = await searchTabs(tabSearchTerm, 50)
+        setTabSearchResults(results)
+      } catch (error) {
+        console.error('Search tabs error:', error)
+        setTabSearchResults([])
+      } finally {
+        setIsSearchingTabs(false)
+      }
+    }
+    
+    // 防抖動，延遲 300ms 才搜索
+    const timer = setTimeout(search, 300)
+    return () => clearTimeout(timer)
+  }, [tabSearchTerm])
 
   const loadData = async () => {
     try {
@@ -363,12 +390,12 @@ function HomeSettings() {
   }
 
   const filteredTabs = () => {
-    if (!tabSearchTerm) return tabs.slice(0, 50) // 限制顯示數量
-    
-    return tabs.filter(t => 
-      t.title?.toLowerCase().includes(tabSearchTerm.toLowerCase()) ||
-      t.artistName?.toLowerCase().includes(tabSearchTerm.toLowerCase())
-    ).slice(0, 50)
+    // 如果有搜索詞，使用 searchTabs 的結果（類似外面嘅 search bar）
+    if (tabSearchTerm && tabSearchTerm.trim().length >= 2) {
+      return tabSearchResults
+    }
+    // 如果冇搜索詞，顯示最近的歌曲
+    return tabs.slice(0, 50)
   }
 
   const getSelectedArtists = () => {
@@ -873,7 +900,14 @@ function HomeSettings() {
                       placeholder="搜索歌曲名或歌手名..."
                       className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white placeholder-gray-500"
                     />
-                    {tabSearchTerm && (
+                    {isSearchingTabs ? (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                      </span>
+                    ) : tabSearchTerm && (
                       <button
                         onClick={() => setTabSearchTerm('')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
@@ -882,6 +916,12 @@ function HomeSettings() {
                       </button>
                     )}
                   </div>
+                  
+                  {tabSearchTerm && tabSearchTerm.trim().length >= 2 && tabSearchResults.length === 0 && !isSearchingTabs && (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                      找不到符合「{tabSearchTerm}」的歌曲
+                    </div>
+                  )}
                   
                   <div className="max-h-64 overflow-y-auto space-y-1">
                     {filteredTabs().map(tab => {
