@@ -1317,10 +1317,11 @@ const TabContent = ({
         continue;
       }
       
-      // 檢查是否為歌詞行（有中文字且冇 | 和弦）
+      // 檢查是否為歌詞行（有中文字或英文單詞，且冇 | 和弦）
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
+      const englishWords = line.match(/[a-zA-Z]+/g) || [];
       const hasChordBar = /\|[\s]*[A-G]/.test(line);
-      const isLyric = chineseChars.length > 0 && !hasChordBar;
+      const isLyric = (chineseChars.length > 0 || englishWords.length > 0) && !hasChordBar;
       
       // 如果是歌詞行，優先處理
       if (isLyric) {
