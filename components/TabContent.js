@@ -1442,11 +1442,15 @@ const TabContent = ({
                             );
                           } else if (item.type === 'pair') {
                             // 簡譜數字 - 置中對齊到對應歌詞字
+                            // 計算字寬時，如果隱藏括號，去掉括號後計算
+                            const displayLyric = (hideBrackets && item.isInside) 
+                              ? item.lyric.replace(/^\(|\)$/g, '') 
+                              : item.lyric;
                             return (
                               <span key={idx} style={{
                                 display: 'inline-flex',
                                 justifyContent: 'center',
-                                minWidth: `${getTextWidth(item.lyric) * (notationFontSize / 2)}px`,
+                                minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
                                 color: colors.numericNotation,
                                 fontWeight: 'bold'
                               }}>

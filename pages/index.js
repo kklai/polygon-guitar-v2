@@ -447,7 +447,8 @@ export default function Home() {
     if (item.coverImage) {
       return item.coverImage
     }
-    // 如果是歌曲：優先順序 Spotify 專輯相 > YouTube > 歌手相 > thumbnail
+    // 如果是歌曲：優先順序 Spotify 專輯相 > YouTube > 歌手相
+    // 注：thumbnail 本身已經是由上述來源生成，不需要獨立檢查
     if (item.albumImage) {
       return item.albumImage
     }
@@ -463,10 +464,6 @@ export default function Home() {
     // 如果提供了歌手照片，用作 fallback
     if (artistPhoto) {
       return artistPhoto
-    }
-    // 歌曲自己有 thumbnail
-    if (item.thumbnail) {
-      return item.thumbnail
     }
     return null
   }
