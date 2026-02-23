@@ -288,43 +288,45 @@ function PlaylistAdmin() {
               <div className="space-y-2">
                 {autoPlaylists.map((playlist, index) => (
                   <div key={playlist.id} className="p-3 bg-[#121212] rounded-lg border border-gray-800 hover:border-gray-700 transition">
-                    <div className="flex items-center gap-4">
-                      {/* Cover - 手機 40x40，桌面 56x56 */}
-                      <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
-                        {playlist.coverImage ? (
-                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-base sm:text-xl">📊</div>
-                        )}
-                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-                          {uploadingCover === playlist.id ? (
-                            <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Cover - 手機 40x40，桌面 56x56 */}
+                        <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                          {playlist.coverImage ? (
+                            <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
                           ) : (
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                            <div className="w-full h-full flex items-center justify-center text-base sm:text-xl">📊</div>
                           )}
-                          <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
-                            onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
-                        </label>
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-white font-medium truncate">{playlist.title}</h3>
-                          <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded hidden sm:inline">自動</span>
+                          <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                            {uploadingCover === playlist.id ? (
+                              <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
+                              onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
+                          </label>
                         </div>
-                        <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description}</p>
-                        <p className="text-xs text-gray-600 hidden sm:block">
-                          {playlist.songIds?.length || 0} 首 • 更新於 {formatTimeAgo(playlist.lastUpdated)}
-                        </p>
+                        
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-white font-medium truncate">{playlist.title}</h3>
+                            <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded hidden sm:inline">自動</span>
+                          </div>
+                          <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description}</p>
+                          <p className="text-xs text-gray-600 hidden sm:block">
+                            {playlist.songIds?.length || 0} 首 • 更新於 {formatTimeAgo(playlist.lastUpdated)}
+                          </p>
+                        </div>
                       </div>
                       
-                      {/* Actions */}
+                      {/* Actions - 手機版獨立一行 */}
                       <div className="flex items-center gap-1">
                         <button onClick={() => moveUp(playlist, index, autoPlaylists)} disabled={index === 0}
                           className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
@@ -401,59 +403,61 @@ function PlaylistAdmin() {
                       draggingIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 sm:gap-3 select-none">
-                      {/* Drag Handle */}
-                      <div className="flex items-center gap-1 sm:gap-2 text-gray-600">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                        </svg>
-                        <span className="text-xs sm:text-sm text-gray-500 w-4 sm:w-6">{index + 1}</span>
-                      </div>
-                      
-                      {/* Cover - 手機 40x40，桌面 48x48 */}
-                      <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
-                        {playlist.coverImage ? (
-                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-base sm:text-lg">✨</div>
-                        )}
-                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-                          {uploadingCover === playlist.id ? (
-                            <svg className="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          )}
-                          <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
-                            onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
-                        </label>
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{playlist.title}</h3>
-                          <span className={`text-xs px-1.5 py-0.5 rounded hidden sm:inline ${
-                            playlist.isActive ? 'bg-green-900/50 text-green-400' : 'bg-gray-700 text-gray-400'
-                          }`}>
-                            {playlist.isActive ? '顯示' : '隱藏'}
-                          </span>
-                          <span className="text-xs bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded hidden sm:inline">
-                            {getTypeLabel(playlist.manualType)}
-                          </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 select-none">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        {/* Drag Handle */}
+                        <div className="flex items-center gap-1 sm:gap-2 text-gray-600 flex-shrink-0">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                          </svg>
+                          <span className="text-xs sm:text-sm text-gray-500 w-4 sm:w-6">{index + 1}</span>
                         </div>
-                        <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description || '無描述'}</p>
-                        <p className="text-xs text-gray-600 hidden sm:block">
-                          {playlist.songIds?.length || 0} 首 • By {playlist.curatedBy || 'Polygon'} • {formatTimeAgo(playlist.updatedAt)}
-                        </p>
+                        
+                        {/* Cover - 手機 40x40，桌面 48x48 */}
+                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                          {playlist.coverImage ? (
+                            <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-base sm:text-lg">✨</div>
+                          )}
+                          <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                            {uploadingCover === playlist.id ? (
+                              <svg className="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                              </svg>
+                            ) : (
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
+                              onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
+                          </label>
+                        </div>
+                        
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{playlist.title}</h3>
+                            <span className={`text-xs px-1.5 py-0.5 rounded hidden sm:inline ${
+                              playlist.isActive ? 'bg-green-900/50 text-green-400' : 'bg-gray-700 text-gray-400'
+                            }`}>
+                              {playlist.isActive ? '顯示' : '隱藏'}
+                            </span>
+                            <span className="text-xs bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded hidden sm:inline">
+                              {getTypeLabel(playlist.manualType)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description || '無描述'}</p>
+                          <p className="text-xs text-gray-600 hidden sm:block">
+                            {playlist.songIds?.length || 0} 首 • By {playlist.curatedBy || 'Polygon'} • {formatTimeAgo(playlist.updatedAt)}
+                          </p>
+                        </div>
                       </div>
                       
-                      {/* Actions */}
-                      <div className="flex items-center gap-1">
+                      {/* Actions - 手機版獨立一行 */}
+                      <div className="flex items-center gap-1 sm:gap-2 justify-end">
                         {/* 上下移動按 */}
                         <button onClick={() => moveUp(playlist, index, manualPlaylists)} disabled={index === 0}
                           className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
