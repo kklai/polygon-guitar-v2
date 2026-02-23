@@ -197,11 +197,18 @@ function findBracketPositions(lyricLine) {
 function findAdjustedBracketPositions(lyricLine) {
   const positions = [];
   let visibleWidth = 0;
+  let inBracket = false;
   
   for (let char of lyricLine) {
     if (char === '(' || char === '（') {
+      // 開括號位置 = 當前可視寬度（括號本身隱藏，唔佔位）
       positions.push(visibleWidth);
-    } else if (char !== ')' && char !== '）') {
+      inBracket = true;
+    } else if (char === ')' || char === '）') {
+      // 閉合括號唔佔位
+      inBracket = false;
+    } else {
+      // 非括號字符正常計算寬度
       visibleWidth += getCharWidth(char);
     }
   }
