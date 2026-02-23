@@ -112,7 +112,7 @@ function EditPlaylist() {
     setIsUploading(true)
     try {
       const imageUrl = await uploadToCloudinary(file, formData.title || 'playlist-cover', 'playlists')
-      setFormData(prev => ({ ...prev, coverImage: imageUrl }))
+      setFormData(prev => ({ ...prev, coverImage: imageUrl, customCover: true }))
     } catch (error) {
       alert('封面上傳失敗：' + error.message)
     } finally {
