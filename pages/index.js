@@ -703,7 +703,7 @@ export default function Home() {
                           onClick={() => handleArtistClick(artist)}
                           className="flex-shrink-0 flex flex-col items-center"
                         >
-                          <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                          <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
                             {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
                               <img 
                                 src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
