@@ -159,7 +159,7 @@ export default function SpotifyTrackSearch({
       />
       
       {/* Modal 內容 */}
-      <div className="relative bg-[#121212] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-800">
+      <div className="relative bg-[#121212] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-800 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div>
@@ -256,7 +256,7 @@ export default function SpotifyTrackSearch({
         </div>
 
         {/* 內容區 */}
-        <div className="p-4 overflow-y-auto max-h-[50vh]">
+        <div className="flex-1 p-4 overflow-y-auto min-h-0" style={{ maxHeight: 'calc(90vh - 280px)' }}>
           {mode === 'manual' ? (
             /* 手動輸入模式 */
             <div className="text-center py-8">
