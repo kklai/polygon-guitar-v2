@@ -1,67 +1,286 @@
 import { useState, useEffect } from 'react';
 
 // 常見和弦指法數據庫
+// 標準結他指法數據庫
+// 格式: fingers: [[弦, 格], [弦, 格], ...] (1=高音E弦, 6=低音E弦)
 const CHORD_SHAPES = {
-  // C 系列
-  'C': { fingers: [[1, 2], [2, 4], [3, 5]], barre: null, name: 'C' },
-  'Cm': { fingers: [[1, 3], [2, 4], [3, 5]], barre: null, name: 'Cm' },
-  'C7': { fingers: [[1, 2], [3, 5]], barre: null, name: 'C7' },
-  'Cmaj7': { fingers: [[1, 2], [2, 4]], barre: null, name: 'Cmaj7' },
-  'Cm7': { fingers: [[1, 3], [3, 5]], barre: null, name: 'Cm7' },
+  // ========== C 系列 ==========
+  // C: x32010
+  'C': { 
+    fingers: [[2, 1], [4, 2], [5, 3]], 
+    barre: null, 
+    name: 'C',
+    open: [1, 3] // 1弦和3弦開放
+  },
+  // Cm: x35543
+  'Cm': { 
+    fingers: [[2, 4], [3, 5], [4, 5]], 
+    barre: { fret: 3, from: 1, to: 5 }, 
+    name: 'Cm' 
+  },
+  // C7: x32310
+  'C7': { 
+    fingers: [[2, 1], [3, 3], [4, 2], [5, 3]], 
+    barre: null, 
+    name: 'C7' 
+  },
+  // Cmaj7: x32000
+  'Cmaj7': { 
+    fingers: [[4, 2], [5, 3]], 
+    barre: null, 
+    name: 'Cmaj7',
+    open: [1, 2, 3]
+  },
+  // Cm7: x35343
+  'Cm7': { 
+    fingers: [[2, 4], [4, 5]], 
+    barre: { fret: 3, from: 1, to: 5 }, 
+    name: 'Cm7' 
+  },
   
-  // D 系列
-  'D': { fingers: [[1, 3], [2, 2], [3, 1]], barre: null, name: 'D' },
-  'Dm': { fingers: [[1, 3], [2, 2], [3, 1]], barre: null, name: 'Dm' },
-  'D7': { fingers: [[1, 2], [2, 3], [3, 1]], barre: null, name: 'D7' },
-  'Dmaj7': { fingers: [[1, 2], [2, 2], [3, 1]], barre: null, name: 'Dmaj7' },
-  'Dm7': { fingers: [[1, 2], [2, 2], [3, 1]], barre: null, name: 'Dm7' },
+  // ========== D 系列 ==========
+  // D: xx0232
+  'D': { 
+    fingers: [[1, 2], [2, 3], [3, 2]], 
+    barre: null, 
+    name: 'D',
+    mute: [5, 6]
+  },
+  // Dm: xx0231
+  'Dm': { 
+    fingers: [[1, 1], [2, 3], [3, 2]], 
+    barre: null, 
+    name: 'Dm',
+    mute: [5, 6]
+  },
+  // D7: xx0212
+  'D7': { 
+    fingers: [[1, 2], [2, 1], [3, 2]], 
+    barre: null, 
+    name: 'D7',
+    mute: [5, 6]
+  },
+  // Dmaj7: xx0222
+  'Dmaj7': { 
+    fingers: [[1, 2], [2, 2], [3, 2]], 
+    barre: null, 
+    name: 'Dmaj7',
+    mute: [5, 6]
+  },
+  // Dm7: xx0211
+  'Dm7': { 
+    fingers: [[1, 1], [2, 1], [3, 2]], 
+    barre: null, 
+    name: 'Dm7',
+    mute: [5, 6]
+  },
   
-  // E 系列
-  'E': { fingers: [[1, 3], [2, 2], [3, 1]], barre: null, name: 'E' },
-  'Em': { fingers: [[1, 2], [2, 3]], barre: null, name: 'Em' },
-  'E7': { fingers: [[1, 3], [3, 1]], barre: null, name: 'E7' },
-  'Emaj7': { fingers: [[1, 3], [2, 2], [3, 1]], barre: null, name: 'Emaj7' },
-  'Em7': { fingers: [[1, 2]], barre: null, name: 'Em7' },
+  // ========== E 系列 ==========
+  // E: 022100
+  'E': { 
+    fingers: [[3, 1], [4, 2], [5, 2]], 
+    barre: null, 
+    name: 'E',
+    open: [1, 2, 6]
+  },
+  // Em: 022000
+  'Em': { 
+    fingers: [[4, 2], [5, 2]], 
+    barre: null, 
+    name: 'Em',
+    open: [1, 2, 3, 6]
+  },
+  // E7: 020100
+  'E7': { 
+    fingers: [[3, 1], [5, 2]], 
+    barre: null, 
+    name: 'E7',
+    open: [1, 2, 4, 6]
+  },
+  // Emaj7: 021100 (或 0-11-14-13-0-0)
+  'Emaj7': { 
+    fingers: [[3, 1], [4, 1], [5, 2]], 
+    barre: { fret: 1, from: 3, to: 4 }, 
+    name: 'Emaj7',
+    open: [1, 2, 6]
+  },
+  // Em7: 022030
+  'Em7': { 
+    fingers: [[2, 3], [4, 2], [5, 2]], 
+    barre: null, 
+    name: 'Em7',
+    open: [1, 3, 6]
+  },
   
-  // F 系列
-  'F': { fingers: [[1, 1], [2, 2], [3, 3]], barre: { fret: 1, from: 1, to: 6 }, name: 'F' },
-  'Fm': { fingers: [[1, 1], [3, 3]], barre: { fret: 1, from: 1, to: 6 }, name: 'Fm' },
-  'F7': { fingers: [[2, 2], [3, 3]], barre: { fret: 1, from: 1, to: 6 }, name: 'F7' },
-  'Fmaj7': { fingers: [[1, 1], [2, 2]], barre: { fret: 1, from: 1, to: 6 }, name: 'Fmaj7' },
-  'Fm7': { fingers: [[3, 3]], barre: { fret: 1, from: 1, to: 6 }, name: 'Fm7' },
+  // ========== F 系列 ==========
+  // F: 133211
+  'F': { 
+    fingers: [[2, 1], [3, 2], [4, 3]], 
+    barre: { fret: 1, from: 1, to: 6 }, 
+    name: 'F' 
+  },
+  // Fm: 133111
+  'Fm': { 
+    fingers: [[2, 1], [3, 1], [4, 3]], 
+    barre: { fret: 1, from: 1, to: 6 }, 
+    name: 'Fm' 
+  },
+  // F7: 131211
+  'F7': { 
+    fingers: [[2, 1], [3, 2], [4, 1], [5, 3]], 
+    barre: { fret: 1, from: 1, to: 6 }, 
+    name: 'F7' 
+  },
+  // Fmaj7: 133210
+  'Fmaj7': { 
+    fingers: [[2, 1], [3, 2], [4, 3], [5, 3]], 
+    barre: { fret: 1, from: 1, to: 6 }, 
+    name: 'Fmaj7',
+    open: [1]
+  },
+  // Fm7: 131111
+  'Fm7': { 
+    fingers: [[2, 1], [4, 1]], 
+    barre: { fret: 1, from: 1, to: 6 }, 
+    name: 'Fm7' 
+  },
   
-  // G 系列
-  'G': { fingers: [[2, 3], [3, 2], [4, 1]], barre: null, name: 'G' },
-  'Gm': { fingers: [[2, 3], [3, 2], [4, 1]], barre: { fret: 3, from: 1, to: 6 }, name: 'Gm' },
-  'G7': { fingers: [[1, 1], [2, 3], [3, 2]], barre: null, name: 'G7' },
-  'Gmaj7': { fingers: [[1, 1], [2, 3], [3, 2], [4, 1]], barre: null, name: 'Gmaj7' },
-  'Gm7': { fingers: [[1, 1], [3, 2]], barre: { fret: 3, from: 1, to: 6 }, name: 'Gm7' },
+  // ========== G 系列 ==========
+  // G: 320003 或 355433
+  'G': { 
+    fingers: [[2, 3], [5, 2], [6, 3]], 
+    barre: null, 
+    name: 'G',
+    open: [1, 2, 3]
+  },
+  // Gm: 355333
+  'Gm': { 
+    fingers: [[2, 3]], 
+    barre: { fret: 3, from: 1, to: 6 }, 
+    name: 'Gm' 
+  },
+  // G7: 320001 或 353433
+  'G7': { 
+    fingers: [[1, 1], [5, 2], [6, 3]], 
+    barre: null, 
+    name: 'G7',
+    open: [2, 3]
+  },
+  // Gmaj7: 320002
+  'Gmaj7': { 
+    fingers: [[2, 4], [5, 2], [6, 3]], 
+    barre: null, 
+    name: 'Gmaj7',
+    open: [1, 2, 3]
+  },
+  // Gm7: 353333
+  'Gm7': { 
+    fingers: [], 
+    barre: { fret: 3, from: 1, to: 6 }, 
+    name: 'Gm7' 
+  },
   
-  // A 系列
-  'A': { fingers: [[2, 3], [3, 2], [4, 1]], barre: null, name: 'A' },
-  'Am': { fingers: [[2, 2], [3, 3], [4, 1]], barre: null, name: 'Am' },
-  'A7': { fingers: [[2, 3], [4, 1]], barre: null, name: 'A7' },
-  'Amaj7': { fingers: [[2, 3], [3, 2], [4, 1]], barre: null, name: 'Amaj7' },
-  'Am7': { fingers: [[2, 2], [4, 1]], barre: null, name: 'Am7' },
+  // ========== A 系列 ==========
+  // A: x02220
+  'A': { 
+    fingers: [[2, 2], [3, 2], [4, 2]], 
+    barre: null, 
+    name: 'A',
+    mute: [6],
+    open: [1, 5]
+  },
+  // Am: x02210
+  'Am': { 
+    fingers: [[2, 1], [3, 2], [4, 2]], 
+    barre: null, 
+    name: 'Am',
+    mute: [6],
+    open: [1, 5]
+  },
+  // A7: x02020
+  'A7': { 
+    fingers: [[2, 2], [4, 2]], 
+    barre: null, 
+    name: 'A7',
+    mute: [6],
+    open: [1, 3, 5]
+  },
+  // Amaj7: x02120
+  'Amaj7': { 
+    fingers: [[2, 2], [3, 1], [4, 2]], 
+    barre: null, 
+    name: 'Amaj7',
+    mute: [6],
+    open: [1, 5]
+  },
+  // Am7: x02010
+  'Am7': { 
+    fingers: [[2, 1], [4, 2]], 
+    barre: null, 
+    name: 'Am7',
+    mute: [6],
+    open: [1, 3, 5]
+  },
   
-  // B 系列
-  'B': { fingers: [[1, 1], [2, 3], [3, 3], [4, 3]], barre: { fret: 2, from: 1, to: 5 }, name: 'B' },
-  'Bm': { fingers: [[1, 1], [2, 3], [3, 3]], barre: { fret: 2, from: 1, to: 5 }, name: 'Bm' },
-  'B7': { fingers: [[1, 2], [2, 1], [3, 3], [4, 1]], barre: null, name: 'B7' },
-  'Bmaj7': { fingers: [[1, 1], [2, 3], [3, 3], [4, 3]], barre: { fret: 2, from: 1, to: 5 }, name: 'Bmaj7' },
-  'Bm7': { fingers: [[1, 1], [2, 3]], barre: { fret: 2, from: 1, to: 5 }, name: 'Bm7' },
+  // ========== B 系列 ==========
+  // B: x24442
+  'B': { 
+    fingers: [[2, 4], [3, 4], [4, 4]], 
+    barre: { fret: 2, from: 1, to: 5 }, 
+    name: 'B',
+    mute: [6]
+  },
+  // Bm: x24432
+  'Bm': { 
+    fingers: [[2, 3], [3, 4], [4, 4]], 
+    barre: { fret: 2, from: 1, to: 5 }, 
+    name: 'Bm',
+    mute: [6]
+  },
+  // B7: x21202
+  'B7': { 
+    fingers: [[2, 2], [3, 1], [4, 2], [5, 2]], 
+    barre: null, 
+    name: 'B7',
+    mute: [6],
+    open: [1]
+  },
+  // Bmaj7: x24342
+  'Bmaj7': { 
+    fingers: [[2, 4], [3, 3], [4, 4]], 
+    barre: { fret: 2, from: 1, to: 5 }, 
+    name: 'Bmaj7',
+    mute: [6]
+  },
+  // Bm7: x24232
+  'Bm7': { 
+    fingers: [[2, 3], [4, 4]], 
+    barre: { fret: 2, from: 1, to: 5 }, 
+    name: 'Bm7',
+    mute: [6]
+  },
   
-  // 升/降和弦
-  'C#': { fingers: [[1, 1], [2, 2], [3, 3], [4, 4]], barre: { fret: 4, from: 1, to: 6 }, name: 'C#' },
-  'C#m': { fingers: [[1, 1], [3, 3], [4, 4]], barre: { fret: 4, from: 1, to: 6 }, name: 'C#m' },
-  'Eb': { fingers: [[1, 1], [2, 3], [3, 3], [4, 3]], barre: { fret: 3, from: 1, to: 6 }, name: 'Eb' },
-  'Ebm': { fingers: [[1, 1], [2, 3], [3, 3]], barre: { fret: 3, from: 1, to: 6 }, name: 'Ebm' },
-  'F#': { fingers: [[1, 1], [2, 2], [3, 3]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#' },
-  'F#m': { fingers: [[1, 1], [3, 3]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#m' },
-  'G#': { fingers: [[2, 2], [3, 1], [4, 1]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#' },
-  'G#m': { fingers: [[2, 2], [3, 1]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#m' },
-  'Bb': { fingers: [[1, 1], [2, 3], [3, 3], [4, 3]], barre: { fret: 1, from: 1, to: 5 }, name: 'Bb' },
-  'Bbm': { fingers: [[1, 1], [2, 3], [3, 3]], barre: { fret: 1, from: 1, to: 5 }, name: 'Bbm' },
+  // ========== 升/降和弦 ==========
+  // C#: x46664
+  'C#': { fingers: [[2, 6], [3, 6], [4, 6]], barre: { fret: 4, from: 1, to: 5 }, name: 'C#', mute: [6] },
+  // C#m: x46654
+  'C#m': { fingers: [[2, 5], [3, 6], [4, 6]], barre: { fret: 4, from: 1, to: 5 }, name: 'C#m', mute: [6] },
+  // Eb: x68886
+  'Eb': { fingers: [[2, 8], [3, 8], [4, 8]], barre: { fret: 6, from: 1, to: 5 }, name: 'Eb', mute: [6] },
+  // Ebm: x68876
+  'Ebm': { fingers: [[2, 7], [3, 8], [4, 8]], barre: { fret: 6, from: 1, to: 5 }, name: 'Ebm', mute: [6] },
+  // F#: 244322
+  'F#': { fingers: [[2, 2], [3, 3], [4, 4]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#' },
+  // F#m: 244222
+  'F#m': { fingers: [[2, 2], [3, 2], [4, 4]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#m' },
+  // G#: 466544
+  'G#': { fingers: [[2, 4], [3, 5], [4, 6]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#' },
+  // G#m: 466444
+  'G#m': { fingers: [[2, 4], [4, 6]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#m' },
+  // Bb: x13331
+  'Bb': { fingers: [[2, 3], [3, 3], [4, 3]], barre: { fret: 1, from: 1, to: 5 }, name: 'Bb', mute: [6] },
+  // Bbm: x13321
+  'Bbm': { fingers: [[2, 2], [3, 3], [4, 3]], barre: { fret: 1, from: 1, to: 5 }, name: 'Bbm', mute: [6] },
 };
 
 // 解析和弦名稱（移除 slash chord 的低音部分）
@@ -204,6 +423,36 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
             r={5}
             fill={colors.finger}
           />
+        ))}
+        
+        {/* 開放弦標記 (o) */}
+        {shape.open && shape.open.map((string) => (
+          <text
+            key={`open-${string}`}
+            x={padding + (string - 1) * stringWidth}
+            y={padding - 4}
+            textAnchor="middle"
+            fill={colors.text}
+            fontSize="10"
+            fontWeight="bold"
+          >
+            o
+          </text>
+        ))}
+        
+        {/* 悶音標記 (x) */}
+        {shape.mute && shape.mute.map((string) => (
+          <text
+            key={`mute-${string}`}
+            x={padding + (string - 1) * stringWidth}
+            y={padding - 4}
+            textAnchor="middle"
+            fill="#ff4444"
+            fontSize="10"
+            fontWeight="bold"
+          >
+            x
+          </text>
         ))}
       </svg>
     </div>
