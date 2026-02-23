@@ -628,7 +628,7 @@ export default function Home() {
                           onClick={() => handleCategoryClick(category.id)}
                           className="flex-shrink-0 flex flex-col cursor-pointer"
                         >
-                          <div className="relative w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] aspect-square rounded-[4px] overflow-hidden">
+                          <div className="relative w-36 h-36 rounded-[4px] overflow-hidden">
                             <img
                               src={category.image}
                               alt={category.name}
@@ -645,7 +645,7 @@ export default function Home() {
                               </span>
                             </div>
                           </div>
-                          <div className="w-[32vw] sm:w-[28vw] md:w-[22vw] lg:w-[18vw] mt-2 px-1">
+                          <div className="w-36 mt-2 px-1">
                             <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
                               {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
                             </p>
