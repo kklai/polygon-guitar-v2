@@ -91,7 +91,12 @@ export default function NewTab() {
 
     setIsSubmitting(true)
     try {
-      const newTab = await createTab(formData, user.uid)
+      // 如果沒有輸入筆名，使用用戶的 displayName
+      const submitData = {
+        ...formData,
+        uploaderPenName: formData.uploaderPenName.trim() || user.displayName || 'Anonymous'
+      }
+      const newTab = await createTab(submitData, user.uid)
       router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)

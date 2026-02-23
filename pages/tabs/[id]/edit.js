@@ -140,7 +140,12 @@ export default function EditTab() {
 
     setIsSubmitting(true)
     try {
-      await updateTab(id, formData, user.uid, isAdmin)
+      // 如果沒有輸入筆名，使用用戶的 displayName
+      const submitData = {
+        ...formData,
+        uploaderPenName: formData.uploaderPenName.trim() || user.displayName || 'Anonymous'
+      }
+      await updateTab(id, submitData, user.uid, isAdmin)
       router.push(`/tabs/${id}`)
     } catch (error) {
       console.error('Update tab error:', error)
