@@ -1317,16 +1317,28 @@ const TabContent = ({
         continue;
       }
       
-      // 檢查是否為歌詞行（有中文字或英文單詞，且冇和弦行特徵）
+      // 檢查是否為歌詞行或和弦行
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const englishWords = line.match(/[a-zA-Z]+/g) || [];
       // 檢查是否有 | 開頭的和弦標記
       const hasChordBar = /\|[\s]*[A-G]/.test(line);
-      // 檢查是否為純和弦行（每個 token 都係和弦或 |）
-      const tokens = line.trim().split(/\s+/).filter(t => t !== '|');
-      const isChordOnlyLine = tokens.length > 0 && tokens.every(t => /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|7|9|11|13)?(?:\/[A-G][#b]?)?$/.test(t));
-      // 歌詞行：有中文字或英文單詞，且唔係和弦行
-      const isLyric = (chineseChars.length > 0 || (englishWords.length > 0 && !isChordOnlyLine)) && !hasChordBar && !isChordOnlyLine;
+      
+      // 檢查是否為和弦行（添加 \d* 支持 Em9 等數字結尾和弦）
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/g;
+      const chordMatches = line.match(strictChordPattern) || [];
+      const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
+      const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
+      // 修復：單一和弦（無|）也要識別，只要全行符合和弦模式
+      const isChordOnlyLine = validChordMatches.length > 0 && line.trim().split(/\s+/).every(part => {
+        // 檢查每個部分是否為和弦或小節線
+        const cleanPart = part.replace(/[\|\/\s]/g, '');
+        return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/);
+      });
+      const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
+      const isChord = hasChordPattern && chineseChars.length < 3;
+      
+      // 檢查是否為歌詞行（有中文字或英文單詞，且冇和弦特徵）
+      const isLyric = !isChord && (chineseChars.length > 0 || englishWords.length > 0);
       
       // 如果是歌詞行，優先處理
       if (isLyric) {
@@ -1356,20 +1368,6 @@ const TabContent = ({
         i++;
         continue;
       }
-      
-      // 檢查是否為和弦行（添加 \d* 支持 Em9 等數字結尾和弦）
-      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/g;
-      const chordMatches = line.match(strictChordPattern) || [];
-      const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
-      const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
-      // 修復：單一和弦（無|）也要識別，只要全行符合和弦模式
-      const isChordOnlyLine = validChordMatches.length > 0 && line.trim().split(/\s+/).every(part => {
-        // 檢查每個部分是否為和弦或小節線
-        const cleanPart = part.replace(/[\|\/\s]/g, '');
-        return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/);
-      });
-      const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
-      const isChord = hasChordPattern && chineseChars.length < 3;
       
       // 檢查是否為簡譜行（使用函數，包含英文字母檢查）
       const isNumericNotation = isNumericNotationLine(line) && !hasChordBar;
