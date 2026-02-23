@@ -302,4 +302,79 @@ export function ChordWithHover({ chord, theme = 'dark' }) {
   );
 }
 
+// 可 hover 的和弦行組件
+export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme = 'dark' }) {
+  const isDark = theme === 'dark';
+  const colors = {
+    chord: '#FFD700',
+    prefixSuffix: isDark ? '#B3B3B3' : '#666',
+  };
+  
+  // 解析和弦行，分離和弦和非和弦部分
+  const parts = [];
+  const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?\b/g;
+  
+  let lastIndex = 0;
+  let match;
+  
+  // 創建一個臨時的正則對象來迭代匹配
+  const tempLine = chordLine;
+  let tempMatch;
+  while ((tempMatch = chordPattern.exec(tempLine)) !== null) {
+    // 添加和弦前的文本
+    if (tempMatch.index > lastIndex) {
+      parts.push({
+        type: 'text',
+        content: tempLine.slice(lastIndex, tempMatch.index)
+      });
+    }
+    // 添加和弦
+    parts.push({
+      type: 'chord',
+      content: tempMatch[0]
+    });
+    lastIndex = tempMatch.index + tempMatch[0].length;
+  }
+  // 添加剩餘文本
+  if (lastIndex < tempLine.length) {
+    parts.push({
+      type: 'text',
+      content: tempLine.slice(lastIndex)
+    });
+  }
+  
+  return (
+    <div 
+      className="font-bold"
+      style={{ 
+        fontSize: `${fontSize}px`, 
+        whiteSpace: 'pre-wrap', 
+        marginBottom: '0.05em', 
+        lineHeight: '1.2', 
+        fontWeight: 700 
+      }}
+    >
+      {prefix && (
+        <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${fontSize * 0.85}px` }}>
+          {prefix}
+        </span>
+      )}
+      
+      {parts.map((part, index) => (
+        part.type === 'chord' ? (
+          <ChordWithHover key={index} chord={part.content} theme={theme} />
+        ) : (
+          <span key={index} style={{ color: colors.chord }}>{part.content}</span>
+        )
+      ))}
+      
+      {suffix && (
+        <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${fontSize * 0.85}px` }}>
+          {suffix}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default SingleChordDiagram;

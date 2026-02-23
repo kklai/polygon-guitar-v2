@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { extractChords, ChordDiagramModal, SingleChordDiagram } from './ChordDiagram';
+import { extractChords, ChordDiagramModal, SingleChordDiagram, ChordWithHover, ChordLineWithHover } from './ChordDiagram';
 
 // ============ 智能字體大小計算 ============
 // 根據內容長度計算合適的字體大小
@@ -1485,12 +1485,14 @@ const TabContent = ({
             
             elements.push(
               <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairIndex < pairs.length - 1 ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.6}px` }}>
-                {/* 和弦行 */}
-                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
-                  {pairIndex === 0 && prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
-                  {result.chordLine}
-                  {pairIndex === pairs.length - 1 && suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
-                </div>
+                {/* 和弦行 - 可 hover 的和弦 */}
+                <ChordLineWithHover 
+                  chordLine={result.chordLine}
+                  prefix={pairIndex === 0 ? prefix : null}
+                  suffix={pairIndex === pairs.length - 1 ? suffix : null}
+                  fontSize={lineFontSize}
+                  theme={theme}
+                />
                 
                 {/* 只在第一個 pair 顯示簡譜行（如果有） */}
                 {pairIndex === 0 && !hideNotation && notationLines.map(({ index, line: notationLine }) => {
