@@ -992,29 +992,22 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     }
   }
 
-  // 重建和弦行
+  // 重建和弦行 - 直接定位，唔累積誤差
   let newChordLine = '';
-  let currentCol = 0;
-
+  
   for (let idx = 0; idx < tokens.length; idx++) {
     const token = tokens[idx];
     const targetPos = tokenPositions[idx];
     
-    // 讓和弦名（大約）對齊括號位置
-    // 如果 token 有 |，減 0.5 讓和弦名置中對齊（而非 | 對齊）
+    // 直接定位到 targetPos，唔理會前面嘅內容（假設唔會重疊）
     let startCol = targetPos;
     if (token.isBarStart) startCol -= 0.5;
     startCol = Math.round(startCol);
     if (startCol < 0) startCol = 0;
     
-    if (startCol < currentCol) startCol = currentCol;
-    
-    const spacesNeeded = startCol - currentCol;
-    // 統一使用半形空格，確保與 getCharWidth 計算一致
-    newChordLine += ' '.repeat(spacesNeeded);
-    
+    // 直接用空格填充到目標位置
+    newChordLine = newChordLine.padEnd(startCol, ' ');
     newChordLine += token.fullToken;
-    currentCol = startCol + token.width;
   }
 
   const parts = [];
