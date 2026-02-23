@@ -1411,8 +1411,9 @@ const TabContent = ({
           const targetHasChord = /\|[\s]*[A-G]/.test(targetLine);
           const targetDigits = (targetLine.match(/\d/g) || []).length;
           
-          // 如果係歌詞行（有中文字且冇和弦），停止搜索
-          if (targetChinese > 0 && !targetHasChord) {
+          // 如果係歌詞行（有中文字或英文單詞，且冇和弦），停止搜索
+          const targetEnglish = (targetLine.match(/[a-zA-Z]+/g) || []).length;
+          if ((targetChinese > 0 || targetEnglish > 0) && !targetHasChord) {
             break;
           }
           // 如果係簡譜行，收集並繼續搵
@@ -1426,7 +1427,10 @@ const TabContent = ({
         }
         
         const lyricLine = lines[targetLyricIndex] || '';
-        const hasLyric = lyricLine && (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length > 0;
+        // 檢查歌詞行：有中文字或英文單詞
+        const lyricChinese = (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length;
+        const lyricEnglish = (lyricLine.match(/[a-zA-Z]+/g) || []).length;
+        const hasLyric = lyricLine && (lyricChinese > 0 || lyricEnglish > 0);
         
         if (hasLyric) {
           // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
