@@ -235,7 +235,7 @@ export default function Home() {
         getDoc(doc(db, 'settings', 'home')),
         getPopularArtists(60),
         getAutoPlaylists(),
-        getManualPlaylists(8),
+        getManualPlaylists(),
         getRecentTabs(20)
       ]);
       
