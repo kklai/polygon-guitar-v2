@@ -74,11 +74,11 @@ export default function PlaylistDetail() {
   }
 
   const getThumbnail = (song) => {
-    // 優先使用 thumbnail 欄位
-    if (song.thumbnail) {
-      return song.thumbnail
+    // 1. 優先使用 Spotify 專輯封面
+    if (song.albumImage) {
+      return song.albumImage
     }
-    // 其次使用 YouTube 縮圖
+    // 2. 其次使用 YouTube 縮圖
     if (song.youtubeVideoId) {
       return `https://img.youtube.com/vi/${song.youtubeVideoId}/hqdefault.jpg`
     }
@@ -88,7 +88,7 @@ export default function PlaylistDetail() {
         return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`
       }
     }
-    // 最後使用歌手相片做 fallback
+    // 3. 最後使用歌手相片做 fallback
     if (song.artistPhoto) {
       return song.artistPhoto
     }
