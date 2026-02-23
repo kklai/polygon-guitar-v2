@@ -292,7 +292,7 @@ function PlaylistAdmin() {
                       {/* Cover - 手機 40x40，桌面 56x56 */}
                       <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
-                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
+                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-base sm:text-xl">📊</div>
                         )}
@@ -397,11 +397,11 @@ function PlaylistAdmin() {
                     onDragStart={(e) => handleDragStart(e, index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
-                    className={`p-2 sm:p-3 bg-[#121212] rounded-lg border transition cursor-move ${
+                    className={`p-2 sm:p-3 bg-[#121212] rounded-lg border transition cursor-move select-none ${
                       draggingIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 select-none">
                       {/* Drag Handle */}
                       <div className="flex items-center gap-1 sm:gap-2 text-gray-600">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -413,7 +413,7 @@ function PlaylistAdmin() {
                       {/* Cover - 手機 40x40，桌面 48x48 */}
                       <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
-                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
+                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-base sm:text-lg">✨</div>
                         )}
