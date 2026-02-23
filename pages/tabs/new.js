@@ -94,7 +94,7 @@ export default function NewTab() {
       // 如果沒有輸入筆名，使用用戶的 displayName
       const submitData = {
         ...formData,
-        uploaderPenName: formData.uploaderPenName.trim() || user.displayName || 'Anonymous'
+        uploaderPenName: formData.uploaderPenName.trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
       router.push(`/tabs/${newTab.id}`)

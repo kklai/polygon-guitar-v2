@@ -143,7 +143,7 @@ export default function EditTab() {
       // 如果沒有輸入筆名，使用用戶的 displayName
       const submitData = {
         ...formData,
-        uploaderPenName: formData.uploaderPenName.trim() || user.displayName || 'Anonymous'
+        uploaderPenName: formData.uploaderPenName.trim() || '結他友'
       }
       await updateTab(id, submitData, user.uid, isAdmin)
       router.push(`/tabs/${id}`)
