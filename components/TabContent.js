@@ -1005,9 +1005,8 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     const token = tokens[idx];
     const targetPos = tokenPositions[idx];
     
-    let startCol = token.isBarStart ? targetPos - 1 : targetPos;
-    // 延長符號稍微調整位置
-    if (token.isDash) startCol = targetPos;
+    // 直接使用 targetPos，唔減去 | 嘅寬度
+    let startCol = targetPos;
     
     if (startCol < currentCol) startCol = currentCol;
     
