@@ -389,23 +389,28 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           />
         ))}
         
-        {/* 弦線 */}
-        {Array.from({ length: stringCount }).map((_, i) => (
-          <line
-            key={`string-${i}`}
-            x1={padding + i * stringWidth}
-            y1={padding}
-            x2={padding + i * stringWidth}
-            y2={size - padding}
-            stroke={colors.grid}
-            strokeWidth={1}
-          />
-        ))}
+        {/* 弦線 - 最左係第6弦(最粗)，最右係第1弦(最幼) */}
+        {Array.from({ length: stringCount }).map((_, i) => {
+          // i=0 係第6弦(最粗), i=5 係第1弦(最幼)
+          const stringNumber = 6 - i; // 6,5,4,3,2,1
+          const strokeWidths = [3, 2.5, 2, 1.5, 1, 0.8]; // 第6弦到第1弦的粗細
+          return (
+            <line
+              key={`string-${i}`}
+              x1={padding + i * stringWidth}
+              y1={padding}
+              x2={padding + i * stringWidth}
+              y2={size - padding}
+              stroke={colors.grid}
+              strokeWidth={strokeWidths[i]}
+            />
+          );
+        })}
         
-        {/* Barre */}
+        {/* Barre - 弦號轉換: 最左係第6弦 */}
         {shape.barre && (
           <rect
-            x={padding + (shape.barre.from - 1) * stringWidth - 3}
+            x={padding + (6 - shape.barre.to) * stringWidth - 3}
             y={padding + (shape.barre.fret - 1) * fretHeight + fretHeight / 2 - 4}
             width={(shape.barre.to - shape.barre.from + 1) * stringWidth}
             height={8}
@@ -414,22 +419,22 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           />
         )}
         
-        {/* 手指位置 */}
+        {/* 手指位置 - 弦號轉換: 最左係第6弦(6), 最右係第1弦(1) */}
         {shape.fingers.map(([string, fret], i) => (
           <circle
             key={`finger-${i}`}
-            cx={padding + (string - 1) * stringWidth}
+            cx={padding + (6 - string) * stringWidth}
             cy={padding + (fret - 0.5) * fretHeight}
             r={5}
             fill={colors.finger}
           />
         ))}
         
-        {/* 開放弦標記 (o) */}
+        {/* 開放弦標記 (o) - 弦號轉換 */}
         {shape.open && shape.open.map((string) => (
           <text
             key={`open-${string}`}
-            x={padding + (string - 1) * stringWidth}
+            x={padding + (6 - string) * stringWidth}
             y={padding - 4}
             textAnchor="middle"
             fill={colors.text}
@@ -440,11 +445,11 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           </text>
         ))}
         
-        {/* 悶音標記 (x) */}
+        {/* 悶音標記 (x) - 弦號轉換 */}
         {shape.mute && shape.mute.map((string) => (
           <text
             key={`mute-${string}`}
-            x={padding + (string - 1) * stringWidth}
+            x={padding + (6 - string) * stringWidth}
             y={padding - 4}
             textAnchor="middle"
             fill="#ff4444"
