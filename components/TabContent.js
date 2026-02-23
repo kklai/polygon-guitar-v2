@@ -216,7 +216,7 @@ function findAdjustedBracketPositions(lyricLine) {
 }
 
 function normalizeInput(text) {
-  return text.replace(/｜/g, '|').replace(/　/g, ' ');
+  return text.replace(/｜/g, '|').replace(/　/g, ' ').replace(/\r?\n/g, '');
 }
 
 // Section marker 列表
@@ -1266,6 +1266,10 @@ const TabContent = ({
     let inBracket = false;
     
     for (let char of line) {
+      // 跳过换行符，避免产生空行
+      if (char === '\n' || char === '\r') {
+        continue;
+      }
       if (char === '(' || char === '（') {
         // 括號前的內容
         if (buffer) {
