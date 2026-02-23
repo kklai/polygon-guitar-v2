@@ -102,6 +102,10 @@ function HomeSettings() {
   
   const [message, setMessage] = useState('')
   const [activeTab, setActiveTab] = useState('artists')
+  
+  // 拖放排序狀態
+  const [draggingArtistIndex, setDraggingArtistIndex] = useState(null)
+  const [draggingTabIndex, setDraggingTabIndex] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -356,6 +360,57 @@ function HomeSettings() {
     setHasChanges(true)
   }
 
+  // 拖放排序 - 歌手
+  const handleArtistDragStart = (e, index) => {
+    setDraggingArtistIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleArtistDragOver = (e, index) => {
+    e.preventDefault()
+    if (draggingArtistIndex === null || draggingArtistIndex === index) return
+    
+    const currentSelection = settings.manualSelection || []
+    const newSelection = [...currentSelection]
+    const [movedItem] = newSelection.splice(draggingArtistIndex, 1)
+    newSelection.splice(index, 0, movedItem)
+    
+    setSettings(prev => ({ ...prev, manualSelection: newSelection }))
+    setDraggingArtistIndex(index)
+    setHasChanges(true)
+  }
+
+  const handleArtistDragEnd = () => {
+    setDraggingArtistIndex(null)
+  }
+
+  // 拖放排序 - 歌曲
+  const handleTabDragStart = (e, index) => {
+    setDraggingTabIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleTabDragOver = (e, index) => {
+    e.preventDefault()
+    if (draggingTabIndex === null || draggingTabIndex === index) return
+    
+    const newSelection = [...selectedTabIds]
+    const [movedItem] = newSelection.splice(draggingTabIndex, 1)
+    newSelection.splice(index, 0, movedItem)
+    
+    setSelectedTabIds(newSelection)
+    setSettings(prev => ({
+      ...prev,
+      hotTabs: { ...prev.hotTabs, manualSelection: newSelection }
+    }))
+    setDraggingTabIndex(index)
+    setHasChanges(true)
+  }
+
+  const handleTabDragEnd = () => {
+    setDraggingTabIndex(null)
+  }
+
   const moveSection = (index, direction) => {
     const newOrder = [...settings.sectionOrder]
     if (direction === 'up' && index > 0) {
@@ -582,12 +637,20 @@ function HomeSettings() {
                   const allSelected = getSelectedArtists()
                   return allSelected.length > 0 ? (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-400 mb-3">
-                      已揀選 ({allSelected.length})
-                      <span className="ml-2 text-xs text-gray-500">
-                        男: {getSelectedCounts().male} / 女: {getSelectedCounts().female} / 組合: {getSelectedCounts().group}
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-gray-400">
+                        已揀選 ({allSelected.length})
+                        <span className="ml-2 text-xs text-gray-500">
+                          男: {getSelectedCounts().male} / 女: {getSelectedCounts().female} / 組合: {getSelectedCounts().group}
+                        </span>
+                      </h3>
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                        拖曳可排序
                       </span>
-                    </h3>
+                    </div>
                     <div className="space-y-2">
                       {allSelected.map((artist, index) => {
                         const artistType = artist.artistType || artist.gender
@@ -597,9 +660,18 @@ function HomeSettings() {
                         return (
                           <div 
                             key={artist.id}
-                            className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800"
+                            draggable
+                            onDragStart={(e) => handleArtistDragStart(e, index)}
+                            onDragOver={(e) => handleArtistDragOver(e, index)}
+                            onDragEnd={handleArtistDragEnd}
+                            className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800 cursor-move transition-opacity ${draggingArtistIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
                           >
-                            <span className="text-gray-500 w-6">{index + 1}</span>
+                            <span className="text-gray-500 w-6 flex items-center gap-1">
+                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                              </svg>
+                              {index + 1}
+                            </span>
                             {artist.photoURL || artist.wikiPhotoURL ? (
                               <img 
                                 src={artist.photoURL || artist.wikiPhotoURL} 
@@ -814,9 +886,17 @@ function HomeSettings() {
                 {selectedTabIds.length > 0 && (
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-medium text-gray-400">
-                        已揀選 ({selectedTabIds.length})
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium text-gray-400">
+                          已揀選 ({selectedTabIds.length})
+                        </h3>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                          </svg>
+                          拖曳可排序
+                        </span>
+                      </div>
                       <button
                         onClick={() => {
                           setSelectedTabIds([])
@@ -838,9 +918,18 @@ function HomeSettings() {
                       {getSelectedTabs().map((tab, index) => (
                         <div 
                           key={tab.id}
-                          className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800"
+                          draggable
+                          onDragStart={(e) => handleTabDragStart(e, index)}
+                          onDragOver={(e) => handleTabDragOver(e, index)}
+                          onDragEnd={handleTabDragEnd}
+                          className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800 cursor-move transition-opacity ${draggingTabIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
                         >
-                          <span className="text-gray-500 w-6">{index + 1}</span>
+                          <span className="text-gray-500 w-6 flex items-center gap-1">
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                            </svg>
+                            {index + 1}
+                          </span>
                           {tab.thumbnail || tab.youtubeVideoId ? (
                             <img 
                               src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/default.jpg`} 
