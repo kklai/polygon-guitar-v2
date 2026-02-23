@@ -91,23 +91,21 @@ export default function NewTab() {
   // 區塊展開/收合狀態
   const [expandedSections, setExpandedSections] = useState({
     basic: true,
+    spotify: false,
     key: true,
     youtube: true,
     content: true,
-    uploader: true,
-    techniques: false,
-    spotify: false
+    uploader: true
   })
   
   // 區塊排序
   const [sectionOrder, setSectionOrder] = useState([
     'basic',
+    'spotify',
     'key',
     'youtube', 
     'content',
-    'uploader',
-    'techniques',
-    'spotify'
+    'uploader'
   ])
   
   // 拖放狀態
@@ -521,24 +519,6 @@ E|----------------------------------------------------------------|
       </div>
     ),
     
-    techniques: (
-      <div className="space-y-3 pt-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">掃弦節奏 (Strumming Pattern)</label>
-          <textarea name="strummingPattern" value={formData.strummingPattern} onChange={handleChange}
-            placeholder="例如：↓ ↓↑ ↓↑ ↓↑" rows={3}
-            className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm font-mono" />
-          <p className="mt-1 text-xs text-gray-500">可以用箭頭 ↓↑ 或 D/U 表示</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">指法提示 (Fingering Tips)</label>
-          <textarea name="fingeringTips" value={formData.fingeringTips} onChange={handleChange}
-            placeholder="例如：副歌可以用Power Chord加強節奏感..." rows={3}
-            className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
-        </div>
-      </div>
-    ),
-    
     spotify: (
       <div className="space-y-4 pt-4">
         <button type="button" onClick={handleSearchSpotify}
@@ -568,12 +548,11 @@ E|----------------------------------------------------------------|
 
   const sectionTitles = {
     basic: '基本資訊（歌名、歌手、歌曲資料）',
+    spotify: 'Spotify 歌曲資訊',
     key: '調性與彈法（Key、Capo、技巧）',
     youtube: 'YouTube 影片',
     content: '譜內容',
-    uploader: '上傳者筆名',
-    techniques: '演奏技巧',
-    spotify: 'Spotify 歌曲資訊'
+    uploader: '上傳者筆名'
   }
 
   return (
