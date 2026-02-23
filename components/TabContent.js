@@ -1071,153 +1071,9 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
 // 將長的和弦行和歌詞行拆分成多對，保持每對不換行
 // 只在手機版（屏幕寬度 < 768px）時啟用
 function splitLongPair(chordLine, lyricLine, maxChars = 28, isMobile = false) {
-  // 如果不是手機版，直接返回原樣（不拆分）
-  if (!isMobile) {
-    return [{ chordLine, lyricLine }];
-  }
-  
-  // 如果歌詞不長，直接返回原樣
-  const lyricLength = Array.from(lyricLine).length;
-  if (lyricLength <= maxChars) {
-    return [{ chordLine, lyricLine }];
-  }
-  
-  // 解析和弦行，找到每個小節
-  const bars = [];
-  let currentBar = { chords: '', start: 0, end: 0, chordCount: 0 };
-  let inBar = false;
-  
-  const chordChars = Array.from(chordLine);
-  for (let i = 0; i < chordChars.length; i++) {
-    const char = chordChars[i];
-    
-    if (char === '|') {
-      if (inBar && currentBar.chords.trim()) {
-        currentBar.end = i;
-        bars.push({ ...currentBar });
-      }
-      inBar = true;
-      currentBar = { chords: '|', start: i, end: i, chordCount: 0 };
-    } else if (inBar) {
-      currentBar.chords += char;
-      // 計算這個小節有多少個和弦
-      if (/[A-G]/.test(char) && (i === 0 || !/[A-G#b]/.test(chordChars[i-1]))) {
-        currentBar.chordCount++;
-      }
-    }
-  }
-  
-  // 添加最後一個小節
-  if (inBar && currentBar.chords.trim() && currentBar.chords !== '|') {
-    currentBar.end = chordChars.length;
-    bars.push({ ...currentBar });
-  }
-  
-  // 如果沒有找到小節線，直接返回原樣
-  if (bars.length === 0) {
-    return [{ chordLine, lyricLine }];
-  }
-  
-  // 找到歌詞中所有括號的位置，避免在括號內切割
-  const bracketRanges = [];
-  let inBracket = false;
-  let bracketStart = 0;
-  const lyricChars = Array.from(lyricLine);
-  
-  for (let i = 0; i < lyricChars.length; i++) {
-    const char = lyricChars[i];
-    if (char === '(' || char === '（') {
-      inBracket = true;
-      bracketStart = i;
-    } else if (char === ')' || char === '）') {
-      if (inBracket) {
-        bracketRanges.push({ start: bracketStart, end: i });
-      }
-      inBracket = false;
-    }
-  }
-  
-  // 輔助函數：檢查位置是否在括號內
-  const isInBracket = (pos) => {
-    return bracketRanges.some(r => pos > r.start && pos < r.end);
-  };
-  
-  // 輔助函數：找到最佳的切割位置（優先在空格，避免在括號內）
-  const findBestSplitPos = (startPos, targetEnd) => {
-    // 先嘗試在 targetEnd 附近找空格
-    let bestPos = targetEnd;
-    
-    // 向前找空格（優先）
-    for (let i = targetEnd; i > startPos; i--) {
-      if (lyricChars[i] === ' ' && !isInBracket(i)) {
-        return i;
-      }
-    }
-    
-    // 向後找空格
-    for (let i = targetEnd; i < lyricChars.length && i < targetEnd + 5; i++) {
-      if (lyricChars[i] === ' ' && !isInBracket(i)) {
-        return i;
-      }
-    }
-    
-    // 如果 targetEnd 在括號內，向前找到括號外
-    if (isInBracket(targetEnd)) {
-      for (let i = targetEnd; i >= startPos; i--) {
-        if (!isInBracket(i)) {
-          // 確保不會切在括號內
-          const range = bracketRanges.find(r => i >= r.start && i <= r.end);
-          if (range && i > range.start) {
-            return range.start; // 切在括號開始前
-          }
-          return i;
-        }
-      }
-    }
-    
-    return Math.min(targetEnd, lyricChars.length);
-  };
-  
-  const pairs = [];
-  let currentPairChords = '';
-  let currentPairLyricStart = 0;
-  let currentPairLyricLen = 0;
-  const totalChordCount = bars.reduce((sum, b) => sum + b.chordCount, 1);
-  
-  for (let i = 0; i < bars.length; i++) {
-    const bar = bars[i];
-    // 按和弦數量比例估算歌詞長度
-    const estimatedLyricLen = Math.round((bar.chordCount / totalChordCount) * lyricChars.length);
-    
-    // 如果加上這個小節會超過限制，先保存當前pair
-    if (currentPairLyricLen + estimatedLyricLen > maxChars && currentPairChords) {
-      // 找到最佳切割位置
-      const targetEnd = Math.min(currentPairLyricStart + currentPairLyricLen + 2, lyricChars.length);
-      const bestEnd = findBestSplitPos(currentPairLyricStart, targetEnd);
-      
-      pairs.push({
-        chordLine: currentPairChords,
-        lyricLine: lyricChars.slice(currentPairLyricStart, bestEnd + 1).join('').trimEnd()
-      });
-      
-      currentPairChords = bar.chords;
-      currentPairLyricStart = bestEnd + 1;
-      currentPairLyricLen = estimatedLyricLen;
-    } else {
-      currentPairChords += bar.chords;
-      currentPairLyricLen += estimatedLyricLen;
-    }
-  }
-  
-  // 添加最後一個pair
-  if (currentPairChords) {
-    pairs.push({
-      chordLine: currentPairChords,
-      lyricLine: lyricChars.slice(currentPairLyricStart).join('').trimEnd()
-    });
-  }
-  
-  return pairs.length > 0 ? pairs : [{ chordLine, lyricLine }];
+  // 暫時禁用自動拆分功能，避免文字丟失和對齊問題
+  // 直接返回原樣，讓歌詞自然換行
+  return [{ chordLine, lyricLine }];
 }
 
 // ============ 主組件 ============
@@ -1621,7 +1477,7 @@ const TabContent = ({
             elements.push(
               <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairIndex < pairs.length - 1 ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.6}px` }}>
                 {/* 和弦行 */}
-                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="font-bold" style={{ color: colors.chord, fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', marginBottom: '0.05em', lineHeight: '1.2', fontWeight: 700 }}>
                   {pairIndex === 0 && prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
                   {result.chordLine}
                   {pairIndex === pairs.length - 1 && suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
@@ -1709,7 +1565,7 @@ const TabContent = ({
                 })}
                 
                 {/* 歌詞行 - 括號外灰色，括號內白色 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre', lineHeight: '1.2', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => {
                     // 隱藏括號時，直接不 render 括號
                     if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
