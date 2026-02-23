@@ -169,6 +169,10 @@ function isCJK(char) {
 function getCharWidth(char) {
   if (char === '\u3000') return 2;
   if (isCJK(char)) return 2;
+  // 全形標點符號（如 （））寬度為 2
+  const code = char.charCodeAt(0);
+  if (code >= 0xFF01 && code <= 0xFF5E) return 2; // 全形 ASCII 變體
+  if (code >= 0xFFE0 && code <= 0xFFE6) return 2; // 全形符號
   return 1;
 }
 
