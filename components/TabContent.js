@@ -188,6 +188,30 @@ function findBracketPositions(lyricLine) {
   return positions;
 }
 
+// 計算隱藏括號後嘅調整位置
+function findAdjustedBracketPositions(lyricLine) {
+  const positions = [];
+  let currentWidth = 0;
+  let bracketWidthToSubtract = 0;
+  
+  for (let char of lyricLine) {
+    const charWidth = getCharWidth(char);
+    
+    if (char === '(' || char === '（') {
+      // 記錄調整後嘅位置（減去之前所有括號嘅寬度）
+      positions.push(currentWidth - bracketWidthToSubtract);
+      // 半形括號寬度1，全形括號寬度2
+      bracketWidthToSubtract += (char === '(' ? 1 : 2);
+    } else if (char === ')' || char === '）') {
+      // 閉合括號都要減去寬度
+      bracketWidthToSubtract += (char === ')' ? 1 : 2);
+    }
+    
+    currentWidth += charWidth;
+  }
+  return positions;
+}
+
 function normalizeInput(text) {
   return text.replace(/｜/g, '|').replace(/　/g, ' ');
 }
@@ -823,12 +847,15 @@ function processMixedLine(line, transposeSemitones = 0) {
   };
 }
 
-function processPair(chordLine, lyricLine, transposeSemitones = 0) {
+function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets = false) {
   // 先確保和弦之間有空格，再處理
   const chordWithSpacing = normalizeChordSpacing(chordLine);
   const normalizedChord = normalizeInput(chordWithSpacing);
   const normalizedLyric = normalizeInput(lyricLine);
-  const bracketPositions = findBracketPositions(normalizedLyric);
+  // 根據是否隱藏括號，使用唔同嘅位置計算
+  const bracketPositions = hideBrackets 
+    ? findAdjustedBracketPositions(normalizedLyric) 
+    : findBracketPositions(normalizedLyric);
   
   // 解析和弦行，記錄每個 token 及其位置
   const tokens = [];
@@ -1400,7 +1427,7 @@ const TabContent = ({
         if (hasLyric) {
           // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-          const result = processPair(cleanLine, lyricLine, transposeSemitones);
+          const result = processPair(cleanLine, lyricLine, transposeSemitones, hideBrackets);
           
           elements.push(
             <div key={i} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
