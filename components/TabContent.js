@@ -1005,8 +1005,11 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     const token = tokens[idx];
     const targetPos = tokenPositions[idx];
     
-    // 直接使用 targetPos，唔減去 | 嘅寬度
-    let startCol = targetPos;
+    // 如果 token 有 |，讓和弦名（唔包 |）對齊括號
+    // 即 startCol = targetPos - 1（| 佔 1 位），咁和弦名就會喺 targetPos 開始
+    let startCol = token.isBarStart ? targetPos - 1 : targetPos;
+    // 確保唔會負數
+    if (startCol < 0) startCol = 0;
     
     if (startCol < currentCol) startCol = currentCol;
     
