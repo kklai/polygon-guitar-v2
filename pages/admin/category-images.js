@@ -3,11 +3,15 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { doc, getDoc, setDoc, collection, query, where, limit, getDocs } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
+import { uploadToCloudinary } from '../../lib/cloudinary'
+import Layout from '../../components/Layout'
+import AdminGuard from '../../components/AdminGuard'
 
-export default function CategoryImagesAdmin() {
+function CategoryImagesAdmin() {
   const [categoryImages, setCategoryImages] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [uploadingCat, setUploadingCat] = useState(null)
   const [message, setMessage] = useState(null)
 
   useEffect(() => {
@@ -158,6 +162,56 @@ export default function CategoryImagesAdmin() {
     }
   }
 
+  // 上傳自訂分類圖片
+  const handleUpload = async (catId, file) => {
+    if (!file) return
+    
+    setUploadingCat(catId)
+    setMessage(null)
+    
+    try {
+      const imageUrl = await uploadToCloudinary(file, `category-${catId}`, 'category_covers')
+      
+      // 更新 Firestore
+      const settingsRef = doc(db, 'settings', 'categoryImages')
+      await setDoc(settingsRef, {
+        [catId]: {
+          image: imageUrl,
+          custom: true,
+          updatedAt: new Date().toISOString()
+        }
+      }, { merge: true })
+      
+      setMessage({ type: 'success', text: '圖片上傳成功' })
+      await loadCategoryImages()
+    } catch (error) {
+      console.error('Upload error:', error)
+      setMessage({ type: 'error', text: '上傳失敗：' + error.message })
+    } finally {
+      setUploadingCat(null)
+    }
+  }
+
+  // 清除自訂圖片（恢復自動選擇）
+  const handleClearCustom = async (catId) => {
+    if (!confirm('確定要清除自訂圖片，恢復自動選擇嗎？')) return
+    
+    try {
+      const settingsRef = doc(db, 'settings', 'categoryImages')
+      await setDoc(settingsRef, {
+        [catId]: {
+          custom: false,
+          updatedAt: new Date().toISOString()
+        }
+      }, { merge: true })
+      
+      setMessage({ type: 'success', text: '已恢復自動選擇' })
+      await loadCategoryImages()
+    } catch (error) {
+      setMessage({ type: 'error', text: '操作失敗：' + error.message })
+    }
+  }
+
   const categories = [
     { id: 'male', name: '男歌手', icon: '👨‍🎤' },
     { id: 'female', name: '女歌手', icon: '👩‍🎤' },
@@ -165,34 +219,34 @@ export default function CategoryImagesAdmin() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white p-6">
+    <Layout>
       <Head>
         <title>分類封面管理 | Polygon Guitar</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">分類封面管理</h1>
-            <p className="text-slate-400">手動更新首頁歌手分類顯示的封面圖片</p>
+            <h1 className="text-3xl font-bold text-white mb-2">分類封面管理</h1>
+            <p className="text-gray-400">手動更新首頁歌手分類顯示的封面圖片</p>
           </div>
-          <Link href="/admin" className="text-slate-400 hover:text-white">← 返回管理員</Link>
+          <Link href="/admin" className="text-gray-400 hover:text-white">← 返回管理員</Link>
         </div>
 
-        <div className="bg-slate-800 rounded-lg p-6 mb-8">
-          <div className="flex items-center justify-between">
+        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold mb-1">手動更新封面</h2>
-              <p className="text-slate-400 text-sm">
+              <h2 className="text-xl font-semibold text-white mb-1">自動更新封面</h2>
+              <p className="text-gray-400 text-sm">
                 系統會獲取各類別最熱門的歌手相片作為封面<br/>
-                <span className="text-slate-500">（組合會檢查 group / band 兩種類型）</span>
+                <span className="text-gray-500">（組合會檢查 group / band 兩種類型）</span>
               </p>
             </div>
             <button
               onClick={handleUpdate}
               disabled={updating}
-              className={`px-6 py-3 rounded-lg font-medium ${
-                updating ? 'bg-slate-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              className={`px-6 py-3 rounded-lg font-medium whitespace-nowrap ${
+                updating ? 'bg-gray-700 cursor-not-allowed text-gray-400' : 'bg-[#FFD700] text-black hover:opacity-90'
               }`}
             >
               {updating ? '更新中...' : '立即更新'}
@@ -201,7 +255,7 @@ export default function CategoryImagesAdmin() {
 
           {message && (
             <div className={`mt-4 p-4 rounded-lg ${
-              message.type === 'success' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
+              message.type === 'success' ? 'bg-green-900/30 border border-green-700 text-green-400' : 'bg-red-900/30 border border-red-700 text-red-400'
             }`}>
               {message.text}
             </div>
@@ -211,9 +265,12 @@ export default function CategoryImagesAdmin() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {categories.map((cat) => {
             const data = categoryImages?.[cat.id]
+            const isCustom = data?.custom === true
+            
             return (
-              <div key={cat.id} className="bg-slate-800 rounded-lg overflow-hidden">
-                <div className="relative aspect-square">
+              <div key={cat.id} className="bg-[#121212] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition">
+                {/* 圖片區域 */}
+                <div className="relative aspect-square group">
                   {data?.image ? (
                     <img src={data.image} alt={cat.name} className="w-full h-full object-cover"/>
                   ) : (
@@ -222,23 +279,80 @@ export default function CategoryImagesAdmin() {
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                  
+                  {/* 標籤 */}
+                  <div className="absolute top-3 left-3">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      isCustom ? 'bg-[#FFD700] text-black' : 'bg-blue-600 text-white'
+                    }`}>
+                      {isCustom ? '✏️ 自訂' : '🤖 自動'}
+                    </span>
+                  </div>
+                  
+                  {/* 上傳按鈕 */}
+                  <label className={`absolute inset-0 flex flex-col items-center justify-center bg-black/60 cursor-pointer transition ${data?.image ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                    {uploadingCat === cat.id ? (
+                      <>
+                        <svg className="w-10 h-10 animate-spin text-white mb-2" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span className="text-white text-sm">上傳中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-10 h-10 text-white mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-white text-sm font-medium">點擊上傳圖片</span>
+                        <span className="text-white/60 text-xs mt-1">建議尺寸 600x600</span>
+                      </>
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      disabled={uploadingCat === cat.id}
+                      onChange={(e) => { 
+                        const file = e.target.files[0]
+                        if (file) handleUpload(cat.id, file)
+                      }} 
+                    />
+                  </label>
+                  
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <h3 className="text-xl font-bold">{cat.name}</h3>
-                    {data?.artistName && <p className="text-slate-300">{data.artistName}</p>}
+                    {data?.artistName && !isCustom && <p className="text-slate-300 text-sm">{data.artistName}</p>}
                   </div>
                 </div>
+                
+                {/* 資訊區域 */}
                 <div className="p-4 space-y-2">
-                  {data?.artistType && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">類型</span>
-                      <span className="text-slate-200">{data.artistType}</span>
+                  {isCustom ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#FFD700]">✓ 手動上傳圖片</span>
+                      <button
+                        onClick={() => handleClearCustom(cat.id)}
+                        className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-900/30 transition"
+                      >
+                        恢復自動
+                      </button>
                     </div>
-                  )}
-                  {data?.hotScore !== undefined && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">熱門分數</span>
-                      <span className="text-slate-200">{data.hotScore}</span>
-                    </div>
+                  ) : (
+                    <>
+                      {data?.artistType && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">來源歌手</span>
+                          <span className="text-slate-200">{data.artistName || '未知'}</span>
+                        </div>
+                      )}
+                      {data?.hotScore !== undefined && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">熱門分數</span>
+                          <span className="text-slate-200">{data.hotScore}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                   {data?.updatedAt && (
                     <div className="flex justify-between text-sm">
@@ -248,24 +362,32 @@ export default function CategoryImagesAdmin() {
                       </span>
                     </div>
                   )}
-                  {!data && <p className="text-slate-500 text-sm text-center py-2">尚未設定封面</p>}
+                  {!data && <p className="text-gray-500 text-sm text-center py-2">尚未設定封面，請上傳圖片或按上方「立即更新」</p>}
                 </div>
               </div>
             )
           })}
         </div>
 
-        <div className="mt-8 bg-slate-800/50 rounded-lg p-4">
-          <h3 className="text-lg font-medium mb-2">說明</h3>
-          <ul className="text-sm text-slate-400 space-y-1 list-disc list-inside">
-            <li>系統會根據歌手的 tabCount（譜數量）排序，選出最熱門的歌手</li>
-            <li>優先使用用戶上傳的圖片，其次維基百科圖片</li>
-            <li>支援 artistType 和 gender 兩個欄位（兼容舊資料）</li>
-            <li>組合類別會檢查 'group' 或 'band'</li>
-            <li>需要時才手動更新，無需自動排程</li>
+        <div className="mt-8 bg-[#121212] border border-gray-800 rounded-xl p-4">
+          <h3 className="text-lg font-medium text-white mb-2">說明</h3>
+          <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
+            <li>點擊圖片區域可直接上傳自訂封面（會顯示「自訂」標籤）</li>
+            <li>按「立即更新」會自動從各類別最熱門歌手獲取圖片（會顯示「自動」標籤）</li>
+            <li>自訂圖片可隨時恢復為自動選擇</li>
+            <li>建議上傳正方形圖片（600x600 或以上）</li>
+            <li>支援 JPG、PNG 格式</li>
           </ul>
         </div>
       </div>
-    </div>
+    </Layout>
+  )
+}
+
+export default function CategoryImagesPage() {
+  return (
+    <AdminGuard>
+      <CategoryImagesAdmin />
+    </AdminGuard>
   )
 }
