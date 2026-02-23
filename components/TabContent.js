@@ -1305,9 +1305,9 @@ const TabContent = ({
               if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
                 return null;
               }
-              // 決定顏色
+              // 決定顏色：括號內文字、括號本身都係白色
               let partColor;
-              if (part.type === 'inside') {
+              if (part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
                 partColor = colors.lyricInside;
               } else {
                 partColor = colors.lyricNormal;
@@ -1514,9 +1514,9 @@ const TabContent = ({
                           const textColor = item.isInside ? colors.lyricInside : colors.lyricNormal;
                           return (
                             <span key={idx} style={{ whiteSpace: 'pre' }}>
-                              {!hideBrackets && <span style={{ color: colors.lyricNormal }}>(</span>}
+                              {!hideBrackets && <span style={{ color: textColor }}>{content.charAt(0)}</span>}
                               <span style={{ color: textColor }}>{innerText}</span>
-                              {!hideBrackets && <span style={{ color: colors.lyricNormal }}>)</span>}
+                              {!hideBrackets && <span style={{ color: textColor }}>{content.charAt(content.length - 1)}</span>}
                             </span>
                           );
                         } else if (item.type === 'pair') {
@@ -1539,9 +1539,9 @@ const TabContent = ({
                               minWidth: `${getTextWidth(widthText) * (lineFontSize / 2)}px`,
                               fontWeight: theme === 'day' ? 'bold' : 'normal'
                             }}>
-                              {!hideBrackets && item.isInside && <span style={{ color: colors.lyricNormal }}>{openParen}</span>}
+                              {!hideBrackets && item.isInside && <span style={{ color: textColor }}>{openParen}</span>}
                               <span style={{ color: textColor }}>{innerText}</span>
-                              {!hideBrackets && item.isInside && <span style={{ color: colors.lyricNormal }}>{closeParen}</span>}
+                              {!hideBrackets && item.isInside && <span style={{ color: textColor }}>{closeParen}</span>}
                             </span>
                           );
                         }
@@ -1553,9 +1553,9 @@ const TabContent = ({
                       if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
                         return null;
                       }
-                      // 決定顏色
+                      // 決定顏色：括號內、括號本身都係白色
                       let partColor;
-                      if (part.isInside || part.type === 'inside') {
+                      if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
                         partColor = colors.lyricInside;
                       } else {
                         partColor = colors.lyricNormal;
@@ -1563,7 +1563,7 @@ const TabContent = ({
                       return (
                         <span key={idx} style={{ 
                           color: partColor,
-                          fontWeight: (part.isInside || part.type === 'inside') && theme === 'day' ? 'bold' : 'normal'
+                          fontWeight: (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') && theme === 'day' ? 'bold' : 'normal'
                         }}>
                           {part.text}
                         </span>
@@ -1579,9 +1579,9 @@ const TabContent = ({
                     if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
                       return null;
                     }
-                    // 決定顏色
+                    // 決定顏色：括號內、括號本身都係白色
                     let partColor;
-                    if (part.isInside || part.type === 'inside') {
+                    if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
                       partColor = colors.lyricInside;
                     } else {
                       partColor = colors.lyricNormal;
@@ -1589,7 +1589,7 @@ const TabContent = ({
                     return (
                       <span key={idx} style={{ 
                         color: partColor,
-                        fontWeight: (part.isInside || part.type === 'inside') && theme === 'day' ? 'bold' : 'normal'
+                        fontWeight: (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') && theme === 'day' ? 'bold' : 'normal'
                       }}>
                         {part.text}
                       </span>
