@@ -15,6 +15,7 @@ import {
   limit
 } from 'firebase/firestore'
 import { getAllArtists, getAllTabs, getRecentTabs } from '@/lib/tabs'
+import { getAllPlaylists } from '@/lib/playlists'
 
 const SORT_OPTIONS = [
   { value: 'viewCount', label: '總瀏覽量', desc: '按歌手所有歌曲瀏覽總和排序' },
@@ -67,7 +68,9 @@ function HomeSettings() {
       { id: 'autoPlaylists', enabled: true, customLabel: '' },
       { id: 'latest', enabled: true, customLabel: '' },
       { id: 'manualPlaylists', enabled: true, customLabel: '' }
-    ]
+    ],
+    // 自定義歌單區域
+    customPlaylistSections: []
   })
   
   // 追踪是否有未保存的改動
@@ -103,6 +106,11 @@ function HomeSettings() {
   const [message, setMessage] = useState('')
   const [activeTab, setActiveTab] = useState('artists')
   
+  // 歌單區域相關
+  const [playlists, setPlaylists] = useState([])
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false)
+  const [playlistSearchTerm, setPlaylistSearchTerm] = useState('')
+  
   // 拖放排序狀態
   const [draggingArtistIndex, setDraggingArtistIndex] = useState(null)
   const [draggingTabIndex, setDraggingTabIndex] = useState(null)
@@ -135,11 +143,14 @@ function HomeSettings() {
 
   const loadData = async () => {
     try {
-      const [artistsData, tabsData, settingsDoc] = await Promise.all([
+      const [artistsData, tabsData, playlistsData, settingsDoc] = await Promise.all([
         getAllArtists(),
         getAllTabs(), // 載入所有歌曲，類似 search 頁面
+        getAllPlaylists(),
         getDoc(doc(db, 'settings', 'home'))
       ])
+      
+      setPlaylists(playlistsData)
       
       setArtists(artistsData)
       setTabs(tabsData)
@@ -178,7 +189,8 @@ function HomeSettings() {
             ...prev.hotTabs,
             ...(data.hotTabs || {})
           },
-          sectionOrder: data.sectionOrder || prev.sectionOrder
+          sectionOrder: data.sectionOrder || prev.sectionOrder,
+          customPlaylistSections: data.customPlaylistSections || []
         }))
         
         // 初始化已選歌曲 - 確保只包含 ID 字符串
@@ -426,6 +438,52 @@ function HomeSettings() {
     const newOrder = [...settings.sectionOrder]
     newOrder[index] = { ...newOrder[index], enabled: !newOrder[index].enabled }
     setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
+    setHasChanges(true)
+  }
+
+  // 添加自定義歌單區域
+  const addCustomPlaylistSection = (playlist) => {
+    const newSection = {
+      id: `playlist-${playlist.id}`,
+      type: 'customPlaylist',
+      playlistId: playlist.id,
+      title: playlist.title,
+      enabled: true
+    }
+    setSettings(prev => ({
+      ...prev,
+      customPlaylistSections: [...(prev.customPlaylistSections || []), newSection]
+    }))
+    setHasChanges(true)
+    setShowPlaylistModal(false)
+  }
+
+  // 移除自定義歌單區域
+  const removeCustomPlaylistSection = (index) => {
+    setSettings(prev => ({
+      ...prev,
+      customPlaylistSections: prev.customPlaylistSections.filter((_, i) => i !== index)
+    }))
+    setHasChanges(true)
+  }
+
+  // 移動自定義歌單區域
+  const moveCustomPlaylistSection = (index, direction) => {
+    const sections = [...(settings.customPlaylistSections || [])]
+    if (direction === 'up' && index > 0) {
+      [sections[index], sections[index - 1]] = [sections[index - 1], sections[index]]
+    } else if (direction === 'down' && index < sections.length - 1) {
+      [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]]
+    }
+    setSettings(prev => ({ ...prev, customPlaylistSections: sections }))
+    setHasChanges(true)
+  }
+
+  // 切換自定義歌單區域顯示
+  const toggleCustomPlaylistSection = (index) => {
+    const sections = [...(settings.customPlaylistSections || [])]
+    sections[index] = { ...sections[index], enabled: !sections[index].enabled }
+    setSettings(prev => ({ ...prev, customPlaylistSections: sections }))
     setHasChanges(true)
   }
 
@@ -1074,6 +1132,76 @@ function HomeSettings() {
               </button>
             </div>
             
+            {/* 自定義歌單區域 */}
+            {settings.customPlaylistSections?.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-400 mb-3 px-4">自定義歌單區域</h3>
+                <div className="space-y-2 px-4">
+                  {settings.customPlaylistSections.map((section, index) => (
+                    <div 
+                      key={section.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        section.enabled 
+                          ? 'bg-[#FFD700]/10 border-[#FFD700]/30' 
+                          : 'bg-gray-900/30 border-gray-800/50 opacity-50'
+                      }`}
+                    >
+                      <span className="text-xl">💿</span>
+                      <div className="flex-1">
+                        <p className="text-white font-medium">{section.title}</p>
+                        <p className="text-xs text-gray-500">自定義歌單區域</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => moveCustomPlaylistSection(index, 'up')}
+                          disabled={index === 0}
+                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => moveCustomPlaylistSection(index, 'down')}
+                          disabled={index === settings.customPlaylistSections.length - 1}
+                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          onClick={() => toggleCustomPlaylistSection(index)}
+                          className={`px-3 py-1 rounded text-sm font-medium transition ${
+                            section.enabled
+                              ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          }`}
+                        >
+                          {section.enabled ? '顯示' : '隱藏'}
+                        </button>
+                        <button
+                          onClick={() => removeCustomPlaylistSection(index)}
+                          className="p-2 text-red-400 hover:text-red-300"
+                          title="移除"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 新增歌單區域按鈕 */}
+            <div className="px-4 mb-6">
+              <button
+                onClick={() => setShowPlaylistModal(true)}
+                className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-[#FFD700] hover:text-[#FFD700] transition flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">+</span>
+                新增歌單區域
+              </button>
+            </div>
+
             <div className="p-4">
               <div className="space-y-2">
                 {settings.sectionOrder?.map((section, index) => {
@@ -1163,6 +1291,80 @@ function HomeSettings() {
             查看首頁
           </button>
         </div>
+
+        {/* 選擇歌單 Modal */}
+        {showPlaylistModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-lg max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">選擇歌單</h3>
+                <button
+                  onClick={() => setShowPlaylistModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="p-4">
+                <input
+                  type="text"
+                  value={playlistSearchTerm}
+                  onChange={(e) => setPlaylistSearchTerm(e.target.value)}
+                  placeholder="搜尋歌單..."
+                  className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500"
+                />
+              </div>
+              
+              <div className="flex-1 overflow-y-auto px-4 pb-4">
+                <div className="space-y-2">
+                  {playlists
+                    .filter(p => {
+                      if (!playlistSearchTerm) return true
+                      return p.title?.toLowerCase().includes(playlistSearchTerm.toLowerCase())
+                    })
+                    .filter(p => {
+                      // 過濾已添加的歌單
+                      return !settings.customPlaylistSections?.some(s => s.playlistId === p.id)
+                    })
+                    .map(playlist => (
+                      <button
+                        key={playlist.id}
+                        onClick={() => addCustomPlaylistSection(playlist)}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-900/50 hover:bg-gray-800 transition text-left"
+                      >
+                        <div className="w-12 h-12 rounded bg-gray-800 flex-shrink-0 overflow-hidden">
+                          {playlist.coverImage ? (
+                            <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium truncate">{playlist.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {playlist.songIds?.length || 0} 首
+                            {playlist.source === 'auto' && ' • 自動生成'}
+                            {playlist.source === 'manual' && playlist.curatedBy && ` • By ${playlist.curatedBy}`}
+                          </p>
+                        </div>
+                        <span className="text-[#FFD700]">+</span>
+                      </button>
+                    ))}
+                </div>
+                
+                {playlists.filter(p => {
+                  if (!playlistSearchTerm) return true
+                  return p.title?.toLowerCase().includes(playlistSearchTerm.toLowerCase())
+                }).filter(p => !settings.customPlaylistSections?.some(s => s.playlistId === p.id)).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    {playlistSearchTerm ? '沒有符合的歌單' : '所有歌單已添加'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   )

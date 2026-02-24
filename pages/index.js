@@ -837,6 +837,63 @@ export default function Home() {
           })
         })()}
 
+        {/* 自定義歌單區域 */}
+        {(() => {
+          const customSections = homeSettings.customPlaylistSections || []
+          return customSections
+            .filter(section => section.enabled !== false)
+            .map(section => {
+              const playlist = manualPlaylists.find(p => p.id === section.playlistId) || 
+                              autoPlaylists.find(p => p.id === section.playlistId)
+              
+              if (!playlist || !playlist.songIds || playlist.songIds.length === 0) {
+                return null
+              }
+              
+              // 獲取歌單的歌曲詳情（從已加載的歌曲中查找）
+              const sectionSongs = playlist.songIds
+                .map(id => latestSongs.find(s => s.id === id) || hotTabs.find(s => s.id === id))
+                .filter(Boolean)
+                .slice(0, 10) // 最多顯示 10 首
+              
+              if (sectionSongs.length === 0) {
+                return null
+              }
+              
+              return (
+                <section key={section.id} className="mb-10">
+                  <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title}</h2>
+                  <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                    {sectionSongs.map((song) => (
+                      <button
+                        key={song.id}
+                        onClick={() => handleSongClick(song.id)}
+                        className="flex-shrink-0 flex flex-col text-left w-36"
+                      >
+                        <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                          {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                            <img
+                              src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                              alt={song.title}
+                              className="w-full h-full object-cover"
+                              draggable="false"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                          )}
+                        </div>
+                        <h3 className="text-sm text-white font-medium truncate">
+                          {song.title}
+                        </h3>
+                        <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )
+            })
+        })()}
+
         {/* 底部 Spacer */}
         <div className="h-8" />
         
