@@ -1319,6 +1319,26 @@ const TabContent = ({
     if (!content) return null;
 
     const lines = content.split('\n');
+    
+    // Arial 簡單模式：唔做任何複雜處理，直接顯示每一行
+    if (displayFont === 'arial') {
+      return (
+        <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+          {lines.map((line, idx) => (
+            <div key={idx} style={{ 
+              fontSize: `${fontSize}px`, 
+              marginBottom: '0.3em', 
+              whiteSpace: 'pre',
+              color: line.match(/[\u4e00-\u9fff]/) ? colors.lyricInside : colors.chord // 中文字白色，其他黃色
+            }}>
+              {line || ' '}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    // 等寬字體模式：原有複雜處理
     const elements = [];
     let i = 0;
 
