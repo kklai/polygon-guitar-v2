@@ -72,6 +72,14 @@ export default function EditTab() {
     }
     return 1.1;
   })
+  
+  // 字體模式：等寬（mono）或 Arial（比例字體）
+  const [fontMode, setFontMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('tabFontMode') || 'mono';
+    }
+    return 'mono';
+  })
 
   // 檢查相似歌手並自動獲取相片
   useEffect(() => {
@@ -827,30 +835,46 @@ export default function EditTab() {
 
             {/* Content */}
             <div>
-              {/* 對齊參數調整 */}
+              {/* 字體模式切換 */}
               <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#FFD700]/30 mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-[#FFD700] font-medium">對齊強度（Paste 譜時用）</label>
-                  <span className="text-sm text-[#FFD700] font-mono bg-[#FFD700]/10 px-2 py-0.5 rounded">{alignFactor.toFixed(2)}</span>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-[#FFD700] font-medium">編輯字體模式</label>
+                  <div className="flex items-center gap-2 bg-black rounded-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFontMode('mono');
+                        localStorage.setItem('tabFontMode', 'mono');
+                      }}
+                      className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                        fontMode === 'mono' 
+                          ? 'bg-[#FFD700] text-black' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      等寬字體
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFontMode('arial');
+                        localStorage.setItem('tabFontMode', 'arial');
+                      }}
+                      className={`px-3 py-1.5 rounded text-sm font-medium transition ${
+                        fontMode === 'arial' 
+                          ? 'bg-[#FFD700] text-black' 
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Arial（比例字體）
+                    </button>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="1.5"
-                  step="0.05"
-                  value={alignFactor}
-                  onChange={(e) => {
-                    const newFactor = parseFloat(e.target.value);
-                    setAlignFactor(newFactor);
-                    localStorage.setItem('tabAlignFactor', newFactor.toString());
-                  }}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#FFD700]"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>偏左</span>
-                  <span className="text-gray-400">調整此值直到歌詞對齊和弦</span>
-                  <span>偏右</span>
-                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {fontMode === 'arial' 
+                    ? 'Arial 模式：適合編輯從其他網站複製過來的譜' 
+                    : '等寬字體：Polygon Guitar 預設顯示模式'}
+                </p>
               </div>
 
               <div className="flex items-center justify-between mb-1">
@@ -915,9 +939,10 @@ export default function EditTab() {
                 }}
                 rows={20}
                 placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
-                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent font-mono text-sm ${
+                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm ${
                   errors.content ? 'border-red-500' : 'border-gray-800'
-                }`}
+                } ${fontMode === 'arial' ? 'font-sans' : 'font-mono'}`}
+                style={fontMode === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}}
               />
               {errors.content && (
                 <p className="mt-1 text-sm text-red-400">{errors.content}</p>
