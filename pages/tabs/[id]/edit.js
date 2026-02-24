@@ -8,6 +8,7 @@ import ArtistAutoFill from '@/components/ArtistAutoFill'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
+import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { processTabContent, autoFixTabFormat } from '@/lib/tabFormatter'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -63,6 +64,15 @@ export default function EditTab() {
   // 相似歌手狀態
   const [similarArtists, setSimilarArtists] = useState([])
   const [useExistingArtistSelected, setUseExistingArtistSelected] = useState(false)
+  
+  // 對齊參數（從 localStorage 讀取或預設 1.1）
+  const [alignFactor, setAlignFactor] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tabAlignFactor');
+      return saved ? parseFloat(saved) : 1.1;
+    }
+    return 1.1;
+  })
 
   // 檢查相似歌手並自動獲取相片
   useEffect(() => {
@@ -818,6 +828,32 @@ export default function EditTab() {
 
             {/* Content */}
             <div>
+              {/* 對齊參數調整 */}
+              <div className="bg-[#1a1a1a] rounded-lg p-3 border border-gray-800 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm text-gray-400">對齊強度</label>
+                  <span className="text-sm text-[#FFD700] font-mono">{alignFactor.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="1.5"
+                  step="0.05"
+                  value={alignFactor}
+                  onChange={(e) => {
+                    const newFactor = parseFloat(e.target.value);
+                    setAlignFactor(newFactor);
+                    localStorage.setItem('tabAlignFactor', newFactor.toString());
+                  }}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#FFD700]"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>偏左</span>
+                  <span className="text-gray-400">調整此值直到歌詞對齊和弦</span>
+                  <span>偏右</span>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="content" className="block text-sm font-medium text-white">
                   譜內容 <span className="text-[#FFD700]">*</span>
@@ -826,7 +862,7 @@ export default function EditTab() {
                   <button
                     type="button"
                     onClick={() => {
-                      const fixed = autoFixTabFormat(formData.content);
+                      const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor);
                       setFormData(prev => ({ ...prev, content: fixed }));
                     }}
                     className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
@@ -862,8 +898,9 @@ export default function EditTab() {
                 onPaste={(e) => {
                   e.preventDefault();
                   const pastedText = e.clipboardData.getData('text');
-                  // 清理空格並自動修正對齊
-                  const processed = processTabContent(pastedText);
+                  // 清理空格後，用當前 factor 自動修正對齊
+                  const cleaned = cleanPastedText(pastedText);
+                  const processed = autoFixTabFormatWithFactor(cleaned, alignFactor);
                   
                   // 獲取當前光標位置
                   const textarea = e.target;
