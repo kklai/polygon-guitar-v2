@@ -6,9 +6,9 @@ export default function ArtistCard({ artist }) {
   return (
     <Link
       href={`/artists/${artist.id}`}
-      className="group block text-center"
+      className="block text-center"
     >
-      {/* 圓形頭像 */}
+      {/* 圓形頭像 - 無點擊效果 */}
       <div className="relative w-full aspect-square rounded-full overflow-hidden bg-[#282828] mb-2">
         {artist.photoURL || artist.wikiPhotoURL ? (
           <img
@@ -16,11 +16,12 @@ export default function ArtistCard({ artist }) {
             alt={artist.name}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover pointer-events-none select-none"
+            draggable="false"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-2xl">🎵</span>
+            <span className="text-2xl select-none">🎵</span>
           </div>
         )}
       </div>

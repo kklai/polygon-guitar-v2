@@ -44,14 +44,15 @@ function ArtistCircle({ artist, onClick }) {
   return (
     <div 
       onClick={onClick}
-      className="flex-shrink-0 w-[100px] cursor-pointer group"
+      className="flex-shrink-0 w-[100px] cursor-pointer"
     >
-      <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 border-2 border-transparent group-hover:border-[#FFD700] transition">
+      <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2">
         {photoUrl ? (
           <img 
             src={photoUrl} 
             alt={artist.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover pointer-events-none select-none"
+            draggable="false"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-3xl">
@@ -59,7 +60,7 @@ function ArtistCircle({ artist, onClick }) {
           </div>
         )}
       </div>
-      <p className="text-white text-xs text-center truncate group-hover:text-[#FFD700] transition">
+      <p className="text-white text-xs text-center truncate">
         {artist.name}
       </p>
     </div>

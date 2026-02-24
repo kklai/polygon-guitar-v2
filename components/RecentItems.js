@@ -56,7 +56,8 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                   <img 
                     src={item.image} 
                     alt={item.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover pointer-events-none select-none"
+                    draggable="false"
                   />
                 ) : item.type === 'liked-songs' ? (
                   // 我的喜愛特殊樣式

@@ -242,7 +242,7 @@ export default function Home() {
                     <img
                       src={category.image}
                       alt={category.name}
-                      className="absolute inset-0 w-full h-full object-cover object-top"
+                      className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
                       draggable="false"
                       loading="lazy"
                       decoding="async"
@@ -310,17 +310,17 @@ export default function Home() {
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {hotArtists.all.map((artist) => (
-                <button
+                <div
                   key={artist.id}
                   onClick={() => handleArtistClick(artist)}
-                  className="flex-shrink-0 flex flex-col text-left w-36"
+                  className="flex-shrink-0 flex flex-col text-left w-36 cursor-pointer"
                 >
                   <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
                     {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
                       <img 
                         src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
                         alt={artist.name} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none select-none"
                         draggable="false"
                         loading="lazy"
                         decoding="async"
@@ -330,7 +330,7 @@ export default function Home() {
                     )}
                   </div>
                   <span className="text-sm text-gray-300 truncate">{artist.name}</span>
-                </button>
+                </div>
               ))}
             </div>
           </section>

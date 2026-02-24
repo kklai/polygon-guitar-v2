@@ -50,7 +50,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
   }
 
   return (
-    <div className="bg-[#121212] rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden border border-gray-800 hover:border-[#FFD700]">
+    <div className="bg-[#121212] rounded-lg shadow-md overflow-hidden border border-gray-800">
       {/* 封面圖片 */}
       <Link href={`/tabs/${tab.id}`}>
         <div className="w-full aspect-square bg-gray-800 overflow-hidden cursor-pointer">

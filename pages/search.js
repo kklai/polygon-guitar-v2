@@ -212,17 +212,18 @@ export default function Search() {
                 <h2 className="text-lg font-bold text-white mb-4">歌手</h2>
                 <div className="flex overflow-x-auto scrollbar-hide gap-4">
                   {filteredArtists.map((artist) => (
-                    <button
+                    <div
                       key={artist.id}
                       onClick={() => handleArtistClick(artist)}
-                      className="flex-shrink-0 flex flex-col items-center group"
+                      className="flex-shrink-0 flex flex-col items-center cursor-pointer"
                     >
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-800 mb-2 transition-transform group-hover:scale-105">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-800 mb-2">
                         {getArtistPhoto(artist) ? (
                           <img
                             src={getArtistPhoto(artist)}
                             alt={artist.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover pointer-events-none select-none"
+                            draggable="false"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-2xl">
@@ -230,10 +231,10 @@ export default function Search() {
                           </div>
                         )}
                       </div>
-                      <span className="text-sm text-gray-300 group-hover:text-white transition">
+                      <span className="text-sm text-gray-300">
                         {artist.name}
                       </span>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </section>
@@ -248,7 +249,7 @@ export default function Search() {
                     <button
                       key={song.id}
                       onClick={() => handleSongClick(song.id)}
-                      className="w-full flex items-center gap-4 p-3 hover:bg-white/10 rounded-lg transition group"
+                      className="w-full flex items-center gap-4 p-3 hover:bg-white/10 rounded-lg transition"
                     >
                       <span className="text-gray-500 w-6 text-center">{index + 1}</span>
                       <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center text-xl overflow-hidden">
@@ -256,14 +257,15 @@ export default function Search() {
                           <img
                             src={`https://img.youtube.com/vi/${song.youtubeVideoId}/default.jpg`}
                             alt={song.title}
-                            className="w-full h-full object-cover rounded"
+                            className="w-full h-full object-cover rounded pointer-events-none select-none"
+                            draggable="false"
                           />
                         ) : (
                           '🎵'
                         )}
                       </div>
                       <div className="flex-1 text-left">
-                        <h3 className="text-white font-medium group-hover:text-[#FFD700] transition">
+                        <h3 className="text-white font-medium">
                           {song.title}
                         </h3>
                         <p className="text-sm text-gray-500">{song.artist}</p>
@@ -311,25 +313,29 @@ export default function Search() {
                       <img 
                         src={getArtistPhoto(categoryCovers.male)} 
                         alt={categoryCovers.male.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                        draggable="false"
                       />
                     ) : cat.id === 'female' && categoryCovers.female && getArtistPhoto(categoryCovers.female) ? (
                       <img 
                         src={getArtistPhoto(categoryCovers.female)} 
                         alt={categoryCovers.female.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                        draggable="false"
                       />
                     ) : cat.id === 'group' && categoryCovers.group && getArtistPhoto(categoryCovers.group) ? (
                       <img 
                         src={getArtistPhoto(categoryCovers.group)} 
                         alt={categoryCovers.group.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                        draggable="false"
                       />
                     ) : cat.id === 'latest' && categoryCovers.recent?.thumbnail ? (
                       <img 
                         src={categoryCovers.recent.thumbnail} 
                         alt="最新上架"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none select-none"
+                        draggable="false"
                       />
                     ) : (
                       <div className="w-full h-full bg-black/30 flex items-center justify-center text-2xl">
@@ -356,14 +362,15 @@ export default function Search() {
                     <button
                       key={song.id}
                       onClick={() => handleSongClick(song.id)}
-                      className="flex-shrink-0 w-32 group"
+                      className="flex-shrink-0 w-32"
                     >
-                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-800 mb-2 transition-transform group-hover:scale-105 shadow-md">
+                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-800 mb-2 shadow-md">
                         {song.thumbnail || song.youtubeVideoId ? (
                           <img
                             src={song.thumbnail || `https://img.youtube.com/vi/${song.youtubeVideoId}/mqdefault.jpg`}
                             alt={song.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover pointer-events-none select-none"
+                            draggable="false"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl">
@@ -392,14 +399,15 @@ export default function Search() {
                     <button
                       key={artist.id}
                       onClick={() => handleArtistClick(artist)}
-                      className="flex-shrink-0 flex flex-col items-center group"
+                      className="flex-shrink-0 flex flex-col items-center"
                     >
-                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-800 mb-2 transition-transform group-hover:scale-105 border-2 border-transparent group-hover:border-[#FFD700] shadow-lg">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-800 mb-2 shadow-lg">
                         {getArtistPhoto(artist) ? (
                           <img
                             src={getArtistPhoto(artist)}
                             alt={artist.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover pointer-events-none select-none"
+                            draggable="false"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl bg-gradient-to-br from-gray-700 to-gray-800">
