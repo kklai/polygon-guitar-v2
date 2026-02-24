@@ -109,7 +109,10 @@ function HomeSettings() {
   // 歌單區域相關
   const [playlists, setPlaylists] = useState([])
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
+  const [showPlaylistGroupModal, setShowPlaylistGroupModal] = useState(false)
   const [playlistSearchTerm, setPlaylistSearchTerm] = useState('')
+  const [selectedPlaylistIds, setSelectedPlaylistIds] = useState([])
+  const [playlistGroupTitle, setPlaylistGroupTitle] = useState('')
   
   // 拖放排序狀態
   const [draggingArtistIndex, setDraggingArtistIndex] = useState(null)
@@ -441,10 +444,16 @@ function HomeSettings() {
     setHasChanges(true)
   }
 
-  // 添加自定義歌單區域
-  const addCustomPlaylistSection = (playlist) => {
+  // 添加單歌單區域到 sectionOrder
+  const addSinglePlaylistSection = (playlist) => {
+    const sectionId = `playlist-${playlist.id}-${Date.now()}`
     const newSection = {
-      id: `playlist-${playlist.id}`,
+      id: sectionId,
+      enabled: true,
+      customLabel: playlist.title
+    }
+    const newCustomSection = {
+      id: sectionId,
       type: 'customPlaylist',
       playlistId: playlist.id,
       title: playlist.title,
@@ -452,39 +461,35 @@ function HomeSettings() {
     }
     setSettings(prev => ({
       ...prev,
-      customPlaylistSections: [...(prev.customPlaylistSections || []), newSection]
+      sectionOrder: [...prev.sectionOrder, newSection],
+      customPlaylistSections: [...(prev.customPlaylistSections || []), newCustomSection]
     }))
     setHasChanges(true)
     setShowPlaylistModal(false)
   }
 
-  // 移除自定義歌單區域
-  const removeCustomPlaylistSection = (index) => {
+  // 添加多歌單區域到 sectionOrder
+  const addPlaylistGroupSection = (playlistIds, title) => {
+    const sectionId = `playlist-group-${Date.now()}`
+    const newSection = {
+      id: sectionId,
+      enabled: true,
+      customLabel: title
+    }
+    const newCustomSection = {
+      id: sectionId,
+      type: 'playlistGroup',
+      playlistIds: playlistIds,
+      title: title,
+      enabled: true
+    }
     setSettings(prev => ({
       ...prev,
-      customPlaylistSections: prev.customPlaylistSections.filter((_, i) => i !== index)
+      sectionOrder: [...prev.sectionOrder, newSection],
+      customPlaylistSections: [...(prev.customPlaylistSections || []), newCustomSection]
     }))
     setHasChanges(true)
-  }
-
-  // 移動自定義歌單區域
-  const moveCustomPlaylistSection = (index, direction) => {
-    const sections = [...(settings.customPlaylistSections || [])]
-    if (direction === 'up' && index > 0) {
-      [sections[index], sections[index - 1]] = [sections[index - 1], sections[index]]
-    } else if (direction === 'down' && index < sections.length - 1) {
-      [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]]
-    }
-    setSettings(prev => ({ ...prev, customPlaylistSections: sections }))
-    setHasChanges(true)
-  }
-
-  // 切換自定義歌單區域顯示
-  const toggleCustomPlaylistSection = (index) => {
-    const sections = [...(settings.customPlaylistSections || [])]
-    sections[index] = { ...sections[index], enabled: !sections[index].enabled }
-    setSettings(prev => ({ ...prev, customPlaylistSections: sections }))
-    setHasChanges(true)
+    setShowPlaylistGroupModal(false)
   }
 
   // 過濾搜索結果
@@ -1132,79 +1137,109 @@ function HomeSettings() {
               </button>
             </div>
             
-            {/* 自定義歌單區域 */}
-            {settings.customPlaylistSections?.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-400 mb-3 px-4">自定義歌單區域</h3>
-                <div className="space-y-2 px-4">
-                  {settings.customPlaylistSections.map((section, index) => (
-                    <div 
-                      key={section.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        section.enabled 
-                          ? 'bg-[#FFD700]/10 border-[#FFD700]/30' 
-                          : 'bg-gray-900/30 border-gray-800/50 opacity-50'
-                      }`}
-                    >
-                      <span className="text-xl">💿</span>
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{section.title}</p>
-                        <p className="text-xs text-gray-500">自定義歌單區域</p>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => moveCustomPlaylistSection(index, 'up')}
-                          disabled={index === 0}
-                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={() => moveCustomPlaylistSection(index, 'down')}
-                          disabled={index === settings.customPlaylistSections.length - 1}
-                          className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
-                        >
-                          ↓
-                        </button>
-                        <button
-                          onClick={() => toggleCustomPlaylistSection(index)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition ${
-                            section.enabled
-                              ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                          }`}
-                        >
-                          {section.enabled ? '顯示' : '隱藏'}
-                        </button>
-                        <button
-                          onClick={() => removeCustomPlaylistSection(index)}
-                          className="p-2 text-red-400 hover:text-red-300"
-                          title="移除"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 新增歌單區域按鈕 */}
-            <div className="px-4 mb-6">
+            {/* 新增區域按鈕 */}
+            <div className="px-4 mb-6 flex gap-3">
               <button
                 onClick={() => setShowPlaylistModal(true)}
-                className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-[#FFD700] hover:text-[#FFD700] transition flex items-center justify-center gap-2"
+                className="flex-1 py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-[#FFD700] hover:text-[#FFD700] transition flex items-center justify-center gap-2"
               >
                 <span className="text-xl">+</span>
-                新增歌單區域
+                新增單歌單區域
+              </button>
+              <button
+                onClick={() => setShowPlaylistGroupModal(true)}
+                className="flex-1 py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-blue-500 hover:text-blue-400 transition flex items-center justify-center gap-2"
+              >
+                <span className="text-xl">+</span>
+                新增多歌單區域
               </button>
             </div>
 
             <div className="p-4">
               <div className="space-y-2">
                 {settings.sectionOrder?.map((section, index) => {
+                  // 檢查是否為自定義區域
+                  const customSection = (settings.customPlaylistSections || [])
+                    .find(s => s.id === section.id)
+                  
+                  // 如果是自定義區域
+                  if (customSection) {
+                    const isGroup = customSection.type === 'playlistGroup'
+                    return (
+                      <div 
+                        key={section.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border ${
+                          section.enabled 
+                            ? 'bg-[#FFD700]/10 border-[#FFD700]/30' 
+                            : 'bg-gray-900/30 border-gray-800/50 opacity-50'
+                        }`}
+                      >
+                        <span className="text-xl">{isGroup ? '📁' : '💿'}</span>
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={section.customLabel || customSection.title}
+                            onChange={(e) => {
+                              const newOrder = [...settings.sectionOrder]
+                              newOrder[index] = { ...section, customLabel: e.target.value }
+                              setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
+                              setHasChanges(true)
+                            }}
+                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 focus:border-[#FFD700] focus:outline-none transition px-1 -ml-1"
+                          />
+                          <p className="text-xs text-gray-500 ml-1">
+                            {isGroup ? '多歌單區域' : '單歌單區域'}
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => moveSection(index, 'up')}
+                            disabled={index === 0}
+                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            onClick={() => moveSection(index, 'down')}
+                            disabled={index === settings.sectionOrder.length - 1}
+                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                          >
+                            ↓
+                          </button>
+                          <button
+                            onClick={() => toggleSection(index)}
+                            className={`px-3 py-1 rounded text-sm font-medium transition ${
+                              section.enabled
+                                ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
+                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                            }`}
+                          >
+                            {section.enabled ? '顯示' : '隱藏'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              // 從 sectionOrder 和 customPlaylistSections 中移除
+                              const newOrder = settings.sectionOrder.filter((_, i) => i !== index)
+                              const newCustomSections = settings.customPlaylistSections.filter(s => s.id !== section.id)
+                              setSettings(prev => ({
+                                ...prev,
+                                sectionOrder: newOrder,
+                                customPlaylistSections: newCustomSections
+                              }))
+                              setHasChanges(true)
+                            }}
+                            className="p-2 text-red-400 hover:text-red-300"
+                            title="移除"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  // 預設區域
                   const option = SECTION_OPTIONS.find(o => o.id === section.id)
                   if (!option) return null
                   const displayLabel = section.customLabel || option.label
@@ -1292,7 +1327,7 @@ function HomeSettings() {
           </button>
         </div>
 
-        {/* 選擇歌單 Modal */}
+        {/* 選擇單歌單 Modal */}
         {showPlaylistModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-lg max-h-[80vh] flex flex-col">
@@ -1324,13 +1359,13 @@ function HomeSettings() {
                       return p.title?.toLowerCase().includes(playlistSearchTerm.toLowerCase())
                     })
                     .filter(p => {
-                      // 過濾已添加的歌單
+                      // 過濾已添加的歌單（單歌單）
                       return !settings.customPlaylistSections?.some(s => s.playlistId === p.id)
                     })
                     .map(playlist => (
                       <button
                         key={playlist.id}
-                        onClick={() => addCustomPlaylistSection(playlist)}
+                        onClick={() => addSinglePlaylistSection(playlist)}
                         className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-900/50 hover:bg-gray-800 transition text-left"
                       >
                         <div className="w-12 h-12 rounded bg-gray-800 flex-shrink-0 overflow-hidden">
@@ -1361,6 +1396,126 @@ function HomeSettings() {
                     {playlistSearchTerm ? '沒有符合的歌單' : '所有歌單已添加'}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 多歌單區域 Modal */}
+        {showPlaylistGroupModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-lg max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">新增多歌單區域</h3>
+                <button
+                  onClick={() => {
+                    setShowPlaylistGroupModal(false)
+                    setSelectedPlaylistIds([])
+                    setPlaylistGroupTitle('')
+                  }}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">區域名稱</label>
+                  <input
+                    type="text"
+                    value={playlistGroupTitle}
+                    onChange={(e) => setPlaylistGroupTitle(e.target.value)}
+                    placeholder="例如：精選歌單、熱門推薦"
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    選擇歌單 ({selectedPlaylistIds.length} 個)
+                  </label>
+                  <input
+                    type="text"
+                    value={playlistSearchTerm}
+                    onChange={(e) => setPlaylistSearchTerm(e.target.value)}
+                    placeholder="搜尋歌單..."
+                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 mb-3"
+                  />
+                  
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {playlists
+                      .filter(p => {
+                        if (!playlistSearchTerm) return true
+                        return p.title?.toLowerCase().includes(playlistSearchTerm.toLowerCase())
+                      })
+                      .map(playlist => {
+                        const isSelected = selectedPlaylistIds.includes(playlist.id)
+                        return (
+                          <button
+                            key={playlist.id}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedPlaylistIds(prev => prev.filter(id => id !== playlist.id))
+                              } else {
+                                setSelectedPlaylistIds(prev => [...prev, playlist.id])
+                              }
+                            }}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg transition text-left ${
+                              isSelected 
+                                ? 'bg-blue-900/50 border border-blue-700' 
+                                : 'bg-gray-900/50 hover:bg-gray-800'
+                            }`}
+                          >
+                            <div className={`w-6 h-6 rounded border flex items-center justify-center ${
+                              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-600'
+                            }`}>
+                              {isSelected && <span className="text-white text-sm">✓</span>}
+                            </div>
+                            <div className="w-12 h-12 rounded bg-gray-800 flex-shrink-0 overflow-hidden">
+                              {playlist.coverImage ? (
+                                <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white font-medium truncate">{playlist.title}</p>
+                              <p className="text-xs text-gray-500">
+                                {playlist.songIds?.length || 0} 首
+                              </p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-gray-800 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowPlaylistGroupModal(false)
+                    setSelectedPlaylistIds([])
+                    setPlaylistGroupTitle('')
+                  }}
+                  className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    if (playlistGroupTitle.trim() && selectedPlaylistIds.length > 0) {
+                      addPlaylistGroupSection(selectedPlaylistIds, playlistGroupTitle.trim())
+                      setSelectedPlaylistIds([])
+                      setPlaylistGroupTitle('')
+                    }
+                  }}
+                  disabled={!playlistGroupTitle.trim() || selectedPlaylistIds.length === 0}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  新增 ({selectedPlaylistIds.length})
+                </button>
               </div>
             </div>
           </div>

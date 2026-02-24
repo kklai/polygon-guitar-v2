@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages, getTabsByIds } from '@/lib/tabs'
+import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages, getTabsByIds, getAllTabs } from '@/lib/tabs'
 import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
@@ -179,6 +179,7 @@ export default function Home() {
   const [artists, setArtists] = useState([])
   const [latestSongs, setLatestSongs] = useState([])
   const [hotTabs, setHotTabs] = useState([]) // 最近一個月熱門譜
+  const [allSongs, setAllSongs] = useState([]) // 用於歌單歌曲查找
   const [hotArtists, setHotArtists] = useState({
     male: [],
     female: [],
@@ -303,6 +304,39 @@ export default function Home() {
       setLatestSongs(recentTabsData || []);
       setAutoPlaylists(autoPlaylistsData?.length > 0 ? autoPlaylistsData : FALLBACK_AUTO_PLAYLISTS);
       setManualPlaylists(manualPlaylistsData?.length > 0 ? manualPlaylistsData : FALLBACK_MANUAL_PLAYLISTS);
+      
+      // === 第2.5步：加載自定義歌單區域的歌曲 ===
+      const customSections = settings.customPlaylistSections || [];
+      const allPlaylistIds = new Set([
+        ...autoPlaylistsData.map(p => p.id),
+        ...manualPlaylistsData.map(p => p.id)
+      ]);
+      
+      // 收集所有自定義區域需要的歌曲 ID
+      const customSongIds = new Set();
+      customSections.forEach(section => {
+        if (section.type === 'customPlaylist' && section.playlistId) {
+          const playlist = autoPlaylistsData.find(p => p.id === section.playlistId) ||
+                          manualPlaylistsData.find(p => p.id === section.playlistId);
+          if (playlist?.songIds) {
+            playlist.songIds.forEach(id => customSongIds.add(id));
+          }
+        }
+      });
+      
+      // 過濾掉已經在 hotTabs 和 recentTabs 中的歌曲
+      const existingIds = new Set([
+        ...hotTabsData.map(t => t.id),
+        ...recentTabsData.map(t => t.id)
+      ]);
+      const missingSongIds = Array.from(customSongIds).filter(id => !existingIds.has(id));
+      
+      // 加載缺失的歌曲
+      let customSongs = [];
+      if (missingSongIds.length > 0) {
+        customSongs = await getTabsByIds(missingSongIds.slice(0, 50)); // 最多加載 50 首
+      }
+      setAllSongs(customSongs);
       
       // === 第3步：處理歌手數據 ===
       let popularArtists = popularArtistsData || [];
@@ -873,70 +907,115 @@ export default function Home() {
                   </section>
                 )
 
-              default:
-                return null
-            }
-          })
-        })()}
-
-        {/* 自定義歌單區域 */}
-        {(() => {
-          const customSections = homeSettings.customPlaylistSections || []
-          return customSections
-            .filter(section => section.enabled !== false)
-            .map(section => {
-              const playlist = manualPlaylists.find(p => p.id === section.playlistId) || 
-                              autoPlaylists.find(p => p.id === section.playlistId)
-              
-              if (!playlist || !playlist.songIds || playlist.songIds.length === 0) {
-                return null
-              }
-              
-              // 獲取歌單的歌曲詳情（從已加載的歌曲中查找）
-              const sectionSongs = playlist.songIds
-                .map(id => latestSongs.find(s => s.id === id) || hotTabs.find(s => s.id === id))
-                .filter(Boolean)
-                .slice(0, 10) // 最多顯示 10 首
-              
-              if (sectionSongs.length === 0) {
-                return null
-              }
-              
-              return (
-                <section key={section.id} className="mb-10">
-                  <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title}</h2>
-                  <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                    {sectionSongs.map((song) => (
-                      <button
-                        key={song.id}
-                        onClick={() => handleSongClick(song.id)}
-                        className="flex-shrink-0 flex flex-col text-left w-36"
-                      >
-                        <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                          {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                            <img
-                              src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                              alt={song.title}
-                              className="w-full h-full object-cover"
-                              draggable="false"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                          )}
+              // 處理自定義歌單區域（整合進 sectionOrder）
+              default: {
+                // 檢查是否為自定義歌單區域
+                const customSection = (homeSettings.customPlaylistSections || [])
+                  .find(s => s.id === section.id)
+                
+                if (customSection) {
+                  // 單歌單區域
+                  if (customSection.type === 'customPlaylist' && customSection.playlistId) {
+                    const playlist = manualPlaylists.find(p => p.id === customSection.playlistId) || 
+                                    autoPlaylists.find(p => p.id === customSection.playlistId)
+                    
+                    if (!playlist || !playlist.songIds || playlist.songIds.length === 0) {
+                      return null
+                    }
+                    
+                    // 獲取歌單的歌曲詳情（從所有已加載的歌曲中查找）
+                    const sectionSongs = playlist.songIds
+                      .map(id => {
+                        // 先從各個列表中查找
+                        const song = latestSongs.find(s => s.id === id) || 
+                                    hotTabs.find(s => s.id === id) ||
+                                    allSongs.find(s => s.id === id)
+                        return song
+                      })
+                      .filter(Boolean)
+                    
+                    if (sectionSongs.length === 0) {
+                      return null
+                    }
+                    
+                    return (
+                      <section key={section.id} className="mb-10">
+                        <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
+                        <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                          {sectionSongs.map((song) => (
+                            <button
+                              key={song.id}
+                              onClick={() => handleSongClick(song.id)}
+                              className="flex-shrink-0 flex flex-col text-left w-36"
+                            >
+                              <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                                {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                                  <img
+                                    src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                                    alt={song.title}
+                                    className="w-full h-full object-cover"
+                                    draggable="false"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                                )}
+                              </div>
+                              <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
+                              <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                            </button>
+                          ))}
                         </div>
-                        <h3 className="text-sm text-white font-medium truncate">
-                          {song.title}
-                        </h3>
-                        <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )
-            })
-        })()}
+                      </section>
+                    )
+                  }
+                  
+                  // 多歌單區域（playlistGroup）
+                  if (customSection.type === 'playlistGroup' && customSection.playlistIds) {
+                    const playlists = customSection.playlistIds
+                      .map(id => manualPlaylists.find(p => p.id === id) || autoPlaylists.find(p => p.id === id))
+                      .filter(Boolean)
+                    
+                    if (playlists.length === 0) {
+                      return null
+                    }
+                    
+                    return (
+                      <section key={section.id} className="mb-10">
+                        <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
+                        <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                          {playlists.map((playlist) => (
+                            <button
+                              key={playlist.id}
+                              onClick={() => handlePlaylistClick(playlist.id)}
+                              className="flex-shrink-0 flex flex-col text-left w-36"
+                            >
+                              <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
+                                {getThumbnail(playlist) ? (
+                                  <img
+                                    src={getThumbnail(playlist)}
+                                    alt={playlist.title}
+                                    className="w-full h-full object-cover"
+                                    draggable="false"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                                )}
+                              </div>
+                              <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    )
+                  }
+                }
+                
+                return null
+              }
 
         {/* 底部 Spacer */}
         <div className="h-8" />
