@@ -210,7 +210,7 @@ export default function NewTab() {
     
     const timer = setTimeout(checkSimilarArtists, 500)
     return () => clearTimeout(timer)
-  }, [formData.artist, formData.artistPhoto, useExistingArtistSelected])
+  }, [formData.artist, useExistingArtistSelected])
   
   const useExistingArtist = (artist) => {
     setFormData(prev => ({
