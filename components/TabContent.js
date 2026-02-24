@@ -1404,7 +1404,7 @@ const TabContent = ({
                 partColor = colors.lyricNormal;
               }
               return (
-                <span key={idx} style={{ color: partColor }}>
+                <span key={idx} style={{ color: partColor, whiteSpace: 'pre' }}>
                   {part.text}
                 </span>
               );
