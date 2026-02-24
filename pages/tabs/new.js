@@ -192,6 +192,17 @@ export default function NewTab() {
         })
         
         setSimilarArtists(similar.slice(0, 3))
+        
+        // 如果找到相似歌手且當前沒有歌手相片，自動使用第一個匹配歌手的相片
+        if (similar.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
+          const firstMatch = similar[0]
+          if (firstMatch.photoURL || firstMatch.wikiPhotoURL) {
+            setFormData(prev => ({
+              ...prev,
+              artistPhoto: firstMatch.photoURL || firstMatch.wikiPhotoURL || ''
+            }))
+          }
+        }
       } catch (err) {
         console.error('檢查相似歌手失敗:', err)
       }
@@ -199,7 +210,7 @@ export default function NewTab() {
     
     const timer = setTimeout(checkSimilarArtists, 500)
     return () => clearTimeout(timer)
-  }, [formData.artist])
+  }, [formData.artist, formData.artistPhoto, useExistingArtistSelected])
   
   const useExistingArtist = (artist) => {
     setFormData(prev => ({

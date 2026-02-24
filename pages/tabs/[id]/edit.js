@@ -8,6 +8,8 @@ import ArtistAutoFill from '@/components/ArtistAutoFill'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 export default function EditTab() {
   const router = useRouter()
@@ -56,6 +58,58 @@ export default function EditTab() {
   // YouTube Modal 狀態
   const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false)
   const [youTubeAutoSelect, setYouTubeAutoSelect] = useState(false) // 自動選擇第一個結果
+  
+  // 相似歌手狀態
+  const [similarArtists, setSimilarArtists] = useState([])
+  const [useExistingArtistSelected, setUseExistingArtistSelected] = useState(false)
+
+  // 檢查相似歌手並自動獲取相片
+  useEffect(() => {
+    const checkSimilarArtists = async () => {
+      if (!formData.artist?.trim() || formData.artist.length < 2) {
+        setSimilarArtists([])
+        return
+      }
+      
+      try {
+        const snapshot = await getDocs(collection(db, 'artists'))
+        const inputName = formData.artist.toLowerCase().replace(/\s+/g, '')
+        const inputCore = inputName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || inputName
+        
+        const similar = []
+        snapshot.forEach(doc => {
+          const artist = doc.data()
+          const artistName = artist.name.toLowerCase().replace(/\s+/g, '')
+          const artistCore = artistName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || artistName
+          
+          if (artistCore === inputCore || 
+              artistName.includes(inputName) || 
+              inputName.includes(artistName) ||
+              (inputCore && artistCore && (artistCore.includes(inputCore) || inputCore.includes(artistCore)))) {
+            similar.push({ id: doc.id, ...artist })
+          }
+        })
+        
+        setSimilarArtists(similar.slice(0, 3))
+        
+        // 如果找到相似歌手且當前沒有歌手相片，自動使用第一個匹配歌手的相片
+        if (similar.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
+          const firstMatch = similar[0]
+          if (firstMatch.photoURL || firstMatch.wikiPhotoURL) {
+            setFormData(prev => ({
+              ...prev,
+              artistPhoto: firstMatch.photoURL || firstMatch.wikiPhotoURL || ''
+            }))
+          }
+        }
+      } catch (err) {
+        console.error('檢查相似歌手失敗:', err)
+      }
+    }
+    
+    const timer = setTimeout(checkSimilarArtists, 500)
+    return () => clearTimeout(timer)
+  }, [formData.artist])
 
   useEffect(() => {
     if (id && isAuthenticated) {
