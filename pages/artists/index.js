@@ -218,17 +218,36 @@ export default function Artists() {
     const groups = { male: [], female: [], group: [], soundtrack: [], other: [] }
     
     filteredArtists.forEach(artist => {
-      let type = artist.artistType || artist.gender || 'other'
-      if (type === 'unknown' || type === '') {
+      // 標準化類型值
+      let rawType = artist.artistType || artist.gender || 'other'
+      let type = String(rawType).toLowerCase().trim()
+      
+      // 處理 unknown/空值
+      if (type === 'unknown' || type === '' || type === 'null' || type === 'undefined') {
         type = 'other'
       }
-      if (groups[type]) {
-        groups[type].push(artist)
+      
+      // 確保類型有效
+      if (!groups[type]) {
+        type = 'other'
       }
+      
+      groups[type].push(artist)
     })
     
+    // Debug log (開發時用)
+    if (typeof window !== 'undefined' && activeCategory === 'all') {
+      console.log('Artists grouping:', {
+        male: groups.male.length,
+        female: groups.female.length,
+        group: groups.group.length,
+        other: groups.other.length,
+        total: filteredArtists.length
+      })
+    }
+    
     return groups
-  }, [filteredArtists])
+  }, [filteredArtists, activeCategory])
 
   const handleArtistClick = (artistId) => {
     router.push(`/artists/${artistId}`)
