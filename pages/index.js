@@ -447,11 +447,16 @@ export default function Home() {
     if (item.coverImage) {
       return item.coverImage
     }
-    // 如果是歌曲：優先順序 Spotify 專輯相 > YouTube > 歌手相
-    // 注：thumbnail 本身已經是由上述來源生成，不需要獨立檢查
+    // 如果是歌曲：優先順序 自訂封面 > Spotify 專輯相 > YouTube > 歌手相
+    // 1. 用戶自訂封面（coverImage）
+    if (item.coverImage) {
+      return item.coverImage
+    }
+    // 2. Spotify 專輯封面
     if (item.albumImage) {
       return item.albumImage
     }
+    // 3. YouTube 縮圖
     if (item.youtubeVideoId) {
       return `https://img.youtube.com/vi/${item.youtubeVideoId}/mqdefault.jpg`
     }
@@ -461,7 +466,7 @@ export default function Home() {
         return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
       }
     }
-    // 如果提供了歌手照片，用作 fallback
+    // 4. 如果提供了歌手照片，用作 fallback
     if (artistPhoto) {
       return artistPhoto
     }

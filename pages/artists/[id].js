@@ -190,20 +190,22 @@ export default function ArtistPage() {
     return match ? match[1] : null;
   };
 
-  // 取得歌曲縮圖 - 順序：YouTube > thumbnail > 歌手相片
+  // 取得歌曲縮圖 - 順序：自訂封面 > Spotify 專輯相 > YouTube > thumbnail > 歌手相片
   const getSongThumbnail = (tab) => {
-    // 1. 優先使用 Spotify 專輯相
+    // 1. 優先使用用戶自訂封面
+    if (tab.coverImage) return tab.coverImage;
+    // 2. 其次使用 Spotify 專輯相
     if (tab.albumImage) return tab.albumImage;
-    // 2. 其次使用 YouTube 縮圖
+    // 3. 使用 YouTube 縮圖
     if (tab.youtubeUrl) {
       const videoId = extractYouTubeId(tab.youtubeUrl);
       if (videoId) {
         return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
       }
     }
-    // 3. 使用歌曲自己的縮圖
+    // 4. 使用歌曲自己的縮圖
     if (tab.thumbnail) return tab.thumbnail;
-    // 4. 使用歌手圖片
+    // 5. 使用歌手圖片
     return artist?.photoURL || artist?.wikiPhotoURL || null;
   };
 
