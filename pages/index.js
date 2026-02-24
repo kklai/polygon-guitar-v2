@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -141,6 +141,36 @@ const formatTimeAgo = (timestamp) => {
   if (diff < 86400) return `${Math.floor(diff / 3600)} 小時前`
   if (diff < 604800) return `${Math.floor(diff / 86400)} 天前`
   return date.toLocaleDateString('zh-HK')
+}
+
+// 用於延遲加載非可視區域的 Hook
+function useLazySection(sectionId, isEnabled = true) {
+  const [isVisible, setIsVisible] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!isEnabled || hasLoaded) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          setHasLoaded(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '100px' } // 提前 100px 開始加載
+    )
+
+    if (ref.current) {
+      observer.observe(ref.current)
+    }
+
+    return () => observer.disconnect()
+  }, [isEnabled, hasLoaded])
+
+  return { ref, isVisible, hasLoaded }
 }
 
 export default function Home() {
@@ -633,12 +663,14 @@ export default function Home() {
                           onClick={() => handleCategoryClick(category.id)}
                           className="flex-shrink-0 flex flex-col cursor-pointer"
                         >
-                          <div className="relative w-36 h-36 rounded-[4px] overflow-hidden">
+                          <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800">
                             <img
                               src={category.image}
                               alt={category.name}
                               className="absolute inset-0 w-full h-full object-cover object-top"
                               draggable="false"
+                              loading="lazy"
+                              decoding="async"
                             />
                             <div className="absolute bottom-2 right-0 w-1/2">
                               <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
@@ -682,6 +714,8 @@ export default function Home() {
                                 alt={song.title}
                                 className="w-full h-full object-cover"
                                 draggable="false"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
@@ -715,6 +749,8 @@ export default function Home() {
                                 alt={artist.name} 
                                 className="w-full h-full object-cover"
                                 draggable="false"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
@@ -747,6 +783,8 @@ export default function Home() {
                                 alt={playlist.title}
                                 className="w-full h-full object-cover"
                                 draggable="false"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
@@ -784,6 +822,8 @@ export default function Home() {
                                 alt={song.title}
                                 className="w-full h-full object-cover"
                                 draggable="false"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
@@ -817,6 +857,8 @@ export default function Home() {
                                 alt={playlist.title}
                                 className="w-full h-full object-cover"
                                 draggable="false"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl"></div>
@@ -877,6 +919,8 @@ export default function Home() {
                               alt={song.title}
                               className="w-full h-full object-cover"
                               draggable="false"
+                              loading="lazy"
+                              decoding="async"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
