@@ -566,7 +566,7 @@ function CategoryImagesAdmin() {
               </div>
             </div>
           </div>
-        )
+        )}
 
         <div className="mt-8 bg-[#121212] border border-gray-800 rounded-xl p-4">
           <h3 className="text-lg font-medium text-white mb-2">說明</h3>
