@@ -851,7 +851,16 @@ function processMixedLine(line, transposeSemitones = 0) {
   };
 }
 
-function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets = false) {
+function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets = false, displayFont = 'mono') {
+  // Arial 模式下，唔好做複雜對齊，直接返回原始行
+  if (displayFont === 'arial') {
+    return { 
+      chordLine: transposeSemitones !== 0 ? transposeChordLine(chordLine, transposeSemitones) : chordLine, 
+      lyricParts: [{ text: lyricLine, isInside: false, type: 'text' }], 
+      error: false 
+    };
+  }
+  
   // 先確保和弦之間有空格，再處理
   const chordWithSpacing = normalizeChordSpacing(chordLine);
   const normalizedChord = normalizeInput(chordWithSpacing);
@@ -1286,8 +1295,8 @@ const TabContent = ({
         inBracket = true;
       } else if (char === ')' || char === '）') {
         // 括號內的內容（包括空字符串）
-        // 將半形空格轉為全形空格，確保對齊
-        const normalizedBuffer = buffer.replace(/ /g, '\u3000');
+        // 等寬字體模式下，將半形空格轉為全形空格，確保對齊
+        const normalizedBuffer = displayFont === 'mono' ? buffer.replace(/ /g, '\u3000') : buffer;
         parts.push({ type: 'inside', text: normalizedBuffer }); // buffer 可能為空，但空括號也要顯示
         buffer = '';
         // 將閉括號作為獨立部分（保留原始字符）
@@ -1490,7 +1499,7 @@ const TabContent = ({
             : [{ chordLine: cleanLine, lyricLine }];
           
           pairs.forEach((pair, pairIndex) => {
-            const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets);
+            const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets, displayFont);
             
             elements.push(
               <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairIndex < pairs.length - 1 ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.6}px` }}>

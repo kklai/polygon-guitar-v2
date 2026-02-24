@@ -873,7 +873,7 @@ export default function EditTab() {
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   {formData.displayFont === 'arial' 
-                    ? 'Arial：適合從其他網站複製過來嘅譜，用戶睇到嘅效果同你編輯時一樣' 
+                    ? 'Arial：適合從其他網站複製過來嘅譜，用戶睇到嘅效果同你編輯時一樣（舊譜預設）' 
                     : '等寬字體：傳統結他譜顯示方式'}
                 </p>
               </div>
