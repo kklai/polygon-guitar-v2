@@ -9,7 +9,6 @@ import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
-import { processTabContent, autoFixTabFormat } from '@/lib/tabFormatter'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
