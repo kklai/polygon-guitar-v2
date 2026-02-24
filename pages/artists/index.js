@@ -66,8 +66,8 @@ function ArtistCircle({ artist, onClick }) {
   )
 }
 
-// 將歌手按評分拆分成3行（斜向排序）
-function distributeToRows(artists) {
+// 將歌手按評分排序後，每3個一組分成columns（垂直排列）
+function distributeToColumns(artists) {
   // 按評分排序（adminScore > totalViewCount > viewCount > tabCount）
   const sorted = [...artists].sort((a, b) => {
     const scoreA = a.adminScore || a.totalViewCount || a.viewCount || a.tabCount || 0
@@ -75,26 +75,18 @@ function distributeToRows(artists) {
     return scoreB - scoreA
   })
   
-  // 分配到3行：1,4,7... / 2,5,8... / 3,6,9...
-  const row1 = [], row2 = [], row3 = []
+  // 每3個一組：[1,2,3], [4,5,6], [7,8,9]...
+  const columns = []
+  for (let i = 0; i < sorted.length; i += 3) {
+    columns.push(sorted.slice(i, i + 3))
+  }
   
-  sorted.forEach((artist, index) => {
-    const position = index + 1
-    if (position % 3 === 1) {
-      row1.push(artist)
-    } else if (position % 3 === 2) {
-      row2.push(artist)
-    } else {
-      row3.push(artist)
-    }
-  })
-  
-  return { row1, row2, row3 }
+  return columns
 }
 
-// 橫向滾動區域組件
+// 橫向滾動區域組件（3行一齊滾動）
 function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
-  const { row1, row2, row3 } = useMemo(() => distributeToRows(artists), [artists])
+  const columns = useMemo(() => distributeToColumns(artists), [artists])
   
   if (artists.length === 0) return null
   
@@ -107,45 +99,20 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
         <span className="text-sm text-gray-500">({artists.length})</span>
       </div>
       
-      {/* 3行橫向滾動 */}
-      <div className="space-y-4">
-        {/* 第1行：1,4,7,10... */}
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-          <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
-            {row1.map(artist => (
-              <ArtistCircle 
-                key={artist.id} 
-                artist={artist} 
-                onClick={() => onArtistClick(artist.id)}
-              />
-            ))}
-          </div>
-        </div>
-        
-        {/* 第2行：2,5,8,11... */}
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-          <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
-            {row2.map(artist => (
-              <ArtistCircle 
-                key={artist.id} 
-                artist={artist} 
-                onClick={() => onArtistClick(artist.id)}
-              />
-            ))}
-          </div>
-        </div>
-        
-        {/* 第3行：3,6,9,12... */}
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-          <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
-            {row3.map(artist => (
-              <ArtistCircle 
-                key={artist.id} 
-                artist={artist} 
-                onClick={() => onArtistClick(artist.id)}
-              />
-            ))}
-          </div>
+      {/* 3行一齊橫向滾動 */}
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+        <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
+          {columns.map((column, colIndex) => (
+            <div key={colIndex} className="flex flex-col gap-4">
+              {column.map(artist => (
+                <ArtistCircle 
+                  key={artist.id} 
+                  artist={artist} 
+                  onClick={() => onArtistClick(artist.id)}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </div>
