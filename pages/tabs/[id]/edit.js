@@ -886,7 +886,8 @@ export default function EditTab() {
                   <button
                     type="button"
                     onClick={() => {
-                      const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor);
+                      // Arial 模式下唔壓縮空格
+                      const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor, formData.displayFont !== 'arial');
                       setFormData(prev => ({ ...prev, content: fixed }));
                     }}
                     className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
@@ -922,9 +923,10 @@ export default function EditTab() {
                 onPaste={(e) => {
                   e.preventDefault();
                   const pastedText = e.clipboardData.getData('text');
-                  // 清理空格後，用當前 factor 自動修正對齊
+                  // 清理空格（只清行尾）
                   const cleaned = cleanPastedText(pastedText);
-                  const processed = autoFixTabFormatWithFactor(cleaned, alignFactor);
+                  // Arial 模式下唔壓縮空格，等寬模式先壓縮
+                  const processed = autoFixTabFormatWithFactor(cleaned, alignFactor, formData.displayFont !== 'arial');
                   
                   // 獲取當前光標位置
                   const textarea = e.target;
