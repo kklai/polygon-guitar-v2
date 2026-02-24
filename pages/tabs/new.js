@@ -540,14 +540,14 @@ E|----------------------------------------------------------------|
           
           return (
             <div className="space-y-4">
-              {/* 圖片選擇網格 */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {/* 圖片選擇 - 100x100 小圖 */}
+              <div className="flex flex-wrap gap-3">
                 {options.map((option, index) => (
                   <button
                     key={index}
                     type="button"
                     onClick={() => handleSelectCover(option.url)}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition ${
+                    className={`relative w-[100px] h-[100px] rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${
                       formData.coverImage === option.url 
                         ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
                         : 'border-gray-700 hover:border-gray-500'
@@ -566,15 +566,15 @@ E|----------------------------------------------------------------|
                       載入失敗
                     </div>
                     
-                    {/* 類型標籤 */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm py-1 px-2">
-                      <p className="text-white text-xs truncate">{option.label}</p>
+                    {/* 類型標籤 - 更小字體 */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm py-0.5 px-1">
+                      <p className="text-white text-[10px] truncate">{option.label}</p>
                     </div>
                     
-                    {/* 選中標記 */}
+                    {/* 選中標記 - 更小 */}
                     {formData.coverImage === option.url && (
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-[#FFD700] rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="absolute top-1 right-1 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
