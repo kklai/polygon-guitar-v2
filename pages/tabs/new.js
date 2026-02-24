@@ -504,10 +504,10 @@ E|----------------------------------------------------------------|
     content: (
       <div className="space-y-3 pt-4">
         {/* 對齊參數調整 */}
-        <div className="bg-[#1a1a1a] rounded-lg p-3 border border-gray-800">
+        <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#FFD700]/30">
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm text-gray-400">對齊強度</label>
-            <span className="text-sm text-[#FFD700] font-mono">{alignFactor.toFixed(2)}</span>
+            <label className="text-sm text-[#FFD700] font-medium">對齊強度（Paste 譜時用）</label>
+            <span className="text-sm text-[#FFD700] font-mono bg-[#FFD700]/10 px-2 py-0.5 rounded">{alignFactor.toFixed(2)}</span>
           </div>
           <input
             type="range"
