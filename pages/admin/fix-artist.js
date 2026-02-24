@@ -701,6 +701,13 @@ function FixArtistPage() {
                                   編輯
                                 </button>
                                 <button
+                                  onClick={() => router.push(`/tabs/${item.tabId}/edit`)}
+                                  className="text-blue-400 hover:text-blue-300 text-xs"
+                                  title="編輯整份譜"
+                                >
+                                  ✏️
+                                </button>
+                                <button
                                   onClick={() => deleteSingleFromBatch(index)}
                                   className="text-red-400 hover:text-red-300 text-xs"
                                   title="刪除此項目"
@@ -761,6 +768,13 @@ function FixArtistPage() {
                             className="px-3 py-1.5 bg-[#FFD700] text-black rounded text-sm font-medium hover:bg-yellow-400 transition"
                           >
                             編輯
+                          </button>
+                          <button
+                            onClick={() => router.push(`/tabs/${tab.id}/edit`)}
+                            className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-500 transition"
+                            title="編輯整份譜"
+                          >
+                            ✏️ 編譜
                           </button>
                           <button
                             onClick={() => router.push(`/tabs/${tab.id}`)}
@@ -886,6 +900,13 @@ function FixArtistPage() {
                         <p className="text-sm text-gray-500">現時歌手：{tab.artist || 'UNKNOWN'} | ID: {tab.id}</p>
                       </div>
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => router.push(`/tabs/${tab.id}/edit`)}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-500 transition"
+                          title="編輯整份譜"
+                        >
+                          ✏️ 編譜
+                        </button>
                         <button
                           onClick={() => router.push(`/tabs/${tab.id}`)}
                           className="px-3 py-1.5 bg-[#282828] text-white rounded text-sm hover:bg-[#3E3E3E] transition"
