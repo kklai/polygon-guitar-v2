@@ -176,7 +176,7 @@ function EditPlaylist() {
       await updatePlaylist(id, playlistData)
       
       alert('✅ 歌單更新成功！')
-      router.push('/admin/playlists')
+      // 留在同一頁，唔跳走
     } catch (error) {
       console.error('Update playlist error:', error)
       alert('更新失敗：' + error.message)

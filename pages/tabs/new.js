@@ -78,7 +78,9 @@ export default function NewTab() {
     youtubeUrl: '',
     youtubeVideoId: '',
     strummingPattern: '',
-    fingeringTips: ''
+    fingeringTips: '',
+    albumImage: '',
+    coverImage: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
@@ -95,7 +97,8 @@ export default function NewTab() {
     key: true,
     youtube: true,
     content: true,
-    uploader: true
+    uploader: true,
+    cover: false
   })
   
   // 區塊排序
@@ -105,7 +108,8 @@ export default function NewTab() {
     'key',
     'youtube', 
     'content',
-    'uploader'
+    'uploader',
+    'cover'
   ])
   
   // 拖放狀態
@@ -519,6 +523,97 @@ E|----------------------------------------------------------------|
       </div>
     ),
     
+    cover: (
+      <div className="space-y-4 pt-4">
+        {/* 封面圖片選擇 */}
+        {(() => {
+          const options = getCoverImageOptions()
+          
+          if (options.length === 0) {
+            return (
+              <div className="text-center py-6 bg-[#1a1a1a] rounded-lg border border-gray-800">
+                <p className="text-gray-500 text-sm">請先添加 YouTube 影片或從 Spotify 搜尋歌曲</p>
+                <p className="text-gray-600 text-xs mt-1">系統會自動獲取封面圖片選項</p>
+              </div>
+            )
+          }
+          
+          return (
+            <div className="space-y-4">
+              {/* 圖片選擇網格 */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {options.map((option, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSelectCover(option.url)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition ${
+                      formData.coverImage === option.url 
+                        ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
+                        : 'border-gray-700 hover:border-gray-500'
+                    }`}
+                  >
+                    <img 
+                      src={option.url} 
+                      alt={option.label}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextSibling.style.display = 'flex'
+                      }}
+                    />
+                    <div className="hidden w-full h-full items-center justify-center bg-gray-800 text-gray-500 text-xs">
+                      載入失敗
+                    </div>
+                    
+                    {/* 類型標籤 */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm py-1 px-2">
+                      <p className="text-white text-xs truncate">{option.label}</p>
+                    </div>
+                    
+                    {/* 選中標記 */}
+                    {formData.coverImage === option.url && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-[#FFD700] rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              
+              {/* 當前選擇預覽 */}
+              {formData.coverImage && (
+                <div className="p-3 bg-[#1a1a1a] rounded-lg border border-[#FFD700]/30">
+                  <p className="text-xs text-[#FFD700] mb-2">已選擇的封面：</p>
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={formData.coverImage} 
+                      alt="Selected cover"
+                      className="w-16 h-16 rounded object-cover"
+                    />
+                    <div className="flex-1">
+                      <p className="text-white text-sm truncate">
+                        {options.find(o => o.url === formData.coverImage)?.label || '自訂圖片'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCover('')}
+                        className="text-xs text-red-400 hover:text-red-300 mt-1"
+                      >
+                        清除選擇
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+      </div>
+    ),
+    
     spotify: (
       <div className="space-y-4 pt-4">
         <button type="button" onClick={handleSearchSpotify}
@@ -546,13 +641,59 @@ E|----------------------------------------------------------------|
     )
   }
 
+  // 獲取可用的封面圖片選項
+  const getCoverImageOptions = () => {
+    const options = []
+    
+    // 1. Spotify 專輯圖
+    if (formData.albumImage) {
+      options.push({
+        url: formData.albumImage,
+        type: 'spotify',
+        label: 'Spotify 專輯封面'
+      })
+    }
+    
+    // 2. YouTube 縮圖
+    if (formData.youtubeVideoId) {
+      options.push({
+        url: `https://img.youtube.com/vi/${formData.youtubeVideoId}/hqdefault.jpg`,
+        type: 'youtube',
+        label: 'YouTube 影片縮圖'
+      })
+      // 高品質版本
+      options.push({
+        url: `https://img.youtube.com/vi/${formData.youtubeVideoId}/maxresdefault.jpg`,
+        type: 'youtube',
+        label: 'YouTube 高清縮圖'
+      })
+    }
+    
+    // 3. 歌手相片
+    if (formData.artistPhoto) {
+      options.push({
+        url: formData.artistPhoto,
+        type: 'artist',
+        label: '歌手相片'
+      })
+    }
+    
+    return options
+  }
+
+  // 選擇封面圖
+  const handleSelectCover = (url) => {
+    setFormData(prev => ({ ...prev, coverImage: url }))
+  }
+
   const sectionTitles = {
     basic: '基本資訊（歌名、歌手、歌曲資料）',
     spotify: 'Spotify 歌曲資訊',
     key: '調性與彈法（Key、Capo、技巧）',
     youtube: 'YouTube 影片',
     content: '譜內容',
-    uploader: '上傳者筆名'
+    uploader: '上傳者筆名',
+    cover: '封面圖片設定'
   }
 
   return (

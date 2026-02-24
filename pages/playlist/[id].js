@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 export default function PlaylistDetail() {
   const router = useRouter()
   const { id } = router.query
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [playlist, setPlaylist] = useState(null)
   const [songs, setSongs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -189,7 +189,21 @@ export default function PlaylistDetail() {
           </div>
           
           {/* Title - 更小字體 */}
-          <h1 className="text-2xl font-bold text-white mb-2">{playlist.title}</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <h1 className="text-2xl font-bold text-white">{playlist.title}</h1>
+            {/* Admin 編輯掣 */}
+            {isAdmin && playlist.source === 'manual' && (
+              <Link
+                href={`/admin/playlists/edit/${id}`}
+                className="p-2 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition"
+                title="編輯歌單"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </Link>
+            )}
+          </div>
           
           {/* Description - 更小字體 */}
           {playlist.description && (
