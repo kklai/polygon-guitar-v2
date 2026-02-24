@@ -211,6 +211,337 @@ export default function Home() {
   })
   const [recentItems, setRecentItems] = useState([])
 
+  // 渲染單個區域
+  const renderSection = (section) => {
+    const sectionLabels = {
+      categories: '歌手分類',
+      recent: '最近瀏覽',
+      hotTabs: '熱門結他譜',
+      hotArtists: '熱門歌手',
+      autoPlaylists: '熱門歌單',
+      latest: '最新上架',
+      manualPlaylists: '推薦歌單'
+    }
+    
+    const getSectionLabel = (section) => {
+      return section.customLabel || sectionLabels[section.id] || section.id
+    }
+    
+    switch (section.id) {
+      case 'categories':
+        return (
+          <section key={section.id} className="mb-6 pt-2">
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  onClick={() => handleCategoryClick(category.id)}
+                  className="flex-shrink-0 flex flex-col cursor-pointer"
+                >
+                  <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="absolute inset-0 w-full h-full object-cover object-top"
+                      draggable="false"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="absolute bottom-2 right-0 w-1/2">
+                      <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
+                        category.id === 'male' ? 'bg-[#1fc3df]' :
+                        category.id === 'female' ? 'bg-[#ff9b98]' :
+                        'bg-[#fed702]'
+                      }`}>
+                        {category.name}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-36 mt-2 px-1">
+                    <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
+                      {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+
+      case 'recent':
+        return <RecentItems key={section.id} items={recentItems} title={getSectionLabel(section)} />
+
+      case 'hotTabs':
+        return hotTabs.length > 0 && (
+          <section key={section.id} className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {hotTabs.map((song) => (
+                <button
+                  key={song.id}
+                  onClick={() => handleSongClick(song.id)}
+                  className="flex-shrink-0 flex flex-col text-left w-36"
+                >
+                  <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg relative">
+                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                      <img
+                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                        alt={song.title}
+                        className="w-full h-full object-cover"
+                        draggable="false"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                    )}
+                  </div>
+                  <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
+                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )
+
+      case 'hotArtists':
+        return hotArtists.all?.length > 0 && (
+          <section key={section.id} className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {hotArtists.all.map((artist) => (
+                <button
+                  key={artist.id}
+                  onClick={() => handleArtistClick(artist)}
+                  className="flex-shrink-0 flex flex-col text-left w-36"
+                >
+                  <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                    {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
+                      <img 
+                        src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
+                        alt={artist.name} 
+                        className="w-full h-full object-cover"
+                        draggable="false"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-300 truncate">{artist.name}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )
+
+      case 'autoPlaylists':
+        return autoPlaylists.length > 0 && (
+          <section key={section.id} className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {autoPlaylists.map((playlist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => handlePlaylistClick(playlist.id)}
+                  className="flex-shrink-0 flex flex-col text-left w-36"
+                >
+                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 shadow-lg">
+                    {getThumbnail(playlist) ? (
+                      <img
+                        src={getThumbnail(playlist)}
+                        alt={playlist.title}
+                        className="w-full h-full object-cover"
+                        draggable="false"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
+                    )}
+                  </div>
+                  <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
+                  {playlist.description && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{playlist.description}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
+        )
+
+      case 'latest':
+        return latestSongs.length > 0 && (
+          <section key={section.id} className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {latestSongs.map((song) => (
+                <button
+                  key={song.id}
+                  onClick={() => handleSongClick(song.id)}
+                  className="flex-shrink-0 flex flex-col text-left w-36"
+                >
+                  <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                      <img
+                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                        alt={song.title}
+                        className="w-full h-full object-cover"
+                        draggable="false"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                    )}
+                  </div>
+                  <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
+                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )
+
+      case 'manualPlaylists':
+        return manualPlaylists.length > 0 && (
+          <section key={section.id} className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              {manualPlaylists.map((playlist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => handlePlaylistClick(playlist.id)}
+                  className="flex-shrink-0 flex flex-col text-left w-36"
+                >
+                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
+                    {getThumbnail(playlist) ? (
+                      <img
+                        src={getThumbnail(playlist)}
+                        alt={playlist.title}
+                        className="w-full h-full object-cover"
+                        draggable="false"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
+                    )}
+                  </div>
+                  <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
+                </button>
+              ))}
+            </div>
+          </section>
+        )
+
+      default:
+        // 處理自定義歌單區域
+        const customSection = (homeSettings.customPlaylistSections || []).find(s => s.id === section.id)
+        
+        if (!customSection) {
+          return null
+        }
+        
+        // 單歌單區域
+        if (customSection.type === 'customPlaylist' && customSection.playlistId) {
+          const playlist = manualPlaylists.find(p => p.id === customSection.playlistId) || 
+                          autoPlaylists.find(p => p.id === customSection.playlistId)
+          
+          if (!playlist || !playlist.songIds || playlist.songIds.length === 0) {
+            return null
+          }
+          
+          const sectionSongs = playlist.songIds
+            .map(id => latestSongs.find(s => s.id === id) || 
+                        hotTabs.find(s => s.id === id) ||
+                        allSongs.find(s => s.id === id))
+            .filter(Boolean)
+          
+          if (sectionSongs.length === 0) {
+            return null
+          }
+          
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {sectionSongs.map((song) => (
+                  <button
+                    key={song.id}
+                    onClick={() => handleSongClick(song.id)}
+                    className="flex-shrink-0 flex flex-col text-left w-36"
+                  >
+                    <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
+                      {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
+                        <img
+                          src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
+                          alt={song.title}
+                          className="w-full h-full object-cover"
+                          draggable="false"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                      )}
+                    </div>
+                    <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
+                    <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )
+        }
+        
+        // 多歌單區域
+        if (customSection.type === 'playlistGroup' && customSection.playlistIds) {
+          const playlists = customSection.playlistIds
+            .map(id => manualPlaylists.find(p => p.id === id) || autoPlaylists.find(p => p.id === id))
+            .filter(Boolean)
+          
+          if (playlists.length === 0) {
+            return null
+          }
+          
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {playlists.map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    onClick={() => handlePlaylistClick(playlist.id)}
+                    className="flex-shrink-0 flex flex-col text-left w-36"
+                  >
+                    <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
+                      {getThumbnail(playlist) ? (
+                        <img
+                          src={getThumbnail(playlist)}
+                          alt={playlist.title}
+                          className="w-full h-full object-cover"
+                          draggable="false"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                      )}
+                    </div>
+                    <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )
+        }
+        
+        return null
+    }
+  }
+
   useEffect(() => {
     loadHomeData()
   }, [user])
@@ -645,376 +976,17 @@ export default function Home() {
         )}
 
         {/* 根據 sectionOrder 動態渲染各區域 */}
-        {(() => {
-          // 預設區域配置
-          const defaultSectionOrder = [
-            { id: 'categories', enabled: true, customLabel: '' },
-            { id: 'recent', enabled: true, customLabel: '' },
-            { id: 'hotTabs', enabled: true, customLabel: '' },
-            { id: 'hotArtists', enabled: true, customLabel: '' },
-            { id: 'autoPlaylists', enabled: true, customLabel: '' },
-            { id: 'latest', enabled: true, customLabel: '' },
-            { id: 'manualPlaylists', enabled: true, customLabel: '' }
-          ]
-          
-          // 區域標題映射
-          const sectionLabels = {
-            categories: '歌手分類',
-            recent: '最近瀏覽',
-            hotTabs: '熱門結他譜',
-            hotArtists: '熱門歌手',
-            autoPlaylists: '熱門歌單',
-            latest: '最新上架',
-            manualPlaylists: '推薦歌單'
-          }
-          
-          // 獲取區域顯示標題（使用自定義名稱或默認名稱）
-          const getSectionLabel = (section) => {
-            return section.customLabel || sectionLabels[section.id] || section.id
-          }
-          
-          // 獲取當前 sectionOrder，如果無效則使用預設
-          let sectionOrder = homeSettings.sectionOrder || defaultSectionOrder
-          
-          // 檢查啟用嘅區域是否太少（少於 3 個），係則使用預設
-          const enabledCount = sectionOrder.filter(s => s.enabled !== false).length
-          if (enabledCount < 3) {
-            console.log('Too few sections enabled (' + enabledCount + '), using defaults')
-            sectionOrder = defaultSectionOrder
-          }
-          
-          return sectionOrder
-            .filter(section => section.enabled !== false)
-            .map((section) => {
-            switch (section.id) {
-              case 'categories':
-                return (
-                  <section key={section.id} className="mb-6 pt-2">
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
-                      {categories.map((category) => (
-                        <div
-                          key={category.id}
-                          onClick={() => handleCategoryClick(category.id)}
-                          className="flex-shrink-0 flex flex-col cursor-pointer"
-                        >
-                          <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800">
-                            <img
-                              src={category.image}
-                              alt={category.name}
-                              className="absolute inset-0 w-full h-full object-cover object-top"
-                              draggable="false"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                            <div className="absolute bottom-2 right-0 w-1/2">
-                              <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
-                                category.id === 'male' ? 'bg-[#1fc3df]' :
-                                category.id === 'female' ? 'bg-[#ff9b98]' :
-                                'bg-[#fed702]'
-                              }`}>
-                                {category.name}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="w-36 mt-2 px-1">
-                            <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
-                              {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )
-
-              case 'recent':
-                return <RecentItems key={section.id} items={recentItems} title={getSectionLabel(section)} />
-
-              case 'hotTabs':
-                return hotTabs.length > 0 && (
-                  <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                      {hotTabs.map((song) => (
-                        <button
-                          key={song.id}
-                          onClick={() => handleSongClick(song.id)}
-                          className="flex-shrink-0 flex flex-col text-left w-36"
-                        >
-                          <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg relative">
-                            {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                              <img
-                                src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                                alt={song.title}
-                                className="w-full h-full object-cover"
-                                draggable="false"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                            )}
-                          </div>
-                          <h3 className="text-sm text-white font-medium truncate">
-                            {song.title}
-                          </h3>
-                          <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )
-
-              case 'hotArtists':
-                return hotArtists.all?.length > 0 && (
-                  <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                      {hotArtists.all.map((artist) => (
-                        <button
-                          key={artist.id}
-                          onClick={() => handleArtistClick(artist)}
-                          className="flex-shrink-0 flex flex-col text-left w-36"
-                        >
-                          <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                            {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
-                              <img 
-                                src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
-                                alt={artist.name} 
-                                className="w-full h-full object-cover"
-                                draggable="false"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-300 truncate">
-                            {artist.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )
-
-              case 'autoPlaylists':
-                return autoPlaylists.length > 0 && (
-                  <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                      {autoPlaylists.map((playlist) => (
-                        <button
-                          key={playlist.id}
-                          onClick={() => handlePlaylistClick(playlist.id)}
-                          className="flex-shrink-0 flex flex-col text-left w-36"
-                        >
-                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 shadow-lg">
-                            {getThumbnail(playlist) ? (
-                              <img
-                                src={getThumbnail(playlist)}
-                                alt={playlist.title}
-                                className="w-full h-full object-cover"
-                                draggable="false"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                            )}
-                          </div>
-                          <h3 className="text-base text-white font-medium truncate">
-                            {playlist.title}
-                          </h3>
-                          {playlist.description && (
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                              {playlist.description}
-                            </p>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )
-
-              case 'latest':
-                return latestSongs.length > 0 && (
-                  <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                      {latestSongs.map((song) => (
-                        <button
-                          key={song.id}
-                          onClick={() => handleSongClick(song.id)}
-                          className="flex-shrink-0 flex flex-col text-left w-36"
-                        >
-                          <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                            {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                              <img
-                                src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                                alt={song.title}
-                                className="w-full h-full object-cover"
-                                draggable="false"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                            )}
-                          </div>
-                          <h3 className="text-sm text-white font-medium truncate">
-                            {song.title}
-                          </h3>
-                          <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )
-
-              case 'manualPlaylists':
-                return manualPlaylists.length > 0 && (
-                  <section key={section.id} className="mb-10">
-                    <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-                    <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                      {manualPlaylists.map((playlist) => (
-                        <button
-                          key={playlist.id}
-                          onClick={() => handlePlaylistClick(playlist.id)}
-                          className="flex-shrink-0 flex flex-col text-left w-36"
-                        >
-                          <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
-                            {getThumbnail(playlist) ? (
-                              <img
-                                src={getThumbnail(playlist)}
-                                alt={playlist.title}
-                                className="w-full h-full object-cover"
-                                draggable="false"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                            )}
-                          </div>
-                          <h3 className="text-base text-white font-medium truncate">
-                            {playlist.title}
-                          </h3>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )
-
-              // 處理自定義歌單區域（整合進 sectionOrder）
-              default:
-                // 檢查是否為自定義歌單區域
-                const customSection = (homeSettings.customPlaylistSections || [])
-                  .find(s => s.id === section.id)
-                
-                if (!customSection) {
-                  return null
-                }
-                
-                // 單歌單區域
-                if (customSection.type === 'customPlaylist' && customSection.playlistId) {
-                  const playlist = manualPlaylists.find(p => p.id === customSection.playlistId) || 
-                                  autoPlaylists.find(p => p.id === customSection.playlistId)
-                  
-                  if (!playlist || !playlist.songIds || playlist.songIds.length === 0) {
-                    return null
-                  }
-                  
-                  // 獲取歌單的歌曲詳情（從所有已加載的歌曲中查找）
-                  const sectionSongs = playlist.songIds
-                    .map(id => latestSongs.find(s => s.id === id) || 
-                                hotTabs.find(s => s.id === id) ||
-                                allSongs.find(s => s.id === id))
-                    .filter(Boolean)
-                  
-                  if (sectionSongs.length === 0) {
-                    return null
-                  }
-                  
-                  return (
-                    <section key={section.id} className="mb-10">
-                      <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
-                      <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                        {sectionSongs.map((song) => (
-                          <button
-                            key={song.id}
-                            onClick={() => handleSongClick(song.id)}
-                            className="flex-shrink-0 flex flex-col text-left w-36"
-                          >
-                            <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                              {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                                <img
-                                  src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                                  alt={song.title}
-                                  className="w-full h-full object-cover"
-                                  draggable="false"
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                              )}
-                            </div>
-                            <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
-                            <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  )
-                }
-                
-                // 多歌單區域（playlistGroup）
-                if (customSection.type === 'playlistGroup' && customSection.playlistIds) {
-                  const playlists = customSection.playlistIds
-                    .map(id => manualPlaylists.find(p => p.id === id) || autoPlaylists.find(p => p.id === id))
-                    .filter(Boolean)
-                  
-                  if (playlists.length === 0) {
-                    return null
-                  }
-                  
-                  return (
-                    <section key={section.id} className="mb-10">
-                      <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
-                      <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                        {playlists.map((playlist) => (
-                          <button
-                            key={playlist.id}
-                            onClick={() => handlePlaylistClick(playlist.id)}
-                            className="flex-shrink-0 flex flex-col text-left w-36"
-                          >
-                            <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
-                              {getThumbnail(playlist) ? (
-                                <img
-                                  src={getThumbnail(playlist)}
-                                  alt={playlist.title}
-                                  className="w-full h-full object-cover"
-                                  draggable="false"
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                              )}
-                            </div>
-                            <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  )
-                }
-                
-                return null
-            })
-        })()}
+        {(homeSettings.sectionOrder || [
+          { id: 'categories', enabled: true },
+          { id: 'recent', enabled: true },
+          { id: 'hotTabs', enabled: true },
+          { id: 'hotArtists', enabled: true },
+          { id: 'autoPlaylists', enabled: true },
+          { id: 'latest', enabled: true },
+          { id: 'manualPlaylists', enabled: true }
+        ])
+          .filter(section => section.enabled !== false)
+          .map(section => renderSection(section))}
 
         {/* 底部 Spacer */}
         <div className="h-8" />
