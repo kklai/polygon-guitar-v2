@@ -856,10 +856,8 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
   const chordWithSpacing = normalizeChordSpacing(chordLine);
   const normalizedChord = normalizeInput(chordWithSpacing);
   const normalizedLyric = normalizeInput(lyricLine);
-  // 根據是否隱藏括號，使用唔同嘅位置計算
-  const bracketPositions = hideBrackets 
-    ? findAdjustedBracketPositions(normalizedLyric) 
-    : findBracketPositions(normalizedLyric);
+  // 計算開括號位置（統一使用原位置，無論顯示/隱藏括號都保持相同寬度）
+  const bracketPositions = findBracketPositions(normalizedLyric);
   
   // 解析和弦行，記錄每個 token 及其位置
   const tokens = [];
