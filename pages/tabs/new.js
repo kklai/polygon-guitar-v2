@@ -8,6 +8,7 @@ import ArtistAutoFill from '@/components/ArtistAutoFill'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
+import { processTabContent, autoFixTabFormat } from '@/lib/tabFormatter'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -499,6 +500,21 @@ E|----------------------------------------------------------------|
             <button
               type="button"
               onClick={() => {
+                const fixed = autoFixTabFormat(formData.content);
+                setFormData(prev => ({ ...prev, content: fixed }));
+              }}
+              className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
+              disabled={!formData.content}
+              title="修正從其他地方複製過來的譜的對齊問題"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+              自動修正對齊
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 const cleaned = formData.content
                   .split('\n')
                   .filter(line => line.trim())
@@ -519,22 +535,24 @@ E|----------------------------------------------------------------|
           onPaste={(e) => {
             e.preventDefault();
             const pastedText = e.clipboardData.getData('text');
-            const cleanedText = pastedText
-              .replace(/\u3000/g, ' ')
-              .split('\n')
-              .map(line => line.trim().replace(/\s+/g, ' '))
-              .join('\n');
+            // 先清理空格，再自動修正對齊
+            const processed = processTabContent(pastedText);
             const textarea = e.target;
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const currentValue = formData.content;
-            const newValue = currentValue.substring(0, start) + cleanedText + currentValue.substring(end);
+            const newValue = currentValue.substring(0, start) + processed + currentValue.substring(end);
             setFormData(prev => ({ ...prev, content: newValue }));
           }}
-          placeholder="在這裡貼上你的結他譜..." rows={15}
+          placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕" rows={15}
           className={`w-full px-4 py-2 bg-black border rounded-lg text-white font-mono text-sm ${errors.content ? 'border-red-500' : 'border-gray-700'}`} />
         {errors.content && <p className="text-sm text-red-400">{errors.content}</p>}
-        <p className="text-xs text-gray-500">支援純文字格式，和弦用 [] 包住會自動識別</p>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>貼上時會自動修正對齊。有 | 會保留，冇 | 會保持原樣，淨係調整空格對齊和弦同歌詞。</span>
+        </div>
       </div>
     ),
     

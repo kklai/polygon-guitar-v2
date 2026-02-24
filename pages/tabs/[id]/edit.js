@@ -8,6 +8,7 @@ import ArtistAutoFill from '@/components/ArtistAutoFill'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
+import { processTabContent, autoFixTabFormat } from '@/lib/tabFormatter'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -821,20 +822,37 @@ export default function EditTab() {
                 <label htmlFor="content" className="block text-sm font-medium text-white">
                   譜內容 <span className="text-[#FFD700]">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const cleaned = formData.content
-                      .split('\n')
-                      .filter(line => line.trim())
-                      .join('\n');
-                    setFormData(prev => ({ ...prev, content: cleaned }));
-                  }}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
-                  disabled={!formData.content}
-                >
-                  移除所有空行
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fixed = autoFixTabFormat(formData.content);
+                      setFormData(prev => ({ ...prev, content: fixed }));
+                    }}
+                    className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
+                    disabled={!formData.content}
+                    title="修正從其他地方複製過來的譜的對齊問題"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                    自動修正對齊
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cleaned = formData.content
+                        .split('\n')
+                        .filter(line => line.trim())
+                        .join('\n');
+                      setFormData(prev => ({ ...prev, content: cleaned }));
+                    }}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    disabled={!formData.content}
+                  >
+                    移除所有空行
+                  </button>
+                </div>
               </div>
               <textarea
                 id="content"
@@ -844,15 +862,8 @@ export default function EditTab() {
                 onPaste={(e) => {
                   e.preventDefault();
                   const pastedText = e.clipboardData.getData('text');
-                  // 清理空格：
-                  // 1. 將全型空格（\u3000）轉為半型空格
-                  // 2. 每行開頭結尾空格 trim
-                  // 3. 連續多個空格變一個
-                  const cleanedText = pastedText
-                    .replace(/\u3000/g, ' ')  // 全型空格 -> 半型空格
-                    .split('\n')
-                    .map(line => line.trim().replace(/\s+/g, ' '))
-                    .join('\n');
+                  // 清理空格並自動修正對齊
+                  const processed = processTabContent(pastedText);
                   
                   // 獲取當前光標位置
                   const textarea = e.target;
@@ -860,13 +871,14 @@ export default function EditTab() {
                   const end = textarea.selectionEnd;
                   const currentValue = formData.content;
                   
-                  // 插入清理後嘅文字
-                  const newValue = currentValue.substring(0, start) + cleanedText + currentValue.substring(end);
+                  // 插入處理後嘅文字
+                  const newValue = currentValue.substring(0, start) + processed + currentValue.substring(end);
                   
                   // 更新表單數據
                   setFormData(prev => ({ ...prev, content: newValue }));
                 }}
                 rows={20}
+                placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent font-mono text-sm ${
                   errors.content ? 'border-red-500' : 'border-gray-800'
                 }`}
@@ -874,6 +886,12 @@ export default function EditTab() {
               {errors.content && (
                 <p className="mt-1 text-sm text-red-400">{errors.content}</p>
               )}
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>貼上時會自動修正對齊。有 | 會保留，冇 | 會保持原樣，淨係調整空格對齊和弦同歌詞。</span>
+              </div>
             </div>
 
             {/* Submit Buttons */}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>譜對齊測試</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      padding: 20px;
+      font-size: 14px;
+    }
+    
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 1px solid #333;
+    }
+    
+    .section h3 {
+      color: #FFD700;
+      margin-bottom: 10px;
+    }
+    
+    /* Arial（比例字體）- 模擬來源網站 */
+    .arial {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #111;
+      padding: 15px;
+      white-space: pre;
+      margin: 10px 0;
+    }
+    
+    /* 等寬字體 - Polygon Guitar 用 */
+    .mono {
+      font-family: "Sarasa Mono TC", "Consolas", "Monaco", monospace;
+      background: #1a1a1a;
+      padding: 15px;
+      white-space: pre;
+      margin: 10px 0;
+      border-left: 3px solid #FFD700;
+    }
+    
+    .highlight {
+      color: #FFD700;
+    }
+  </style>
+</head>
+<body>
+  <h2>譜對齊測試</h2>
+  
+  <div class="section">
+    <h3>1. 原始輸入（你 copy 嘅內容）</h3>
+    <p>用呢個測試你貼上嚟嘅格式係點：</p>
+    <div id="userInput" class="mono" contenteditable="true" placeholder="喺度貼上你嘅譜...">
+Verse
+         |C                         C7
+人人話我笨　作歌點發達
+         |F                             Fm
+就算搵夠　買盒飯　唔慌多
+    </div>
+    <button onclick="analyze()">分析對齊</button>
+  </div>
+  
+  <div class="section">
+    <h3>2. Arial 效果（模擬來源網站）</h3>
+    <div id="arialOutput" class="arial"></div>
+  </div>
+  
+  <div class="section">
+    <h3>3. 等寬字體效果（Polygon Guitar）</h3>
+    <div id="monoOutput" class="mono"></div>
+  </div>
+  
+  <div class="section">
+    <h3>4. 分析結果</h3>
+    <div id="analysis" style="color: #ccc;"></div>
+  </div>
+
+  <script>
+    function analyze() {
+      const input = document.getElementById('userInput').innerText;
+      
+      // 顯示喺 Arial 下同等寬字體下嘅效果
+      document.getElementById('arialOutput').textContent = input;
+      document.getElementById('monoOutput').textContent = input;
+      
+      // 分析每一行
+      const lines = input.split('\n');
+      let analysis = '';
+      
+      lines.forEach((line, idx) => {
+        if (line.trim()) {
+          const leadingSpaces = line.length - line.trimStart().length;
+          const hasChord = /\|[A-G]/.test(line);
+          const isChordLine = /^\s*\|?[A-G]/.test(line) && !line.match(/[\u4e00-\u9fa5]/);
+          
+          analysis += `行 ${idx + 1}: ${leadingSpaces} 個前導空格`;
+          if (hasChord) analysis += `, 有和弦`;
+          if (isChordLine) analysis += `, 判斷為和弦行`;
+          analysis += '\n';
+          
+          // 顯示每個字符
+          if (line.includes('|C')) {
+            analysis += `  -> 字符詳情: `;
+            for (let i = 0; i < Math.min(20, line.length); i++) {
+              const char = line[i];
+              if (char === ' ') analysis += `[空格]`;
+              else if (char === '|') analysis += `[|]`;
+              else analysis += `[${char}]`;
+            }
+            analysis += '\n';
+          }
+        }
+      });
+      
+      document.getElementById('analysis').textContent = analysis || '請輸入內容後再分析';
+    }
+    
+    // 自動分析一次
+    analyze();
+  </script>
+</body>
+</html>
