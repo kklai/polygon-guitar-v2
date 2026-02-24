@@ -882,21 +882,44 @@ export default function EditTab() {
                   譜內容 <span className="text-[#FFD700]">*</span>
                 </label>
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor);
-                      setFormData(prev => ({ ...prev, content: fixed }));
-                    }}
-                    className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
-                    disabled={!formData.content}
-                    title="修正從其他地方複製過來的譜的對齊問題"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                    </svg>
-                    自動修正對齊
-                  </button>
+                  {fontMode === 'arial' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Arial 模式下：將譜轉換為等寬字體格式
+                        const { convertArialToMono } = require('@/lib/tabFormatter');
+                        const converted = convertArialToMono(formData.content);
+                        setFormData(prev => ({ ...prev, content: converted }));
+                        // 自動切換回等寬模式俾用戶預覽效果
+                        setFontMode('mono');
+                        localStorage.setItem('tabFontMode', 'mono');
+                      }}
+                      className="text-sm bg-[#FFD700] text-black px-3 py-1.5 rounded hover:bg-yellow-400 transition-colors flex items-center gap-1 font-medium"
+                      disabled={!formData.content}
+                      title="將 Arial 格式嘅譜轉換為等寬字體格式，並切換預覽模式"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      轉換為等寬格式
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor);
+                        setFormData(prev => ({ ...prev, content: fixed }));
+                      }}
+                      className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
+                      disabled={!formData.content}
+                      title="修正對齊問題"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                      </svg>
+                      自動修正對齊
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
