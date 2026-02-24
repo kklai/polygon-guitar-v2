@@ -178,12 +178,18 @@ function CategoryImagesAdmin() {
     try {
       const imageUrl = await uploadToCloudinary(file, `category-${catId}`, 'category_covers')
       
-      // 更新 Firestore
+      // 更新 Firestore - 清除歌手資料，標記為上傳
       const settingsRef = doc(db, 'settings', 'categoryImages')
       await setDoc(settingsRef, {
         [catId]: {
           image: imageUrl,
           custom: true,
+          source: 'upload',  // 標記來源為上傳
+          // 清除之前嘅歌手資料
+          artistId: null,
+          artistName: null,
+          artistType: null,
+          hotScore: null,
           updatedAt: new Date().toISOString()
         }
       }, { merge: true })
@@ -297,6 +303,7 @@ function CategoryImagesAdmin() {
           artistName: artist.name,
           artistType: artist.artistType || artist.gender,
           custom: false,
+          source: 'artist',  // 標記來源為歌手選擇
           updatedAt: new Date().toISOString(),
           hotScore: artist.tabCount || 0
         }
@@ -431,7 +438,9 @@ function CategoryImagesAdmin() {
                 
                 {/* 資訊區域 */}
                 <div className="p-4 space-y-2">
-                  {isCustom ? (
+                  {/* 根據最後操作顯示不同內容 */}
+                  {data?.source === 'upload' || (data?.custom && !data?.artistId) ? (
+                    // 最後操作係上傳圖片
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-[#FFD700]">✓ 手動上傳圖片</span>
                       <button
@@ -441,14 +450,13 @@ function CategoryImagesAdmin() {
                         恢復自動
                       </button>
                     </div>
-                  ) : (
+                  ) : data?.source === 'artist' || (data?.artistId && !data?.custom) ? (
+                    // 最後操作係選擇歌手
                     <>
-                      {data?.artistType && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-400">來源歌手</span>
-                          <span className="text-slate-200">{data.artistName || '未知'}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">來源歌手</span>
+                        <span className="text-slate-200">{data.artistName || '未知'}</span>
+                      </div>
                       {data?.hotScore !== undefined && (
                         <div className="flex justify-between text-sm">
                           <span className="text-slate-400">熱門分數</span>
@@ -456,7 +464,21 @@ function CategoryImagesAdmin() {
                         </div>
                       )}
                     </>
-                  )}
+                  ) : data?.image ? (
+                    // 自動獲取（冇 source 標記嘅舊資料，但有圖片）
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">來源歌手</span>
+                        <span className="text-slate-200">{data.artistName || '自動選擇'}</span>
+                      </div>
+                      {data?.hotScore !== undefined && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">熱門分數</span>
+                          <span className="text-slate-200">{data.hotScore}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : null}
                   {data?.updatedAt && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">更新時間</span>
