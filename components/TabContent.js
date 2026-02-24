@@ -1389,8 +1389,15 @@ const TabContent = ({
       // 如果是歌詞行，優先處理
       if (isLyric) {
         const lyricParts = processLyricLine(line);
+        // 計算行首空格數量（用嚟做 paddingLeft）
+        const leadingSpacesMatch = line.match(/^(\s+)/);
+        const leadingSpaces = leadingSpacesMatch ? leadingSpacesMatch[1].length : 0;
+        // Arial 模式下，用 paddingLeft 保留前導空格效果
+        const paddingLeft = (displayFont === 'arial' && leadingSpaces > 0) 
+          ? leadingSpaces * (lineFontSize * 0.5)  // 每個空格大約半個字寬
+          : 0;
         elements.push(
-          <div key={i} style={{ fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+          <div key={i} style={{ fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', paddingLeft: `${paddingLeft}px` }}>
             {lyricParts.map((part, idx) => {
               // 隱藏括號時，將括號變成空格占位（保持寬度）
               if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
