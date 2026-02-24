@@ -1638,7 +1638,7 @@ const TabContent = ({
                         {cleanText}
                       </span>
                     );
-                  })
+                  })}
                 </div>
               </div>
             );
