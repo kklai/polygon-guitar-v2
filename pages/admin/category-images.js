@@ -13,6 +13,12 @@ function CategoryImagesAdmin() {
   const [updating, setUpdating] = useState(false)
   const [uploadingCat, setUploadingCat] = useState(null)
   const [message, setMessage] = useState(null)
+  
+  // 歌手選擇相關狀態
+  const [selectedCatForArtist, setSelectedCatForArtist] = useState(null)
+  const [categoryArtists, setCategoryArtists] = useState([])
+  const [loadingArtists, setLoadingArtists] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     loadCategoryImages()
@@ -212,6 +218,103 @@ function CategoryImagesAdmin() {
     }
   }
 
+  // 載入分類下的所有歌手
+  const loadCategoryArtists = async (catId) => {
+    setLoadingArtists(true)
+    setSelectedCatForArtist(catId)
+    setSearchTerm('')
+    
+    const catConfig = {
+      male: { types: ['male'] },
+      female: { types: ['female'] },
+      group: { types: ['group', 'band'] }
+    }
+    
+    try {
+      const config = catConfig[catId]
+      let allArtists = []
+      
+      for (const typeValue of config.types) {
+        // 查 artistType
+        const q1 = query(
+          collection(db, 'artists'),
+          where('artistType', '==', typeValue),
+          limit(100)
+        )
+        const snapshot1 = await getDocs(q1)
+        snapshot1.docs.forEach(d => {
+          allArtists.push({ id: d.id, ...d.data() })
+        })
+        
+        // 查 gender
+        const q2 = query(
+          collection(db, 'artists'),
+          where('gender', '==', typeValue),
+          limit(100)
+        )
+        const snapshot2 = await getDocs(q2)
+        snapshot2.docs.forEach(d => {
+          allArtists.push({ id: d.id, ...d.data() })
+        })
+      }
+      
+      // 去重並排序（按譜數）
+      const seenIds = new Set()
+      const uniqueArtists = []
+      for (const artist of allArtists) {
+        if (!seenIds.has(artist.id)) {
+          seenIds.add(artist.id)
+          uniqueArtists.push(artist)
+        }
+      }
+      
+      uniqueArtists.sort((a, b) => (b.tabCount || 0) - (a.tabCount || 0))
+      setCategoryArtists(uniqueArtists)
+    } catch (error) {
+      console.error('Error loading artists:', error)
+      setMessage({ type: 'error', text: '載入歌手失敗：' + error.message })
+    } finally {
+      setLoadingArtists(false)
+    }
+  }
+
+  // 選擇歌手作為封面
+  const handleSelectArtist = async (artist) => {
+    if (!selectedCatForArtist) return
+    
+    const photoUrl = artist.photoURL || artist.photo || artist.wikiPhotoURL
+    if (!photoUrl) {
+      setMessage({ type: 'error', text: '此歌手沒有相片' })
+      return
+    }
+    
+    try {
+      const settingsRef = doc(db, 'settings', 'categoryImages')
+      await setDoc(settingsRef, {
+        [selectedCatForArtist]: {
+          image: photoUrl,
+          artistId: artist.id,
+          artistName: artist.name,
+          artistType: artist.artistType || artist.gender,
+          custom: false,
+          updatedAt: new Date().toISOString(),
+          hotScore: artist.tabCount || 0
+        }
+      }, { merge: true })
+      
+      setMessage({ type: 'success', text: `已設定 ${artist.name} 為封面` })
+      setSelectedCatForArtist(null)
+      await loadCategoryImages()
+    } catch (error) {
+      setMessage({ type: 'error', text: '設定失敗：' + error.message })
+    }
+  }
+
+  // 過濾歌手列表
+  const filteredArtists = categoryArtists.filter(artist => 
+    artist.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   const categories = [
     { id: 'male', name: '男歌手', icon: '👨‍🎤' },
     { id: 'female', name: '女歌手', icon: '👩‍🎤' },
@@ -362,17 +465,114 @@ function CategoryImagesAdmin() {
                       </span>
                     </div>
                   )}
-                  {!data && <p className="text-gray-500 text-sm text-center py-2">尚未設定封面，請上傳圖片或按上方「立即更新」</p>}
+                  {!data && <p className="text-gray-500 text-sm text-center py-2">尚未設定封面</p>}
+                  
+                  {/* 選擇歌手按鈕 */}
+                  <button
+                    onClick={() => loadCategoryArtists(cat.id)}
+                    className="w-full mt-2 py-2 px-4 bg-[#282828] hover:bg-[#3E3E3E] text-white rounded-lg text-sm transition flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    選擇歌手相片
+                  </button>
                 </div>
               </div>
             )
           })}
         </div>
 
+        {/* 歌手選擇模態框 */}
+        {selectedCatForArtist && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+            <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-md max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">
+                  選擇{categories.find(c => c.id === selectedCatForArtist)?.name}封面
+                </h3>
+                <button 
+                  onClick={() => setSelectedCatForArtist(null)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* 搜索框 */}
+              <div className="p-4 border-b border-gray-800">
+                <input
+                  type="text"
+                  placeholder="搜索歌手名..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 bg-[#282828] border border-gray-700 rounded-lg text-white placeholder-gray-500"
+                />
+              </div>
+              
+              {/* 歌手列表 */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {loadingArtists ? (
+                  <div className="text-center py-8 text-gray-500">載入中...</div>
+                ) : filteredArtists.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">找不到歌手</div>
+                ) : (
+                  filteredArtists.map(artist => {
+                    const hasPhoto = artist.photoURL || artist.photo || artist.wikiPhotoURL
+                    const photoUrl = artist.photoURL || artist.photo || artist.wikiPhotoURL
+                    
+                    return (
+                      <button
+                        key={artist.id}
+                        onClick={() => handleSelectArtist(artist)}
+                        disabled={!hasPhoto}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition text-left ${
+                          hasPhoto 
+                            ? 'hover:bg-[#282828] cursor-pointer' 
+                            : 'opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        {photoUrl ? (
+                          <img 
+                            src={photoUrl} 
+                            alt={artist.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
+                            <span className="text-xl">🎤</span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium truncate">{artist.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {artist.tabCount || 0} 首譜
+                            {!hasPhoto && ' • 無相片'}
+                          </p>
+                        </div>
+                        {hasPhoto && (
+                          <span className="text-[#FFD700]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        )
+
         <div className="mt-8 bg-[#121212] border border-gray-800 rounded-xl p-4">
           <h3 className="text-lg font-medium text-white mb-2">說明</h3>
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
             <li>點擊圖片區域可直接上傳自訂封面（會顯示「自訂」標籤）</li>
+            <li>點擊「選擇歌手相片」可手動揀選該分類下的歌手作為封面</li>
             <li>按「立即更新」會自動從各類別最熱門歌手獲取圖片（會顯示「自動」標籤）</li>
             <li>自訂圖片可隨時恢復為自動選擇</li>
             <li>建議上傳正方形圖片（600x600 或以上）</li>
