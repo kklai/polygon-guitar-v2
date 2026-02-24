@@ -1421,23 +1421,11 @@ const TabContent = ({
             fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
           }}>
             {notationParts.map((part, idx) => {
-              // 處理隱藏括號：將內容中的括號設為透明
+              // 處理隱藏括號：直接移除括號
               let content = part.content;
               if (hideBrackets && part.type === 'inside') {
-                // 將括號分離出來設為透明
-                const match = content.match(/^([\(（])(.+?)([\)）])$/);
-                if (match) {
-                  return (
-                    <span key={idx} style={{
-                      color: colors.lyricInside,
-                      fontWeight: 'bold'
-                    }}>
-                      <span style={{ color: 'transparent' }}>{match[1]}</span>
-                      {match[2]}
-                      <span style={{ color: 'transparent' }}>{match[3]}</span>
-                    </span>
-                  );
-                }
+                // 移除開頭和結尾的括號
+                content = content.replace(/^[\(（]|[\)）]$/g, '');
               }
               return (
                 <span key={idx} style={{
@@ -1586,20 +1574,8 @@ const TabContent = ({
                           // 處理隱藏括號：將內容中的括號設為透明
                           let content = part.content;
                           if (hideBrackets && part.type === 'inside') {
-                            // 將括號分離出來設為透明
-                            const match = content.match(/^([\(（])(.+?)([\)）])$/);
-                            if (match) {
-                              return (
-                                <span key={idx} style={{
-                                  color: colors.lyricInside,
-                                  fontWeight: 'bold'
-                                }}>
-                                  <span style={{ color: 'transparent' }}>{match[1]}</span>
-                                  {match[2]}
-                                  <span style={{ color: 'transparent' }}>{match[3]}</span>
-                                </span>
-                              );
-                            }
+                            // 直接移除括號
+                            content = content.replace(/^[\(（]|[\)）]$/g, '');
                           }
                           return (
                             <span key={idx} style={{
@@ -1618,13 +1594,14 @@ const TabContent = ({
                 {/* 歌詞行 - 括號外灰色，括號內白色 */}
                 <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.2' }}>
                   {result.lyricParts.map((part, idx) => {
+                    // 隱藏括號時，直接不 render 括號
+                    if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
+                      return null;
+                    }
                     // 決定顏色
                     let partColor;
-                    if (part.isInside || part.type === 'inside') {
+                    if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
                       partColor = colors.lyricInside;
-                    } else if (part.type === 'bracket-open' || part.type === 'bracket-close') {
-                      // 括號顏色：隱藏時設為透明，否則與括號內文字同色
-                      partColor = hideBrackets ? 'transparent' : colors.lyricInside;
                     } else {
                       partColor = colors.lyricNormal;
                     }
