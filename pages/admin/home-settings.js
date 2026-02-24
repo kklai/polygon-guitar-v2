@@ -14,7 +14,7 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore'
-import { getAllArtists, getAllTabs, getRecentTabs } from '@/lib/tabs'
+import { getAllArtists, getRecentTabs, getHotTabs } from '@/lib/tabs'
 import { getAllPlaylists } from '@/lib/playlists'
 
 const SORT_OPTIONS = [
@@ -146,9 +146,10 @@ function HomeSettings() {
 
   const loadData = async () => {
     try {
+      // 只加載必要數據，避免加載幾千首歌導致慢
       const [artistsData, tabsData, playlistsData, settingsDoc] = await Promise.all([
-        getAllArtists(),
-        getAllTabs(), // 載入所有歌曲，類似 search 頁面
+        getAllArtists(), // 歌手數量通常唔多
+        getHotTabs(100), // 只加載熱門的100首歌，唔使加載全部
         getAllPlaylists(),
         getDoc(doc(db, 'settings', 'home'))
       ])
@@ -156,7 +157,7 @@ function HomeSettings() {
       setPlaylists(playlistsData)
       
       setArtists(artistsData)
-      setTabs(tabsData)
+      setTabs(tabsData) // 只係熱門100首
       
       if (settingsDoc.exists()) {
         const data = settingsDoc.data()
