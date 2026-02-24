@@ -43,17 +43,9 @@ export default function AdminIndex() {
     {
       href: '/admin/category-images',
       title: '分類封面管理',
-      description: '自動更新首頁男歌手/女歌手/組合封面',
+      description: '上傳圖片或選擇歌手作為首頁分類封面',
       icon: '',
       color: 'bg-green-600',
-      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
-    },
-    {
-      href: '/admin/category-covers',
-      title: '分類封面設定',
-      description: '手動設定首頁分類封面圖片',
-      icon: '',
-      color: 'bg-teal-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
