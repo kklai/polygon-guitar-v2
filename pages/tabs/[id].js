@@ -329,6 +329,7 @@ export default function TabDetail() {
           setTheme={setTheme}
           youtubeVideoId={tab.youtubeVideoId}
           arrangedBy={tab.uploaderPenName || tab.arrangedBy || '結他友'}
+          displayFont={tab.displayFont || 'mono'}
           songInfo={{
             songYear: tab.songYear,
             composer: tab.composer,

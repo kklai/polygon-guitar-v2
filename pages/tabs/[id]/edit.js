@@ -46,7 +46,9 @@ export default function EditTab() {
     fingeringTips: '',
     // 封面圖片
     albumImage: '',
-    coverImage: ''
+    coverImage: '',
+    // 顯示字體
+    displayFont: 'arial'
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -178,7 +180,8 @@ export default function EditTab() {
         viewCount: data.viewCount || 0,
         createdAt: data.createdAt,
         albumImage: data.albumImage || '',
-        coverImage: data.coverImage || ''
+        coverImage: data.coverImage || '',
+        displayFont: data.displayFont || 'arial'
       })
     } catch (error) {
       console.error('Error loading tab:', error)
@@ -835,19 +838,18 @@ export default function EditTab() {
 
             {/* Content */}
             <div>
-              {/* 字體模式切換 */}
+              {/* 譜顯示字體設定 */}
               <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#FFD700]/30 mb-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-[#FFD700] font-medium">編輯字體模式</label>
+                  <label className="text-sm text-[#FFD700] font-medium">此譜顯示字體（用戶睇到嘅效果）</label>
                   <div className="flex items-center gap-2 bg-black rounded-lg p-1">
                     <button
                       type="button"
                       onClick={() => {
-                        setFontMode('mono');
-                        localStorage.setItem('tabFontMode', 'mono');
+                        setFormData(prev => ({ ...prev, displayFont: 'mono' }));
                       }}
                       className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                        fontMode === 'mono' 
+                        formData.displayFont === 'mono' 
                           ? 'bg-[#FFD700] text-black' 
                           : 'text-gray-400 hover:text-white'
                       }`}
@@ -857,23 +859,22 @@ export default function EditTab() {
                     <button
                       type="button"
                       onClick={() => {
-                        setFontMode('arial');
-                        localStorage.setItem('tabFontMode', 'arial');
+                        setFormData(prev => ({ ...prev, displayFont: 'arial' }));
                       }}
                       className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                        fontMode === 'arial' 
+                        formData.displayFont === 'arial' 
                           ? 'bg-[#FFD700] text-black' 
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
-                      Arial（比例字體）
+                      Arial
                     </button>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  {fontMode === 'arial' 
-                    ? 'Arial 模式：適合編輯從其他網站複製過來的譜' 
-                    : '等寬字體：Polygon Guitar 預設顯示模式'}
+                  {formData.displayFont === 'arial' 
+                    ? 'Arial：適合從其他網站複製過來嘅譜，用戶睇到嘅效果同你編輯時一樣' 
+                    : '等寬字體：傳統結他譜顯示方式'}
                 </p>
               </div>
 
@@ -882,44 +883,21 @@ export default function EditTab() {
                   譜內容 <span className="text-[#FFD700]">*</span>
                 </label>
                 <div className="flex items-center gap-3">
-                  {fontMode === 'arial' ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // Arial 模式下：將譜轉換為等寬字體格式
-                        const { convertArialToMono } = require('@/lib/tabFormatter');
-                        const converted = convertArialToMono(formData.content);
-                        setFormData(prev => ({ ...prev, content: converted }));
-                        // 自動切換回等寬模式俾用戶預覽效果
-                        setFontMode('mono');
-                        localStorage.setItem('tabFontMode', 'mono');
-                      }}
-                      className="text-sm bg-[#FFD700] text-black px-3 py-1.5 rounded hover:bg-yellow-400 transition-colors flex items-center gap-1 font-medium"
-                      disabled={!formData.content}
-                      title="將 Arial 格式嘅譜轉換為等寬字體格式，並切換預覽模式"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      轉換為等寬格式
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor);
-                        setFormData(prev => ({ ...prev, content: fixed }));
-                      }}
-                      className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
-                      disabled={!formData.content}
-                      title="修正對齊問題"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                      </svg>
-                      自動修正對齊
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor);
+                      setFormData(prev => ({ ...prev, content: fixed }));
+                    }}
+                    className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
+                    disabled={!formData.content}
+                    title="修正對齊問題"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                    自動修正對齊
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -964,8 +942,8 @@ export default function EditTab() {
                 placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm ${
                   errors.content ? 'border-red-500' : 'border-gray-800'
-                } ${fontMode === 'arial' ? 'font-sans' : 'font-mono'}`}
-                style={fontMode === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}}
+                } ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
+                style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}}
               />
               {errors.content && (
                 <p className="mt-1 text-sm text-red-400">{errors.content}</p>

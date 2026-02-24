@@ -1105,7 +1105,9 @@ const TabContent = ({
   youtubeVideoId,
   songInfo = {},
   // 編譜者名稱
-  arrangedBy = ''
+  arrangedBy = '',
+  // 顯示字體設定
+  displayFont = 'mono'
 }) => {
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
@@ -1416,7 +1418,7 @@ const TabContent = ({
             marginBottom: `${lineFontSize * 0.6}px`,
             whiteSpace: 'pre-wrap', 
             overflowWrap: 'break-word',
-            fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
           }}>
             {notationParts.map((part, idx) => {
               // 處理隱藏括號：將括號替換為空格占位
@@ -1517,7 +1519,7 @@ const TabContent = ({
                           fontSize: `${notationFontSize}px`, 
                           whiteSpace: 'pre-wrap',
                           overflowWrap: 'break-word',
-                          fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                           color: colors.numericNotation,
                           display: 'flex',
                           flexWrap: 'wrap',
@@ -1566,7 +1568,7 @@ const TabContent = ({
                         marginBottom: '2px',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
-                        fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
                       }}>
                         {notationParts.map((part, idx) => {
                           // 處理隱藏括號：將括號替換為空格占位
@@ -1825,7 +1827,7 @@ const TabContent = ({
     <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
-        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
+        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>
       </div>
