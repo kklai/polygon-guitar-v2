@@ -817,9 +817,30 @@ export default function EditTab() {
 
             {/* Content */}
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-white mb-1">
-                譜內容 <span className="text-[#FFD700]">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="content" className="block text-sm font-medium text-white">
+                  譜內容 <span className="text-[#FFD700]">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleaned = formData.content
+                      .split('\n')
+                      .filter((line, index, arr) => {
+                        // 保留非空行，以及連續空行中的第一個
+                        if (line.trim()) return true;
+                        // 只保留第一個空行（如果有內容在前）
+                        return index === 0 || arr[index - 1].trim() !== '';
+                      })
+                      .join('\n');
+                    setFormData(prev => ({ ...prev, content: cleaned }));
+                  }}
+                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                  disabled={!formData.content}
+                >
+                  移除多餘空行
+                </button>
+              </div>
               <textarea
                 id="content"
                 name="content"

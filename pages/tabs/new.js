@@ -495,9 +495,30 @@ E|----------------------------------------------------------------|
       <div className="space-y-3 pt-4">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-white">譜內容 <span className="text-[#FFD700]">*</span></label>
-          <button type="button" onClick={insertTemplate} className="text-sm text-[#FFD700] hover:opacity-80">
-            插入空白模板
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                const cleaned = formData.content
+                  .split('\n')
+                  .filter((line, index, arr) => {
+                    // 保留非空行，以及連續空行中的第一個
+                    if (line.trim()) return true;
+                    // 只保留第一個空行（如果有內容在前）
+                    return index === 0 || arr[index - 1].trim() !== '';
+                  })
+                  .join('\n');
+                setFormData(prev => ({ ...prev, content: cleaned }));
+              }}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+              disabled={!formData.content}
+            >
+              移除多餘空行
+            </button>
+            <button type="button" onClick={insertTemplate} className="text-sm text-[#FFD700] hover:opacity-80">
+              插入空白模板
+            </button>
+          </div>
         </div>
         <textarea name="content" value={formData.content} onChange={handleChange}
           onPaste={(e) => {
