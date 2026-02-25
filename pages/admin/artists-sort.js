@@ -8,8 +8,8 @@ import { db } from '@/lib/firebase'
 import Link from 'next/link'
 import { GripVertical, Save, RotateCcw, AlertCircle } from 'lucide-react'
 
-// 簡單拖放 Hook
-function useDragAndDrop(items, onReorder) {
+// 簡單拖放 Hook - 不依賴 items，避免重新渲染時重置
+function useDragAndDrop(onReorder) {
   const [draggingId, setDraggingId] = useState(null)
   const [dragOverId, setDragOverId] = useState(null)
 
@@ -24,10 +24,10 @@ function useDragAndDrop(items, onReorder) {
     }
   }
 
-  const handleDrop = (e, targetId) => {
+  const handleDrop = (e, targetId, currentItems) => {
     e.preventDefault()
     if (draggingId && draggingId !== targetId) {
-      const newItems = [...items]
+      const newItems = [...currentItems]
       const dragIndex = newItems.findIndex(item => item.id === draggingId)
       const dropIndex = newItems.findIndex(item => item.id === targetId)
       
@@ -198,14 +198,38 @@ export default function ArtistsSortPage() {
     handleDragOver, 
     handleDrop, 
     handleDragEnd 
-  } = useDragAndDrop(filteredArtists, handleReorder)
+  } = useDragAndDrop(handleReorder)
 
-  // 修改評分（獨立於 drag）
+  // 修改評分（獨立於 drag，但會觸發重新排序）
   const handleScoreChange = (artistId, newScore) => {
     const score = parseInt(newScore) || 0
-    setArtists(artists.map(a => 
+    
+    // 更新評分
+    const updatedArtists = artists.map(a => 
       a.id === artistId ? { ...a, adminScore: score } : a
-    ))
+    )
+    
+    // 重新排序（新歌手排最後，其余按評分高低）
+    updatedArtists.sort((a, b) => {
+      const aIsNew = isNewToCategory(a)
+      const bIsNew = isNewToCategory(b)
+      
+      // 新轉來的歌手排在最後
+      if (aIsNew && !bIsNew) return 1
+      if (!aIsNew && bIsNew) return -1
+      
+      // 兩個都有正常 displayOrder，按 displayOrder 排
+      if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
+        return a.displayOrder - b.displayOrder
+      }
+      if (a.displayOrder !== undefined) return -1
+      if (b.displayOrder !== undefined) return 1
+      
+      // 按評分排（高分在前）
+      return (b.adminScore || 0) - (a.adminScore || 0)
+    })
+    
+    setArtists(updatedArtists)
     setChangedIds(prev => new Set(prev).add(artistId))
     setHasChanges(true)
   }
@@ -434,7 +458,7 @@ export default function ArtistsSortPage() {
                     draggable
                     onDragStart={() => handleDragStart(artist.id)}
                     onDragOver={(e) => handleDragOver(e, artist.id)}
-                    onDrop={(e) => handleDrop(e, artist.id)}
+                    onDrop={(e) => handleDrop(e, artist.id, filteredArtists)}
                     onDragEnd={handleDragEnd}
                     className={`flex items-center gap-4 p-4 transition cursor-move ${
                       draggingId === artist.id 
