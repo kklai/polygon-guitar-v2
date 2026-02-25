@@ -61,7 +61,7 @@ export default function ArtistAutoFill({
     // Debounce 檢查，避免用戶每打一個字都檢查
     const timer = setTimeout(() => {
       checkExistingArtist();
-    }, 500);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [artistName, skipIfExists]);
@@ -159,6 +159,20 @@ export default function ArtistAutoFill({
           >
             重新搜尋
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果完全停用（已選擇現有歌手），顯示已停用狀態
+  if (disabled) {
+    return (
+      <div className={`p-3 bg-gray-800/50 border border-gray-700 rounded-lg ${className}`}>
+        <div className="flex items-center gap-2 text-gray-500 text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>已使用現有歌手資料</span>
         </div>
       </div>
     );
