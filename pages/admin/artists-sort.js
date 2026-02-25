@@ -82,8 +82,17 @@ export default function ArtistsSortPage() {
         ...doc.data()
       }))
       
-      // 排序：先排有 displayOrder 的，再按 displayOrder 值
+      // 排序：新轉來的歌手（displayOrder 小於 500 或冇 displayOrder）排最後
       data.sort((a, b) => {
+        // 判斷是否新歌手
+        const aIsNew = a.displayOrder === undefined || a.displayOrder < 500 || a.displayOrder >= 90000
+        const bIsNew = b.displayOrder === undefined || b.displayOrder < 500 || b.displayOrder >= 90000
+        
+        // 新轉來的歌手排在最後
+        if (aIsNew && !bIsNew) return 1
+        if (!aIsNew && bIsNew) return -1
+        
+        // 兩個都係舊的，按 displayOrder 排
         if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
           return a.displayOrder - b.displayOrder
         }
@@ -119,20 +128,24 @@ export default function ArtistsSortPage() {
     return matchesTab && matchesSearch
   })
 
-  // 標記新加入該分類的歌手（冇 displayOrder 或者 displayOrder 係默認值）
+  // 標記新加入該分類的歌手
   const isNewToCategory = (artist) => {
     // 如果冇 displayOrder，視為新加入
     if (artist.displayOrder === undefined) return true
-    // 如果 displayOrder 係大數（之前係其他類別），視為新加入
+    // 如果 displayOrder 係大數（手動標記為新），視為新加入
     if (artist.displayOrder >= 90000) return true
+    // 如果 displayOrder 小於 500，可能是從其他類別轉過來的舊 displayOrder
+    //（正常手動排序的 displayOrder 係 1000, 999, 998... 遞減，應該大於 500）
+    if (artist.displayOrder < 500) return true
     return false
   }
 
   // 拖放處理 - 只改 displayOrder，唔改評分
   const handleReorder = (newOrder) => {
     // 為新加入的歌手分配 displayOrder（排在最尾）
+    // 只考慮正常的 displayOrder（500-90000 之間）
     const existingOrders = newOrder
-      .filter(a => a.displayOrder !== undefined && a.displayOrder < 90000)
+      .filter(a => a.displayOrder !== undefined && a.displayOrder >= 500 && a.displayOrder < 90000)
       .map(a => a.displayOrder)
     
     let nextOrder = existingOrders.length > 0 
@@ -151,8 +164,16 @@ export default function ArtistsSortPage() {
     const otherArtists = artists.filter(a => !updated.find(u => u.id === a.id))
     const newArtists = [...otherArtists, ...updated]
     
-    // 重新排序所有歌手（保持 displayOrder 順序）
+    // 重新排序所有歌手（新歌手排最後）
     newArtists.sort((a, b) => {
+      const aIsNew = isNewToCategory(a)
+      const bIsNew = isNewToCategory(b)
+      
+      // 新轉來的歌手排在最後
+      if (aIsNew && !bIsNew) return 1
+      if (!aIsNew && bIsNew) return -1
+      
+      // 兩個都有正常 displayOrder，按 displayOrder 排
       if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
         return a.displayOrder - b.displayOrder
       }
@@ -237,8 +258,14 @@ export default function ArtistsSortPage() {
       return artist
     })
     
-    // 重新排序
+    // 重新排序（新歌手排最後）
     updated.sort((a, b) => {
+      const aIsNew = isNewToCategory(a)
+      const bIsNew = isNewToCategory(b)
+      
+      if (aIsNew && !bIsNew) return 1
+      if (!aIsNew && bIsNew) return -1
+      
       if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
         return a.displayOrder - b.displayOrder
       }
