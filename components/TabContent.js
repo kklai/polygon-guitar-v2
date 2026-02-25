@@ -1417,8 +1417,8 @@ const TabContent = ({
           i++;
           continue;
         }
-        // 和弦行與歌詞行之間的空行，顯示更小間距
-        elements.push(<div key={i} style={{ height: '0.3em' }} />);
+        // 真正的空行 - 保留完整行高
+        elements.push(<div key={i} style={{ height: `${fontSize * 1.2}px` }} />);
         i++;
         continue;
       }
