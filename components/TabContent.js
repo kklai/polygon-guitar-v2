@@ -1342,6 +1342,27 @@ const TabContent = ({
       return (
         <div style={{ fontFamily: "Arial, Helvetica, sans-serif", lineHeight: '1' }}>
           {lines.map((line, idx) => {
+            // 檢查是否為 Section Marker
+            const sectionCheck = extractSectionMarker(line);
+            if (sectionCheck.hasMarker) {
+              return (
+                <div key={idx} style={{ 
+                  fontSize: `${fontSize}px`, 
+                  marginTop: '0.5em',
+                  marginBottom: '0.3em',
+                  fontWeight: 'bold',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '4px',
+                  color: colors.lyricInside
+                }}>
+                  {sectionCheck.marker}
+                  {sectionCheck.rest && (
+                    <span style={{ color: colors.chord }}> {sectionCheck.rest}</span>
+                  )}
+                </div>
+              );
+            }
+            
             // 檢查是否為和弦行
             const isChordLine = checkIsChordLine(line);
             const isLyricLine = checkIsLyricLine(line);
