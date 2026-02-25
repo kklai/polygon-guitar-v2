@@ -28,10 +28,41 @@ function UpdateTrackInfoPage() {
   // 預覽結果
   const [previewResults, setPreviewResults] = useState([])
   const [showPreview, setShowPreview] = useState(false)
+  
+  // 記錄搜尋失敗的歌曲 ID（存在 localStorage）
+  const [failedTabIds, setFailedTabIds] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('spotifySearchFailedIds')
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
+  
+  // 是否跳過之前失敗的歌曲
+  const [skipFailed, setSkipFailed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('spotifySkipFailed') === 'true'
+    }
+    return true
+  })
 
   useEffect(() => {
     loadData()
   }, [])
+  
+  // 保存失敗列表到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spotifySearchFailedIds', JSON.stringify(failedTabIds))
+    }
+  }, [failedTabIds])
+  
+  // 保存跳過設置到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spotifySkipFailed', skipFailed.toString())
+    }
+  }, [skipFailed])
 
   const loadData = async () => {
     setIsLoading(true)
@@ -208,8 +239,17 @@ function UpdateTrackInfoPage() {
     const withCredits = results.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length
     const failedCount = failedTabs.length
     
+    // 記錄失敗的歌曲 ID（合併到現有列表）
     if (failedCount > 0) {
-      addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞，${failedCount} 首失敗已排至最後`, 'warning')
+      const newFailedIds = failedTabs.map(tab => tab.tabId)
+      setFailedTabIds(prev => {
+        const combined = [...new Set([...prev, ...newFailedIds])]
+        return combined
+      })
+    }
+    
+    if (failedCount > 0) {
+      addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞，${failedCount} 首失敗已記錄並排至最後`, 'warning')
     } else {
       addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞`, 'success')
     }
@@ -217,17 +257,37 @@ function UpdateTrackInfoPage() {
 
   // 獲取過濾後的歌曲列表
   const getFilteredTabs = () => {
+    let filtered = tabs
+    
+    // 先應用主要過濾條件
     switch (filter) {
       case 'no-credits':
-        return tabs.filter(tab => !tab.composer && !tab.lyricist)
+        filtered = tabs.filter(tab => !tab.composer && !tab.lyricist)
+        break
       case 'no-year':
-        return tabs.filter(tab => !tab.songYear && !tab.uploadYear)
+        filtered = tabs.filter(tab => !tab.songYear && !tab.uploadYear)
+        break
       case 'no-spotify':
-        return tabs.filter(tab => !tab.spotifyTrackId)
+        filtered = tabs.filter(tab => !tab.spotifyTrackId)
+        break
       case 'all':
       default:
-        return tabs
+        filtered = tabs
     }
+    
+    // 如果開啟了跳過失敗，過濾掉之前失敗的歌曲
+    if (skipFailed && failedTabIds.length > 0) {
+      const failedSet = new Set(failedTabIds)
+      filtered = filtered.filter(tab => !failedSet.has(tab.id))
+    }
+    
+    return filtered
+  }
+  
+  // 清除失敗記錄
+  const clearFailedHistory = () => {
+    setFailedTabIds([])
+    addLog('已清除失敗記錄', 'info')
   }
 
   // ===== 執行批量更新 =====
@@ -345,7 +405,7 @@ function UpdateTrackInfoPage() {
         </div>
 
         {/* 統計卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <div className="text-2xl font-bold text-white">{tabs.length}</div>
             <div className="text-sm text-gray-400">總歌曲數</div>
@@ -357,6 +417,19 @@ function UpdateTrackInfoPage() {
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <div className="text-2xl font-bold text-yellow-400">{tabs.filter(t => t.bpm).length}</div>
             <div className="text-sm text-gray-400">有 BPM</div>
+          </div>
+          <div className="bg-[#121212] rounded-xl p-4 border border-red-900/50 relative">
+            <div className="text-2xl font-bold text-red-400">{failedTabIds.length}</div>
+            <div className="text-sm text-gray-400">搜尋失敗記錄</div>
+            {failedTabIds.length > 0 && (
+              <button 
+                onClick={clearFailedHistory}
+                className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-300"
+                title="清除記錄"
+              >
+                清除
+              </button>
+            )}
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <div className="text-2xl font-bold text-blue-400">{hasYearCount}</div>
@@ -416,6 +489,22 @@ function UpdateTrackInfoPage() {
                 <option value={100}>每次 100 首</option>
                 <option value={200}>每次 200 首（快速）</option>
               </select>
+              
+              {/* 跳過失敗記錄開關 */}
+              <label className="flex items-center gap-2 px-4 py-2 bg-black border border-gray-700 rounded-lg text-white cursor-pointer hover:bg-gray-900">
+                <input
+                  type="checkbox"
+                  checked={skipFailed}
+                  onChange={(e) => setSkipFailed(e.target.checked)}
+                  className="w-4 h-4 accent-red-500"
+                />
+                <span className="text-sm">
+                  跳過失敗記錄
+                  {failedTabIds.length > 0 && (
+                    <span className="text-red-400 ml-1">({failedTabIds.length})</span>
+                  )}
+                </span>
+              </label>
               
               <button
                 onClick={runBatchSearchPreview}
