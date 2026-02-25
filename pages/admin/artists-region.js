@@ -9,6 +9,7 @@ const REGIONS = [
   { value: 'hongkong', label: '香港', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
   { value: 'taiwan', label: '台灣', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   { value: 'china', label: '中國', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  { value: 'asia', label: '亞洲', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
   { value: 'foreign', label: '外國', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' }
 ]
 
