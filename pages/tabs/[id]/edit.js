@@ -47,8 +47,8 @@ export default function EditTab() {
     // 封面圖片
     albumImage: '',
     coverImage: '',
-    // 顯示字體
-    displayFont: 'arial'
+    // 顯示字體 - 默認等寬字體（傳統結他譜格式）
+    displayFont: 'mono'
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -188,7 +188,7 @@ export default function EditTab() {
         createdAt: data.createdAt,
         albumImage: data.albumImage || '',
         coverImage: data.coverImage || '',
-        displayFont: data.displayFont || 'arial',
+        displayFont: data.displayFont || 'mono',
         inputFont: data.inputFont || data.displayFont || 'mono' // 原始輸入字體
       })
     } catch (error) {

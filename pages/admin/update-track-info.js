@@ -305,8 +305,12 @@ function UpdateTrackInfoPage() {
   
   // 清除失敗記錄
   const clearFailedHistory = () => {
-    setFailedTabIds([])
-    addLog('已清除失敗記錄', 'info')
+    // 清除兩個 API 的失敗記錄
+    setSpotifyFailedIds([])
+    setMusicbrainzFailedIds([])
+    localStorage.removeItem('spotifySearchFailedIds_v2')
+    localStorage.removeItem('musicbrainzSearchFailedIds')
+    addLog('已清除所有失敗記錄 (Spotify + MusicBrainz)', 'info')
   }
 
   // ===== 執行批量更新 =====
@@ -436,14 +440,39 @@ function UpdateTrackInfoPage() {
             <div className="text-2xl font-bold text-yellow-400">{tabs.filter(t => t.bpm).length}</div>
             <div className="text-sm text-gray-400">有 BPM</div>
           </div>
+          {/* Spotify 失敗記錄 */}
           <div className="bg-[#121212] rounded-xl p-4 border border-red-900/50 relative">
-            <div className="text-2xl font-bold text-red-400">{failedTabIds.length}</div>
-            <div className="text-sm text-gray-400">搜尋失敗記錄</div>
-            {failedTabIds.length > 0 && (
+            <div className="text-2xl font-bold text-red-400">{spotifyFailedIds.length}</div>
+            <div className="text-sm text-gray-400">Spotify 失敗</div>
+            {spotifyFailedIds.length > 0 && (
               <button 
-                onClick={clearFailedHistory}
+                onClick={() => {
+                  if (confirm('確定清除 Spotify 失敗記錄？')) {
+                    setSpotifyFailedIds([])
+                    localStorage.removeItem('spotifySearchFailedIds_v2')
+                  }
+                }}
                 className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-300"
-                title="清除記錄"
+                title="清除 Spotify 記錄"
+              >
+                清除
+              </button>
+            )}
+          </div>
+          {/* MusicBrainz 失敗記錄 */}
+          <div className="bg-[#121212] rounded-xl p-4 border border-orange-900/50 relative">
+            <div className="text-2xl font-bold text-orange-400">{musicbrainzFailedIds.length}</div>
+            <div className="text-sm text-gray-400">MusicBrainz 失敗</div>
+            {musicbrainzFailedIds.length > 0 && (
+              <button 
+                onClick={() => {
+                  if (confirm('確定清除 MusicBrainz 失敗記錄？')) {
+                    setMusicbrainzFailedIds([])
+                    localStorage.removeItem('musicbrainzSearchFailedIds')
+                  }
+                }}
+                className="absolute top-2 right-2 text-xs text-orange-500 hover:text-orange-300"
+                title="清除 MusicBrainz 記錄"
               >
                 清除
               </button>
@@ -518,8 +547,15 @@ function UpdateTrackInfoPage() {
                 />
                 <span className="text-sm">
                   跳過失敗記錄
-                  {failedTabIds.length > 0 && (
-                    <span className="text-red-400 ml-1">({failedTabIds.length})</span>
+                  {(spotifyFailedIds.length > 0 || musicbrainzFailedIds.length > 0) && (
+                    <span className="ml-1">
+                      {spotifyFailedIds.length > 0 && (
+                        <span className="text-red-400">(S:{spotifyFailedIds.length})</span>
+                      )}
+                      {musicbrainzFailedIds.length > 0 && (
+                        <span className="text-orange-400">(M:{musicbrainzFailedIds.length})</span>
+                      )}
+                    </span>
                   )}
                 </span>
               </label>
