@@ -53,7 +53,7 @@ function NewPlaylist() {
     }
   }
 
-  // 搜尋歌曲
+  // 搜尋歌曲（與搜尋頁面一致）
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setSearchResults(allSongs.slice(0, 50))
@@ -63,7 +63,11 @@ function NewPlaylist() {
     const query = searchQuery.toLowerCase()
     const filtered = allSongs.filter(song =>
       song.title.toLowerCase().includes(query) ||
-      song.artist.toLowerCase().includes(query)
+      song.artist.toLowerCase().includes(query) ||
+      (song.composer && song.composer.toLowerCase().includes(query)) ||
+      (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
+      (song.arranger && song.arranger.toLowerCase().includes(query)) ||
+      (song.arrangedBy && song.arrangedBy.toLowerCase().includes(query))
     )
     // 顯示所有符合條件的歌曲，唔限制數量
     
@@ -482,7 +486,7 @@ function NewPlaylist() {
                     ))}
                   </div>
                 ) : searchResults.length > 0 ? (
-                  searchResults.map((song) => {
+                  searchResults.map((song, index) => {
                     const isSelected = selectedSongs.find(s => s.id === song.id)
                     return (
                       <button
@@ -490,31 +494,50 @@ function NewPlaylist() {
                         type="button"
                         onClick={() => !isSelected && addSong(song)}
                         disabled={isSelected}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition text-left ${
+                        className={`w-full flex items-center gap-4 p-3 rounded-lg transition text-left ${
                           isSelected 
                             ? 'bg-green-900/20 opacity-50 cursor-not-allowed' 
                             : 'bg-black hover:bg-gray-800'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
-                          {getThumbnail(song) ? (
+                        {/* 排名數字 - 同搜尋頁面一樣 */}
+                        <span className="text-gray-500 w-6 text-center">{index + 1}</span>
+                        
+                        {/* 縮圖 - 同搜尋頁面一樣 */}
+                        <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
+                          {song.youtubeVideoId ? (
                             <img
-                              src={getThumbnail(song)}
+                              src={`https://img.youtube.com/vi/${song.youtubeVideoId}/default.jpg`}
                               alt={song.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover rounded pointer-events-none select-none"
+                              draggable="false"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg">🎵</div>
+                            '🎵'
                           )}
                         </div>
+                        
+                        {/* 歌曲資訊 - 同搜尋頁面一樣，包作曲/填詞/編曲 */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{song.title}</p>
-                          <p className="text-gray-500 text-xs truncate">{song.artist}</p>
+                          <h3 className="text-white font-medium truncate">{song.title}</h3>
+                          <p className="text-sm text-gray-500">{song.artist}</p>
+                          {(song.composer || song.lyricist || song.arranger) && (
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              {song.composer && <span>曲：{song.composer} </span>}
+                              {song.lyricist && <span>詞：{song.lyricist} </span>}
+                              {song.arranger && <span>編：{song.arranger}</span>}
+                            </p>
+                          )}
                         </div>
+                        
+                        {/* Key */}
+                        <span className="text-xs text-gray-600">{song.originalKey || 'C'}</span>
+                        
+                        {/* 狀態 */}
                         {isSelected ? (
-                          <span className="text-green-500 text-xs">✓ 已添加</span>
+                          <span className="text-green-500 text-xs">✓</span>
                         ) : (
-                          <span className="text-[#FFD700] text-xs">+ 添加</span>
+                          <span className="text-[#FFD700] text-xs">+</span>
                         )}
                       </button>
                     )
