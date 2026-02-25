@@ -121,10 +121,6 @@ export default function EditTab() {
     return 1.1;
   })
   
-  // 字體模式：等寬（mono）或 Arial（比例字體）- 用於 textarea 顯示
-  // 優先使用 tab 本身儲存的 inputFont，如果沒有則根據 displayFont 推斷或默認 mono
-  const [inputFontMode, setInputFontMode] = useState('mono')
-
   // 檢查相似歌手並自動獲取相片
   useEffect(() => {
     const checkSimilarArtists = async () => {
@@ -197,16 +193,7 @@ export default function EditTab() {
 
       setIsAuthorized(true)
       
-      // 設置 textarea 使用的字體模式
-      // 優先使用儲存的 inputFont，如果沒有則自動檢測內容（有括弧表示等寬格式）
-      let detectedFont = data.inputFont
-      if (!detectedFont) {
-        // 自動檢測：如果內容有括弧 ( )，則是等寬字體格式
-        const hasBrackets = data.content && /[（(]/.test(data.content)
-        detectedFont = hasBrackets ? 'mono' : 'arial'
-      }
-      setInputFontMode(detectedFont)
-      
+
       setFormData({
         title: data.title,
         artist: data.artist,
@@ -235,7 +222,7 @@ export default function EditTab() {
         albumImage: data.albumImage || '',
         coverImage: data.coverImage || '',
         displayFont: data.displayFont || 'mono',
-        inputFont: data.inputFont || data.displayFont || 'mono' // 原始輸入字體
+        inputFont: data.displayFont || 'mono' // 統一使用 displayFont 作為輸入字體
       })
     } catch (error) {
       console.error('Error loading tab:', error)
@@ -278,7 +265,7 @@ export default function EditTab() {
       const submitData = {
         ...formData,
         uploaderPenName: formData.uploaderPenName.trim() || '結他友',
-        inputFont: inputFontMode // 儲存原始輸入字體
+        inputFont: formData.displayFont // 統一使用 displayFont
       }
       await updateTab(id, submitData, user.uid, isAdmin)
       router.push(`/tabs/${id}`)
@@ -1030,8 +1017,8 @@ export default function EditTab() {
                 placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm ${
                   errors.content ? 'border-red-500' : 'border-gray-800'
-                } ${inputFontMode === 'arial' ? 'font-sans' : 'font-mono'}`}
-                style={inputFontMode === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}}
+                } ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
+                style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}}
               />
               {errors.content && (
                 <p className="mt-1 text-sm text-red-400">{errors.content}</p>

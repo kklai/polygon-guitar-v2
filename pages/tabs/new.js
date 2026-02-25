@@ -68,21 +68,34 @@ function calculateKeyAndCapo(originalKey, capo, playKey) {
 function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandleProps, isDark }) {
   return (
     <div className={`rounded-xl border transition-all ${isDark ? 'bg-[#1a1a1a] border-gray-800' : 'bg-white border-gray-200'}`}>
-      {/* 區塊標題欄 - 可拖放 */}
+      {/* 區塊標題欄 */}
       <div 
-        className={`flex items-center justify-between px-4 py-3 cursor-pointer rounded-t-xl transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
-        onClick={onToggle}
-        {...dragHandleProps}
+        className={`flex items-center justify-between px-4 py-3 rounded-t-xl transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
       >
         <div className="flex items-center gap-3">
-          {/* 拖放圖標 */}
-          <svg className={`w-5 h-5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-          </svg>
-          <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+          {/* 拖放圖標 - 只有這裡可以拖拽 */}
+          <div 
+            {...dragHandleProps} 
+            className="cursor-grab active:cursor-grabbing p-1 -ml-1 rounded hover:bg-gray-700/50"
+            title="拖放排序"
+          >
+            <svg className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
+          {/* 標題 - 點擊展開/收合 */}
+          <div 
+            className="flex-1 cursor-pointer"
+            onClick={onToggle}
+          >
+            <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* 展開/收合圖標 */}
+        {/* 展開/收合圖標 */}
+        <div 
+          className="cursor-pointer p-1 -mr-1 rounded hover:bg-gray-700/50"
+          onClick={onToggle}
+        >
           <svg 
             className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''} ${isDark ? 'text-gray-400' : 'text-gray-500'}`} 
             fill="none" 
@@ -172,17 +185,11 @@ export default function NewTab() {
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(1.1)
   
-  // 字體模式：等寬（mono）或 Arial（比例字體）
-  const [fontMode, setFontMode] = useState('mono')
-  
   // 在客戶端載入後讀取 localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedFactor = localStorage.getItem('tabAlignFactor');
       if (savedFactor) setAlignFactor(parseFloat(savedFactor));
-      
-      const savedFontMode = localStorage.getItem('tabFontMode');
-      if (savedFontMode) setFontMode(savedFontMode);
     }
   }, [])
 
@@ -692,43 +699,6 @@ E|----------------------------------------------------------------|
               ? 'Arial：適合從其他網站複製過來嘅譜（推薦）' 
               : '等寬字體：傳統結他譜顯示方式'}
           </p>
-        </div>
-
-        {/* 編輯字體模式（只影響編輯時） */}
-        <div className="bg-[#1a1a1a] rounded-lg p-3 border border-gray-800">
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-gray-400">編輯字體模式</label>
-            <div className="flex items-center gap-2 bg-black rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setFontMode('mono');
-                  localStorage.setItem('tabFontMode', 'mono');
-                }}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                  fontMode === 'mono' 
-                    ? 'bg-gray-600 text-white' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                等寬
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFontMode('arial');
-                  localStorage.setItem('tabFontMode', 'arial');
-                }}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                  fontMode === 'arial' 
-                    ? 'bg-gray-600 text-white' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Arial
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center justify-between">
