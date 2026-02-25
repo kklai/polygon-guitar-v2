@@ -42,7 +42,7 @@ export default function Search() {
         (song.composer && song.composer.toLowerCase().includes(query)) ||
         (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
         (song.arranger && song.arranger.toLowerCase().includes(query)) ||
-        (song.arrangedBy && song.arrangedBy.toLowerCase().includes(query))
+        (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
       )
       // 完全冇限制，顯示所有結果
     )

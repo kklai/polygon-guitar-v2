@@ -67,7 +67,7 @@ function NewPlaylist() {
       (song.composer && song.composer.toLowerCase().includes(query)) ||
       (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
       (song.arranger && song.arranger.toLowerCase().includes(query)) ||
-      (song.arrangedBy && song.arrangedBy.toLowerCase().includes(query))
+      (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
     )
     // 顯示所有符合條件的歌曲，唔限制數量
     
