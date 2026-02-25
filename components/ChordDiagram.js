@@ -343,8 +343,9 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
   
   const fretCount = 4;
   const stringCount = 6;
-  const padding = 8;
-  const fretHeight = (size - padding * 2) / fretCount;
+  const padding = 10;
+  const topPadding = 18; // 增加頂部空間給開放弦/悶音標記
+  const fretHeight = (size - topPadding - padding) / fretCount;
   const stringWidth = (size - padding * 2) / (stringCount - 1);
   
   // 顏色
@@ -355,6 +356,20 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
     finger: '#FFD700',
     barre: '#FFD700',
   };
+  
+  // 計算基準品位（如果和弦使用高品位，需要顯示相對位置）
+  // 找到所有手指和 barre 的最低品位
+  let minFret = 1;
+  if (shape.fingers && shape.fingers.length > 0) {
+    minFret = Math.min(...shape.fingers.map(f => f[1]));
+  }
+  if (shape.barre) {
+    minFret = Math.min(minFret, shape.barre.fret);
+  }
+  // 基準品位：如果最低品位 > 1，則從該品位開始顯示
+  const baseFret = minFret > 1 ? minFret : 1;
+  // 計算顯示用的相對品位
+  const getDisplayFret = (fret) => baseFret > 1 ? fret - baseFret + 1 : fret;
   
   return (
     <div 
@@ -374,6 +389,20 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
         {shape.originalName || shape.name}
       </div>
       
+      {/* 基準品位標記（如果需要） */}
+      {baseFret > 1 && (
+        <div 
+          className="absolute left-0.5 text-xs font-bold"
+          style={{ 
+            color: colors.text,
+            top: `${20 + topPadding}px`,
+            fontSize: '10px'
+          }}
+        >
+          {baseFret}
+        </div>
+      )}
+      
       {/* 指板 */}
       <svg width={size} height={size} className="absolute bottom-0">
         {/* 品格線 */}
@@ -381,9 +410,9 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           <line
             key={`fret-${i}`}
             x1={padding}
-            y1={padding + i * fretHeight}
+            y1={topPadding + i * fretHeight}
             x2={size - padding}
-            y2={padding + i * fretHeight}
+            y2={topPadding + i * fretHeight}
             stroke={colors.grid}
             strokeWidth={i === 0 ? 3 : 1}
           />
@@ -398,7 +427,7 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
             <line
               key={`string-${i}`}
               x1={padding + i * stringWidth}
-              y1={padding}
+              y1={topPadding}
               x2={padding + i * stringWidth}
               y2={size - padding}
               stroke={colors.grid}
@@ -407,14 +436,14 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           );
         })}
         
-        {/* Barre - 弦號轉換: 最左係第6弦 */}
+        {/* Barre - 弦號轉換: 最左係第6弦，最右係第1弦 */}
         {shape.barre && (
           <rect
-            x={padding + (6 - shape.barre.to) * stringWidth - 3}
-            y={padding + (shape.barre.fret - 1) * fretHeight + fretHeight / 2 - 4}
-            width={(shape.barre.to - shape.barre.from + 1) * stringWidth}
-            height={8}
-            rx={4}
+            x={padding + (6 - shape.barre.to) * stringWidth}
+            y={topPadding + (getDisplayFret(shape.barre.fret) - 1) * fretHeight + fretHeight / 2 - 3}
+            width={(shape.barre.to - shape.barre.from) * stringWidth}
+            height={6}
+            rx={3}
             fill={colors.barre}
           />
         )}
@@ -424,8 +453,8 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           <circle
             key={`finger-${i}`}
             cx={padding + (6 - string) * stringWidth}
-            cy={padding + (fret - 0.5) * fretHeight}
-            r={5}
+            cy={topPadding + (getDisplayFret(fret) - 0.5) * fretHeight}
+            r={size > 70 ? 5 : 4}
             fill={colors.finger}
           />
         ))}
@@ -435,13 +464,13 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           <text
             key={`open-${string}`}
             x={padding + (6 - string) * stringWidth}
-            y={padding - 4}
+            y={topPadding - 5}
             textAnchor="middle"
             fill={colors.text}
-            fontSize="10"
+            fontSize="11"
             fontWeight="bold"
           >
-            o
+            ○
           </text>
         ))}
         
@@ -450,13 +479,13 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
           <text
             key={`mute-${string}`}
             x={padding + (6 - string) * stringWidth}
-            y={padding - 4}
+            y={topPadding - 5}
             textAnchor="middle"
             fill="#ff4444"
-            fontSize="10"
+            fontSize="12"
             fontWeight="bold"
           >
-            x
+            ×
           </text>
         ))}
       </svg>
