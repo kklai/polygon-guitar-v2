@@ -12,6 +12,58 @@ import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
+// Key 對應的 semitone 位置 (C = 0)
+const KEY_TO_SEMITONE = {
+  'C': 0, 'Db': 1, 'C#': 1, 'D': 2, 'Eb': 3, 'D#': 3,
+  'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'Ab': 8, 'G#': 8,
+  'A': 9, 'Bb': 10, 'A#': 10, 'B': 11,
+  'Cm': 0, 'C#m': 1, 'Dm': 2, 'D#m': 3, 'Ebm': 3, 'Em': 4,
+  'Fm': 5, 'F#m': 6, 'Gm': 7, 'G#m': 8, 'Am': 9, 'Bbm': 10, 'Bm': 11
+}
+
+// Semitone 對應的 Key (優先使用 flat 給 Major，sharp 給 Minor)
+const SEMITONE_TO_KEY_MAJOR = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+const SEMITONE_TO_KEY_MINOR = ['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
+
+// 計算 Capo 或 PlayKey
+// - 如果輸入 capo，計算 playKey = originalKey 向上移動 capo 個 semitone
+// - 如果輸入 playKey，計算 capo = originalKey 到 playKey 的距離
+function calculateKeyAndCapo(originalKey, capo, playKey) {
+  if (!originalKey) return { capo: '', playKey: '' }
+  
+  const originalIndex = KEY_TO_SEMITONE[originalKey]
+  if (originalIndex === undefined) return { capo, playKey }
+  
+  const isMinor = originalKey.endsWith('m')
+  const semitoneToKey = isMinor ? SEMITONE_TO_KEY_MINOR : SEMITONE_TO_KEY_MAJOR
+  
+  // 情況 1：有 capo，沒有 playKey -> 計算 playKey
+  if (capo && !playKey) {
+    const capoNum = parseInt(capo)
+    if (!isNaN(capoNum) && capoNum >= 0 && capoNum <= 11) {
+      // Capo 夾在第 N 格 = 升高 N 個 semitone
+      // PlayKey 是實際彈奏的指法，所以是 OriginalKey 向上移動 capo
+      // 例如：原調 C，Capo 4，彈奏 G 指法，實際音高是 E
+      // 但 PlayKey 應該是 G（用戶實際按的和弦）
+      const playIndex = (originalIndex + capoNum) % 12
+      return { capo: capoNum.toString(), playKey: semitoneToKey[playIndex] }
+    }
+  }
+  
+  // 情況 2：有 playKey，沒有 capo -> 計算 capo
+  if (playKey && !capo) {
+    const playIndex = KEY_TO_SEMITONE[playKey]
+    if (playIndex !== undefined) {
+      // Capo = playIndex - originalIndex (如果 playKey 高於 originalKey)
+      // 或者 capo = 12 + playIndex - originalIndex
+      let capoNum = (playIndex - originalIndex + 12) % 12
+      return { capo: capoNum === 0 ? '' : capoNum.toString(), playKey }
+    }
+  }
+  
+  return { capo, playKey }
+}
+
 // 可拖放的區塊組件
 function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandleProps, isDark }) {
   return (
@@ -250,7 +302,22 @@ export default function NewTab() {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // 處理 Key/Capo/PlayKey 的自動計算
+    if (name === 'originalKey' || name === 'capo' || name === 'playKey') {
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value }
+        const { capo, playKey } = calculateKeyAndCapo(
+          name === 'originalKey' ? value : newData.originalKey,
+          name === 'capo' ? value : newData.capo,
+          name === 'playKey' ? value : newData.playKey
+        )
+        return { ...newData, capo, playKey }
+      })
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
+    
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
     
     if (name === 'artist') setUseExistingArtistSelected(false)
