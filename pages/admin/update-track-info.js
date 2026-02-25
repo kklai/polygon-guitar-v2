@@ -29,10 +29,18 @@ function UpdateTrackInfoPage() {
   const [previewResults, setPreviewResults] = useState([])
   const [showPreview, setShowPreview] = useState(false)
   
-  // 記錄搜尋失敗的歌曲 ID（存在 localStorage）
-  const [failedTabIds, setFailedTabIds] = useState(() => {
+  // 記錄搜尋失敗的歌曲 ID（分開 Spotify 同 MusicBrainz）
+  const [spotifyFailedIds, setSpotifyFailedIds] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('spotifySearchFailedIds')
+      const saved = localStorage.getItem('spotifySearchFailedIds_v2')
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
+  
+  const [musicbrainzFailedIds, setMusicbrainzFailedIds] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('musicbrainzSearchFailedIds')
       return saved ? JSON.parse(saved) : []
     }
     return []
@@ -45,17 +53,28 @@ function UpdateTrackInfoPage() {
     }
     return true
   })
+  
+  // 根據當前數據源獲取對應嘅失敗列表
+  const failedTabIds = dataSource === 'spotify' ? spotifyFailedIds : musicbrainzFailedIds
+  const setFailedTabIds = dataSource === 'spotify' ? setSpotifyFailedIds : setMusicbrainzFailedIds
 
   useEffect(() => {
     loadData()
   }, [])
   
-  // 保存失敗列表到 localStorage
+  // 保存 Spotify 失敗列表到 localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('spotifySearchFailedIds', JSON.stringify(failedTabIds))
+      localStorage.setItem('spotifySearchFailedIds_v2', JSON.stringify(spotifyFailedIds))
     }
-  }, [failedTabIds])
+  }, [spotifyFailedIds])
+  
+  // 保存 MusicBrainz 失敗列表到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('musicbrainzSearchFailedIds', JSON.stringify(musicbrainzFailedIds))
+    }
+  }, [musicbrainzFailedIds])
   
   // 保存跳過設置到 localStorage
   useEffect(() => {
@@ -150,7 +169,7 @@ function UpdateTrackInfoPage() {
         found: true,
         track: bestMatch,
         details: {
-          bpm: null, // Spotify API 已棄用
+          bpm: null, // Spotify 冇 BPM，要用 MusicBrainz
           key: null,
           composers: null,
           lyricists: null
@@ -394,8 +413,7 @@ function UpdateTrackInfoPage() {
                 <span>🎵</span> 批量更新歌曲資訊
               </h1>
               <p className="text-sm text-[#B3B3B3]">
-                從 MusicBrainz 獲取作曲、填詞、BPM 等資訊
-                <span className="text-yellow-500 ml-2">(Spotify API 已棄用，建議用 MusicBrainz)</span>
+                🧠 MusicBrainz：作曲、填詞、BPM &nbsp;|&nbsp; 🎧 Spotify：專輯封面、連結
               </p>
             </div>
             <button onClick={() => router.push('/admin')} className="text-[#B3B3B3] hover:text-white transition">
