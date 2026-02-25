@@ -13,6 +13,8 @@ const CATEGORIES = [
 
 export default function CategorizeArtists() {
   const [artists, setArtists] = useState([])
+  const [allArtistsCount, setAllArtistsCount] = useState(0)
+  const [typeStats, setTypeStats] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedArtists, setSelectedArtists] = useState(new Set())
@@ -30,13 +32,32 @@ export default function CategorizeArtists() {
   const loadOtherArtists = async () => {
     try {
       const snap = await getDocs(collection(db, 'artists'))
-      const data = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(artist => {
-          const type = artist.artistType || artist.gender || 'other'
-          // 只顯示未分類或其他類別的歌手
-          return !['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊'].includes(type)
-        })
+      const allArtists = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      
+      // 統計類型分布
+      const stats = allArtists.reduce((acc, a) => {
+        const type = (a.artistType || a.gender || '未設定').toString()
+        acc[type] = (acc[type] || 0) + 1
+        return acc
+      }, {})
+      
+      console.log('總歌手數:', allArtists.length)
+      console.log('歌手類型分布:', stats)
+      
+      setAllArtistsCount(allArtists.length)
+      setTypeStats(stats)
+      
+      const data = allArtists.filter(artist => {
+        const rawType = artist.artistType || artist.gender
+        // 如果沒有設定類型，或類型是空值/other/unknown，都視為未分類
+        if (!rawType || rawType === '' || rawType === 'other' || rawType === 'unknown') {
+          return true
+        }
+        const type = rawType.toString().toLowerCase().trim()
+        // 只顯示未分類的歌手
+        const classifiedTypes = ['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊']
+        return !classifiedTypes.includes(type)
+      })
       
       // 按名稱排序
       data.sort((a, b) => a.name.localeCompare(b.name, 'zh-HK'))
@@ -364,9 +385,27 @@ export default function CategorizeArtists() {
                 ))}
               </div>
             ) : filteredArtists.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <p>沒有待分類的歌手</p>
-                <p className="text-sm mt-2">所有歌手已分類完成！</p>
+              <div className="p-8 text-center">
+                <p className="text-gray-400 mb-4">沒有待分類的歌手</p>
+                
+                {/* 調試信息 */}
+                <div className="bg-black/50 rounded-lg p-4 text-left text-sm">
+                  <p className="text-gray-500 mb-2">調試信息：</p>
+                  <p className="text-gray-400">總歌手數：{allArtistsCount}</p>
+                  <p className="text-gray-400 mt-2">類型分布：</p>
+                  <div className="mt-1 space-y-1">
+                    {Object.entries(typeStats).map(([type, count]) => (
+                      <div key={type} className="flex justify-between text-xs">
+                        <span className="text-gray-500">{type}:</span>
+                        <span className={count > 0 ? 'text-[#FFD700]' : 'text-gray-600'}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-600 mt-4">
+                  如果以上顯示有歌手但此處為空，可能是類型字段格式問題。
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-gray-800">
