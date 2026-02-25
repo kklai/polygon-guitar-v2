@@ -1320,20 +1320,33 @@ const TabContent = ({
 
     const lines = content.split('\n');
     
-    // Arial 簡單模式：唔做任何複雜處理，直接顯示每一行
+    // Arial 模式：簡化處理，但仍需支援轉調
     if (displayFont === 'arial') {
       return (
         <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
-          {lines.map((line, idx) => (
-            <div key={idx} style={{ 
-              fontSize: `${fontSize}px`, 
-              marginBottom: '0.3em', 
-              whiteSpace: 'pre',
-              color: line.match(/[\u4e00-\u9fff]/) ? colors.lyricInside : colors.chord // 中文字白色，其他黃色
-            }}>
-              {line || ' '}
-            </div>
-          ))}
+          {lines.map((line, idx) => {
+            // 檢查是否為和弦行（簡單檢測）
+            const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(line);
+            const hasChinese = /[\u4e00-\u9fff]/.test(line);
+            const isChordLine = hasChordPattern && !hasChinese;
+            
+            // 如果是和弦行且有轉調，處理轉調
+            let displayLine = line;
+            if (isChordLine && transposeSemitones !== 0) {
+              displayLine = transposeChordLine(line, transposeSemitones);
+            }
+            
+            return (
+              <div key={idx} style={{ 
+                fontSize: `${fontSize}px`, 
+                marginBottom: '0.3em', 
+                whiteSpace: 'pre',
+                color: hasChinese ? colors.lyricInside : colors.chord
+              }}>
+                {displayLine || ' '}
+              </div>
+            );
+          })}
         </div>
       );
     }
