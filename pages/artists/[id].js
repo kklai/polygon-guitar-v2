@@ -268,15 +268,23 @@ export default function ArtistPage() {
             <div className="space-y-3 text-sm">
               {artist.birthYear && (
                 <div className="flex justify-between">
-                  <span className="text-[#B3B3B3]">出生年份</span>
-                  <span className="text-white">{artist.birthYear}年</span>
+                  <span className="text-[#B3B3B3]">出生日期</span>
+                  <span className="text-white">
+                    {artist.birthYear.includes('-') 
+                      ? new Date(artist.birthYear).toLocaleDateString('zh-HK', { year: 'numeric', month: 'long', day: 'numeric' })
+                      : `${artist.birthYear}年`}
+                  </span>
                 </div>
               )}
               
               {artist.debutYear && (
                 <div className="flex justify-between">
-                  <span className="text-[#B3B3B3]">出道年份</span>
-                  <span className="text-white">{artist.debutYear}年</span>
+                  <span className="text-[#B3B3B3]">出道日期</span>
+                  <span className="text-white">
+                    {artist.debutYear.includes('-') 
+                      ? new Date(artist.debutYear).toLocaleDateString('zh-HK', { year: 'numeric', month: 'long', day: 'numeric' })
+                      : `${artist.debutYear}年`}
+                  </span>
                 </div>
               )}
               

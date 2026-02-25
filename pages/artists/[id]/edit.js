@@ -29,7 +29,9 @@ function EditArtist() {
     photo: '',         // 舊資料兼容
     heroPhoto: '',     // Hero 照片
     bio: '',
-    year: '',
+    birthYear: '',     // 出生年份（可填完整日期如 1990-05-15）
+    debutYear: '',     // 出道年份（可填完整日期如 2022-07-01）
+    year: '',          // 舊資料兼容
     artistType: '', // male, female, group
     regions: [] // 地區陣列
   })
@@ -97,7 +99,9 @@ function EditArtist() {
         photo: data.photo || '',
         heroPhoto: data.heroPhoto || '',
         bio: data.bio || '',
-        year: data.year || '',
+        birthYear: data.birthYear || data.year || '',  // 兼容舊資料
+        debutYear: data.debutYear || '',
+        year: data.year || '',  // 保留舊欄位兼容
         artistType: data.artistType || '',
         regions: artistRegions
       })
@@ -143,7 +147,9 @@ function EditArtist() {
         photo: formData.photo,  // 舊資料兼容
         heroPhoto: formData.heroPhoto,
         bio: formData.bio,
-        year: formData.year,
+        birthYear: formData.birthYear,
+        debutYear: formData.debutYear,
+        year: formData.birthYear || formData.debutYear || formData.year,  // 兼容舊欄位
         artistType: formData.artistType || 'other',
         regions: formData.regions || [],
         region: formData.regions?.[0] || null, // 保留第一地區向後兼容
@@ -393,7 +399,9 @@ function EditArtist() {
         name: searchPreview.name || prev.name,
         wikiPhotoURL: searchPreview.photo || prev.wikiPhotoURL,  // 存入 wikiPhotoURL
         bio: searchPreview.bio || prev.bio,
-        year: searchPreview.year || prev.year
+        birthYear: searchPreview.birthYear || prev.birthYear,
+        debutYear: searchPreview.debutYear || prev.debutYear,
+        year: searchPreview.year || prev.year  // 兼容舊資料
       }))
       setSearchPreview(null)
     }
@@ -662,8 +670,11 @@ function EditArtist() {
                     )}
                     <div className="flex-1">
                       <p className="text-white font-medium">{searchPreview.name}</p>
-                      {searchPreview.year && (
-                        <p className="text-gray-400 text-sm">{searchPreview.year}年</p>
+                      {(searchPreview.birthYear || searchPreview.debutYear) && (
+                        <p className="text-gray-400 text-sm">
+                          {searchPreview.birthYear && <span>出生：{searchPreview.birthYear}年 </span>}
+                          {searchPreview.debutYear && <span>出道：{searchPreview.debutYear}年</span>}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -821,20 +832,38 @@ function EditArtist() {
               )}
             </div>
 
-            {/* Year */}
+            {/* 出生日期 */}
             <div>
-              <label htmlFor="year" className="block text-sm font-medium text-white mb-1">
-                出道/出生年份
+              <label htmlFor="birthYear" className="block text-sm font-medium text-white mb-1">
+                出生日期
               </label>
               <input
                 type="text"
-                id="year"
-                name="year"
-                value={formData.year}
+                id="birthYear"
+                name="birthYear"
+                value={formData.birthYear}
                 onChange={handleChange}
-                placeholder="例如：1990"
+                placeholder="例如：1990 或 1990-05-15"
                 className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
               />
+              <p className="text-xs text-gray-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
+            </div>
+
+            {/* 出道日期 */}
+            <div>
+              <label htmlFor="debutYear" className="block text-sm font-medium text-white mb-1">
+                出道日期
+              </label>
+              <input
+                type="text"
+                id="debutYear"
+                name="debutYear"
+                value={formData.debutYear}
+                onChange={handleChange}
+                placeholder="例如：2022 或 2022-07-12"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
             </div>
 
             {/* Fix Songs Data Button */}
