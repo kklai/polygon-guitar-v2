@@ -212,9 +212,15 @@ export default function ArtistsSortPage() {
 
   // 儲存更改
   const saveChanges = async () => {
+    if (changedIds.size === 0) {
+      alert('沒有更改需要儲存')
+      return
+    }
+    
     setSaving(true)
     try {
       const batch = writeBatch(db)
+      let updateCount = 0
       
       changedIds.forEach(id => {
         const artist = artists.find(a => a.id === id)
@@ -225,13 +231,14 @@ export default function ArtistsSortPage() {
             displayOrder: artist.displayOrder,
             updatedAt: new Date()
           })
+          updateCount++
         }
       })
       
       await batch.commit()
       setHasChanges(false)
       setChangedIds(new Set())
-      alert(`✅ 已儲存 ${changedIds.size} 個歌手的更改！`)
+      alert(`✅ 已儲存 ${updateCount} 個歌手的更改！`)
     } catch (error) {
       console.error('儲存失敗:', error)
       alert('儲存失敗: ' + error.message)
@@ -485,10 +492,10 @@ export default function ArtistsSortPage() {
                       <input
                         type="number"
                         min="0"
-                        max="100"
+                        max="1000"
                         value={artist.adminScore || 0}
                         onChange={(e) => handleScoreChange(artist.id, e.target.value)}
-                        className={`w-16 px-2 py-1 bg-black border rounded text-center font-bold transition ${
+                        className={`w-20 px-2 py-1 bg-black border rounded text-center font-bold transition ${
                           hasScoreChanges 
                             ? 'border-[#FFD700] text-[#FFD700]' 
                             : (artist.adminScore || 0) >= 80 
@@ -511,30 +518,32 @@ export default function ArtistsSortPage() {
         </div>
 
         {/* 儲存按鈕（底部） */}
-        {hasChanges && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-            <button
-              onClick={saveChanges}
-              disabled={saving}
-              className="px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium shadow-lg hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  儲存中...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  儲存更改 ({changedIds.size})
-                </>
-              )}
-            </button>
-          </div>
-        )}
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+          <button
+            onClick={saveChanges}
+            disabled={saving || !hasChanges}
+            className={`px-6 py-3 rounded-full font-medium shadow-lg transition disabled:opacity-50 flex items-center gap-2 ${
+              hasChanges 
+                ? 'bg-[#FFD700] text-black hover:opacity-90' 
+                : 'bg-gray-600 text-gray-300'
+            }`}
+          >
+            {saving ? (
+              <>
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                儲存中...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                {hasChanges ? `儲存更改 (${changedIds.size})` : '無更改'}
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </Layout>
   )
