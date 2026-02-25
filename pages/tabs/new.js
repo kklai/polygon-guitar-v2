@@ -82,7 +82,7 @@ export default function NewTab() {
     fingeringTips: '',
     albumImage: '',
     coverImage: '',
-    displayFont: 'arial' // 預設 Arial，因為大部份譜都係從其他網站 copy 嚟
+    displayFont: 'mono' // 預設等寬字體，傳統結他譜格式
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
