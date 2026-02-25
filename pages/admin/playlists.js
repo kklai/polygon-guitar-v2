@@ -15,7 +15,7 @@ import { uploadToCloudinary } from '@/lib/cloudinary'
 
 function PlaylistAdmin() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('auto')
+  const [activeTab, setActiveTab] = useState('manual')
   const [autoPlaylists, setAutoPlaylists] = useState([])
   const [manualPlaylists, setManualPlaylists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
