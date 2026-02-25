@@ -558,32 +558,11 @@ export default function Home() {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
       let items = saved ? JSON.parse(saved).slice(0, 10) : [];
       
-      // 檢查喜愛歌曲（非阻塞）
+      // 檢查喜愛歌曲（非阻塞，簡化版避免權限問題）
       const checkLikedSongs = async () => {
         if (!user) return;
-        try {
-          const likedQuery = query(
-            collection(db, 'userLikes'),
-            where('userId', '==', user.uid),
-            limit(1)
-          );
-          const likedSnapshot = await getDocs(likedQuery);
-          if (!likedSnapshot.empty) {
-            const exists = items.some(item => item.type === 'liked-songs');
-            if (!exists) {
-              items = [{
-                type: 'liked-songs',
-                id: 'liked-songs',
-                title: '我的喜愛',
-                subtitle: '歌單',
-                isLikedSongs: true,
-                timestamp: new Date().toISOString()
-              }, ...items].slice(0, 10);
-            }
-          }
-        } catch (e) {
-          console.error('Error checking liked songs:', e);
-        }
+        // 暫時跳過，避免權限錯誤影響性能
+        // 可以直接從 localStorage 或 AuthContext 獲取喜愛狀態
       };
       
       // 並行載入：設置、熱門歌手、歌單、最新歌曲
@@ -595,10 +574,10 @@ export default function Home() {
         recentTabsData
       ] = await Promise.all([
         getDoc(doc(db, 'settings', 'home')),
-        getPopularArtists(60),
+        getPopularArtists(30),
         getAutoPlaylists(),
         getManualPlaylists(),
-        getRecentTabs(20)
+        getRecentTabs(10)
       ]);
       
       const settings = settingsDoc.exists() ? settingsDoc.data() : {};
@@ -610,7 +589,7 @@ export default function Home() {
 
       // === 第2步：處理熱門樂譜 ===
       let hotTabsData = [];
-      const targetCount = settings.hotTabs?.displayCount || 20;
+      const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 12);
       
       if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
         const manualIds = settings.hotTabs.manualSelection
