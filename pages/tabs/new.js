@@ -134,53 +134,9 @@ export default function NewTab() {
     return 'mono';
   })
 
-  // 等待 auth 載入完成
-  if (authLoading) {
-    return null
-  }
-
-  const validate = () => {
-    const newErrors = {}
-    if (!formData.title.trim()) newErrors.title = '請輸入歌名'
-    if (!formData.artist.trim()) newErrors.artist = '請輸入歌手名'
-    if (!formData.content.trim()) newErrors.content = '請輸入譜內容'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!validate()) return
-
-    setIsSubmitting(true)
-    try {
-      const submitData = {
-        ...formData,
-        uploaderPenName: formData.uploaderPenName.trim() || '結他友'
-      }
-      const newTab = await createTab(submitData, user.uid)
-      router.push(`/tabs/${newTab.id}`)
-    } catch (error) {
-      console.error('Create tab error:', error)
-      alert('上傳失敗，請重試')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
-    
-    if (name === 'artist') setUseExistingArtistSelected(false)
-    
-    if (name === 'youtubeUrl') {
-      const videoId = extractYouTubeVideoId(value);
-      setFormData(prev => ({ ...prev, youtubeUrl: value, youtubeVideoId: videoId }));
-    }
-  }
-
+  // 所有 hooks 必須在任何 return 之前定義 - authChecked 用於等待初始化
+  const [authChecked, setAuthChecked] = useState(false)
+  
   // 檢查相似歌手
   useEffect(() => {
     const checkSimilarArtists = async () => {
@@ -229,6 +185,59 @@ export default function NewTab() {
     return () => clearTimeout(timer)
   }, [formData.artist, useExistingArtistSelected])
   
+  useEffect(() => {
+    if (!authLoading && !authChecked) {
+      setAuthChecked(true)
+    }
+  }, [authLoading, authChecked])
+
+  // 等待 auth 載入完成 - 在所有 hooks 之後
+  if (authLoading || !authChecked) {
+    return null
+  }
+
+  const validate = () => {
+    const newErrors = {}
+    if (!formData.title.trim()) newErrors.title = '請輸入歌名'
+    if (!formData.artist.trim()) newErrors.artist = '請輸入歌手名'
+    if (!formData.content.trim()) newErrors.content = '請輸入譜內容'
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!validate()) return
+
+    setIsSubmitting(true)
+    try {
+      const submitData = {
+        ...formData,
+        uploaderPenName: formData.uploaderPenName.trim() || '結他友'
+      }
+      const newTab = await createTab(submitData, user.uid)
+      router.push(`/tabs/${newTab.id}`)
+    } catch (error) {
+      console.error('Create tab error:', error)
+      alert('上傳失敗，請重試')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
+    
+    if (name === 'artist') setUseExistingArtistSelected(false)
+    
+    if (name === 'youtubeUrl') {
+      const videoId = extractYouTubeVideoId(value);
+      setFormData(prev => ({ ...prev, youtubeUrl: value, youtubeVideoId: videoId }));
+    }
+  }
+
   const useExistingArtist = (artist) => {
     setFormData(prev => ({
       ...prev,
