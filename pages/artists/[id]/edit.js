@@ -383,6 +383,30 @@ function EditArtist() {
     }
   }
 
+  // 刪除歌手
+  const handleDeleteArtist = async () => {
+    // 檢查是否有相關歌曲
+    if (relatedSongsCount > 0) {
+      if (!confirm(`⚠️ 警告：這位歌手有 ${relatedSongsCount} 首相關歌曲！\n\n刪除歌手不會刪除這些歌曲，但可能導致歌曲頁面顯示異常。\n\n確定要刪除嗎？`)) {
+        return
+      }
+    } else {
+      if (!confirm(`確定要刪除歌手「${formData.name}」嗎？\n\n此操作無法復原。`)) {
+        return
+      }
+    }
+    
+    try {
+      const docId = actualDocId || id
+      await deleteDoc(doc(db, 'artists', docId))
+      alert('✅ 歌手已刪除')
+      router.push('/artists')
+    } catch (error) {
+      console.error('Delete artist error:', error)
+      alert('刪除失敗：' + error.message)
+    }
+  }
+
   if (isLoading) {
     return (
       <Layout>
