@@ -41,6 +41,22 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
+      href: '/admin/artists-sort',
+      title: '歌手排序',
+      description: '拖放調整歌手顯示次序，設定評分',
+      icon: '',
+      color: 'bg-lime-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
+      href: '/admin/categorize-artists',
+      title: '歌手分類整理',
+      description: '快速將「其他」類別歌手分類到男/女/組合',
+      icon: '',
+      color: 'bg-teal-500',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
       href: '/admin/category-images',
       title: '分類封面管理',
       description: '上傳圖片或選擇歌手作為首頁分類封面',
