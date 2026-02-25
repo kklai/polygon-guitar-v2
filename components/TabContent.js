@@ -1340,7 +1340,7 @@ const TabContent = ({
       };
       
       return (
-        <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+        <div style={{ fontFamily: "Arial, Helvetica, sans-serif", lineHeight: '1' }}>
           {lines.map((line, idx) => {
             // 檢查是否為和弦行
             const isChordLine = checkIsChordLine(line);
@@ -1361,7 +1361,8 @@ const TabContent = ({
             const prevLine = lines[idx - 1];
             const isPrecededByChord = isLyricLine && checkIsChordLine(prevLine);
             
-            // 設定行距：和弦行同歌詞行之間完全緊貼
+            // 設定行距：和弦行同歌詞行之間完全緊貼，lineHeight 設為 1 消除額外空隙
+            const lineHeight = (isFollowedByLyric || isPrecededByChord) ? '0.8' : '1';
             const marginBottom = isFollowedByLyric ? '0em' : '0.3em';
             const marginTop = isPrecededByChord ? '0em' : '0';
             
@@ -1369,7 +1370,8 @@ const TabContent = ({
               <div key={idx} style={{ 
                 fontSize: `${fontSize}px`, 
                 marginTop,
-                marginBottom, 
+                marginBottom,
+                lineHeight,
                 whiteSpace: 'pre',
                 color: hasChinese ? colors.lyricInside : colors.chord
               }}>
