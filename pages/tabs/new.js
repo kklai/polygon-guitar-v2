@@ -134,21 +134,7 @@ export default function NewTab() {
     return 'mono';
   })
 
-  // 等待 auth 狀態確定後才跳轉
-  const [isAuthChecked, setIsAuthChecked] = useState(false)
-  useEffect(() => {
-    // 等 auth 載入完成後先才檢查
-    if (authLoading) return
-    
-    if (!isAuthenticated && !user) {
-      // 暫時允許任何人訪問測試
-      console.log('Not logged in, but allowing access for testing')
-      setIsAuthChecked(true)
-    } else {
-      setIsAuthChecked(true)
-    }
-  }, [isAuthenticated, user, router, authLoading])
-
+  // 等待 auth 載入完成
   if (authLoading) {
     return null
   }
