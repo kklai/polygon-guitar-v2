@@ -18,6 +18,7 @@ const REGION_OPTIONS = [
   { value: 'hongkong', label: '香港' },
   { value: 'taiwan', label: '台灣' },
   { value: 'china', label: '中國' },
+  { value: 'asia', label: '亞洲' },
   { value: 'foreign', label: '外國' }
 ]
 
@@ -173,9 +174,12 @@ export default function Artists() {
       })
     }
     
-    // 地區過濾
+    // 地區過濾（支援單一地區或多地區陣列）
     if (activeRegion !== 'all') {
-      result = result.filter(artist => artist.region === activeRegion)
+      result = result.filter(artist => {
+        const regions = artist.regions || (artist.region ? [artist.region] : [])
+        return regions.includes(activeRegion)
+      })
     }
     
     return result
