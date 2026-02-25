@@ -43,11 +43,18 @@ function AnalyticsDashboard() {
         orderBy('timestamp', 'desc')
       ),
       (snapshot) => {
-        setStats(prev => ({ ...prev, today: snapshot.size }))
+        // 過濾掉後台頁面
+        const filteredDocs = snapshot.docs.filter(doc => {
+          const data = doc.data()
+          return !(data.pageType === 'admin' || 
+                  (data.pagePath && data.pagePath.startsWith('/admin')))
+        })
         
-        // 更新最近訪問列表
+        setStats(prev => ({ ...prev, today: filteredDocs.length }))
+        
+        // 更新最近訪問列表（排除後台頁面）
         const views = []
-        snapshot.docs.slice(0, 20).forEach(doc => {
+        filteredDocs.slice(0, 20).forEach(doc => {
           views.push({ id: doc.id, ...doc.data() })
         })
         setRecentViews(views)
@@ -107,18 +114,35 @@ function AnalyticsDashboard() {
         getDocs(collection(db, 'pageViews'))
       ])
 
+      // 過濾掉後台頁面（pageType === 'admin' 或路徑以 /admin 開頭）
+      const filterAdminPages = (snap) => {
+        let count = 0
+        snap.forEach(doc => {
+          const data = doc.data()
+          const isAdmin = data.pageType === 'admin' || 
+                         (data.pagePath && data.pagePath.startsWith('/admin'))
+          if (!isAdmin) count++
+        })
+        return count
+      }
+
       setStats({
-        today: todaySnap.size,
-        yesterday: yesterdaySnap.size,
-        last7Days: last7DaysSnap.size,
-        last30Days: last30DaysSnap.size,
-        total: totalSnap.size
+        today: filterAdminPages(todaySnap),
+        yesterday: filterAdminPages(yesterdaySnap),
+        last7Days: filterAdminPages(last7DaysSnap),
+        last30Days: filterAdminPages(last30DaysSnap),
+        total: filterAdminPages(totalSnap)
       })
 
-      // 計算頁面類型分布
+      // 計算頁面類型分布（排除後台頁面）
       const typeCount = {}
       last30DaysSnap.forEach(doc => {
-        const type = doc.data().pageType || 'other'
+        const data = doc.data()
+        const isAdmin = data.pageType === 'admin' || 
+                       (data.pagePath && data.pagePath.startsWith('/admin'))
+        if (isAdmin) return
+        
+        const type = data.pageType || 'other'
         typeCount[type] = (typeCount[type] || 0) + 1
       })
       
@@ -128,10 +152,14 @@ function AnalyticsDashboard() {
       
       setPageTypeStats(typeStats)
 
-      // 熱門頁面（最近30天）
+      // 熱門頁面（最近30天，排除後台頁面）
       const pageCount = {}
       last30DaysSnap.forEach(doc => {
         const data = doc.data()
+        const isAdmin = data.pageType === 'admin' || 
+                       (data.pagePath && data.pagePath.startsWith('/admin'))
+        if (isAdmin) return
+        
         const key = data.pageId 
           ? `${data.pageType}:${data.pageId}`
           : data.pagePath
