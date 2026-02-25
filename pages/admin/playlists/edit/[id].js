@@ -525,7 +525,7 @@ function EditPlaylist() {
                 </svg>
               </div>
 
-              {/* Search Results -->
+              {/* Search Results */}
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {searchResults.length > 0 ? (
                   searchResults.map((song) => {
