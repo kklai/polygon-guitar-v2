@@ -322,6 +322,51 @@ E|----------------------------------------------------------------|
     setDraggedItem(null)
   }
 
+  // 獲取可用的封面圖片選項（必須在 sectionContents 之前定義）
+  const getCoverImageOptions = () => {
+    const options = []
+    
+    // 1. Spotify 專輯圖
+    if (formData.albumImage) {
+      options.push({
+        url: formData.albumImage,
+        type: 'spotify',
+        label: 'Spotify 專輯封面'
+      })
+    }
+    
+    // 2. YouTube 縮圖
+    if (formData.youtubeVideoId) {
+      options.push({
+        url: `https://img.youtube.com/vi/${formData.youtubeVideoId}/hqdefault.jpg`,
+        type: 'youtube',
+        label: 'YouTube 影片縮圖'
+      })
+      // 高品質版本
+      options.push({
+        url: `https://img.youtube.com/vi/${formData.youtubeVideoId}/maxresdefault.jpg`,
+        type: 'youtube',
+        label: 'YouTube 高清縮圖'
+      })
+    }
+    
+    // 3. 歌手相片
+    if (formData.artistPhoto) {
+      options.push({
+        url: formData.artistPhoto,
+        type: 'artist',
+        label: '歌手相片'
+      })
+    }
+    
+    return options
+  }
+
+  // 選擇封面圖
+  const handleSelectCover = (url) => {
+    setFormData(prev => ({ ...prev, coverImage: url }))
+  }
+
   // 各區塊內容
   const sectionContents = {
     basic: (
@@ -790,51 +835,6 @@ E|----------------------------------------------------------------|
         )}
       </div>
     )
-  }
-
-  // 獲取可用的封面圖片選項
-  const getCoverImageOptions = () => {
-    const options = []
-    
-    // 1. Spotify 專輯圖
-    if (formData.albumImage) {
-      options.push({
-        url: formData.albumImage,
-        type: 'spotify',
-        label: 'Spotify 專輯封面'
-      })
-    }
-    
-    // 2. YouTube 縮圖
-    if (formData.youtubeVideoId) {
-      options.push({
-        url: `https://img.youtube.com/vi/${formData.youtubeVideoId}/hqdefault.jpg`,
-        type: 'youtube',
-        label: 'YouTube 影片縮圖'
-      })
-      // 高品質版本
-      options.push({
-        url: `https://img.youtube.com/vi/${formData.youtubeVideoId}/maxresdefault.jpg`,
-        type: 'youtube',
-        label: 'YouTube 高清縮圖'
-      })
-    }
-    
-    // 3. 歌手相片
-    if (formData.artistPhoto) {
-      options.push({
-        url: formData.artistPhoto,
-        type: 'artist',
-        label: '歌手相片'
-      })
-    }
-    
-    return options
-  }
-
-  // 選擇封面圖
-  const handleSelectCover = (url) => {
-    setFormData(prev => ({ ...prev, coverImage: url }))
   }
 
   const sectionTitles = {
