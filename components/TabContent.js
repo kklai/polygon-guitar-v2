@@ -1320,15 +1320,32 @@ const TabContent = ({
 
     const lines = content.split('\n');
     
-    // Arial 模式：簡化處理，但仍需支援轉調
+    // Arial 模式：簡化處理，但仍需支援轉調，並保持和弦行與歌詞行緊貼
     if (displayFont === 'arial') {
+      // 輔助函數：檢查是否為和弦行
+      const checkIsChordLine = (line) => {
+        if (!line) return false;
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(line);
+        const hasChinese = /[\u4e00-\u9fff]/.test(line);
+        return hasChordPattern && !hasChinese;
+      };
+      
+      // 輔助函數：檢查是否為歌詞行
+      const checkIsLyricLine = (line) => {
+        if (!line) return false;
+        const hasChinese = /[\u4e00-\u9fff]/.test(line);
+        const hasEnglish = /[a-zA-Z]+/.test(line);
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(line);
+        return (hasChinese || hasEnglish) && !hasChordPattern;
+      };
+      
       return (
         <div style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
           {lines.map((line, idx) => {
-            // 檢查是否為和弦行（簡單檢測）
-            const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(line);
+            // 檢查是否為和弦行
+            const isChordLine = checkIsChordLine(line);
+            const isLyricLine = checkIsLyricLine(line);
             const hasChinese = /[\u4e00-\u9fff]/.test(line);
-            const isChordLine = hasChordPattern && !hasChinese;
             
             // 如果是和弦行且有轉調，處理轉調
             let displayLine = line;
@@ -1336,10 +1353,23 @@ const TabContent = ({
               displayLine = transposeChordLine(line, transposeSemitones);
             }
             
+            // 檢查下一行是否為歌詞行（如果當前是和弦行）
+            const nextLine = lines[idx + 1];
+            const isFollowedByLyric = isChordLine && checkIsLyricLine(nextLine);
+            
+            // 檢查上一行是否為和弦行（如果當前是歌詞行）
+            const prevLine = lines[idx - 1];
+            const isPrecededByChord = isLyricLine && checkIsChordLine(prevLine);
+            
+            // 設定行距：和弦行後面跟歌詞行，或歌詞行前面是和弦行，則緊貼
+            const marginBottom = isFollowedByLyric ? '0.1em' : '0.3em';
+            const marginTop = isPrecededByChord ? '0.1em' : '0';
+            
             return (
               <div key={idx} style={{ 
                 fontSize: `${fontSize}px`, 
-                marginBottom: '0.3em', 
+                marginTop,
+                marginBottom, 
                 whiteSpace: 'pre',
                 color: hasChinese ? colors.lyricInside : colors.chord
               }}>
