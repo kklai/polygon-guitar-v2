@@ -289,9 +289,26 @@ export default function ArtistPage() {
               
               <div className="flex justify-between">
                 <span className="text-[#B3B3B3]">歌曲數量</span>
-                <span className="text-white">{artist.songCount || hotTabs.length + allTabs.length} 首</span>
+                <span className="text-white">{allTabs.length} 首</span>
               </div>
             </div>
+            
+            {/* 地區 */}
+            {(artist.regions?.length > 0 || artist.region) && (
+              <div className="mt-4 pt-4 border-t border-gray-800">
+                <div className="flex flex-wrap gap-2">
+                  {(artist.regions || [artist.region]).map((region, idx) => (
+                    <span key={idx} className="px-2 py-1 bg-[#282828] text-[#B3B3B3] text-xs rounded">
+                      {region === 'hongkong' ? '香港' : 
+                       region === 'taiwan' ? '台灣' : 
+                       region === 'china' ? '中國' : 
+                       region === 'asia' ? '亞洲' : 
+                       region === 'foreign' ? '外國' : region}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* 簡介 */}
             {artist.bio && (
