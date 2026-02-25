@@ -4,7 +4,7 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-import { getAllTabs, getAllArtists } from '@/lib/tabs'
+import { getAllTabs } from '@/lib/tabs'
 import { getPlaylist, updatePlaylist } from '@/lib/playlists'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
@@ -24,10 +24,7 @@ function EditPlaylist() {
   const [selectedSongs, setSelectedSongs] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
-  const [filteredArtists, setFilteredArtists] = useState([])
   const [allSongs, setAllSongs] = useState([])
-  const [allArtists, setAllArtists] = useState([])
-  const [selectedArtistFilter, setSelectedArtistFilter] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -67,13 +64,9 @@ function EditPlaylist() {
         viewMode: playlist.viewMode || 'list'
       })
       
-      // 載入所有歌曲同歌手
-      const [songs, artists] = await Promise.all([
-        getAllTabs(),
-        getAllArtists()
-      ])
+      // 載入所有歌曲
+      const songs = await getAllTabs()
       setAllSongs(songs)
-      setAllArtists(artists)
       setSearchResults(songs.slice(0, 10))
       
       // 載入已選歌曲的完整資料
@@ -91,18 +84,15 @@ function EditPlaylist() {
     }
   }
 
-  // 搜尋歌曲同歌手（與 /search 頁面一致）
+  // 搜尋歌曲（與 /search 頁面一致）
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setSearchResults(allSongs.slice(0, 10))
-      setFilteredArtists([])
       return
     }
     
     const query = searchQuery.toLowerCase()
-    
-    // 搜尋歌曲
-    const filteredSongs = allSongs.filter(song =>
+    const filtered = allSongs.filter(song =>
       song.title.toLowerCase().includes(query) ||
       song.artist.toLowerCase().includes(query) ||
       (song.composer && song.composer.toLowerCase().includes(query)) ||
@@ -111,32 +101,8 @@ function EditPlaylist() {
       (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
     ).slice(0, 20)
     
-    // 搜尋歌手
-    const filteredArts = allArtists.filter(artist =>
-      artist.name.toLowerCase().includes(query)
-    ).slice(0, 10)
-    
-    setSearchResults(filteredSongs)
-    setFilteredArtists(filteredArts)
-  }, [searchQuery, allSongs, allArtists])
-  
-  // 篩選特定歌手的歌曲
-  const filterByArtist = (artist) => {
-    setSelectedArtistFilter(artist)
-    const artistSongs = allSongs.filter(song =>
-      song.artist === artist.name || 
-      song.artistId === artist.id
-    )
-    setSearchResults(artistSongs.slice(0, 20))
-    setSearchQuery(artist.name)
-  }
-  
-  // 清除歌手篩選
-  const clearArtistFilter = () => {
-    setSelectedArtistFilter(null)
-    setSearchResults(allSongs.slice(0, 10))
-    setSearchQuery('')
-  }
+    setSearchResults(filtered)
+  }, [searchQuery, allSongs])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -559,56 +525,7 @@ function EditPlaylist() {
                 </svg>
               </div>
 
-              {/* Artist Filter */}
-              {selectedArtistFilter && (
-                <div className="mb-4 p-3 bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-sm">篩選歌手:</span>
-                    <span className="text-[#FFD700] font-medium">{selectedArtistFilter.name}</span>
-                    <span className="text-gray-500 text-sm">({searchResults.length} 首)</span>
-                  </div>
-                  <button
-                    onClick={clearArtistFilter}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* Artists Results */}
-              {filteredArtists.length > 0 && !selectedArtistFilter && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">歌手</h4>
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    {filteredArtists.map((artist) => (
-                      <button
-                        key={artist.id}
-                        type="button"
-                        onClick={() => filterByArtist(artist)}
-                        className="flex-shrink-0 flex flex-col items-center group"
-                      >
-                        <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-800 mb-1 group-hover:ring-2 group-hover:ring-[#FFD700]">
-                          {artist.photoURL || artist.wikiPhotoURL ? (
-                            <img
-                              src={artist.photoURL || artist.wikiPhotoURL}
-                              alt={artist.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xl">🎤</div>
-                          )}
-                        </div>
-                        <span className="text-xs text-gray-400 group-hover:text-white">{artist.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Search Results */}
+              {/* Search Results -->
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {searchResults.length > 0 ? (
                   searchResults.map((song) => {
