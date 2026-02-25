@@ -564,9 +564,9 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
     prefixSuffix: isDark ? '#B3B3B3' : '#666',
   };
   
-  // 解析和弦行，分離和弦和非和弦部分
+  // 解析和弦行，分離和弦和非和弦部分（支援 slash chord 如 E/G#）
   const parts = [];
-  const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?\b/g;
+  const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(\/[A-G][#b]?)?\b/g;
   
   let lastIndex = 0;
   let match;

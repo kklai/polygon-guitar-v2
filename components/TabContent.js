@@ -1322,21 +1322,21 @@ const TabContent = ({
     
     // Arial 模式：簡化處理，但仍需支援轉調，並保持和弦行與歌詞行緊貼
     if (displayFont === 'arial') {
-      // 輔助函數：檢查是否為和弦行
+      // 輔助函數：檢查是否為和弦行（支援 slash chord 如 E/G#）
       const checkIsChordLine = (line) => {
         if (!line) return false;
-        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(line);
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
         return hasChordPattern && !hasChinese;
       };
       
-      // 輔助函數：檢查是否為歌詞行
+      // 輔助函數：檢查是否為歌詞行（必須有中文字，且沒有和弦特徵）
       const checkIsLyricLine = (line) => {
         if (!line) return false;
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
-        const hasEnglish = /[a-zA-Z]+/.test(line);
-        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(line);
-        return (hasChinese || hasEnglish) && !hasChordPattern;
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
+        // 歌詞行：必須有中文字，且沒有和弦模式
+        return hasChinese && !hasChordPattern;
       };
       
       return (
