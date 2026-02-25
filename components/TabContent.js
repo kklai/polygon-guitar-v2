@@ -1361,9 +1361,9 @@ const TabContent = ({
             const prevLine = lines[idx - 1];
             const isPrecededByChord = isLyricLine && checkIsChordLine(prevLine);
             
-            // 設定行距：和弦行後面跟歌詞行 → 完全緊貼；歌詞行前面是和弦行 → 微小間距
+            // 設定行距：和弦行同歌詞行之間完全緊貼
             const marginBottom = isFollowedByLyric ? '0em' : '0.3em';
-            const marginTop = isPrecededByChord ? '0.05em' : '0';
+            const marginTop = isPrecededByChord ? '0em' : '0';
             
             return (
               <div key={idx} style={{ 
