@@ -196,6 +196,29 @@ export default function NewTab() {
     return null
   }
 
+  // 未登入時顯示登入提示
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto mt-20 text-center">
+          <div className="bg-[#121212] rounded-xl border border-gray-800 p-8">
+            <svg className="w-16 h-16 mx-auto mb-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <h1 className="text-xl font-bold text-white mb-2">請先登入</h1>
+            <p className="text-gray-400 mb-6">上傳樂譜需要先登入帳戶</p>
+            <Link 
+              href="/login?redirect=/tabs/new" 
+              className="inline-block bg-[#FFD700] text-black px-6 py-3 rounded-lg font-medium hover:bg-yellow-400 transition"
+            >
+              前往登入
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
   const validate = () => {
     const newErrors = {}
     if (!formData.title.trim()) newErrors.title = '請輸入歌名'
