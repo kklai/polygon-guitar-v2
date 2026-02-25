@@ -144,6 +144,7 @@ function UpdateTrackInfoPage() {
     setPreviewResults([])
     
     const results = []
+    const failedTabs = [] // 記錄失敗嘅歌曲
     const searchFn = dataSource === 'spotify' ? searchSpotify : searchMusicBrainz
     
     for (let i = 0; i < targetTabs.length; i++) {
@@ -153,16 +154,29 @@ function UpdateTrackInfoPage() {
       try {
         const result = await searchFn(tab.artist, tab.title)
         
-        results.push({
-          tabId: tab.id,
-          tabTitle: tab.title,
-          tabArtist: tab.artist,
-          ...result,
-          selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm)
-        })
+        if (!result.found) {
+          // 搜尋失敗，放到失敗列表
+          failedTabs.push({
+            tabId: tab.id,
+            tabTitle: tab.title,
+            tabArtist: tab.artist,
+            ...result,
+            selected: false
+          })
+          addLog(`❌ ${tab.artist} - ${tab.title}: 未找到`, 'warning')
+        } else {
+          // 搜尋成功
+          results.push({
+            tabId: tab.id,
+            tabTitle: tab.title,
+            tabArtist: tab.artist,
+            ...result,
+            selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm)
+          })
+        }
       } catch (error) {
-        // 單個請求失敗唔中斷整個流程
-        results.push({
+        // 單個請求失敗，放到失敗列表
+        failedTabs.push({
           tabId: tab.id,
           tabTitle: tab.title,
           tabArtist: tab.artist,
@@ -173,7 +187,8 @@ function UpdateTrackInfoPage() {
         addLog(`⚠️ ${tab.artist} - ${tab.title}: ${error.message}`, 'warning')
       }
       
-      setPreviewResults([...results])
+      // 顯示進度：成功 + 失敗
+      setPreviewResults([...results, ...failedTabs])
       
       // MusicBrainz 限制較寬，可以快啲；Spotify 要慢啲
       // 每 10 首後多等一陣，避免 rate limit
@@ -182,12 +197,22 @@ function UpdateTrackInfoPage() {
       await new Promise(r => setTimeout(r, baseDelay + extraDelay))
     }
     
+    // 將失敗嘅歌曲排到最后
+    const finalResults = [...results, ...failedTabs]
+    setPreviewResults(finalResults)
+    
     setIsProcessing(false)
     setShowPreview(true)
     
     const foundCount = results.filter(r => r.found).length
     const withCredits = results.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length
-    addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞`, 'success')
+    const failedCount = failedTabs.length
+    
+    if (failedCount > 0) {
+      addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞，${failedCount} 首失敗已排至最後`, 'warning')
+    } else {
+      addLog(`預覽完成：找到 ${foundCount}/${targetTabs.length} 首，${withCredits} 首有作曲/填詞`, 'success')
+    }
   }
 
   // 獲取過濾後的歌曲列表
