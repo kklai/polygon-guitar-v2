@@ -151,9 +151,15 @@ export default function EditTab() {
 
       setIsAuthorized(true)
       
-      // 設置 textarea 使用的字體模式（優先使用儲存的 inputFont）
-      const savedInputFont = data.inputFont || data.displayFont || 'mono'
-      setInputFontMode(savedInputFont)
+      // 設置 textarea 使用的字體模式
+      // 優先使用儲存的 inputFont，如果沒有則自動檢測內容（有括弧表示等寬格式）
+      let detectedFont = data.inputFont
+      if (!detectedFont) {
+        // 自動檢測：如果內容有括弧 ( )，則是等寬字體格式
+        const hasBrackets = data.content && /[（(]/.test(data.content)
+        detectedFont = hasBrackets ? 'mono' : 'arial'
+      }
+      setInputFontMode(detectedFont)
       
       setFormData({
         title: data.title,
