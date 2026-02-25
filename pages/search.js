@@ -224,6 +224,8 @@ export default function Search() {
                             alt={artist.name}
                             className="w-full h-full object-cover pointer-events-none select-none"
                             draggable="false"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-2xl">
@@ -259,6 +261,8 @@ export default function Search() {
                             alt={song.title}
                             className="w-full h-full object-cover rounded pointer-events-none select-none"
                             draggable="false"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           '🎵'
@@ -315,6 +319,8 @@ export default function Search() {
                         alt={categoryCovers.male.name}
                         className="w-full h-full object-cover pointer-events-none select-none"
                         draggable="false"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : cat.id === 'female' && categoryCovers.female && getArtistPhoto(categoryCovers.female) ? (
                       <img 
@@ -322,6 +328,8 @@ export default function Search() {
                         alt={categoryCovers.female.name}
                         className="w-full h-full object-cover pointer-events-none select-none"
                         draggable="false"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : cat.id === 'group' && categoryCovers.group && getArtistPhoto(categoryCovers.group) ? (
                       <img 
@@ -329,6 +337,8 @@ export default function Search() {
                         alt={categoryCovers.group.name}
                         className="w-full h-full object-cover pointer-events-none select-none"
                         draggable="false"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : cat.id === 'latest' && categoryCovers.recent?.thumbnail ? (
                       <img 
@@ -336,6 +346,8 @@ export default function Search() {
                         alt="最新上架"
                         className="w-full h-full object-cover pointer-events-none select-none"
                         draggable="false"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-full h-full bg-black/30 flex items-center justify-center text-2xl">
@@ -371,6 +383,8 @@ export default function Search() {
                             alt={song.title}
                             className="w-full h-full object-cover pointer-events-none select-none"
                             draggable="false"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl">
@@ -408,6 +422,8 @@ export default function Search() {
                             alt={artist.name}
                             className="w-full h-full object-cover pointer-events-none select-none"
                             draggable="false"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl bg-gradient-to-br from-gray-700 to-gray-800">

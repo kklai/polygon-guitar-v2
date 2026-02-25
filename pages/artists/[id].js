@@ -339,7 +339,7 @@ export default function ArtistPage() {
               {/* 歌曲封面 */}
               <div className="w-12 h-12 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
                 {getSongThumbnail(tab) ? (
-                  <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                  <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3E3E3E] text-xl">♪</div>
                 )}
@@ -491,7 +491,7 @@ export default function ArtistPage() {
             <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
               <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-[#282828]">
                 {selectedTab && getSongThumbnail(selectedTab) ? (
-                  <img src={getSongThumbnail(selectedTab)} alt={selectedTab.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                  <img src={getSongThumbnail(selectedTab)} alt={selectedTab.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3E3E3E]">♪</div>
                 )}

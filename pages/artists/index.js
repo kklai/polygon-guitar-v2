@@ -54,6 +54,8 @@ function ArtistCircle({ artist, onClick }) {
             alt={artist.name}
             className="w-full h-full object-cover pointer-events-none select-none"
             draggable="false"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-3xl">

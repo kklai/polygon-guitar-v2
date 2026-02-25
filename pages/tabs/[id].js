@@ -231,6 +231,8 @@ export default function TabDetail() {
                   src={tab.coverImage || tab.albumImage || tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
                   alt={tab.title}
                   className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-600">

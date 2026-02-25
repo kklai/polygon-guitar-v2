@@ -183,6 +183,8 @@ export default function PlaylistDetail() {
                   src={playlist.coverImage} 
                   alt={playlist.title}
                   className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-orange-500">
@@ -262,6 +264,8 @@ export default function PlaylistDetail() {
                       src={getThumbnail(song)}
                       alt={song.title}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <span className="text-xl">🎸</span>
@@ -306,6 +310,8 @@ export default function PlaylistDetail() {
                       src={getThumbnail(song)}
                       alt={song.title}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl">

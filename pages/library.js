@@ -108,7 +108,7 @@ export default function Library() {
       <div className="px-4 pt-6 pb-4 flex items-center space-x-3">
         <div className="w-10 h-10 rounded-full bg-[#282828] overflow-hidden flex items-center justify-center">
           {user?.photoURL ? (
-            <img src={user.photoURL} alt="avatar" className="w-full h-full object-cover" />
+            <img src={user.photoURL} alt="avatar" className="w-full h-full object-cover" loading="lazy" decoding="async" />
           ) : (
             <span className="text-white font-bold">{user?.displayName?.[0] || 'U'}</span>
           )}
@@ -148,7 +148,7 @@ export default function Library() {
                   {playlist.covers && playlist.covers.length > 0 ? (
                     <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5">
                       {playlist.covers.map((cover, i) => (
-                        <img key={i} src={cover} className="w-full h-full object-cover" alt="" />
+                        <img key={i} src={cover} className="w-full h-full object-cover" alt="" loading="lazy" decoding="async" />
                       ))}
                       {Array(4 - playlist.covers.length).fill(0).map((_, i) => (
                         <div key={`empty-${i}`} className="bg-[#282828] w-full h-full" />
