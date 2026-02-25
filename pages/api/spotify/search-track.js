@@ -139,3 +139,4 @@ export default async function handler(req, res) {
     })
   }
 }
+// Force redeploy 2026年 2月26日 週四 00時49分24秒 HKT
