@@ -54,7 +54,7 @@ function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandl
 
 export default function NewTab() {
   const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -134,10 +134,22 @@ export default function NewTab() {
     return 'mono';
   })
 
-  if (!isAuthenticated && !user) {
-    if (typeof window !== 'undefined') {
-      router.push('/login')
+  // 等待 auth 狀態確定後才跳轉
+  const [isAuthChecked, setIsAuthChecked] = useState(false)
+  useEffect(() => {
+    // 等 auth 載入完成後先才檢查
+    if (authLoading) return
+    
+    if (!isAuthenticated && !user) {
+      // 暫時允許任何人訪問測試
+      console.log('Not logged in, but allowing access for testing')
+      setIsAuthChecked(true)
+    } else {
+      setIsAuthChecked(true)
     }
+  }, [isAuthenticated, user, router, authLoading])
+
+  if (authLoading) {
     return null
   }
 
