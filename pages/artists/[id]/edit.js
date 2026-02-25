@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
@@ -816,6 +816,28 @@ function EditArtist() {
               >
                 取消
               </Link>
+            </div>
+
+            {/* 刪除按鈕 - 僅管理員可見 */}
+            <div className="pt-6 mt-6 border-t border-gray-800">
+              <button
+                type="button"
+                onClick={handleDeleteArtist}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-red-900/30 border border-red-700 text-red-400 rounded-lg hover:bg-red-900/50 transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                刪除歌手
+                {relatedSongsCount > 0 && (
+                  <span className="ml-2 text-xs bg-red-700 text-white px-2 py-0.5 rounded-full">
+                    {relatedSongsCount} 首歌
+                  </span>
+                )}
+              </button>
+              <p className="mt-2 text-xs text-gray-500 text-center">
+                警告：刪除後無法復原。如有歌曲使用此歌手，建議先轉移歌曲至其他歌手。
+              </p>
             </div>
           </form>
         </div>

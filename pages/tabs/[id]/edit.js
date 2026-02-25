@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { getTab, updateTab } from '@/lib/tabs'
+import { getTab, updateTab, deleteTab } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
@@ -232,6 +232,22 @@ export default function EditTab() {
       alert('更新失敗：' + error.message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // 刪除樂譜
+  const handleDeleteTab = async () => {
+    if (!confirm(`確定要刪除「${formData.title}」嗎？\n\n此操作無法復原。`)) {
+      return
+    }
+    
+    try {
+      await deleteTab(id, user.uid, isAdmin)
+      alert('✅ 樂譜已刪除')
+      router.push('/library')
+    } catch (error) {
+      console.error('Delete tab error:', error)
+      alert('刪除失敗：' + error.message)
     }
   }
 
@@ -974,6 +990,25 @@ export default function EditTab() {
                 取消
               </Link>
             </div>
+
+            {/* 刪除按鈕 - 僅管理員可見 */}
+            {isAdmin && (
+              <div className="pt-6 mt-6 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={handleDeleteTab}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-red-900/30 border border-red-700 text-red-400 rounded-lg hover:bg-red-900/50 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  刪除樂譜
+                </button>
+                <p className="mt-2 text-xs text-gray-500 text-center">
+                  警告：刪除後無法復原。
+                </p>
+              </div>
+            )}
           </form>
         </div>
       </div>
