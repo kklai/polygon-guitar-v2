@@ -589,7 +589,7 @@ export default function Home() {
 
       // === 第2步：處理熱門樂譜 ===
       let hotTabsData = [];
-      const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 12);
+      const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 100);
       
       if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
         const manualIds = settings.hotTabs.manualSelection
