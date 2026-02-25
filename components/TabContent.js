@@ -1487,8 +1487,16 @@ const TabContent = ({
         
         // 等寬模式先拆開處理顏色
         const lyricParts = processLyricLine(line);
+        // 檢查上一行是否為和弦行
+        const prevLine = lines[i - 1];
+        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(prevLine);
+        const prevHasChinese = prevLine && /[\u4e00-\u9fff]/.test(prevLine);
+        const prevIsChord = prevHasChordPattern && !prevHasChinese;
+        const marginTop = prevIsChord ? '0em' : '0';
+        const marginBottom = prevIsChord ? '0em' : `${lineFontSize * 0.6}px`;
+        
         elements.push(
-          <div key={i} style={{ fontSize: `${lineFontSize}px`, marginBottom: `${lineFontSize * 0.6}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
+          <div key={i} style={{ fontSize: `${lineFontSize}px`, marginTop, marginBottom, lineHeight: prevIsChord ? '1.1' : 'normal', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>
             {lyricParts.map((part, idx) => {
               // 隱藏括號時，將括號變成空格占位（保持寬度）
               if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
@@ -1599,8 +1607,12 @@ const TabContent = ({
           pairs.forEach((pair, pairIndex) => {
             const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets, displayFont);
             
+            // 和弦-歌詞配對緊貼，多行拆分時先保持間距
+            const isLastPair = pairIndex === pairs.length - 1;
+            const pairMarginBottom = isLastPair ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.2}px`;
+            
             elements.push(
-              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairIndex < pairs.length - 1 ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.6}px` }}>
+              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom, lineHeight: '1.1' }}>
                 {/* 和弦行 - 可 hover 的和弦 */}
                 <ChordLineWithHover 
                   chordLine={result.chordLine}
@@ -1699,7 +1711,7 @@ const TabContent = ({
                 })}
                 
                 {/* 歌詞行 - 括號外灰色，括號內白色 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.2' }}>
+                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}>
                   {result.lyricParts.map((part, idx) => {
                     // 隱藏括號時，將括號變成空格占位（保持寬度不變）
                     if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
@@ -1733,8 +1745,15 @@ const TabContent = ({
           // 冇歌詞行，單獨顯示和弦
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+          // 檢查下一行是否為歌詞行
+          const nextLine = lines[i + 1];
+          const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine));
+          const nextHasChordOnly = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(nextLine) && !/[\u4e00-\u9fff]/.test(nextLine);
+          const isFollowedByLyric = nextHasLyric && !nextHasChordOnly;
+          const chordMarginBottom = isFollowedByLyric ? '0em' : `${lineFontSize * 0.6}px`;
+          
           elements.push(
-            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: chordMarginBottom, lineHeight: isFollowedByLyric ? '1.1' : 'normal' }}>
               {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
               {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
