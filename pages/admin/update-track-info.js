@@ -221,7 +221,7 @@ function UpdateTrackInfoPage() {
             tabTitle: tab.title,
             tabArtist: tab.artist,
             ...result,
-            selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm)
+            selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm || result.track?.releaseYear)
           })
         }
       } catch (error) {
@@ -427,7 +427,7 @@ function UpdateTrackInfoPage() {
         </div>
 
         {/* 統計卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <div className="text-2xl font-bold text-white">{tabs.length}</div>
             <div className="text-sm text-gray-400">總歌曲數</div>
@@ -601,9 +601,12 @@ function UpdateTrackInfoPage() {
                   <h3 className="text-purple-300 font-medium mb-1">搜尋結果預覽</h3>
                   <p className="text-sm text-gray-400">
                     找到 {previewResults.filter(r => r.found).length} / {previewResults.length} 首
-                    {previewResults.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length > 0 && (
+                    {previewResults.filter(r => r.found && (r.details?.composers || r.details?.lyricists || r.track?.releaseYear)).length > 0 && (
                       <span className="text-green-400 ml-2">
-                        ({previewResults.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length} 首有作曲/填詞)
+                        ({previewResults.filter(r => r.found && (r.details?.composers || r.details?.lyricists)).length} 首有作曲/填詞
+                        {previewResults.filter(r => r.found && r.track?.releaseYear).length > 0 && (
+                          <>, {previewResults.filter(r => r.found && r.track?.releaseYear).length} 首有年份</>
+                        )})
                       </span>
                     )}
                   </p>
