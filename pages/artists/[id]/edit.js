@@ -7,6 +7,15 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
+import { X, MapPin } from 'lucide-react'
+
+const REGIONS = [
+  { value: 'hongkong', label: '香港', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  { value: 'taiwan', label: '台灣', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  { value: 'china', label: '中國', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  { value: 'asia', label: '亞洲', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  { value: 'foreign', label: '外國', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' }
+]
 
 function EditArtist() {
   const router = useRouter()
@@ -21,7 +30,8 @@ function EditArtist() {
     heroPhoto: '',     // Hero 照片
     bio: '',
     year: '',
-    artistType: '' // male, female, group
+    artistType: '', // male, female, group
+    regions: [] // 地區陣列
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -77,6 +87,9 @@ function EditArtist() {
       const data = artistSnap.data()
       setActualDocId(artistSnap.id) // 儲存實際嘅 document ID
       setOriginalName(data.name || '')
+      // 支援舊版單一地區轉陣列
+      const artistRegions = data.regions || (data.region ? [data.region] : [])
+      
       setFormData({
         name: data.name || '',
         photoURL: data.photoURL || '',
@@ -85,7 +98,8 @@ function EditArtist() {
         heroPhoto: data.heroPhoto || '',
         bio: data.bio || '',
         year: data.year || '',
-        artistType: data.artistType || ''
+        artistType: data.artistType || '',
+        regions: artistRegions
       })
       
       // 檢查相關歌曲數量
@@ -131,6 +145,8 @@ function EditArtist() {
         bio: formData.bio,
         year: formData.year,
         artistType: formData.artistType || 'other',
+        regions: formData.regions || [],
+        region: formData.regions?.[0] || null, // 保留第一地區向後兼容
         // 保留原有 normalizedName 不變，確保舊連結繼續有效
         updatedAt: new Date().toISOString()
       })
@@ -546,6 +562,63 @@ function EditArtist() {
                 <option value="female">👩‍🎤 女歌手</option>
                 <option value="group">🎸 組合</option>
               </select>
+            </div>
+
+            {/* Regions */}
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                地區 <span className="text-gray-500">(最多 3 個)</span>
+              </label>
+              <div className="p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {formData.regions?.map((region, idx) => {
+                    const regionConfig = REGIONS.find(r => r.value === region)
+                    return (
+                      <span 
+                        key={region}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${regionConfig?.color || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}
+                      >
+                        <MapPin className="w-3 h-3" />
+                        {idx + 1}. {regionConfig?.label || region}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              regions: prev.regions.filter(r => r !== region)
+                            }))
+                          }}
+                          className="hover:opacity-70 ml-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+                {formData.regions?.length < 3 && (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setFormData(prev => ({
+                          ...prev,
+                          regions: [...(prev.regions || []), e.target.value]
+                        }))
+                      }
+                    }}
+                    className="w-full bg-black text-white text-sm px-3 py-2 rounded border border-gray-700 focus:border-[#FFD700] focus:outline-none"
+                  >
+                    <option value="">+ 添加地區 ({(formData.regions?.length || 0) + 1}/3)</option>
+                    {REGIONS.filter(r => !formData.regions?.includes(r.value)).map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                第一個地區會作為主要顯示地區
+              </p>
             </div>
 
             {/* Wikipedia Search */}
