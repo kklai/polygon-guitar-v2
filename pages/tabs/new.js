@@ -135,17 +135,7 @@ export default function NewTab() {
   })
 
   // 等待 auth 載入完成
-  const [authChecked, setAuthChecked] = useState(false)
-  useEffect(() => {
-    if (authLoading) return
-    if (!isAuthenticated && !user) {
-      router.push('/login')
-    } else {
-      setAuthChecked(true)
-    }
-  }, [authLoading, isAuthenticated, user, router])
-
-  if (authLoading || !authChecked) {
+  if (authLoading) {
     return null
   }
 
