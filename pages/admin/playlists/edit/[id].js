@@ -84,7 +84,7 @@ function EditPlaylist() {
     }
   }
 
-  // 搜尋歌曲
+  // 搜尋歌曲（與 /search 頁面一致）
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setSearchResults(allSongs.slice(0, 10))
@@ -94,7 +94,11 @@ function EditPlaylist() {
     const query = searchQuery.toLowerCase()
     const filtered = allSongs.filter(song =>
       song.title.toLowerCase().includes(query) ||
-      song.artist.toLowerCase().includes(query)
+      song.artist.toLowerCase().includes(query) ||
+      (song.composer && song.composer.toLowerCase().includes(query)) ||
+      (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
+      (song.arranger && song.arranger.toLowerCase().includes(query)) ||
+      (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
     ).slice(0, 20)
     
     setSearchResults(filtered)
