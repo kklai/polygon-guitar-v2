@@ -118,21 +118,21 @@ export default function NewTab() {
   const [draggedItem, setDraggedItem] = useState(null)
   
   // 對齊參數（從 localStorage 讀取或預設 1.1）
-  const [alignFactor, setAlignFactor] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('tabAlignFactor');
-      return saved ? parseFloat(saved) : 1.1;
-    }
-    return 1.1;
-  })
+  const [alignFactor, setAlignFactor] = useState(1.1)
   
   // 字體模式：等寬（mono）或 Arial（比例字體）
-  const [fontMode, setFontMode] = useState(() => {
+  const [fontMode, setFontMode] = useState('mono')
+  
+  // 在客戶端載入後讀取 localStorage
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('tabFontMode') || 'mono';
+      const savedFactor = localStorage.getItem('tabAlignFactor');
+      if (savedFactor) setAlignFactor(parseFloat(savedFactor));
+      
+      const savedFontMode = localStorage.getItem('tabFontMode');
+      if (savedFontMode) setFontMode(savedFontMode);
     }
-    return 'mono';
-  })
+  }, [])
 
   // 所有 hooks 必須在任何 return 之前定義 - authChecked 用於等待初始化
   const [authChecked, setAuthChecked] = useState(false)
