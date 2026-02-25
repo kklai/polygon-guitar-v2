@@ -11,37 +11,75 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing artist or title' })
     }
     
-    // 1. 搜尋歌曲
-    const searchQuery = encodeURIComponent(`artist:"${artist}" AND recording:"${title}"`)
-    const searchRes = await fetch(
-      `https://musicbrainz.org/ws/2/recording?query=${searchQuery}&fmt=json&limit=5`,
-      {
-        headers: {
-          'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)'
+    // 1. 搜尋歌曲 - 嘗試多種搜尋策略
+    // 策略 1: 提取中文名（如果係雙語名）
+    const chineseName = artist.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || ''
+    // 策略 2: 提取英文名（如果有）
+    const englishName = artist.match(/[a-zA-Z\s]{2,}/)?.[0]?.trim() || ''
+    
+    let searchData = null
+    let usedStrategy = ''
+    
+    // 嘗試策略 A: 用中文名搜尋（如果有）
+    if (chineseName) {
+      const queryA = encodeURIComponent(`artist:"${chineseName}" AND recording:"${title}"`)
+      const resA = await fetch(
+        `https://musicbrainz.org/ws/2/recording?query=${queryA}&fmt=json&limit=5`,
+        { headers: { 'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)' } }
+      )
+      if (resA.ok) {
+        const dataA = await resA.json()
+        if (dataA.recordings?.length > 0) {
+          searchData = dataA
+          usedStrategy = 'chinese'
         }
       }
-    )
-    
-    // 檢查 rate limit
-    if (searchRes.status === 503 || searchRes.status === 429) {
-      return res.status(429).json({ 
-        error: 'Rate limit exceeded. Please wait a moment and try again.',
-        retryAfter: searchRes.headers.get('Retry-After') || 5
-      })
     }
     
-    if (!searchRes.ok) {
-      const errorText = await searchRes.text()
-      return res.status(searchRes.status).json({ 
-        error: 'MusicBrainz search failed',
-        status: searchRes.status,
-        details: errorText
-      })
+    // 嘗試策略 B: 用英文名搜尋（如果有，且 A 失敗）
+    if (!searchData && englishName) {
+      const queryB = encodeURIComponent(`artist:"${englishName}" AND recording:"${title}"`)
+      const resB = await fetch(
+        `https://musicbrainz.org/ws/2/recording?query=${queryB}&fmt=json&limit=5`,
+        { headers: { 'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)' } }
+      )
+      if (resB.ok) {
+        const dataB = await resB.json()
+        if (dataB.recordings?.length > 0) {
+          searchData = dataB
+          usedStrategy = 'english'
+        }
+      }
     }
     
-    const searchData = await searchRes.json()
+    // 嘗試策略 C: 用原始歌手名（如果以上都失敗）
+    if (!searchData) {
+      const queryC = encodeURIComponent(`artist:"${artist}" AND recording:"${title}"`)
+      const resC = await fetch(
+        `https://musicbrainz.org/ws/2/recording?query=${queryC}&fmt=json&limit=5`,
+        { headers: { 'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)' } }
+      )
+      if (resC.ok) {
+        searchData = await resC.json()
+        usedStrategy = 'original'
+      }
+    }
     
-    if (!searchData.recordings || searchData.recordings.length === 0) {
+    // 嘗試策略 D: 只用歌名搜尋（最後手段）
+    if (!searchData?.recordings?.length) {
+      const queryD = encodeURIComponent(`recording:"${title}"`)
+      const resD = await fetch(
+        `https://musicbrainz.org/ws/2/recording?query=${queryD}&fmt=json&limit=10`,
+        { headers: { 'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)' } }
+      )
+      if (resD.ok) {
+        searchData = await resD.json()
+        usedStrategy = 'title-only'
+      }
+    }
+    
+    // 檢查是否有搜尋結果
+    if (!searchData || !searchData.recordings || searchData.recordings.length === 0) {
       return res.status(404).json({ error: 'No results found' })
     }
     
