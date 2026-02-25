@@ -17,10 +17,18 @@ export default async function handler(req, res) {
       `https://musicbrainz.org/ws/2/recording?query=${searchQuery}&fmt=json&limit=5`,
       {
         headers: {
-          'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@example.com)'
+          'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)'
         }
       }
     )
+    
+    // 檢查 rate limit
+    if (searchRes.status === 503 || searchRes.status === 429) {
+      return res.status(429).json({ 
+        error: 'Rate limit exceeded. Please wait a moment and try again.',
+        retryAfter: searchRes.headers.get('Retry-After') || 5
+      })
+    }
     
     if (!searchRes.ok) {
       const errorText = await searchRes.text()

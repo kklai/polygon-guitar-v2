@@ -150,20 +150,36 @@ function UpdateTrackInfoPage() {
       const tab = targetTabs[i]
       setProgress({ current: i + 1, total: targetTabs.length })
       
-      const result = await searchFn(tab.artist, tab.title)
-      
-      results.push({
-        tabId: tab.id,
-        tabTitle: tab.title,
-        tabArtist: tab.artist,
-        ...result,
-        selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm)
-      })
+      try {
+        const result = await searchFn(tab.artist, tab.title)
+        
+        results.push({
+          tabId: tab.id,
+          tabTitle: tab.title,
+          tabArtist: tab.artist,
+          ...result,
+          selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm)
+        })
+      } catch (error) {
+        // 單個請求失敗唔中斷整個流程
+        results.push({
+          tabId: tab.id,
+          tabTitle: tab.title,
+          tabArtist: tab.artist,
+          found: false,
+          error: error.message || '請求失敗',
+          selected: false
+        })
+        addLog(`⚠️ ${tab.artist} - ${tab.title}: ${error.message}`, 'warning')
+      }
       
       setPreviewResults([...results])
       
       // MusicBrainz 限制較寬，可以快啲；Spotify 要慢啲
-      await new Promise(r => setTimeout(r, dataSource === 'spotify' ? 1500 : 800))
+      // 每 10 首後多等一陣，避免 rate limit
+      const baseDelay = dataSource === 'spotify' ? 1500 : 800
+      const extraDelay = (i > 0 && i % 10 === 0) ? 2000 : 0
+      await new Promise(r => setTimeout(r, baseDelay + extraDelay))
     }
     
     setIsProcessing(false)
@@ -478,7 +494,7 @@ function UpdateTrackInfoPage() {
                         <div className="text-gray-500 text-xs">{item.tabArtist}</div>
                       </td>
                       <td className="p-3">
-                        {item.found ? (
+                        {item.found && item.track ? (
                           <div>
                             <div className="text-green-400 font-medium">{item.track.name}</div>
                             <div className="text-gray-400 text-xs">{item.track.artist}</div>
@@ -491,7 +507,7 @@ function UpdateTrackInfoPage() {
                         )}
                       </td>
                       <td className="p-3 text-center">
-                        {item.track.releaseYear ? (
+                        {item.track?.releaseYear ? (
                           <span className="text-[#FFD700] font-bold">{item.track.releaseYear}</span>
                         ) : (
                           <span className="text-gray-600">-</span>
