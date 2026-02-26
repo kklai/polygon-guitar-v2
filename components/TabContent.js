@@ -395,14 +395,14 @@ function isNumericNotationLine(line) {
   if (!line) return false;
   
   // 簡譜特徵：
-  // 1. 大量數字（多於 3 個）- 支持 1' 高音, 5# 升號
+  // 1. 大量數字（多於 3 個）- 支持 1' 高音, 5# 升號, 5, 低音
   // 2. 可以包含括號內的數字 (6.)、(2) 等
   // 3. 很少或沒有中文字符（少於 3 個）
   // 4. 冇和弦豎線 |
   // 5. 英文字母要少（簡譜只有 b, # 是合法的）
   
-  // 匹配完整簡譜音符：數字 + 可選的 ' 或 #（如 1', 5#, 6, 3'）
-  const notationPattern = /\d['#]*/g;
+  // 匹配完整簡譜音符：數字 + 可選的 ' 或 # 或 ,（如 1', 5#, 6, 7,）
+  const notationPattern = /\d['#,]*/g;
   const notationMatches = line.match(notationPattern) || [];
   const notationCount = notationMatches.length;
   
@@ -411,12 +411,13 @@ function isNumericNotationLine(line) {
   const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
   const hasChordBar = /\|[\s]*[A-G]/.test(line);
   
-  // 檢查英文字母（簡譜只應有 b, # 或少量其他字母）
+  // 檢查英文字母（簡譜只應有 b, # 或少量其他字母，英文歌詞上方也可能有簡譜）
   const allLetters = (line.match(/[a-zA-Z]/g) || []);
   const otherLetters = allLetters.filter(c => !/[b#]/i.test(c));
   
-  // 如果有很多其他英文字母（如 D7add4, xx0012 等），這不是簡譜
-  if (otherLetters.length > 3) {
+  // 放寛限制：如果有很多數字，即使有英文字母也可能是簡譜（如英文歌詞上方的簡譜）
+  // 但如果英文字母比數字還多，就不是簡譜
+  if (otherLetters.length > digits) {
     return false;
   }
   
@@ -429,7 +430,7 @@ function isNumericNotationLine(line) {
   if (line.includes('(') || line.includes('（')) {
     const numericBracketPattern = /[\(（]\d+\.?[\)）]/g;
     const numericBrackets = line.match(numericBracketPattern) || [];
-    if (numericBrackets.length >= 1 && (notationCount > 3 || digits > 3) && chineseChars < 3 && otherLetters.length <= 3) {
+    if (numericBrackets.length >= 1 && (notationCount > 3 || digits > 3) && chineseChars < 3 && otherLetters.length <= digits) {
       return true;
     }
   }
@@ -437,11 +438,11 @@ function isNumericNotationLine(line) {
   return false;
 }
 
-// 從簡譜行提取所有音符（支持 1', 5#, 6 等格式）
+// 從簡譜行提取所有音符（支持 1', 5#, 6, 7, 等格式，逗號表示低音）
 function extractNotationNumbers(line) {
   const numbers = [];
-  // 匹配完整簡譜音符：數字 + 可選的 ' 或 #（高音/升號）
-  const regex = /\d['#]*/g;
+  // 匹配完整簡譜音符：數字 + 可選的 ' 或 # 或 ,（高音/升號/低音）
+  const regex = /\d['#,]*/g;
   let match;
   while ((match = regex.exec(line)) !== null) {
     numbers.push({
@@ -1369,6 +1370,10 @@ const TabContent = ({
       // 輔助函數：檢查是否為和弦行（支援 slash chord 如 E/G#）
       const checkIsChordLine = (line) => {
         if (!line) return false;
+        // 排除 Key: 開頭的元數據行
+        if (/^\s*(Key|原調|調性|Capo|制譜|編譜)\s*[:：]/i.test(line)) {
+          return false;
+        }
         const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
         return hasChordPattern && !hasChinese;
