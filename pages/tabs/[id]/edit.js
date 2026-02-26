@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { getTab, updateTab, deleteTab, parseCollaborators } from '@/lib/tabs'
@@ -123,8 +123,11 @@ export default function EditTab() {
     return 1.1;
   })
   
-  // 解析多歌手
-  const { collaborators, collaborationType } = parseCollaborators(formData.artist)
+  // 解析多歌手（使用 useMemo 確保正確更新）
+  const { collaborators, collaborationType } = useMemo(() => 
+    parseCollaborators(formData.artist), 
+    [formData.artist]
+  )
   
   // 檢查相似歌手並自動獲取相片
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { createTab, parseCollaborators } from '@/lib/tabs'
@@ -196,8 +196,11 @@ export default function NewTab() {
   // 所有 hooks 必須在任何 return 之前定義 - authChecked 用於等待初始化
   const [authChecked, setAuthChecked] = useState(false)
   
-  // 解析多歌手
-  const { collaborators, collaborationType } = parseCollaborators(formData.artist)
+  // 解析多歌手（使用 useMemo 確保正確更新）
+  const { collaborators, collaborationType } = useMemo(() => 
+    parseCollaborators(formData.artist), 
+    [formData.artist]
+  )
   
   // 檢查相似歌手
   useEffect(() => {
