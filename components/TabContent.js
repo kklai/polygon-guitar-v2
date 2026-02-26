@@ -221,6 +221,32 @@ function normalizeInput(text) {
 }
 
 // Section marker 列表
+// Section Marker 縮寫映射（用戶可以用 /v 代替 Verse）
+const SECTION_SHORTCUTS = {
+  '/i': 'Intro',
+  '/o': 'Outro',
+  '/v': 'Verse',
+  '/v1': 'Verse 1',
+  '/v2': 'Verse 2',
+  '/v3': 'Verse 3',
+  '/v4': 'Verse 4',
+  '/c': 'Chorus',
+  '/c1': 'Chorus 1',
+  '/c2': 'Chorus 2',
+  '/c3': 'Chorus 3',
+  '/p': 'Pre-chorus',
+  '/p1': 'Pre-chorus 1',
+  '/p2': 'Pre-chorus 2',
+  '/b': 'Bridge',
+  '/in': 'Interlude',
+  '/s': 'Solo',
+  '/gs': 'Guitar Solo',
+  '/mb': 'Music Break',
+  '/h': 'Hook',
+  '/r': 'Refrain',
+  '/fo': 'Fade out'
+};
+
 const SECTION_MARKERS = [
   'Intro', 'Outro', 
   'Verse', 'Verse 1', 'Verse 2', 'Verse 3', 'Verse 4',
@@ -245,13 +271,29 @@ function isSectionMarkerLine(line) {
 // 提取 Section Marker 和其後的內容
 function extractSectionMarker(line) {
   const trimmed = line.trim();
+  const trimmedLower = trimmed.toLowerCase();
+  
+  // 先檢查是否為縮寫（如 /v, /c, /b 等）
+  // 匹配 / 開頭，後面跟 1-3 個字母/數字
+  const shortcutMatch = trimmed.match(/^\/([a-z0-9]{1,4})(\s|$)/i);
+  if (shortcutMatch) {
+    const shortcut = '/' + shortcutMatch[1].toLowerCase();
+    if (SECTION_SHORTCUTS[shortcut]) {
+      const fullMarker = SECTION_SHORTCUTS[shortcut];
+      const afterMarker = trimmed.substring(shortcutMatch[0].length).trim();
+      return { 
+        hasMarker: true, 
+        marker: fullMarker,
+        rest: afterMarker 
+      };
+    }
+  }
   
   // 按長度排序，先匹配長的（避免 "Verse" 搶先匹配 "Verse 1"）
   const sortedMarkers = [...SECTION_MARKERS].sort((a, b) => b.length - a.length);
   
   for (const marker of sortedMarkers) {
     const markerLower = marker.toLowerCase();
-    const trimmedLower = trimmed.toLowerCase();
     
     if (trimmedLower.startsWith(markerLower)) {
       // 找到 marker 後的內容
