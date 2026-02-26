@@ -1,60 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { useAuth } from '@/contexts/AuthContext'
-import { collection, getDocs, doc, updateDoc, writeBatch } from 'firebase/firestore'
+import { collection, getDocs, doc, writeBatch } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Link from 'next/link'
-import { GripVertical, Save, RotateCcw, AlertCircle } from 'lucide-react'
-
-// 簡單拖放 Hook
-function useDragAndDrop(items, onReorder) {
-  const [draggingId, setDraggingId] = useState(null)
-  const [dragOverId, setDragOverId] = useState(null)
-
-  const handleDragStart = (id) => {
-    setDraggingId(id)
-  }
-
-  const handleDragOver = (e, id) => {
-    e.preventDefault()
-    if (id !== draggingId) {
-      setDragOverId(id)
-    }
-  }
-
-  const handleDrop = (e, targetId) => {
-    e.preventDefault()
-    if (draggingId && draggingId !== targetId) {
-      const newItems = [...items]
-      const dragIndex = newItems.findIndex(item => item.id === draggingId)
-      const dropIndex = newItems.findIndex(item => item.id === targetId)
-      
-      if (dragIndex !== -1 && dropIndex !== -1) {
-        const [removed] = newItems.splice(dragIndex, 1)
-        newItems.splice(dropIndex, 0, removed)
-        onReorder(newItems)
-      }
-    }
-    setDragOverId(null)
-    setDraggingId(null)
-  }
-
-  const handleDragEnd = () => {
-    setDraggingId(null)
-    setDragOverId(null)
-  }
-
-  return { 
-    draggingId, 
-    dragOverId, 
-    handleDragStart, 
-    handleDragOver, 
-    handleDrop, 
-    handleDragEnd 
-  }
-}
+import { Save, AlertCircle } from 'lucide-react'
 
 export default function ArtistsSortPage() {
   const { isAdmin } = useAuth()
@@ -82,25 +33,8 @@ export default function ArtistsSortPage() {
         ...doc.data()
       }))
       
-      // 排序：新轉來的歌手（displayOrder 小於 500 或冇 displayOrder）排最後
-      data.sort((a, b) => {
-        // 判斷是否新歌手
-        const aIsNew = a.displayOrder === undefined || a.displayOrder < 500 || a.displayOrder >= 90000
-        const bIsNew = b.displayOrder === undefined || b.displayOrder < 500 || b.displayOrder >= 90000
-        
-        // 新轉來的歌手排在最後
-        if (aIsNew && !bIsNew) return 1
-        if (!aIsNew && bIsNew) return -1
-        
-        // 兩個都係舊的，按 displayOrder 排
-        if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
-          return a.displayOrder - b.displayOrder
-        }
-        if (a.displayOrder !== undefined) return -1
-        if (b.displayOrder !== undefined) return 1
-        // 都冇 displayOrder，按評分排
-        return (b.adminScore || 0) - (a.adminScore || 0)
-      })
+      // 按評分排序（高分在前）
+      data.sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
       
       setArtists(data)
       setChangedIds(new Set())
@@ -113,7 +47,7 @@ export default function ArtistsSortPage() {
     }
   }
 
-  // 過濾同分類（冇排序，保持原有 displayOrder 順序）
+  // 過濾同分類
   const filteredArtists = artists.filter(artist => {
     const type = artist.artistType || artist.gender || 'other'
     const matchesTab = 
@@ -128,84 +62,18 @@ export default function ArtistsSortPage() {
     return matchesTab && matchesSearch
   })
 
-  // 標記新加入該分類的歌手
-  const isNewToCategory = (artist) => {
-    // 如果冇 displayOrder，視為新加入
-    if (artist.displayOrder === undefined) return true
-    // 如果 displayOrder 係大數（手動標記為新），視為新加入
-    if (artist.displayOrder >= 90000) return true
-    // 如果 displayOrder 小於 500，可能是從其他類別轉過來的舊 displayOrder
-    //（正常手動排序的 displayOrder 係 1000, 999, 998... 遞減，應該大於 500）
-    if (artist.displayOrder < 500) return true
-    return false
-  }
-
-  // 拖放處理 - 只改 displayOrder，唔改評分
-  const handleReorder = (newOrder) => {
-    // 為新加入的歌手分配 displayOrder（排在最尾）
-    // 只考慮正常的 displayOrder（500-90000 之間）
-    const existingOrders = newOrder
-      .filter(a => a.displayOrder !== undefined && a.displayOrder >= 500 && a.displayOrder < 90000)
-      .map(a => a.displayOrder)
-    
-    let nextOrder = existingOrders.length > 0 
-      ? Math.max(...existingOrders) + 1 
-      : 1000
-
-    const updated = newOrder.map((artist) => {
-      if (isNewToCategory(artist)) {
-        // 新加入的歌手，分配新 displayOrder
-        return { ...artist, displayOrder: nextOrder++ }
-      }
-      return artist
-    })
-
-    // 更新主列表
-    const otherArtists = artists.filter(a => !updated.find(u => u.id === a.id))
-    const newArtists = [...otherArtists, ...updated]
-    
-    // 重新排序所有歌手（新歌手排最後）
-    newArtists.sort((a, b) => {
-      const aIsNew = isNewToCategory(a)
-      const bIsNew = isNewToCategory(b)
-      
-      // 新轉來的歌手排在最後
-      if (aIsNew && !bIsNew) return 1
-      if (!aIsNew && bIsNew) return -1
-      
-      // 兩個都有正常 displayOrder，按 displayOrder 排
-      if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
-        return a.displayOrder - b.displayOrder
-      }
-      if (a.displayOrder !== undefined) return -1
-      if (b.displayOrder !== undefined) return 1
-      return (b.adminScore || 0) - (a.adminScore || 0)
-    })
-    
-    setArtists(newArtists)
-    
-    // 標記所有拖動過的為已更改
-    const newChangedIds = new Set(changedIds)
-    updated.forEach(a => newChangedIds.add(a.id))
-    setChangedIds(newChangedIds)
-    setHasChanges(true)
-  }
-
-  const { 
-    draggingId, 
-    dragOverId, 
-    handleDragStart, 
-    handleDragOver, 
-    handleDrop, 
-    handleDragEnd 
-  } = useDragAndDrop(filteredArtists, handleReorder)
-
-  // 修改評分（獨立於 drag）
+  // 修改評分
   const handleScoreChange = (artistId, newScore) => {
     const score = parseInt(newScore) || 0
-    setArtists(artists.map(a => 
-      a.id === artistId ? { ...a, adminScore: score } : a
-    ))
+    
+    setArtists(prev => {
+      const updated = prev.map(a => 
+        a.id === artistId ? { ...a, adminScore: score } : a
+      )
+      // 重新按評分排序
+      return updated.sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
+    })
+    
     setChangedIds(prev => new Set(prev).add(artistId))
     setHasChanges(true)
   }
@@ -226,18 +94,12 @@ export default function ArtistsSortPage() {
         const artist = artists.find(a => a.id === id)
         if (artist) {
           const ref = doc(db, 'artists', id)
-          const updateData = {
+          batch.update(ref, {
             adminScore: artist.adminScore || 0,
+            // 清除 displayOrder，因為只用評分排序
+            displayOrder: null,
             updatedAt: new Date()
-          }
-          // 只當 displayOrder 有定義值時才更新，否則刪除該字段
-          if (artist.displayOrder !== undefined) {
-            updateData.displayOrder = artist.displayOrder
-          } else {
-            // 使用 null 來刪除字段（Firestore 不支援 undefined）
-            updateData.displayOrder = null
-          }
-          batch.update(ref, updateData)
+          })
           updateCount++
         }
       })
@@ -245,64 +107,13 @@ export default function ArtistsSortPage() {
       await batch.commit()
       setHasChanges(false)
       setChangedIds(new Set())
-      alert(`✅ 已儲存 ${updateCount} 個歌手的更改！`)
+      alert(`✅ 已儲存 ${updateCount} 個歌手的評分！`)
     } catch (error) {
       console.error('儲存失敗:', error)
       alert('儲存失敗: ' + error.message)
     } finally {
       setSaving(false)
     }
-  }
-
-  // 重設該分類排序
-  const resetCategoryOrder = () => {
-    if (!confirm(`確定要重設「${tabs.find(t => t.id === activeTab)?.label}」的排序嗎？\n\n這會清除所有手動排序，恢復為按評分排序。`)) return
-    
-    const updated = artists.map(artist => {
-      const type = artist.artistType || artist.gender || 'other'
-      const isInCategory = 
-        (activeTab === 'male' && (type === 'male' || type === '男')) ||
-        (activeTab === 'female' && (type === 'female' || type === '女')) ||
-        (activeTab === 'group' && (type === 'group' || type === 'band' || type === '組合' || type === '樂隊')) ||
-        (activeTab === 'other' && !['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊'].includes(type))
-      
-      if (isInCategory) {
-        return { ...artist, displayOrder: undefined }
-      }
-      return artist
-    })
-    
-    // 重新排序（新歌手排最後）
-    updated.sort((a, b) => {
-      const aIsNew = isNewToCategory(a)
-      const bIsNew = isNewToCategory(b)
-      
-      if (aIsNew && !bIsNew) return 1
-      if (!aIsNew && bIsNew) return -1
-      
-      if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
-        return a.displayOrder - b.displayOrder
-      }
-      if (a.displayOrder !== undefined) return -1
-      if (b.displayOrder !== undefined) return 1
-      return (b.adminScore || 0) - (a.adminScore || 0)
-    })
-    
-    setArtists(updated)
-    
-    // 標記該分類所有歌手為已更改
-    const categoryIds = updated
-      .filter(a => {
-        const type = a.artistType || a.gender || 'other'
-        return (activeTab === 'male' && (type === 'male' || type === '男')) ||
-               (activeTab === 'female' && (type === 'female' || type === '女')) ||
-               (activeTab === 'group' && (type === 'group' || type === 'band' || type === '組合' || type === '樂隊')) ||
-               (activeTab === 'other' && !['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊'].includes(type))
-      })
-      .map(a => a.id)
-    
-    setChangedIds(prev => new Set([...prev, ...categoryIds]))
-    setHasChanges(true)
   }
 
   if (!isAdmin) {
@@ -323,18 +134,15 @@ export default function ArtistsSortPage() {
     { id: 'other', label: '其他', color: 'bg-gray-500' }
   ]
 
-  // 計算新歌手數量
-  const newArtistsCount = filteredArtists.filter(isNewToCategory).length
-
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 pb-24">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">歌手排序</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">歌手評分排序</h1>
             <p className="text-gray-500">
-              Drag 調整顯示次序，直接輸入修改評分。兩者獨立儲存。
+              修改評分自動排序，高分顯示在前面。評分更改後會即時重新排列。
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -344,7 +152,6 @@ export default function ArtistsSortPage() {
             >
               返回歌手管理
             </Link>
-            {/* 儲存按鈕放在頂部 */}
             <button
               onClick={saveChanges}
               disabled={saving || !hasChanges}
@@ -421,25 +228,10 @@ export default function ArtistsSortPage() {
         </div>
 
         {/* 提示區 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm">
-            {newArtistsCount > 0 && (
-              <div className="flex items-center gap-2 text-amber-400">
-                <AlertCircle className="w-4 h-4" />
-                <span>有 {newArtistsCount} 個新歌手（自動排喺最尾）</span>
-              </div>
-            )}
-            <p className="text-gray-500">
-              💡 Drag 改次序 | 輸入框改評分 | 兩者獨立
-            </p>
-          </div>
-          <button
-            onClick={resetCategoryOrder}
-            className="flex items-center gap-2 text-red-400 hover:text-red-300 transition text-sm"
-          >
-            <RotateCcw className="w-4 h-4" />
-            重設此分類排序
-          </button>
+        <div className="flex items-center gap-4 text-sm">
+          <p className="text-gray-500">
+            💡 輸入評分後自動排序，高分顯示在前
+          </p>
         </div>
 
         {/* 歌手列表 */}
@@ -457,24 +249,12 @@ export default function ArtistsSortPage() {
           ) : (
             <div className="divide-y divide-gray-800">
               {filteredArtists.map((artist, index) => {
-                const isNew = isNewToCategory(artist)
-                const hasScoreChanges = changedIds.has(artist.id) && artist.adminScore !== undefined
+                const hasScoreChanges = changedIds.has(artist.id)
                 
                 return (
                   <div
                     key={artist.id}
-                    draggable
-                    onDragStart={() => handleDragStart(artist.id)}
-                    onDragOver={(e) => handleDragOver(e, artist.id)}
-                    onDrop={(e) => handleDrop(e, artist.id)}
-                    onDragEnd={handleDragEnd}
-                    className={`flex items-center gap-4 p-4 transition cursor-move ${
-                      draggingId === artist.id 
-                        ? 'opacity-50 bg-gray-800' 
-                        : dragOverId === artist.id 
-                          ? 'bg-gray-800/50 border-t-2 border-[#FFD700]' 
-                          : 'hover:bg-gray-800/30'
-                    } ${isNew ? 'bg-amber-900/10' : ''}`}
+                    className="flex items-center gap-4 p-4 hover:bg-gray-800/30"
                   >
                     {/* 排名 */}
                     <span className={`w-8 text-center font-bold ${
@@ -502,19 +282,21 @@ export default function ArtistsSortPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="text-white font-medium truncate">{artist.name}</h3>
-                        {isNew && (
-                          <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">
-                            新加入
+                        {artist.artistType && (
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            artist.artistType === 'male' ? 'bg-blue-900/30 text-blue-400' :
+                            artist.artistType === 'female' ? 'bg-pink-900/30 text-pink-400' :
+                            artist.artistType === 'group' ? 'bg-yellow-900/30 text-yellow-400' :
+                            'bg-gray-800 text-gray-400'
+                          }`}>
+                            {artist.artistType === 'male' ? '男' :
+                             artist.artistType === 'female' ? '女' :
+                             artist.artistType === 'group' ? '組合' : '其他'}
                           </span>
                         )}
                       </div>
                       <p className="text-sm text-gray-500">
-                        {artist.songCount || 0} 首歌曲
-                        {artist.displayOrder !== undefined && (
-                          <span className="ml-2 text-gray-600">
-                            排序: {artist.displayOrder}
-                          </span>
-                        )}
+                        {artist.songCount || artist.tabCount || 0} 首歌曲
                       </p>
                     </div>
 
@@ -527,7 +309,7 @@ export default function ArtistsSortPage() {
                         max="1000"
                         value={artist.adminScore || 0}
                         onChange={(e) => handleScoreChange(artist.id, e.target.value)}
-                        className={`w-16 px-2 py-1 bg-black border rounded text-center font-bold transition ${
+                        className={`w-20 px-2 py-1 bg-black border rounded text-center font-bold transition ${
                           hasScoreChanges 
                             ? 'border-[#FFD700] text-[#FFD700]' 
                             : (artist.adminScore || 0) >= 80 
@@ -536,12 +318,8 @@ export default function ArtistsSortPage() {
                                 ? 'border-gray-700 text-gray-300'
                                 : 'border-gray-800 text-gray-500'
                         }`}
-                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
-
-                    {/* 拖放圖標 */}
-                    <GripVertical className="w-5 h-5 text-gray-600" />
                   </div>
                 )
               })}
