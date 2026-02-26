@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { getTab, updateTab, deleteTab } from '@/lib/tabs'
+import { getTab, updateTab, deleteTab, parseCollaborators } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
@@ -123,6 +123,9 @@ export default function EditTab() {
     return 1.1;
   })
   
+  // 解析多歌手
+  const { collaborators, collaborationType } = parseCollaborators(formData.artist)
+  
   // 檢查相似歌手並自動獲取相片
   useEffect(() => {
     const checkSimilarArtists = async () => {
@@ -133,28 +136,37 @@ export default function EditTab() {
       
       try {
         const snapshot = await getDocs(collection(db, 'artists'))
-        const inputName = formData.artist.toLowerCase().replace(/\s+/g, '')
-        const inputCore = inputName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || inputName
+        const allDbArtists = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         
-        const similar = []
-        snapshot.forEach(doc => {
-          const artist = doc.data()
-          const artistName = artist.name.toLowerCase().replace(/\s+/g, '')
-          const artistCore = artistName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || artistName
+        // 解析多歌手，為每個合作歌手檢查相似
+        const { collaborators } = parseCollaborators(formData.artist)
+        const foundArtists = []
+        
+        for (const collabName of collaborators) {
+          const inputName = collabName.toLowerCase().replace(/\s+/g, '')
+          const inputCore = inputName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || inputName
           
-          if (artistCore === inputCore || 
+          for (const artist of allDbArtists) {
+            const artistName = artist.name.toLowerCase().replace(/\s+/g, '')
+            const artistCore = artistName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || artistName
+            
+            // 檢查是否匹配
+            const isMatch = artistCore === inputCore || 
               artistName.includes(inputName) || 
               inputName.includes(artistName) ||
-              (inputCore && artistCore && (artistCore.includes(inputCore) || inputCore.includes(artistCore)))) {
-            similar.push({ id: doc.id, ...artist })
+              (inputCore && artistCore && (artistCore.includes(inputCore) || inputCore.includes(artistCore)))
+            
+            if (isMatch && !foundArtists.find(a => a.id === artist.id)) {
+              foundArtists.push(artist)
+            }
           }
-        })
+        }
         
-        setSimilarArtists(similar.slice(0, 3))
+        setSimilarArtists(foundArtists.slice(0, 5))
         
         // 如果找到相似歌手且當前沒有歌手相片，自動使用第一個匹配歌手的相片
-        if (similar.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
-          const firstMatch = similar[0]
+        if (foundArtists.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
+          const firstMatch = foundArtists[0]
           if (firstMatch.photoURL || firstMatch.wikiPhotoURL) {
             setFormData(prev => ({
               ...prev,
@@ -563,7 +575,26 @@ export default function EditTab() {
                 <p className="mt-1 text-sm text-red-400">{errors.artist}</p>
               )}
               
-              {/* 相似歌手提示 */}
+              {/* 解析後的多歌手顯示 */}
+              {collaborators.length > 1 && (
+                <div className="mt-3 p-2 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+                  <p className="text-blue-400 text-xs mb-1">已識別 {collaborators.length} 位歌手：</p>
+                  <div className="flex flex-wrap gap-1">
+                    {collaborators.map((name, idx) => (
+                      <span key={idx} className="text-xs px-2 py-0.5 bg-blue-900/40 text-blue-300 rounded">
+                        {name}
+                      </span>
+                    ))}
+                    {collaborationType && (
+                      <span className="text-xs px-2 py-0.5 bg-purple-900/40 text-purple-300 rounded ml-auto">
+                        {collaborationType === 'feat' ? 'Feat.' : '合唱'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* 相似歌手提示 -->
               {similarArtists.length > 0 && !useExistingArtistSelected && (
                 <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg">
                   <p className="text-yellow-400 text-sm mb-2">發現相似歌手，是否使用現有資料？</p>
