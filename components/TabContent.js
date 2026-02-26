@@ -1575,6 +1575,12 @@ const TabContent = ({
       // 修復：單一和弦（無|）也要識別，只要全行符合和弦模式
       const isChordOnlyLine = validChordMatches.length > 0 && line.trim().split(/\s+/).every(part => {
         // 檢查每個部分是否為和弦或小節線
+        // 支援 slash chord：先檢查是否為完整和弦格式（包括 slash）
+        if (!part || part === '|' || part === '｜') return true;
+        // 支援 D/F# 這樣的 slash chord
+        const chordWithSlash = part.match(/^[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?$/);
+        if (chordWithSlash) return true;
+        // 清理後再檢查（處理 |G| 這樣的情況）
         const cleanPart = part.replace(/[\|\/\s]/g, '');
         return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/);
       });
