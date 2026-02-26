@@ -41,7 +41,8 @@ function calculateKeyAndCapo(originalKey, capo, playKey) {
   if (capo && !playKey) {
     const capoNum = parseInt(capo)
     if (!isNaN(capoNum) && capoNum >= 0 && capoNum <= 11) {
-      const playIndex = (originalIndex + capoNum) % 12
+      // 彈奏調性 = 原調向下移動 capo（因為 Capo 夾高會升高音高）
+      const playIndex = (originalIndex - capoNum + 12) % 12
       return { capo: capoNum.toString(), playKey: semitoneToKey[playIndex] }
     }
   }
@@ -50,7 +51,8 @@ function calculateKeyAndCapo(originalKey, capo, playKey) {
   if (playKey && !capo) {
     const playIndex = KEY_TO_SEMITONE[playKey]
     if (playIndex !== undefined) {
-      let capoNum = (playIndex - originalIndex + 12) % 12
+      // Capo = 原調 - 彈奏調性
+      let capoNum = (originalIndex - playIndex + 12) % 12
       return { capo: capoNum === 0 ? '' : capoNum.toString(), playKey }
     }
   }

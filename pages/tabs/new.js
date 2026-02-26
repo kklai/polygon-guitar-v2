@@ -42,10 +42,10 @@ function calculateKeyAndCapo(originalKey, capo, playKey) {
     const capoNum = parseInt(capo)
     if (!isNaN(capoNum) && capoNum >= 0 && capoNum <= 11) {
       // Capo 夾在第 N 格 = 升高 N 個 semitone
-      // PlayKey 是實際彈奏的指法，所以是 OriginalKey 向上移動 capo
-      // 例如：原調 C，Capo 4，彈奏 G 指法，實際音高是 E
-      // 但 PlayKey 應該是 G（用戶實際按的和弦）
-      const playIndex = (originalIndex + capoNum) % 12
+      // 彈奏調性（PlayKey）是用戶實際按的指法
+      // 例如：原調 F#，Capo 1，用 F 調指法彈奏，實際音高是 F#
+      // 所以 PlayKey = OriginalKey 向下移動 capo
+      const playIndex = (originalIndex - capoNum + 12) % 12
       return { capo: capoNum.toString(), playKey: semitoneToKey[playIndex] }
     }
   }
