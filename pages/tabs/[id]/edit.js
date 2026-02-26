@@ -558,18 +558,30 @@ export default function EditTab() {
               <label htmlFor="artistType" className="block text-sm font-medium text-white mb-1">
                 歌手類型 <span className="text-[#FFD700]">*</span>
               </label>
-              <select
-                id="artistType"
-                name="artistType"
-                value={formData.artistType}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
-              >
-                <option value="">請選擇...</option>
-                <option value="male">男歌手</option>
-                <option value="female">女歌手</option>
-                <option value="group">組合</option>
-              </select>
+              {useExistingArtistSelected && formData.artistType ? (
+                <div className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2">
+                  <span className="text-green-400">✓</span>
+                  <span>
+                    {formData.artistType === 'male' && '男歌手'}
+                    {formData.artistType === 'female' && '女歌手'}
+                    {formData.artistType === 'group' && '組合'}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-auto">（已綁定現有歌手）</span>
+                </div>
+              ) : (
+                <select
+                  id="artistType"
+                  name="artistType"
+                  value={formData.artistType}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                >
+                  <option value="">請選擇...</option>
+                  <option value="male">男歌手</option>
+                  <option value="female">女歌手</option>
+                  <option value="group">組合</option>
+                </select>
+              )}
               
               {/* 已填入的歌手資料預覽 */}
               {(formData.artistPhoto || formData.artistYear || formData.artistType) && (
