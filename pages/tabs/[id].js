@@ -257,13 +257,25 @@ export default function TabDetail() {
               
               {/* 歌手行 + 操作掣 */}
               <div className="flex items-center justify-between mt-1 md:mt-2">
-                {/* 歌手 - 灰色文字 */}
-                <Link 
-                  href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="text-gray-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate"
-                >
-                  {tab.artist}
-                </Link>
+                {/* 歌手 + 合唱標籤 */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Link 
+                    href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="text-gray-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate"
+                  >
+                    {tab.artist}
+                  </Link>
+                  {/* 合唱/feat 標籤 */}
+                  {tab.isCollaboration && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      tab.collaborationType === 'feat' 
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    }`}>
+                      {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
+                    </span>
+                  )}
+                </div>
                 
                 {/* 右邊操作掣 - 歌手嗰一行 */}
                 <div className="flex items-center gap-1 md:gap-2 ml-2">

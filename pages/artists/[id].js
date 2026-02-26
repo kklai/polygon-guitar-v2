@@ -422,9 +422,20 @@ export default function ArtistPage() {
                     onClick={() => router.push(`/tabs/${tab.id}`)}
                     className="flex items-center py-3 hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
                   >
-                    {/* 歌曲名稱 */}
+                    {/* 歌曲名稱 + 合唱標籤 */}
                     <div className="flex-1 min-w-0 pr-4">
-                      <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                        {tab.isCollaboration && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
+                            tab.collaborationType === 'feat' 
+                              ? 'bg-purple-500/20 text-purple-400' 
+                              : 'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {/* 評分（中間） */}
@@ -459,9 +470,20 @@ export default function ArtistPage() {
                 onClick={() => router.push(`/tabs/${tab.id}`)}
                 className="flex items-center py-3 hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
               >
-                {/* 歌曲名稱 */}
+                {/* 歌曲名稱 + 合唱標籤 */}
                 <div className="flex-1 min-w-0 pr-4">
-                  <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-white font-medium truncate">{tab.title}</h4>
+                    {tab.isCollaboration && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
+                        tab.collaborationType === 'feat' 
+                          ? 'bg-purple-500/20 text-purple-400' 
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 {/* 評分（中間） */}
