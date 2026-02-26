@@ -791,12 +791,21 @@ E|----------------------------------------------------------------|
     
     uploader: (
       <div className="space-y-3 pt-4">
-        <div>
-          <label className="block text-sm font-medium text-white mb-1">上傳者筆名</label>
-          <input type="text" name="uploaderPenName" value={formData.uploaderPenName} onChange={handleChange}
-            placeholder="例如：Kermit、結他小王子"
-            className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500" />
-          <p className="mt-1 text-xs text-gray-500">這份譜是由誰編寫的，會顯示為「編譜：xxx」</p>
+        <div className="bg-[#1a1a2e] rounded-lg p-4 border border-[#FFD700]/30">
+          <label className="block text-sm font-medium text-[#FFD700] mb-2 flex items-center gap-2">
+            <span>✏️</span> 編譜者筆名
+          </label>
+          <input 
+            type="text" 
+            name="uploaderPenName" 
+            value={formData.uploaderPenName} 
+            readOnly
+            className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white cursor-not-allowed" 
+          />
+          <p className="mt-2 text-xs text-gray-400">
+            筆名來自你的<Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>。
+            如需修改請到個人資料設定。
+          </p>
         </div>
       </div>
     ),
