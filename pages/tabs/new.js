@@ -522,13 +522,15 @@ E|----------------------------------------------------------------|
             className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-gray-500 ${errors.artist ? 'border-red-500' : 'border-gray-700'}`} />
           {errors.artist && <p className="mt-1 text-sm text-red-400">{errors.artist}</p>}
           
-          {/* 解析後的多歌手顯示 */}
-          {collaborators.length > 1 && (
-            <div className="mt-3 p-2 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-              <p className="text-blue-400 text-xs mb-1">已識別 {collaborators.length} 位歌手：</p>
+          {/* 解析後的多歌手顯示 - 總係顯示用於調試 */}
+          {formData.artist?.trim() && (
+            <div className={`mt-3 p-2 border rounded-lg ${collaborators.length > 1 ? 'bg-blue-900/20 border-blue-700/50' : 'bg-gray-900/30 border-gray-700/50'}`}>
+              <p className={`text-xs mb-1 ${collaborators.length > 1 ? 'text-blue-400' : 'text-gray-500'}`}>
+                已識別 {collaborators.length} 位歌手{collaborationType ? ` (${collaborationType})` : ''}
+              </p>
               <div className="flex flex-wrap gap-1">
                 {collaborators.map((name, idx) => (
-                  <span key={idx} className="text-xs px-2 py-0.5 bg-blue-900/40 text-blue-300 rounded">
+                  <span key={idx} className={`text-xs px-2 py-0.5 rounded ${collaborators.length > 1 ? 'bg-blue-900/40 text-blue-300' : 'bg-gray-800 text-gray-400'}`}>
                     {name}
                   </span>
                 ))}
