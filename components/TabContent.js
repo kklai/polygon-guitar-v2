@@ -1165,7 +1165,8 @@ const TabContent = ({
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
       numericNotation: '#CCCCCC', // 淺灰色
-      prefixSuffix: '#808080'
+      prefixSuffix: '#808080',
+      comment: '#B3B3B3' // 旁白/註釋 - 白色偏灰
     },
     day: {
       bg: '#FFFFFF',
@@ -1175,7 +1176,8 @@ const TabContent = ({
       chord: '#8B5CF6', // 紫色
       sectionMarker: '#000000',
       numericNotation: '#CCCCCC', // 淺灰色
-      prefixSuffix: '#666666'
+      prefixSuffix: '#666666',
+      comment: '#666666' // 旁白/註釋 - 灰色
     }
   };
 
@@ -1363,6 +1365,22 @@ const TabContent = ({
               );
             }
             
+            // 檢查是否為旁白/註釋行（以 // 開頭）
+            const commentMatch = line.match(/^\s*\/\/(.+)$/);
+            if (commentMatch) {
+              return (
+                <div key={idx} style={{ 
+                  color: colors.comment,
+                  fontSize: `${fontSize * 0.85}px`,
+                  fontStyle: 'italic',
+                  marginBottom: '0.3em',
+                  opacity: 0.9
+                }}>
+                  {commentMatch[1].trim()}
+                </div>
+              );
+            }
+            
             // 檢查是否為和弦行
             const isChordLine = checkIsChordLine(line);
             const isLyricLine = checkIsLyricLine(line);
@@ -1445,6 +1463,27 @@ const TabContent = ({
             </div>
           );
         }
+        i++;
+        continue;
+      }
+      
+      // ========== 檢查是否為旁白/註釋行（以 // 開頭）==========
+      const commentMatch = line.match(/^\s*\/\/(.+)$/);
+      if (commentMatch) {
+        const commentText = commentMatch[1].trim();
+        elements.push(
+          <div key={i} style={{ 
+            color: colors.comment, 
+            fontSize: `${lineFontSize * 0.85}px`, // 細少少
+            fontStyle: 'italic', // 斜體
+            whiteSpace: 'pre-wrap', 
+            overflowWrap: 'break-word',
+            marginBottom: `${lineFontSize * 0.6}px`,
+            opacity: 0.9 // 輕微透明
+          }}>
+            {commentText}
+          </div>
+        );
         i++;
         continue;
       }
