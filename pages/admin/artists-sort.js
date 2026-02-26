@@ -226,11 +226,18 @@ export default function ArtistsSortPage() {
         const artist = artists.find(a => a.id === id)
         if (artist) {
           const ref = doc(db, 'artists', id)
-          batch.update(ref, {
+          const updateData = {
             adminScore: artist.adminScore || 0,
-            displayOrder: artist.displayOrder,
             updatedAt: new Date()
-          })
+          }
+          // 只當 displayOrder 有定義值時才更新，否則刪除該字段
+          if (artist.displayOrder !== undefined) {
+            updateData.displayOrder = artist.displayOrder
+          } else {
+            // 使用 null 來刪除字段（Firestore 不支援 undefined）
+            updateData.displayOrder = null
+          }
+          batch.update(ref, updateData)
           updateCount++
         }
       })
