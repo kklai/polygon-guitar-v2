@@ -329,6 +329,11 @@ export default function EditTab() {
         youtubeVideoId: videoId
       }));
     }
+    
+    // 重置使用現有歌手狀態
+    if (name === 'artist') {
+      setUseExistingArtistSelected(false)
+    }
   }
 
   // 處理 Wikipedia 自動填入的歌手資料
@@ -341,6 +346,20 @@ export default function EditTab() {
       artistYear: data.year || '',
       artistType: data.artistType !== 'unknown' ? data.artistType : prev.artistType
     }))
+  }
+
+  // 使用現有歌手
+  const useExistingArtist = (artist) => {
+    setFormData(prev => ({
+      ...prev,
+      artist: artist.name,
+      artistType: artist.artistType || '',
+      artistPhoto: artist.photoURL || artist.wikiPhotoURL || '',
+      artistBio: artist.bio || '',
+      artistYear: artist.year || ''
+    }))
+    setSimilarArtists([])
+    setUseExistingArtistSelected(true)
   }
 
   // 開啟 Spotify 搜尋
@@ -542,6 +561,32 @@ export default function EditTab() {
               />
               {errors.artist && (
                 <p className="mt-1 text-sm text-red-400">{errors.artist}</p>
+              )}
+              
+              {/* 相似歌手提示 */}
+              {similarArtists.length > 0 && !useExistingArtistSelected && (
+                <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg">
+                  <p className="text-yellow-400 text-sm mb-2">發現相似歌手，是否使用現有資料？</p>
+                  <div className="flex flex-wrap gap-2">
+                    {similarArtists.map(artist => (
+                      <button 
+                        key={artist.id} 
+                        type="button" 
+                        onClick={() => useExistingArtist(artist)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-white transition"
+                      >
+                        {(artist.photoURL || artist.wikiPhotoURL) && (
+                          <img 
+                            src={artist.photoURL || artist.wikiPhotoURL} 
+                            alt={artist.name} 
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        )}
+                        <span>{artist.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               
               {/* 自動搜尋歌手資料 */}
