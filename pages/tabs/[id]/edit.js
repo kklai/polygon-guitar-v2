@@ -665,25 +665,43 @@ export default function EditTab() {
               {/* 已填入的歌手資料預覽 */}
               {(formData.artistPhoto || formData.artistYear || formData.artistType) && (
                 <div className="mt-4 p-4 bg-black rounded-lg border border-gray-700">
-                  <h4 className="text-sm font-medium text-[#FFD700] mb-3">已填入歌手資料：</h4>
+                  <h4 className="text-sm font-medium text-[#FFD700] mb-3">
+                    已填入歌手資料：
+                    {collaborators.length > 1 && (
+                      <span className="text-xs text-blue-400 ml-2">
+                        ({collaborators.length} 位歌手{collaborationType ? ` · ${collaborationType === 'feat' ? 'Feat.' : '合唱'}` : ''})
+                      </span>
+                    )}
+                  </h4>
                   <div className="flex gap-4">
                     {formData.artistPhoto && (
                       <img 
                         src={formData.artistPhoto} 
-                        alt={formData.artist}
+                        alt={collaborators[0] || formData.artist}
                         className="w-16 h-16 rounded-full object-cover border-2 border-[#FFD700]"
                       />
                     )}
                     <div className="flex-1">
-                      <p className="text-white text-sm font-medium">{formData.artist}</p>
+                      {/* 多歌手時顯示列表 */}
+                      {collaborators.length > 1 ? (
+                        <div className="space-y-1">
+                          {collaborators.map((name, idx) => (
+                            <p key={idx} className="text-white text-sm font-medium">
+                              {idx === 0 && collaborationType === 'feat' ? `${name} (主)` : name}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-white text-sm font-medium">{formData.artist}</p>
+                      )}
                       {formData.artistType && (
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-gray-400 text-sm mt-1">
                           {formData.artistType === 'male' ? '男歌手' : 
                            formData.artistType === 'female' ? '女歌手' : '組合'}
                         </p>
                       )}
                       {formData.artistYear && (
-                        <p className="text-gray-500 text-xs">出道/出生年份：{formData.artistYear}</p>
+                        <p className="text-gray-500 text-xs mt-1">出道/出生年份：{formData.artistYear}</p>
                       )}
                     </div>
                   </div>
