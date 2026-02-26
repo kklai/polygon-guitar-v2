@@ -1426,12 +1426,28 @@ const TabContent = ({
             // 檢查是否為和弦行
             const isChordLine = checkIsChordLine(line);
             const isLyricLine = checkIsLyricLine(line);
+            // 檢查是否為簡譜行（數字譜）
+            const isNumericNotation = isNumericNotationLine(line);
             const hasChinese = /[\u4e00-\u9fff]/.test(line);
             
             // 如果是和弦行且有轉調，處理轉調
             let displayLine = line;
             if (isChordLine && transposeSemitones !== 0) {
               displayLine = transposeChordLine(line, transposeSemitones);
+            }
+            
+            // 如果是簡譜行，顯示為粉紅色
+            if (isNumericNotation) {
+              return (
+                <div key={idx} style={{ 
+                  fontSize: `${fontSize}px`, 
+                  marginBottom: '0.3em',
+                  whiteSpace: 'pre-wrap',
+                  color: colors.numericNotation
+                }}>
+                  {line}
+                </div>
+              );
             }
             
             // 檢查下一行是否為歌詞行（如果當前是和弦行）
