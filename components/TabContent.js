@@ -1579,7 +1579,9 @@ const TabContent = ({
         return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/);
       });
       const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
-      const isChord = hasChordPattern && chineseChars.length < 3;
+      // 排除元數據行：包含 Key/Capo/制譜/編譜/原調/調性 關鍵詞的行
+      const isMetadataLine = /\b(Key|Capo|制譜|編譜|原調|調性|調)\b/i.test(line);
+      const isChord = hasChordPattern && chineseChars.length < 3 && !isMetadataLine;
       
       // 檢查是否為歌詞行（有中文字或英文單詞，且冇和弦特徵）
       const isLyric = !isChord && (chineseChars.length > 0 || englishWords.length > 0);
