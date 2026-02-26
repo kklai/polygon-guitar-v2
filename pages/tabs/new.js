@@ -529,16 +529,28 @@ E|----------------------------------------------------------------|
           </div>
         </div>
         
-        {/* 歌手類型 */}
+        {/* 歌手類型 - 如果用咗現有歌手就顯示為只讀 */}
         <div>
           <label className="block text-sm font-medium text-white mb-1">歌手類型 <span className="text-[#FFD700]">*</span></label>
-          <select name="artistType" value={formData.artistType} onChange={handleChange}
-            className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white">
-            <option value="">請選擇...</option>
-            <option value="male">男歌手</option>
-            <option value="female">女歌手</option>
-            <option value="group">組合</option>
-          </select>
+          {useExistingArtistSelected && formData.artistType ? (
+            <div className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              <span>
+                {formData.artistType === 'male' && '男歌手'}
+                {formData.artistType === 'female' && '女歌手'}
+                {formData.artistType === 'group' && '組合'}
+              </span>
+              <span className="text-xs text-gray-400 ml-auto">（已綁定現有歌手）</span>
+            </div>
+          ) : (
+            <select name="artistType" value={formData.artistType} onChange={handleChange}
+              className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white">
+              <option value="">請選擇...</option>
+              <option value="male">男歌手</option>
+              <option value="female">女歌手</option>
+              <option value="group">組合</option>
+            </select>
+          )}
         </div>
         
         {/* 歌曲資訊網格 */}
