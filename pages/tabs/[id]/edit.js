@@ -597,28 +597,45 @@ export default function EditTab() {
                 </div>
               )}
               
-              {/* 相似歌手提示 -->
-              {similarArtists.length > 0 && !useExistingArtistSelected && (
-                <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg">
-                  <p className="text-yellow-400 text-sm mb-2">發現相似歌手，是否使用現有資料？</p>
+              {/* 歌手狀態提示 - 顯示已存在同新歌手 */}
+              {collaborators.length > 0 && !useExistingArtistSelected && (
+                <div className="mt-3 p-3 bg-gray-900/50 border border-gray-700 rounded-lg">
+                  <p className="text-gray-400 text-sm mb-2">歌手狀態：</p>
                   <div className="flex flex-wrap gap-2">
-                    {similarArtists.map(artist => (
-                      <button 
-                        key={artist.id} 
-                        type="button" 
-                        onClick={() => useExistingArtist(artist)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-white transition"
-                      >
-                        {(artist.photoURL || artist.wikiPhotoURL) && (
-                          <img 
-                            src={artist.photoURL || artist.wikiPhotoURL} 
-                            alt={artist.name} 
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        )}
-                        <span>{artist.name}</span>
-                      </button>
-                    ))}
+                    {collaborators.map((collabName, idx) => {
+                      // 檢查呢個歌手係咪已存在於數據庫
+                      const existingArtist = similarArtists.find(a => 
+                        a.name.toLowerCase().replace(/\s+/g, '') === collabName.toLowerCase().replace(/\s+/g, '')
+                      )
+                      const isExisting = !!existingArtist
+                      
+                      return (
+                        <div key={idx} className="flex items-center gap-2">
+                          {isExisting ? (
+                            <button 
+                              type="button" 
+                              onClick={() => useExistingArtist(existingArtist)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-green-900/30 border border-green-700/50 hover:bg-green-900/50 rounded-lg text-sm text-green-300 transition"
+                            >
+                              {(existingArtist.photoURL || existingArtist.wikiPhotoURL) && (
+                                <img 
+                                  src={existingArtist.photoURL || existingArtist.wikiPhotoURL} 
+                                  alt={existingArtist.name} 
+                                  className="w-5 h-5 rounded-full object-cover"
+                                />
+                              )}
+                              <span>{collabName}</span>
+                              <span className="text-xs text-green-500">✓ 已存在</span>
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-900/30 border border-orange-700/50 rounded-lg text-sm text-orange-300">
+                              <span>{collabName}</span>
+                              <span className="text-xs text-orange-500">+ 新歌手</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
