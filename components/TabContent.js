@@ -243,7 +243,10 @@ const SECTION_SHORTCUTS = {
   '/gs': 'Guitar Solo',
   '/mb': 'Music Break',
   '/h': 'Hook',
-  '/r': 'Refrain',
+  '/r': 'Rap',
+  '/rap': 'Rap',
+  '/k': 'Key Change',
+  '/key': 'Key Change',
   '/fo': 'Fade out'
 };
 
@@ -257,6 +260,7 @@ const SECTION_MARKERS = [
   'Solo', 'Guitar Solo',
   'Break', 'Music Break', ' instrumental',
   'Hook', 'Refrain',
+  'Rap', 'Key Change',
   'Fade out'
 ];
 
