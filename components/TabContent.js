@@ -1370,12 +1370,18 @@ const TabContent = ({
       // 輔助函數：檢查是否為和弦行（支援 slash chord 如 E/G#）
       const checkIsChordLine = (line) => {
         if (!line) return false;
-        // 排除包含 Key: / Capo: / 制譜: 等元數據的行（冒號前後可以有空白）
-        if (/\b(Key|原調|調性|Capo|制譜|編譜)\s*[:：]\s*/i.test(line)) {
+        // 排除元數據行：包含 Key/Capo/制譜/編譜/原調/調性 關鍵詞的行
+        const metadataPattern = /\b(Key|Capo|制譜|編譜|原調|調性|調)\b/i;
+        if (metadataPattern.test(line)) {
           return false;
         }
-        // 排除純粹的調性標記行（如 "Key: Eb(CAPO1PlayD)" 或 "Eb (Capo 1)"）
-        if (/^\s*[A-G][#b]?\s*\(?.{0,20}capo.{0,20}\)?$/i.test(line)) {
+        // 排除調性標記行（如 "F# - G (CAPO 1 Play F - F#)" 或 "Eb (Capo 1)"）
+        // 特徵：開頭是調性，中間有 Capo/Play 等字
+        if (/^\s*[A-G][#b]?\s*[-–]/.test(line) && /capo|play/i.test(line)) {
+          return false;
+        }
+        // 排除純粹的調性標記行
+        if (/^\s*[A-G][#b]?\s*\(?.{0,30}capo.{0,30}\)?$/i.test(line)) {
           return false;
         }
         const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
