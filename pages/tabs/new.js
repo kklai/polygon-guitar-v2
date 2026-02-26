@@ -9,7 +9,7 @@ import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -249,6 +249,28 @@ export default function NewTab() {
       setAuthChecked(true)
     }
   }, [authLoading, authChecked])
+
+  // 載入用戶的編譜者筆名
+  useEffect(() => {
+    const loadUserPenName = async () => {
+      if (user?.uid) {
+        try {
+          const userRef = doc(db, 'users', user.uid)
+          const userSnap = await getDoc(userRef)
+          if (userSnap.exists()) {
+            const userData = userSnap.data()
+            const penName = userData.penName || userData.displayName || ''
+            if (penName) {
+              setFormData(prev => ({ ...prev, uploaderPenName: penName }))
+            }
+          }
+        } catch (error) {
+          console.error('載入筆名失敗:', error)
+        }
+      }
+    }
+    loadUserPenName()
+  }, [user])
 
   // 等待 auth 載入完成 - 在所有 hooks 之後
   if (authLoading || !authChecked) {

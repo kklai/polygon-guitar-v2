@@ -70,6 +70,7 @@ export default function EditProfile() {
   
   const [formData, setFormData] = useState({
     displayName: '',
+    penName: '', // 編譜者筆名（出譜時使用）
     bio: '',
     guitarExperience: '',
     favoriteArtist: '',
@@ -107,6 +108,7 @@ export default function EditProfile() {
         const data = userDoc.data()
         const profileData = {
           displayName: data.displayName || user.displayName || '',
+          penName: data.penName || data.displayName || user.displayName || '',
           bio: data.bio || '',
           guitarExperience: data.guitarExperience || '',
           favoriteArtist: data.favoriteArtist || '',
@@ -125,6 +127,7 @@ export default function EditProfile() {
         // 新用戶，使用默認值
         const defaultData = {
           displayName: user.displayName || '',
+          penName: user.displayName || '',
           bio: '',
           guitarExperience: '',
           favoriteArtist: '',
@@ -307,6 +310,23 @@ export default function EditProfile() {
                 placeholder="你的名稱"
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
               />
+            </div>
+
+            {/* 編譜者筆名 */}
+            <div className="bg-[#1a1a2e] rounded-lg p-4 border border-[#FFD700]/30">
+              <label className="block text-sm text-[#FFD700] mb-2 flex items-center gap-2">
+                <span>✏️</span> 編譜者筆名
+              </label>
+              <input
+                type="text"
+                value={formData.penName}
+                onChange={(e) => handleChange('penName', e.target.value)}
+                placeholder="例如：結他小王子、Kermit Guitar"
+                className="w-full px-4 py-3 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                出譜時會自動使用此筆名，顯示為「編譜：xxx」
+              </p>
             </div>
 
             <div>
