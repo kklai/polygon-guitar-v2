@@ -141,6 +141,16 @@ export default function MergeArtistsPage() {
     return artist.photoURL || artist.wikiPhotoURL || artist.photo || null
   }
 
+  // 獲取歌手類型標籤
+  const getArtistTypeLabel = (artistType) => {
+    switch (artistType) {
+      case 'male': return { text: '男歌手', color: 'bg-blue-600/30 text-blue-400 border-blue-500/30' }
+      case 'female': return { text: '女歌手', color: 'bg-pink-600/30 text-pink-400 border-pink-500/30' }
+      case 'group': return { text: '組合', color: 'bg-yellow-600/30 text-yellow-400 border-yellow-500/30' }
+      default: return { text: '其他', color: 'bg-gray-600/30 text-gray-400 border-gray-500/30' }
+    }
+  }
+
   return (
     <AdminGuard>
       <Layout>
@@ -224,11 +234,14 @@ export default function MergeArtistsPage() {
                     className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                   >
                     <option value="">選擇歌手...</option>
-                    {artists.sort((a, b) => a.name.localeCompare(b.name)).map(artist => (
-                      <option key={artist.id} value={artist.id}>
-                        {artist.name} ({artist.tabCount || 0}首)
-                      </option>
-                    ))}
+                    {artists.sort((a, b) => a.name.localeCompare(b.name)).map(artist => {
+                      const type = getArtistTypeLabel(artist.artistType)
+                      return (
+                        <option key={artist.id} value={artist.id}>
+                          {artist.name} [{type.text}] ({artist.tabCount || 0}首)
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
                 <div>
@@ -242,11 +255,14 @@ export default function MergeArtistsPage() {
                     {artists
                       .filter(a => a.id !== manualSelection.keep)
                       .sort((a, b) => a.name.localeCompare(b.name))
-                      .map(artist => (
-                        <option key={artist.id} value={artist.id}>
-                          {artist.name} ({artist.tabCount || 0}首)
-                        </option>
-                      ))}
+                      .map(artist => {
+                        const type = getArtistTypeLabel(artist.artistType)
+                        return (
+                          <option key={artist.id} value={artist.id}>
+                            {artist.name} [{type.text}] ({artist.tabCount || 0}首)
+                          </option>
+                        )
+                      })}
                   </select>
                 </div>
               </div>
@@ -344,8 +360,16 @@ export default function MergeArtistsPage() {
                                 </div>
                                 
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <h4 className="text-white font-medium">{artist.name}</h4>
+                                    {(() => {
+                                      const type = getArtistTypeLabel(artist.artistType)
+                                      return (
+                                        <span className={`text-xs px-2 py-0.5 rounded border ${type.color}`}>
+                                          {type.text}
+                                        </span>
+                                      )
+                                    })()}
                                     {isPrimary && (
                                       <span className="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded">
                                         建議保留
