@@ -106,9 +106,26 @@ export default function TabRequestsPage() {
       const existingSnap = await getDocs(existingQuery)
       
       if (!existingSnap.empty) {
-        // 已有相同求譜，直接投票
+        // 已有相同求譜，直接投票（使用內部邏輯避免重複載入）
         const existing = existingSnap.docs[0]
-        await voteForRequest(existing.id)
+        const requestId = existing.id
+        const requestData = existing.data()
+        
+        const requestRef = doc(db, 'tabRequests', requestId)
+        
+        if (requestData.voters?.includes(user.uid)) {
+          // 取消投票
+          await updateDoc(requestRef, {
+            voteCount: (requestData.voteCount || 1) - 1,
+            voters: arrayRemove(user.uid)
+          })
+        } else {
+          // 投票
+          await updateDoc(requestRef, {
+            voteCount: (requestData.voteCount || 0) + 1,
+            voters: arrayUnion(user.uid)
+          })
+        }
       } else {
         // 創建新求譜
         await addDoc(collection(db, 'tabRequests'), {
@@ -122,7 +139,7 @@ export default function TabRequestsPage() {
           createdAt: serverTimestamp(),
           voteCount: 1,
           voters: [user.uid],
-          status: 'pending', // pending, fulfilled
+          status: 'pending',
           fulfilledBy: null,
           fulfilledAt: null,
         })
@@ -133,8 +150,10 @@ export default function TabRequestsPage() {
       setSearchResults(null)
       setShowForm(false)
       
-      // 重新載入
-      loadRequests()
+      // 稍微延遲確保 Firestore 同步完成，然後重新載入
+      setTimeout(() => {
+        loadRequests()
+      }, 300)
     } catch (error) {
       console.error('Error submitting request:', error)
       alert('提交失敗，請重試')
@@ -154,23 +173,40 @@ export default function TabRequestsPage() {
       const requestRef = doc(db, 'tabRequests', requestId)
       const request = requests.find(r => r.id === requestId)
       
-      if (request.voters?.includes(user.uid)) {
-        // 取消投票
+      // 先更新本地 state 讓用戶立即看到變化
+      const hasUserVoted = request.voters?.includes(user.uid)
+      const updatedRequests = requests.map(r => {
+        if (r.id === requestId) {
+          return {
+            ...r,
+            voteCount: hasUserVoted ? (r.voteCount || 1) - 1 : (r.voteCount || 0) + 1,
+            voters: hasUserVoted 
+              ? (r.voters || []).filter(id => id !== user.uid)
+              : [...(r.voters || []), user.uid]
+          }
+        }
+        return r
+      })
+      // 按 voteCount 重新排序
+      updatedRequests.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+      setRequests(updatedRequests)
+      
+      // 然後更新 Firestore
+      if (hasUserVoted) {
         await updateDoc(requestRef, {
-          voteCount: request.voteCount - 1,
+          voteCount: (request.voteCount || 1) - 1,
           voters: arrayRemove(user.uid)
         })
       } else {
-        // 投票
         await updateDoc(requestRef, {
-          voteCount: request.voteCount + 1,
+          voteCount: (request.voteCount || 0) + 1,
           voters: arrayUnion(user.uid)
         })
       }
-      
-      loadRequests()
     } catch (error) {
       console.error('Error voting:', error)
+      // 出錯時重新載入
+      loadRequests()
     }
   }
 
