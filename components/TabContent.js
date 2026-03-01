@@ -1736,7 +1736,11 @@ const TabContent = ({
       const isChord = hasChordPattern && chineseChars.length < 3 && !isMetadataLine;
       
       // 檢查是否為歌詞行（有中文字或英文單詞，且冇和弦特徵）
-      const isLyric = !isChord && (chineseChars.length > 0 || englishWords.length > 0);
+      // 排除：如果英文單詞其實係和弦名（如 Fm, Em, G7 等），唔好當係歌詞
+      const isEnglishWordsActuallyChords = englishWords.length > 0 && englishWords.every(word => 
+        /^[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/i.test(word)
+      );
+      const isLyric = !isChord && (chineseChars.length > 0 || (englishWords.length > 0 && !isEnglishWordsActuallyChords));
       
       // 如果是歌詞行，優先處理
       if (isLyric) {
