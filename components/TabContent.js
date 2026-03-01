@@ -483,8 +483,9 @@ function isNumericNotationLine(line) {
   // 4. 冇和弦豎線 |
   // 5. 英文字母要少（簡譜只有 b, # 是合法的）
   
-  // 匹配完整簡譜音符：數字 + 可選的 ' 或 # 或 ,（如 1', 5#, 6, 7,）
-  const notationPattern = /\d['#,]*/g;
+  // 匹配完整簡譜音符：數字 + 可選的一個修飾符 ' 或 # 或 ,（如 1', 5#, 6, 7,）
+  // 使用 ? 而不是 *，避免 2'1' 被當作一個音符
+  const notationPattern = /\d['#,]?/g;
   const notationMatches = line.match(notationPattern) || [];
   const notationCount = notationMatches.length;
   
@@ -1792,10 +1793,25 @@ const TabContent = ({
       // 處理簡譜行
       if (isNumericNotation) {
         const notationParts = processNumericNotationLine(line);
+        // 檢查上一行是否為和弦行，如果是則緊貼
+        const prevLine = lines[i - 1];
+        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(prevLine);
+        const prevHasChinese = prevLine && /[\u4e00-\u9fff]/.test(prevLine);
+        const prevIsChord = prevHasChordPattern && !prevHasChinese;
+        // 檢查下一行是否為和弦行
+        const nextLine = lines[i + 1];
+        const nextHasChordPattern = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(nextLine);
+        const nextHasChinese = nextLine && /[\u4e00-\u9fff]/.test(nextLine);
+        const nextIsChord = nextHasChordPattern && !nextHasChinese;
+        const marginTop = prevIsChord ? '0em' : '0';
+        const marginBottom = nextIsChord ? '0em' : `${lineFontSize * 0.6}px`;
+        
         elements.push(
           <div key={i} style={{ 
             fontSize: `${lineFontSize}px`, 
-            marginBottom: `${lineFontSize * 0.6}px`,
+            marginTop,
+            marginBottom,
+            lineHeight: prevIsChord ? '1.1' : 'normal',
             whiteSpace: 'pre-wrap', 
             overflowWrap: 'break-word',
             fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
@@ -2019,11 +2035,12 @@ const TabContent = ({
           // 冇歌詞行，單獨顯示和弦
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
-          // 檢查下一行是否為歌詞行
+          // 檢查下一行是否為歌詞行或簡譜行
           const nextLine = lines[i + 1];
           const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine));
           const nextHasChordOnly = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(nextLine) && !/[\u4e00-\u9fff]/.test(nextLine);
-          const isFollowedByLyric = nextHasLyric && !nextHasChordOnly;
+          const nextIsNotation = nextLine && isNumericNotationLine(nextLine);
+          const isFollowedByLyric = (nextHasLyric && !nextHasChordOnly) || nextIsNotation;
           const chordMarginBottom = isFollowedByLyric ? '0em' : `${lineFontSize * 0.6}px`;
           
           elements.push(
