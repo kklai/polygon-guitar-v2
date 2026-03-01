@@ -150,6 +150,9 @@ export default function GpSegmentPlayer({ segment }) {
       
       /* Beat bars (path with fill) - white */
       path[style*="stroke: none"], path[stroke="none"] { fill: ${COLORS.chordDiagramColor} !important; }
+      
+      /* Watermark - dark gray and subtle */
+      text:contains("alphaTab"), text:contains("rendered") { fill: #666666 !important; opacity: 0.5 !important; }
     `
 
     // 1. 修改所有 text/tspan 元素 - 更全面的邏輯
@@ -162,10 +165,12 @@ export default function GpSegmentPlayer({ segment }) {
       const selfY = parseFloat(text.getAttribute('y') || '0')
       const y = selfY || parentY
       
-      // 隱藏水印
+      // 水印改為深灰色（低調顯示）
       const lowerContent = content.toLowerCase()
       if (lowerContent.includes('rendered') || lowerContent.includes('alphatab') || lowerContent.includes('by')) {
-        text.style.display = 'none'
+        text.setAttribute('fill', '#666666')
+        text.style.fill = '#666666'
+        text.style.opacity = '0.5'
         return
       }
       
