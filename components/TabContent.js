@@ -1874,8 +1874,13 @@ const TabContent = ({
         const lyricLine = lines[targetLyricIndex] || '';
         // 檢查歌詞行：有中文字或英文單詞
         const lyricChinese = (lyricLine.match(/[\u4e00-\u9fff]/g) || []).length;
-        const lyricEnglish = (lyricLine.match(/[a-zA-Z]+/g) || []).length;
-        const hasLyric = lyricLine && (lyricChinese > 0 || lyricEnglish > 0);
+        const lyricEnglishWords = lyricLine.match(/[a-zA-Z]+/g) || [];
+        const lyricEnglish = lyricEnglishWords.length;
+        // 排除：如果英文單詞其實係和弦名，唔好當係歌詞
+        const lyricEnglishIsChords = lyricEnglish > 0 && lyricEnglishWords.every(word => 
+          /^[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/i.test(word)
+        );
+        const hasLyric = lyricLine && (lyricChinese > 0 || (lyricEnglish > 0 && !lyricEnglishIsChords));
         
         if (hasLyric) {
           // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
