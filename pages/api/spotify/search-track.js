@@ -1,18 +1,38 @@
 // Spotify API - 搜尋歌曲
 
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+}
+
 export default async function handler(req, res) {
   console.log('=== Spotify Track Search API called ===')
+  console.log('Method:', req.method)
   
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
   
   try {
-    const { q, artist } = req.method === 'POST' ? req.body : req.query
-    console.log('Query:', q, 'Artist:', artist)
+    // 支援多種參數名組合
+    const params = req.method === 'POST' ? req.body : req.query
+    console.log('Params received:', params)
     
-    if (!q || !artist) {
-      return res.status(400).json({ error: 'Missing query or artist' })
+    // 支援: q (完整查詢) 或 artist + title 組合
+    let q = params.q || params.query
+    const artist = params.artist || params.artistName
+    const title = params.title || params.songTitle || params.name
+    
+    console.log('Parsed - q:', q, 'artist:', artist, 'title:', title)
+    
+    // 如果冇 q 但有 artist 同 title，組合成 q
+    if (!q && artist && title) {
+      q = `${title} ${artist}`
+    }
+    
+    if (!q && !artist && !title) {
+      return res.status(400).json({ error: 'Missing query or artist/title' })
     }
     
     // 獲取環境變數
@@ -45,8 +65,10 @@ export default async function handler(req, res) {
       })
     }
     
-    // 搜尋歌曲
-    const searchQuery = `track:${q} artist:${artist}`
+    // 搜尋歌曲 - 如果有 title 同 artist 分開，用精確搜尋；否則用寬鬆搜尋
+    const searchQuery = title && artist 
+      ? `track:${title} artist:${artist}`
+      : q
     
     const searchResponse = await fetch(
       `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=1`,
@@ -68,8 +90,9 @@ export default async function handler(req, res) {
     
     if (!track) {
       // 嘗試更寬鬆的搜尋
+      const looseQuery = q || `${title} ${artist}`
       const looseSearchResponse = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q + ' ' + artist)}&type=track&limit=3`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(looseQuery)}&type=track&limit=3`,
         {
           headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
         }
