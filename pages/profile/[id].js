@@ -53,6 +53,7 @@ export default function PublicProfile() {
   const [uploads, setUploads] = useState([])
   const [playlists, setPlaylists] = useState([])
   const [currentlyPracticing, setCurrentlyPracticing] = useState(null)
+  const [recentlyViewed, setRecentlyViewed] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
