@@ -1509,7 +1509,8 @@ const TabContent = ({
                   fontWeight: 'bold',
                   textDecoration: 'underline',
                   textUnderlineOffset: '4px',
-                  color: colors.lyricInside
+                  color: colors.lyricInside,
+                  fontFamily: "Source Code Pro Light, Noto Sans Mono CJK TC, Sarasa Mono TC, Consolas, Courier New, monospace"
                 }}>
                   {sectionCheck.marker}
                   {sectionCheck.rest && (
@@ -1619,7 +1620,14 @@ const TabContent = ({
       if (sectionCheck.hasMarker) {
         elements.push(
           <div key={`${i}-marker`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
-            <span style={{ color: colors.lyricInside, fontSize: `${lineFontSize}px`, fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+            <span style={{ 
+              color: colors.lyricInside, 
+              fontSize: `${lineFontSize}px`, 
+              fontWeight: 'bold', 
+              textDecoration: 'underline', 
+              textUnderlineOffset: '4px',
+              fontFamily: "Source Code Pro Light, Noto Sans Mono CJK TC, Sarasa Mono TC, Consolas, Courier New, monospace"
+            }}>
               {sectionCheck.marker}
             </span>
           </div>
