@@ -294,6 +294,20 @@ export default function NewTab() {
     loadUserPenName()
   }, [user])
 
+  // 從 URL query 參數預填數據（來自求譜區）
+  useEffect(() => {
+    if (router.isReady) {
+      const { title, artist } = router.query
+      if (title || artist) {
+        setFormData(prev => ({
+          ...prev,
+          title: title || prev.title,
+          artist: artist || prev.artist
+        }))
+      }
+    }
+  }, [router.isReady, router.query])
+
   // 等待 auth 載入完成 - 在所有 hooks 之後
   if (authLoading || !authChecked) {
     return null

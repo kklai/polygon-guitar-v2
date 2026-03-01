@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
+import MoreMenu from './MoreMenu'
 
 export default function Layout({ children, fullWidth = false }) {
   const router = useRouter()
@@ -37,13 +38,15 @@ export default function Layout({ children, fullWidth = false }) {
     return false
   }
 
-  // 底部導航項目 - 手機版（只有普通用戶項目）
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  
+  // 底部導航項目 - 手機版（5個項目：首頁、搜尋、歌手、收藏、更多）
   const mobileNavItems = [
     { path: '/', label: '首頁', icon: 'home' },
     { path: '/search', label: '搜尋', icon: 'search' },
     { path: '/artists', label: '歌手', icon: 'artists' },
     { path: '/library', label: '收藏', icon: 'library' },
-    { path: '/tabs/new', label: '上傳', icon: 'upload' },
+    { type: 'more', label: '更多', icon: 'more' },
   ]
 
   // 底部導航項目 - 桌面版（根據是否 Admin 動態生成）
@@ -105,6 +108,11 @@ export default function Layout({ children, fullWidth = false }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
+      more: (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+        </svg>
+      ),
       hero: (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -134,25 +142,47 @@ export default function Layout({ children, fullWidth = false }) {
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 md:hidden">
         <div className="flex justify-around items-center h-16">
           {mobileNavItems.map((item) => (
-            <Link 
-              key={item.path}
-              href={item.path}
-              className={`flex flex-col items-center transition ${
-                isActive(item.path) 
-                  ? 'text-black font-bold' 
-                  : 'text-black/60 hover:text-black'
-              }`}
-            >
-              <Icon 
-                name={item.icon} 
-                iconUrl={navIcons[item.icon]}
-                className={`w-6 h-6 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`}
-              />
-              <span className="text-xs mt-1 font-medium">{item.label}</span>
-            </Link>
+            item.type === 'more' ? (
+              <button
+                key="more"
+                onClick={() => setMoreMenuOpen(true)}
+                className={`flex flex-col items-center transition ${
+                  moreMenuOpen 
+                    ? 'text-black font-bold' 
+                    : 'text-black/60 hover:text-black'
+                }`}
+              >
+                <Icon 
+                  name={item.icon} 
+                  iconUrl={navIcons[item.icon]}
+                  className="w-6 h-6"
+                />
+                <span className="text-xs mt-1 font-medium">{item.label}</span>
+              </button>
+            ) : (
+              <Link 
+                key={item.path}
+                href={item.path}
+                className={`flex flex-col items-center transition ${
+                  isActive(item.path) 
+                    ? 'text-black font-bold' 
+                    : 'text-black/60 hover:text-black'
+                }`}
+              >
+                <Icon 
+                  name={item.icon} 
+                  iconUrl={navIcons[item.icon]}
+                  className={`w-6 h-6 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`}
+                />
+                <span className="text-xs mt-1 font-medium">{item.label}</span>
+              </Link>
+            )
           ))}
         </div>
       </nav>
+
+      {/* 更多選單 */}
+      <MoreMenu isOpen={moreMenuOpen} onClose={() => setMoreMenuOpen(false)} />
 
       {/* 桌面版底部導航 - 黃底黑字設計 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 hidden md:block">

@@ -1,14 +1,18 @@
-// Spotify API - 搜尋歌曲資訊
+// Spotify API - 搜尋歌曲
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  console.log('=== Spotify Track Search API called ===')
+  
+  if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
   
   try {
-    const { artist, title, query: customQuery } = req.body
+    const { q, artist } = req.query
+    console.log('Query:', q, 'Artist:', artist)
     
-    if (!artist && !title && !customQuery) {
-      return res.status(400).json({ error: 'Missing search parameters' })
+    if (!q || !artist) {
+      return res.status(400).json({ error: 'Missing query or artist' })
     }
     
     // 獲取環境變數
@@ -19,7 +23,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Missing Spotify credentials' })
     }
     
-    // 獲取 Access Token
+    // 獲取 Token
     const credentialsString = `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
     const base64Credentials = Buffer.from(credentialsString).toString('base64')
     
@@ -32,55 +36,24 @@ export default async function handler(req, res) {
       body: 'grant_type=client_credentials'
     })
     
-    // 檢查是否為 rate limit 錯誤
-    const contentType = tokenResponse.headers.get('content-type')
-    if (!contentType?.includes('application/json')) {
-      const text = await tokenResponse.text()
-      console.error('Token error (non-JSON):', text)
-      return res.status(429).json({ 
-        error: 'Rate limited',
-        message: 'Spotify API rate limit reached. Please try again later.'
-      })
-    }
-    
     const tokenData = await tokenResponse.json()
     
     if (!tokenResponse.ok) {
       return res.status(500).json({ 
         error: 'Spotify auth failed',
-        details: tokenData
+        spotifyError: tokenData
       })
-    }
-    
-    // 構建搜尋查詢
-    let searchQuery = customQuery
-    if (!searchQuery && artist && title) {
-      searchQuery = `track:${title} artist:${artist}`
-    } else if (!searchQuery) {
-      searchQuery = title || artist
     }
     
     // 搜尋歌曲
+    const searchQuery = `track:${q} artist:${artist}`
+    
     const searchResponse = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5&market=HK`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=1`,
       {
-        headers: { 
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
       }
     )
-    
-    // 檢查是否為 rate limit 錯誤
-    const searchContentType = searchResponse.headers.get('content-type')
-    if (!searchContentType?.includes('application/json')) {
-      const text = await searchResponse.text()
-      console.error('Search error (non-JSON):', text)
-      return res.status(429).json({ 
-        error: 'Rate limited',
-        message: 'Spotify API rate limit reached. Please try again later.'
-      })
-    }
     
     const searchData = await searchResponse.json()
     
@@ -91,52 +64,51 @@ export default async function handler(req, res) {
       })
     }
     
-    const tracks = searchData.tracks?.items || []
+    const track = searchData.tracks?.items?.[0]
     
-    if (tracks.length === 0) {
-      return res.status(404).json({ error: 'No tracks found' })
+    if (!track) {
+      // 嘗試更寬鬆的搜尋
+      const looseSearchResponse = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q + ' ' + artist)}&type=track&limit=3`,
+        {
+          headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+        }
+      )
+      
+      const looseData = await looseSearchResponse.json()
+      const looseTrack = looseData.tracks?.items?.[0]
+      
+      if (!looseTrack) {
+        return res.status(404).json({ error: 'Track not found' })
+      }
+      
+      return res.status(200).json({
+        track: {
+          id: looseTrack.id,
+          name: looseTrack.name,
+          artists: looseTrack.artists.map(a => ({ name: a.name })),
+          album: {
+            name: looseTrack.album?.name,
+            images: looseTrack.album?.images
+          }
+        }
+      })
     }
     
-    // 格式化結果
-    const results = tracks.map(track => {
-      const album = track.album
-      const artists = track.artists
-      
-      return {
+    return res.status(200).json({
+      track: {
         id: track.id,
         name: track.name,
-        artist: artists.map(a => a.name).join(', '),
-        artistId: artists[0]?.id,
-        album: album.name,
-        albumId: album.id,
-        albumImage: album.images?.[0]?.url,
-        releaseDate: album.release_date,
-        releaseYear: album.release_date?.split('-')[0],
-        duration: track.duration_ms,
-        popularity: track.popularity,
-        previewUrl: track.preview_url,
-        spotifyUrl: track.external_urls?.spotify,
-        trackNumber: track.track_number,
-        // 用於顯示的資訊
-        displayTitle: track.name,
-        displayArtist: artists[0]?.name,
-        displayAlbum: album.name,
-        thumbnail: album.images?.[album.images.length - 1]?.url || album.images?.[0]?.url
+        artists: track.artists.map(a => ({ name: a.name })),
+        album: {
+          name: track.album?.name,
+          images: track.album?.images
+        }
       }
     })
     
-    return res.status(200).json({
-      results,
-      query: searchQuery,
-      total: searchData.tracks?.total || 0
-    })
-    
   } catch (error) {
-    console.error('Spotify track search error:', error)
-    return res.status(500).json({ 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    })
+    console.error('Error:', error)
+    return res.status(500).json({ error: error.message })
   }
 }
-// Force redeploy 2026年 2月26日 週四 00時49分24秒 HKT

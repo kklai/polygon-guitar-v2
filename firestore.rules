@@ -72,5 +72,20 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if false; // 只允許手動在 Firebase Console 修改
     }
+    
+    // ============ tabRequests 集合（求譜區）============
+    match /tabRequests/{requestId} {
+      allow read: if true;
+      
+      allow create: if isAuthenticated();
+      
+      allow update: if isAuthenticated() && (
+        // 只允許更新 voteCount 和 voters（舉手功能）
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCount', 'voters', 'status', 'fulfilledBy', 'fulfilledAt']) ||
+        isAdmin()
+      );
+      
+      allow delete: if isAdmin();
+    }
   }
 }
