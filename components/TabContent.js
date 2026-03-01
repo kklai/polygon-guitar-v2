@@ -535,12 +535,13 @@ function extractNotationNumbers(line) {
   return numbers;
 }
 
-// 從歌詞行提取字符（中文每個字算一個，英文每個單詞算一個，空格和括號不計）
+// 從歌詞行提取字符（中文每個字算一個，英文每個單詞算一個，[~]算一個，空格和括號不計）
 function extractLyricChars(line) {
   const chars = [];
-  // 先移除括號（半形 + 全形），再匹配中文字或英文單詞
+  // 先移除括號（半形 + 全形），再匹配中文字、英文單詞或 [~]
   const lineWithoutBrackets = line.replace(/[()（）]/g, '');
-  const charRegex = /[\u4e00-\u9fff]|[a-zA-Z]+/g;
+  // 支援 [~] 作為佔位符（一個字對應多個音時使用）
+  const charRegex = /[\u4e00-\u9fff]|[a-zA-Z]+|\[~\]/g;
   let match;
   while ((match = charRegex.exec(lineWithoutBrackets)) !== null) {
     chars.push({
@@ -588,15 +589,16 @@ function extractLyricUnits(line) {
         i++;
       }
       if (text) {
-        // 計算字符數：中文每個字算一個，英文每個單詞算一個（空格不計）
+        // 計算字符數：中文每個字算一個，英文每個單詞算一個，[~]算一個（空格不計）
         const chineseCount = (text.match(/[\u4e00-\u9fff]/g) || []).length;
         const englishWords = (text.match(/[a-zA-Z]+/g) || []).length;
+        const tildeCount = (text.match(/\[~\]/g) || []).length;
         units.push({
           type: 'text',
           content: text,
           startIndex: startIndex,
           endIndex: i,
-          chineseChars: chineseCount + englishWords
+          chineseChars: chineseCount + englishWords + tildeCount
         });
       }
     }
@@ -622,11 +624,12 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
   
   for (const unit of lyricUnits) {
     if (unit.type === 'bracket') {
-      // 括號單元 - 只計算中文和英文單詞（括號本身不計）
+      // 括號單元 - 只計算中文、英文單詞和 [~]（括號本身不計）
       const innerContent = unit.content.slice(1, -1); // 去掉首尾括號
       const chineseCount = (innerContent.match(/[\u4e00-\u9fff]/g) || []).length;
       const englishWords = (innerContent.match(/[a-zA-Z]+/g) || []).length;
-      const unitCharCount = chineseCount + englishWords;
+      const tildeCount = (innerContent.match(/\[~\]/g) || []).length;
+      const unitCharCount = chineseCount + englishWords + tildeCount;
       
       if (unitCharCount === 0) {
         // 空括號或無字符 - 白色
@@ -658,8 +661,8 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
     } else {
       // 純文字單元
       const text = unit.content;
-      // 匹配中文字或英文單詞
-      const charMatches = [...text.matchAll(/[\u4e00-\u9fff]|[a-zA-Z]+/g)];
+      // 匹配中文字、英文單詞或 [~]
+      const charMatches = [...text.matchAll(/[\u4e00-\u9fff]|[a-zA-Z]+|\[~\]/g)];
       
       if (charMatches.length === 0) {
         // 無字符
