@@ -213,9 +213,19 @@ export default function GpSegmentPlayer({ segment }) {
       const d = path.getAttribute('d') || ''
       const hasFill = path.getAttribute('fill') && path.getAttribute('fill') !== 'none'
       
-      // 所有 path 都使用白色（譜線、小節線等）
-      path.setAttribute('stroke', COLORS.staffLineColor)
-      path.style.stroke = COLORS.staffLineColor
+      // 判斷是否為和弦圖線條（簡單的直線，冇曲線）
+      const isChordLine = d.match(/^[ML\s\d.-]+$/) && !d.includes('C')
+      
+      if (isChordLine) {
+        // 和弦圖線條用白色
+        path.setAttribute('stroke', COLORS.chordDiagramColor)
+        path.style.stroke = COLORS.chordDiagramColor
+      } else {
+        // 其他 path 用白色
+        path.setAttribute('stroke', COLORS.staffLineColor)
+        path.style.stroke = COLORS.staffLineColor
+      }
+      
       path.setAttribute('stroke-width', '0.15')
       path.style.strokeWidth = '0.15'
       
@@ -225,12 +235,12 @@ export default function GpSegmentPlayer({ segment }) {
       }
     })
     
-    // 4. 修改 rect 元素（和弦圖格子）- 更幼線條
+    // 4. 修改 rect 元素（和弦圖格子）- 白色線條，更幼
     const rects = svg.querySelectorAll('rect')
     rects.forEach(rect => {
-      rect.setAttribute('stroke', COLORS.staffLineColor)
+      rect.setAttribute('stroke', COLORS.chordDiagramColor)
       rect.setAttribute('stroke-width', '0.15')
-      rect.style.stroke = COLORS.staffLineColor
+      rect.style.stroke = COLORS.chordDiagramColor
       rect.style.strokeWidth = '0.15'
       
       const hasFill = rect.getAttribute('fill') && rect.getAttribute('fill') !== 'none'
