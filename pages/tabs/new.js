@@ -5,6 +5,8 @@ import { createTab, parseCollaborators } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
+import ArtistInputSimple from '@/components/ArtistInputSimple'
+import GpSegmentUploader from '@/components/GpSegmentUploader'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
@@ -124,6 +126,7 @@ export default function NewTab() {
     title: '',
     artist: '',
     artistType: '',
+    artists: [{ name: '', id: null, relation: null }], // 新多歌手系統
     originalKey: 'C',
     capo: '',
     playKey: '',
@@ -147,7 +150,9 @@ export default function NewTab() {
     fingeringTips: '',
     albumImage: '',
     coverImage: '',
-    displayFont: 'mono' // 預設等寬字體，傳統結他譜格式
+    displayFont: 'mono', // 預設等寬字體，傳統結他譜格式
+    gpSegments: [], // GP 段落陣列
+    gpTheme: 'dark' // GP 顯示主題：dark (黑底黃字) / light (白底黑字)
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
@@ -160,10 +165,11 @@ export default function NewTab() {
   // 區塊展開/收合狀態
   const [expandedSections, setExpandedSections] = useState({
     basic: true,
-    spotify: false,
+    spotify: true,
     key: true,
     youtube: true,
     content: true,
+    gpSegments: false, // GP 段落默認收起
     uploader: true,
     cover: false
   })
@@ -175,6 +181,7 @@ export default function NewTab() {
     'key',
     'youtube', 
     'content',
+    'gpSegments', // GP 段落
     'uploader',
     'cover'
   ])
@@ -332,6 +339,7 @@ export default function NewTab() {
     try {
       const submitData = {
         ...formData,
+        artists: formData.artists, // 保存多歌手陣列
         uploaderPenName: formData.uploaderPenName.trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
@@ -514,82 +522,32 @@ E|----------------------------------------------------------------|
           {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
         </div>
         
-        {/* 歌手 */}
+        {/* 歌手 - 新多歌手輸入 */}
         <div>
-          <label className="block text-sm font-medium text-white mb-1">歌手 <span className="text-[#FFD700]">*</span></label>
-          <input type="text" name="artist" value={formData.artist} onChange={handleChange}
-            placeholder="例如：Beyond"
-            className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-gray-500 ${errors.artist ? 'border-red-500' : 'border-gray-700'}`} />
+          <ArtistInputSimple
+            value={{ artists: formData.artists }}
+            onChange={({ artists, displayName, primaryArtist }) => {
+              setFormData(prev => ({
+                ...prev,
+                artists,
+                artist: displayName, // 向後兼容：保持字串格式
+                artistId: primaryArtist?.id || null,
+                artistPhoto: primaryArtist?.photo || ''
+              }))
+            }}
+          />
           {errors.artist && <p className="mt-1 text-sm text-red-400">{errors.artist}</p>}
           
-          {/* 解析後的多歌手顯示 - 總係顯示用於調試 */}
-          {formData.artist?.trim() && (
-            <div className={`mt-3 p-2 border rounded-lg ${collaborators.length > 1 ? 'bg-blue-900/20 border-blue-700/50' : 'bg-gray-900/30 border-gray-700/50'}`}>
-              <p className={`text-xs mb-1 ${collaborators.length > 1 ? 'text-blue-400' : 'text-gray-500'}`}>
-                已識別 {collaborators.length} 位歌手{collaborationType ? ` (${collaborationType})` : ''}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {collaborators.map((name, idx) => (
-                  <span key={idx} className={`text-xs px-2 py-0.5 rounded ${collaborators.length > 1 ? 'bg-blue-900/40 text-blue-300' : 'bg-gray-800 text-gray-400'}`}>
-                    {name}
-                  </span>
-                ))}
-                {collaborationType && (
-                  <span className="text-xs px-2 py-0.5 bg-purple-900/40 text-purple-300 rounded ml-auto">
-                    {collaborationType === 'feat' ? 'Feat.' : '合唱'}
-                  </span>
-                )}
-              </div>
+          {/* 自動填充歌手資料 */}
+          {formData.artists?.[0]?.id && !formData.artistPhoto && (
+            <div className="mt-3">
+              <ArtistAutoFill 
+                artistName={formData.artists[0].name} 
+                onFill={handleArtistFill} 
+                autoApply={true}
+              />
             </div>
           )}
-          
-          {/* 歌手狀態提示 - 顯示已存在同新歌手 */}
-          {collaborators.length > 0 && (
-            <div className="mt-3 p-3 bg-gray-900/50 border border-gray-700 rounded-lg">
-              <p className="text-gray-400 text-sm mb-2">歌手狀態：</p>
-              <div className="flex flex-wrap gap-2">
-                {collaborators.map((collabName, idx) => {
-                  // 檢查呢個歌手係咪已存在於數據庫
-                  const existingArtist = similarArtists.find(a => 
-                    a.name.toLowerCase().replace(/\s+/g, '') === collabName.toLowerCase().replace(/\s+/g, '')
-                  )
-                  const isExisting = !!existingArtist
-                  
-                  return (
-                    <div key={idx} className="flex items-center gap-2">
-                      {isExisting ? (
-                        <button 
-                          type="button" 
-                          onClick={() => useExistingArtist(existingArtist)}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-green-900/30 border border-green-700/50 hover:bg-green-900/50 rounded-lg text-sm text-green-300 transition"
-                        >
-                          {(existingArtist.photoURL || existingArtist.wikiPhotoURL) && (
-                            <img 
-                              src={existingArtist.photoURL || existingArtist.wikiPhotoURL} 
-                              alt={existingArtist.name} 
-                              className="w-5 h-5 rounded-full object-cover"
-                            />
-                          )}
-                          <span>{collabName}</span>
-                          <span className="text-xs text-green-500">✓ 已存在</span>
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-900/30 border border-orange-700/50 rounded-lg text-sm text-orange-300">
-                          <span>{collabName}</span>
-                          <span className="text-xs text-orange-500">+ 新歌手</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-3">
-            <ArtistAutoFill artistName={formData.artist} onFill={handleArtistFill} 
-              autoApply={true} disabled={useExistingArtistSelected} />
-          </div>
         </div>
         
         {/* 歌手類型 - 如果用咗現有歌手就顯示為只讀 */}
@@ -885,6 +843,98 @@ E|----------------------------------------------------------------|
       </div>
     ),
     
+    gpSegments: (
+      <div className="space-y-4 pt-4">
+        {/* GP 主題選擇 */}
+        <div className="p-4 bg-[#1a1a1a] rounded-lg border border-gray-800">
+          <label className="block text-sm text-gray-400 mb-3">譜面顯示主題</label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, gpTheme: 'dark' }))}
+              className={`flex-1 py-3 px-4 rounded-lg border transition ${
+                formData.gpTheme === 'dark' 
+                  ? 'bg-[#FFD700] text-black border-[#FFD700]' 
+                  : 'bg-gray-800 text-white border-gray-700 hover:border-gray-600'
+              }`}
+            >
+              <span className="block text-lg mb-1">🌙</span>
+              <span className="text-sm font-medium">黑底黃字</span>
+              <span className="block text-xs opacity-70 mt-1">深色背景，黃色文字</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, gpTheme: 'light' }))}
+              className={`flex-1 py-3 px-4 rounded-lg border transition ${
+                formData.gpTheme === 'light' 
+                  ? 'bg-white text-black border-gray-300' 
+                  : 'bg-gray-800 text-white border-gray-700 hover:border-gray-600'
+              }`}
+            >
+              <span className="block text-lg mb-1">☀️</span>
+              <span className="text-sm font-medium">白底黑字</span>
+              <span className="block text-xs opacity-70 mt-1">淺色背景，黑色文字</span>
+            </button>
+          </div>
+        </div>
+        
+        <GpSegmentUploader
+          songTitle={formData.title}
+          onSegmentAdd={(segment) => {
+            setFormData(prev => ({
+              ...prev,
+              gpSegments: [...prev.gpSegments, segment]
+            }))
+          }}
+          existingSegments={formData.gpSegments}
+          theme={formData.gpTheme}
+        />
+        
+        {/* 已添加段落列表（自定義顯示） */}
+        {formData.gpSegments.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <h4 className="text-sm font-medium text-gray-400">已添加段落</h4>
+            {formData.gpSegments.map((seg, index) => (
+              <div key={seg.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">
+                    {seg.type === 'intro' && '🎵'}
+                    {seg.type === 'verse' && '🎤'}
+                    {seg.type === 'chorus' && '🎸'}
+                    {seg.type === 'interlude' && '✨'}
+                    {seg.type === 'solo' && '🎸'}
+                    {seg.type === 'outro' && '🔚'}
+                    {seg.type === 'bridge' && '🌉'}
+                    {seg.type === 'prechorus' && '🎶'}
+                  </span>
+                  <div>
+                    <p className="text-white text-sm capitalize">{seg.type}</p>
+                    <p className="text-xs text-gray-500">
+                      小節 {seg.startBar}-{seg.endBar} • {seg.originalFilename}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      gpSegments: prev.gpSegments.filter((_, i) => i !== index)
+                    }))
+                  }}
+                  className="text-gray-500 hover:text-red-400 transition p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ),
+    
     cover: (
       <div className="space-y-4 pt-4">
         {/* 封面圖片選擇 */}
@@ -1009,6 +1059,7 @@ E|----------------------------------------------------------------|
     key: '調性與彈法（Key、Capo、技巧）',
     youtube: 'YouTube 影片',
     content: '譜內容',
+    gpSegments: '🎸 Guitar Pro 段落',
     uploader: '上傳者筆名',
     cover: '封面圖片設定'
   }

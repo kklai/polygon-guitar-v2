@@ -22,6 +22,9 @@ function PlaylistAdmin() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(null)
   const [message, setMessage] = useState(null)
+  const [editingAuto, setEditingAuto] = useState(null) // 正在編輯的自動歌單
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
   
   // 拖拽排序狀態
   const [draggingIndex, setDraggingIndex] = useState(null)
@@ -175,6 +178,36 @@ function PlaylistAdmin() {
     }
   }
 
+  // 開始編輯自動歌單
+  const startEditAuto = (playlist) => {
+    setEditingAuto(playlist.id)
+    setEditTitle(playlist.title)
+    setEditDescription(playlist.description || '')
+  }
+
+  // 保存自動歌單編輯
+  const saveAutoEdit = async (playlistId) => {
+    try {
+      await updatePlaylist(playlistId, {
+        title: editTitle,
+        description: editDescription,
+        updatedAt: new Date().toISOString()
+      })
+      showMessage('✅ 歌單已更新')
+      setEditingAuto(null)
+      await loadPlaylists()
+    } catch (error) {
+      showMessage('❌ 更新失敗：' + error.message, 'error')
+    }
+  }
+
+  // 取消編輯
+  const cancelEditAuto = () => {
+    setEditingAuto(null)
+    setEditTitle('')
+    setEditDescription('')
+  }
+
   // 格式化時間
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '從未更新'
@@ -315,36 +348,71 @@ function PlaylistAdmin() {
                         
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-white font-medium truncate">{playlist.title}</h3>
-                            <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded hidden sm:inline">自動</span>
-                          </div>
-                          <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description}</p>
-                          <p className="text-xs text-gray-600 hidden sm:block">
-                            {playlist.songIds?.length || 0} 首 • 更新於 {formatTimeAgo(playlist.lastUpdated)}
-                          </p>
+                          {editingAuto === playlist.id ? (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-white text-sm"
+                                placeholder="歌單名稱"
+                              />
+                              <input
+                                type="text"
+                                value={editDescription}
+                                onChange={(e) => setEditDescription(e.target.value)}
+                                className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-gray-400 text-xs"
+                                placeholder="描述"
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={() => saveAutoEdit(playlist.id)} className="px-2 py-1 bg-green-700 text-white text-xs rounded">保存</button>
+                                <button onClick={cancelEditAuto} className="px-2 py-1 bg-gray-700 text-white text-xs rounded">取消</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-white font-medium truncate">{playlist.title}</h3>
+                                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded hidden sm:inline">自動</span>
+                              </div>
+                              <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description}</p>
+                              <p className="text-xs text-gray-600 hidden sm:block">
+                                {playlist.songIds?.length || 0} 首 • 更新於 {formatTimeAgo(playlist.lastUpdated)}
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                       
                       {/* Actions - 手機版獨立一行 */}
                       <div className="flex items-center gap-1">
-                        <button onClick={() => moveUp(playlist, index, autoPlaylists)} disabled={index === 0}
-                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                          </svg>
-                        </button>
-                        <button onClick={() => moveDown(playlist, index, autoPlaylists)} disabled={index === autoPlaylists.length - 1}
-                          className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        <button onClick={() => togglePlaylistActive(playlist)}
-                          className={`w-8 h-4 sm:w-10 sm:h-5 rounded-full transition relative ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
-                          <span className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition" 
-                            style={{ left: playlist.isActive ? '18px' : '2px' }} />
-                        </button>
+                        {editingAuto !== playlist.id && (
+                          <>
+                            <button onClick={() => startEditAuto(playlist)}
+                              className="p-2 text-gray-500 hover:text-[#FFD700] transition" title="編輯名稱">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button onClick={() => moveUp(playlist, index, autoPlaylists)} disabled={index === 0}
+                              className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                            </button>
+                            <button onClick={() => moveDown(playlist, index, autoPlaylists)} disabled={index === autoPlaylists.length - 1}
+                              className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            <button onClick={() => togglePlaylistActive(playlist)}
+                              className={`w-8 h-4 sm:w-10 sm:h-5 rounded-full transition relative ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
+                              <span className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition" 
+                                style={{ left: playlist.isActive ? '18px' : '2px' }} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -10,6 +10,7 @@ import LikeButton from '@/components/LikeButton'
 import TabContent from '@/components/TabContent'
 import TabComments from '@/components/TabComments'
 import RatingSystem from '@/components/RatingSystem'
+import GpSegmentPlayer from '@/components/GpSegmentPlayer'
 import { recordSongView } from '@/lib/recentViews'
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema } from '@/lib/seo'
@@ -51,10 +52,15 @@ export default function TabDetail() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [uploaderName, setUploaderName] = useState('')
   const [currentKey, setCurrentKey] = useState(null)
-  const [showInfo, setShowInfo] = useState(false)
+  // showInfo 提升去父組件，確保轉調嗰陣 YouTube 唔會閂
+  const [showInfo, setShowInfo] = useState(() => {
+    // 預設展開如果有 YouTube
+    return !!tab?.youtubeVideoId
+  })
   const [chordStats, setChordStats] = useState(null)
   const [theme, setTheme] = useState('night'); // 'night' | 'day'
   const [ratingData, setRatingData] = useState({ averageRating: 0, ratingCount: 0 })
+  const [playingSegmentId, setPlayingSegmentId] = useState(null)
   const colors = themeColors[theme];
 
   useEffect(() => {
@@ -353,10 +359,15 @@ export default function TabDetail() {
             strummingPattern: tab.strummingPattern,
             fingeringTips: tab.fingeringTips
           }}
+          gpSegments={tab.gpSegments || []}
+          gpTheme={tab.gpTheme || 'dark'}
+          // 傳 showInfo 去 TabContent
+          showInfo={showInfo}
+          setShowInfo={setShowInfo}
         />
 
         {/* 留言區 */}
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-4xl mx-auto px-4 mt-8">
           <TabComments tabId={id} />
         </div>
       </div>

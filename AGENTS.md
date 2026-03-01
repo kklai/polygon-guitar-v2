@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-02-23（Tab頁面封面 + 歌手名保留 + 簡譜對齊優化）
+> 最後更新：2026-03-01（Guitar Pro 支援 + GP 檔案上傳顯示 + 手機版控制項）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -87,6 +87,8 @@ pages/
 | `LikeButton.js` | 讚好功能 |
 | `TabTagsSelector.js` | 三層標籤系統 |
 | `TabVersionComparison.js` | 版本比較 |
+| `GpSegmentUploader` | GP 檔案上傳與預覽 | `components/GpSegmentUploader.jsx` |
+| `GpSegmentPlayer` | GP 譜面顯示 | `components/GpSegmentPlayer.jsx` |
 
 ### Firestore 資料結構
 
@@ -986,6 +988,46 @@ node scripts/migrate-blogger-v2.js --write --limit=100 --offset=100
 ### 已知限制
 - 歌手改名後，舊樂譜的 `artistId` 不會自動更新（已透過查詢函數兼容處理）
 - UNKNOWN 歌手需要手動修復
+
+---
+
+## 最近更新（2026-03-01）- Guitar Pro 支援
+
+### GP 檔案上傳與顯示功能
+
+#### 新元件
+| 元件 | 功能 | 路徑 |
+|------|------|------|
+| `GpSegmentUploader` | GP 檔案上傳、預覽、段落選擇 | `components/GpSegmentUploader.jsx` |
+| `GpSegmentPlayer` | GP 譜面顯示（含手機版控制） | `components/GpSegmentPlayer.jsx` |
+
+#### 功能特點
+1. **檔案上傳**
+   - 支援 .gp3, .gp4, .gp5, .gpx, .gp 格式
+   - Cloudinary 上傳 + Firebase Storage 後備
+   - 自動解析小節數
+
+2. **段落管理**
+   - 支援 Intro, Verse, Chorus, Interlude, Solo, Outro, Bridge, Pre-chorus
+   - 可選擇開始/結束小節
+   - 儲存顯示設置（每行小節數、線條粗細、字體大小）
+
+3. **顯示優化**
+   - 深色/淺色主題
+   - 手機版控制項（每行 1/2 小節、線條粗細 0.3-1.0、字體 12-20px）
+   - 六線譜線條固定 0.8，其他線條可調
+   - 隱藏 AlphaTab 水印
+
+4. **測試頁面**
+   - `/admin/test-gp-display` - 顏色控制測試
+   - `/admin/test-gp-player` - 播放功能測試
+   - `/admin/test-gp-upload` - 上傳功能測試
+
+#### 技術實現
+- 使用 `@coderline/alphatab` 函式庫
+- SVG 渲染引擎
+- 本地字體 `Bravura.woff2`
+- 範例檔案：`public/samples/幸福摩天輪.gp`
 
 ---
 

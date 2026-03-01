@@ -1,0 +1,253 @@
+import { useState, useRef, useEffect } from 'react';
+import * as AlphaTab from '@coderline/alphatab';
+import Layout from '../../components/Layout';
+
+/**
+ * 格仔編輯器 + AlphaTab 顯示
+ * 點擊格仔輸入，轉換為 AlphaTex 格式渲染
+ */
+export default function GridAlphaTabPage() {
+  const [measures, setMeasures] = useState([{
+    id: 1,
+    notes: []
+  }]);
+  const [selectedMeasure, setSelectedMeasure] = useState(0);
+  const [selectedBeat, setSelectedBeat] = useState(0);
+  const [selectedString, setSelectedString] = useState(0);
+  const [duration, setDuration] = useState(4); // 四分音符
+  const [timeSignature, setTimeSignature] = useState('4/4');
+  const [bpm, setBpm] = useState(120);
+  
+  const containerRef = useRef(null);
+  const apiRef = useRef(null);
+  
+  const strings = ['e', 'B', 'G', 'D', 'A', 'E'];
+  const beatsPerMeasure = parseInt(timeSignature.split('/')[0]);
+  
+  // 轉換為 AlphaTex
+  const generateAlphaTex = () => {
+    let tex = `\\tuning E4 B3 G3 D3 A2 E2\n`;
+    tex += `\\ts ${timeSignature}\n`;
+    tex += `\\tempo ${bpm}\n\n`;
+    
+    measures.forEach((measure, mi) => {
+      // 每條弦
+      for (let s = 0; s < 6; s++) {
+        tex += '|';
+        for (let b = 0; b < beatsPerMeasure; b++) {
+          const note = measure.notes.find(n => n.string === s && n.beatIndex === b);
+          if (note) {
+            // 根據時值決定佔位
+            const fretStr = note.fret.toString();
+            const minWidth = duration === 4 ? 2 : duration === 8 ? 1 : 0;
+            const width = Math.max(minWidth, fretStr.length);
+            tex += fretStr.padStart(width, '-');
+          } else {
+            tex += '--';
+          }
+        }
+        tex += '|\n';
+      }
+      tex += '\n';
+    });
+    
+    return tex;
+  };
+  
+  // 更新 AlphaTab
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const alphaTex = generateAlphaTex();
+    
+    if (!apiRef.current) {
+      const settings = {
+        core: { engine: 'svg', logLevel: 'warning' },
+        display: { width: 800, scale: 1.2, staveProfile: 'Tab' },
+        player: { enablePlayer: true, enableCursor: true }
+      };
+      apiRef.current = new AlphaTab.AlphaTabApi(containerRef.current, settings);
+    }
+    
+    try {
+      apiRef.current.tex(alphaTex);
+    } catch (e) {
+      console.error('Render error:', e);
+    }
+  }, [measures, timeSignature, bpm]);
+  
+  // 添加音符
+  const addNote = (measureIdx, beatIdx, stringIdx, fret) => {
+    setMeasures(prev => prev.map((m, mi) => {
+      if (mi !== measureIdx) return m;
+      const filtered = m.notes.filter(n => !(n.beatIndex === beatIdx && n.string === stringIdx));
+      return {
+        ...m,
+        notes: [...filtered, { string: stringIdx, fret, beatIndex: beatIdx, duration }]
+      };
+    }));
+  };
+  
+  // 鍵盤控制
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        addNote(selectedMeasure, selectedBeat, selectedString, parseInt(e.key));
+        // 前進
+        if (selectedBeat < beatsPerMeasure - 1) {
+          setSelectedBeat(b => b + 1);
+        }
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (selectedBeat < beatsPerMeasure - 1) setSelectedBeat(b => b + 1);
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (selectedBeat > 0) setSelectedBeat(b => b - 1);
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (selectedString > 0) setSelectedString(s => s - 1);
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (selectedString < 5) setSelectedString(s => s + 1);
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        apiRef.current?.play();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedMeasure, selectedBeat, selectedString, beatsPerMeasure]);
+  
+  return (
+    <Layout>
+      <div className="min-h-screen bg-black">
+        {/* Header */}
+        <div className="bg-[#121212] border-b border-gray-800">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-white">格仔編輯器 + AlphaTab</h1>
+                <p className="text-sm text-gray-400">點擊格仔輸入，AlphaTab 即時渲染</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => apiRef.current?.play()} className="px-4 py-2 bg-green-600 text-white rounded">
+                  ▶ 播放
+                </button>
+                <button onClick={() => apiRef.current?.pause()} className="px-4 py-2 bg-yellow-600 text-white rounded">
+                  ⏸ 暫停
+                </button>
+                <button onClick={() => window.history.back()} className="px-4 py-2 bg-[#282828] text-white rounded">
+                  返回
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* 左側：格仔編輯器 */}
+            <div className="space-y-4">
+              {/* 工具欄 */}
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1a1a1a] rounded-lg">
+                <select value={timeSignature} onChange={e => setTimeSignature(e.target.value)}
+                  className="bg-[#282828] text-white text-sm px-2 py-1 rounded">
+                  <option value="4/4">4/4</option>
+                  <option value="3/4">3/4</option>
+                </select>
+                <input type="number" value={bpm} onChange={e => setBpm(parseInt(e.target.value) || 120)}
+                  className="w-16 bg-[#282828] text-white text-sm px-2 py-1 rounded" />
+                <div className="flex bg-[#282828] rounded p-0.5">
+                  {[{v:4,l:'♩'},{v:8,l:'♪'},{v:16,l:'♬'}].map(d => (
+                    <button key={d.v} onClick={() => setDuration(d.v)}
+                      className={`px-2 py-1 text-sm rounded ${duration === d.v ? 'bg-[#FFD700] text-black' : 'text-gray-400'}`}>
+                      {d.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* 格仔網格 */}
+              <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                <div className="space-y-2">
+                  {/* 拍子編號 */}
+                  <div className="flex">
+                    <div className="w-8"></div>
+                    {Array.from({ length: beatsPerMeasure }).map((_, i) => (
+                      <div key={i} className={`flex-1 text-center text-xs ${
+                        selectedBeat === i ? 'text-[#FFD700] font-bold' : 'text-gray-600'
+                      }`}>{i + 1}</div>
+                    ))}
+                  </div>
+                  
+                  {/* 六條弦 */}
+                  {strings.map((sName, sIdx) => (
+                    <div key={sIdx} className="flex items-center">
+                      <span className={`w-8 text-right pr-2 font-bold ${
+                        selectedString === sIdx ? 'text-[#FFD700]' : 'text-gray-500'
+                      }`}>{sName}</span>
+                      <div className="flex-1 flex">
+                        {Array.from({ length: beatsPerMeasure }).map((_, bIdx) => {
+                          const note = measures[selectedMeasure]?.notes.find(
+                            n => n.string === sIdx && n.beatIndex === bIdx
+                          );
+                          const isCurrent = selectedBeat === bIdx && selectedString === sIdx;
+                          
+                          return (
+                            <button
+                              key={bIdx}
+                              onClick={() => {
+                                setSelectedBeat(bIdx);
+                                setSelectedString(sIdx);
+                              }}
+                              className={`flex-1 h-10 flex items-center justify-center text-lg font-bold border-r border-gray-800 last:border-r-0 ${
+                                isCurrent ? 'bg-[#FFD700]/20 ring-1 ring-[#FFD700]' : ''
+                              } ${note ? 'text-[#FFD700]' : 'text-gray-700'}`}
+                            >
+                              {note?.fret}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* 說明 */}
+              <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                <h2 className="text-sm font-bold text-white mb-2">快捷鍵</h2>
+                <div className="space-y-1 text-xs text-gray-400">
+                  <div className="flex justify-between"><span>數字 0-9</span><span className="text-white">輸入品數</span></div>
+                  <div className="flex justify-between"><span>方向鍵</span><span className="text-white">移動位置</span></div>
+                  <div className="flex justify-between"><span>Space</span><span className="text-white">播放</span></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* 右側：AlphaTab 渲染 */}
+            <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+              <h2 className="text-sm font-bold text-white mb-3">AlphaTab 渲染</h2>
+              <div ref={containerRef} className="min-h-[400px] bg-[#1a1a1a] rounded overflow-auto" />
+              
+              {/* 生成嘅 AlphaTex */}
+              <div className="mt-4">
+                <h3 className="text-xs font-bold text-gray-400 mb-2">生成嘅 AlphaTex</h3>
+                <pre className="text-xs text-[#FFD700] bg-[#1a1a1a] p-2 rounded overflow-auto font-mono h-32">
+                  {generateAlphaTex()}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}

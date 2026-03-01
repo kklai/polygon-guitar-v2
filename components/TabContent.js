@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { extractChords, ChordDiagramModal, SingleChordDiagram, ChordWithHover, ChordLineWithHover } from './ChordDiagram';
+import GpSegmentPlayer from './GpSegmentPlayer';
 
 // ============ 智能字體大小計算 ============
 // 根據內容長度計算合適的字體大小
@@ -270,6 +271,83 @@ function isSectionMarkerLine(line) {
   return SECTION_MARKERS.some(marker => 
     trimmed.toLowerCase().startsWith(marker.toLowerCase())
   );
+}
+
+// ========== 六線譜識別 ==========
+
+// 檢查是否為六線譜行
+function isGuitarTabLine(line) {
+  const trimmed = line.trim();
+  
+  // 標準六線譜格式: e|-----| B|-----|
+  const standardTab = /^(?:e|b|g|d|a|E|B|G|D|A|\d)[\|\-~\/\\bp\(\)\[\]x\d\s]+$/i;
+  
+  // 數字格式: -0--1--2--3--
+  const numberTab = /^[\|\-~\/\\\s]*\d+[\|\-~\/\\\s\dx]*$/;
+  
+  // 檢查是否包含大量連字符或數字（六線譜特徵）
+  const hasTabCharacteristics = (
+    (trimmed.match(/-/g) || []).length >= 3 ||
+    (trimmed.match(/\d/g) || []).length >= 2
+  ) && trimmed.length >= 5;
+  
+  return standardTab.test(trimmed) || (numberTab.test(trimmed) && hasTabCharacteristics);
+}
+
+// 識別六線譜段落
+function detectGuitarTabSection(lines, startIndex) {
+  const tabLines = [];
+  let i = startIndex;
+  
+  while (i < lines.length && tabLines.length < 10) {
+    const line = lines[i].trim();
+    
+    // 如果是六線譜行，加入
+    if (isGuitarTabLine(line)) {
+      tabLines.push({ line, index: i });
+      i++;
+    } else if (line === '' && tabLines.length > 0) {
+      // 空行結束段落
+      break;
+    } else if (tabLines.length > 0) {
+      // 已經開始收集六線譜，但遇到非六線譜行
+      break;
+    } else {
+      // 還沒開始收集，跳過這行
+      i++;
+    }
+  }
+  
+  // 需要至少 3 行才認為是有效的六線譜
+  if (tabLines.length >= 3) {
+    return {
+      isTabSection: true,
+      lines: tabLines.map(l => l.line),
+      endIndex: tabLines[tabLines.length - 1].index + 1
+    };
+  }
+  
+  return { isTabSection: false };
+}
+
+// 渲染六線譜為視覺化格式
+function renderGuitarTab(tabLines) {
+  // 確保最多 6 行
+  const lines = tabLines.slice(0, 6);
+  
+  return lines.map((line, index) => {
+    const stringNames = ['e', 'B', 'G', 'D', 'A', 'E'];
+    const stringName = stringNames[index] || '?';
+    
+    return (
+      <div key={index} className="font-mono text-sm whitespace-pre text-[#FFD700] leading-tight">
+        <span className="text-gray-500 w-4 inline-block">{stringName}</span>
+        <span className="text-gray-500">|</span>
+        <span>{line.replace(/^[eEbBgGdDaA]\|/, '').replace(/^\d+\|/, '')}</span>
+        <span className="text-gray-500">|</span>
+      </div>
+    );
+  });
 }
 
 // 提取 Section Marker 和其後的內容
@@ -1163,12 +1241,23 @@ const TabContent = ({
   // 編譜者名稱
   arrangedBy = '',
   // 顯示字體設定
-  displayFont = 'mono'
+  displayFont = 'mono',
+  // GP 段落
+  gpSegments = [],
+  // GP 顯示主題
+  gpTheme = 'dark',
+  // 外部控制的 showInfo（由父組件傳入，確保轉調時 YouTube 唔會閂）
+  showInfo: externalShowInfo,
+  setShowInfo: externalSetShowInfo
 }) => {
+  // 緩存 YouTube src，防止轉調時重新渲染 iframe
+  const youtubeSrc = useMemo(() => {
+    return youtubeVideoId ? `https://www.youtube.com/embed/${youtubeVideoId}?enablejsapi=1` : null;
+  }, [youtubeVideoId]);
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
   const [currentKey, setCurrentKey] = useState(initialKey || baseKey);
-  const [internalFontSize, setInternalFontSize] = useState(20);
+  const [internalFontSize, setInternalFontSize] = useState(18);
   const [internalIsAutoScroll, setInternalIsAutoScroll] = useState(false);
   const [internalScrollSpeed, setInternalScrollSpeed] = useState(3);
   const [isEditing, setIsEditing] = useState(false);
@@ -1207,7 +1296,7 @@ const TabContent = ({
     night: {
       bg: '#121212',
       text: '#FFFFFF',
-      lyricNormal: '#A0A0A0',
+      lyricNormal: '#FFFFFF',
       lyricInside: '#FFFFFF',
       chord: '#FFD700',
       sectionMarker: '#FFFFFF',
@@ -1218,7 +1307,7 @@ const TabContent = ({
     day: {
       bg: '#FFFFFF',
       text: '#000000',
-      lyricNormal: '#333333',
+      lyricNormal: '#000000',
       lyricInside: '#000000',
       chord: '#8B5CF6', // 紫色
       sectionMarker: '#000000',
@@ -1531,6 +1620,19 @@ const TabContent = ({
             </span>
           </div>
         );
+        
+        // 如果是 Intro，在其後插入 GP 段落
+        if (sectionCheck.marker.toLowerCase().includes('intro') && gpSegments && gpSegments.length > 0) {
+          const introSegment = gpSegments.find(seg => seg.type === 'intro');
+          if (introSegment) {
+            elements.push(
+              <div key={`${i}-gp-intro`} style={{ marginBottom: `${lineFontSize * 0.6}px` }}>
+                <GpSegmentPlayer segment={introSegment} theme={gpTheme} />
+              </div>
+            );
+          }
+        }
+        
         const restLine = sectionCheck.rest.trim();
         if (restLine) {
           const transposedRest = transposeChordLine(restLine, transposeSemitones);
@@ -1562,6 +1664,33 @@ const TabContent = ({
           </div>
         );
         i++;
+        continue;
+      }
+      
+      // ========== 檢查是否為六線譜段落 ==========
+      const tabSectionCheck = detectGuitarTabSection(lines, i);
+      if (tabSectionCheck.isTabSection) {
+        elements.push(
+          <div key={`${i}-tab`} style={{ 
+            marginBottom: `${lineFontSize * 0.8}px`,
+            padding: '12px 16px',
+            backgroundColor: theme === 'dark' ? '#1a1a1a' : '#f5f5f5',
+            borderRadius: '8px',
+            border: `1px solid ${theme === 'dark' ? '#333' : '#ddd'}`,
+            overflowX: 'auto'
+          }}>
+            <div style={{ 
+              fontSize: '12px', 
+              color: colors.comment,
+              marginBottom: '8px',
+              fontStyle: 'italic'
+            }}>
+              🎸 六線譜
+            </div>
+            {renderGuitarTab(tabSectionCheck.lines)}
+          </div>
+        );
+        i = tabSectionCheck.endIndex;
         continue;
       }
       
@@ -1657,7 +1786,7 @@ const TabContent = ({
             marginBottom: `${lineFontSize * 0.6}px`,
             whiteSpace: 'pre-wrap', 
             overflowWrap: 'break-word',
-            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
           }}>
             {notationParts.map((part, idx) => {
               // 處理隱藏括號：將括號替換為空格占位
@@ -1762,7 +1891,7 @@ const TabContent = ({
                           fontSize: `${notationFontSize}px`, 
                           whiteSpace: 'pre-wrap',
                           overflowWrap: 'break-word',
-                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                           color: colors.numericNotation,
                           display: 'flex',
                           flexWrap: 'wrap',
@@ -1811,7 +1940,7 @@ const TabContent = ({
                         marginBottom: '2px',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
                       }}>
                         {notationParts.map((part, idx) => {
                           // 處理隱藏括號：將括號替換為空格占位
@@ -1900,7 +2029,10 @@ const TabContent = ({
 
 
   const ControlBar = () => {
-    const [showInfo, setShowInfo] = useState(false);
+    // showInfo：優先使用外部傳入的值，否則內部管理
+    const [internalShowInfo, setInternalShowInfo] = useState(() => !!youtubeVideoId);
+    const showInfo = externalShowInfo !== undefined ? externalShowInfo : internalShowInfo;
+    const setShowInfo = externalSetShowInfo || setInternalShowInfo;
     const [showChordDiagram, setShowChordDiagram] = useState(false);
     
     // 提取本曲所有獨特和弦
@@ -1966,24 +2098,39 @@ const TabContent = ({
             )}
           </div>
 
-          {showInfo && (
-            <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
-              {youtubeVideoId && (
-                <div className="aspect-video w-full rounded-lg overflow-hidden">
-                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${youtubeVideoId}`} title="YouTube" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
-                </div>
-              )}
-              {hasSongInfo && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-gray-400">
-                  {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
-                  {songInfo.composer && <span>作曲：<span className="text-white">{songInfo.composer}</span></span>}
-                  {songInfo.lyricist && <span>填詞：<span className="text-white">{songInfo.lyricist}</span></span>}
-                  {songInfo.arranger && <span>編曲：<span className="text-white">{songInfo.arranger}</span></span>}
-                  {songInfo.producer && <span>監製：<span className="text-white">{songInfo.producer}</span></span>}
-                </div>
-              )}
-            </div>
-          )}
+          {/* YouTube 播放器 - 始終保持渲染，用 CSS 控制顯示，防止重新加載 */}
+          <div 
+            className="mt-3 pt-3 border-t border-gray-700 space-y-3 transition-all duration-500 overflow-hidden"
+            style={{ 
+              maxHeight: showInfo ? '600px' : '0',
+              opacity: showInfo ? 1 : 0,
+              paddingTop: showInfo ? '0.75rem' : '0',
+              visibility: showInfo ? 'visible' : 'hidden'
+            }}
+          >
+            {youtubeVideoId && (
+              <div className="aspect-video w-full rounded-lg overflow-hidden">
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  src={youtubeSrc} 
+                  title="YouTube" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+              </div>
+            )}
+            {hasSongInfo && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-gray-400">
+                {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
+                {songInfo.composer && <span>作曲：<span className="text-white">{songInfo.composer}</span></span>}
+                {songInfo.lyricist && <span>填詞：<span className="text-white">{songInfo.lyricist}</span></span>}
+                {songInfo.arranger && <span>編曲：<span className="text-white">{songInfo.arranger}</span></span>}
+                {songInfo.producer && <span>監製：<span className="text-white">{songInfo.producer}</span></span>}
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 text-xs md:text-base mt-3 whitespace-nowrap">
             <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
@@ -2077,7 +2224,7 @@ const TabContent = ({
     <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
-        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
+        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>
       </div>

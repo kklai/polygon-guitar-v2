@@ -1,15 +1,16 @@
 import '@/styles/globals.css'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import Head from 'next/head'
 import { siteConfig } from '@/lib/seo'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { recordPageView, getPageType } from '@/lib/analytics'
 
-export default function App({ Component, pageProps }) {
+// 頁面追蹤組件（在 AuthProvider 內部，可以獲取用戶ID）
+function PageTracker() {
   const router = useRouter()
+  const { user } = useAuth()
 
-  // 全站頁面瀏覽追蹤
   useEffect(() => {
     const handleRouteChange = (url) => {
       // 延遲一點執行，等待頁面標題更新
@@ -27,7 +28,7 @@ export default function App({ Component, pageProps }) {
           pageId = url.split('/')[2]
         }
 
-        recordPageView(pageType, pageId, pageTitle)
+        recordPageView(pageType, pageId, pageTitle, {}, user?.uid || null)
       }, 100)
     }
 
@@ -40,10 +41,15 @@ export default function App({ Component, pageProps }) {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange)
     }
-  }, [router])
+  }, [router, user])
 
+  return null
+}
+
+export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
+      <PageTracker />
       <Head>
         {/* 預設 Meta Tags */}
         <title>Polygon Guitar - 香港最大結他譜庫 | 3000+ 結他譜</title>

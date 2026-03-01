@@ -104,7 +104,7 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
       </div>
       
       {/* 3行一齊橫向滾動 */}
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 touch-pan-x">
         <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
           {columns.map((column, colIndex) => (
             <div key={colIndex} className="flex flex-col gap-4">
@@ -259,16 +259,11 @@ export default function Artists() {
           }}
         />
       </Head>
-      <Layout>
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="text-center sm:text-left">
-            <h1 className="text-3xl font-bold text-white mb-2">歌手分類</h1>
-            <p className="text-[#B3B3B3]">
-              按歌手類型瀏覽結他譜
-            </p>
-          </div>
-
+      <Layout fullWidth>
+        <div 
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6" 
+          style={{ paddingTop: '24px' }}  // 覆蓋 Layout 的 pt-20
+        >
           {/* Search */}
           <div className="px-4 -mx-4">
             <div className="relative">

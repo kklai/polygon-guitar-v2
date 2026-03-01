@@ -237,13 +237,13 @@ const CHORD_SHAPES = {
     name: 'Bm',
     mute: [6]
   },
-  // B7: x21202
+  // B7: x21202 - 第2弦空弦，中指按3弦1品，無名指按5弦2品，小指按4弦2品，食指按1弦2品
   'B7': { 
-    fingers: [[2, 2], [3, 1], [4, 2], [5, 2]], 
+    fingers: [[1, 2], [3, 1], [4, 2], [5, 2]], 
     barre: null, 
     name: 'B7',
     mute: [6],
-    open: [1]
+    open: [2]
   },
   // Bmaj7: x24342
   'Bmaj7': { 
@@ -269,14 +269,14 @@ const CHORD_SHAPES = {
   'Eb': { fingers: [[2, 8], [3, 8], [4, 8]], barre: { fret: 6, from: 1, to: 5 }, name: 'Eb', mute: [6] },
   // Ebm: x68876
   'Ebm': { fingers: [[2, 7], [3, 8], [4, 8]], barre: { fret: 6, from: 1, to: 5 }, name: 'Ebm', mute: [6] },
-  // F#: 244322
-  'F#': { fingers: [[2, 2], [3, 3], [4, 4]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#' },
-  // F#m: 244222
-  'F#m': { fingers: [[2, 2], [3, 2], [4, 4]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#m' },
-  // G#: 466544
-  'G#': { fingers: [[2, 4], [3, 5], [4, 6]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#' },
-  // G#m: 466444
-  'G#m': { fingers: [[2, 4], [4, 6]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#m' },
+  // F#: 244322 - 食指橫按2品，中指按3弦3品，無名指按5弦4品，小指按4弦4品
+  'F#': { fingers: [[3, 3], [4, 4], [5, 4]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#' },
+  // F#m: 244222 - 食指橫按2品，無名指按4弦4品，小指按5弦4品
+  'F#m': { fingers: [[4, 4], [5, 4]], barre: { fret: 2, from: 1, to: 6 }, name: 'F#m' },
+  // G#: 466544 - 食指橫按4品，中指按3弦5品，無名指按5弦6品，小指按4弦6品
+  'G#': { fingers: [[3, 5], [4, 6], [5, 6]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#' },
+  // G#m: 466444 - 食指橫按4品，無名指按4弦6品，小指按5弦6品
+  'G#m': { fingers: [[4, 6], [5, 6]], barre: { fret: 4, from: 1, to: 6 }, name: 'G#m' },
   // Bb: x13331
   'Bb': { fingers: [[2, 3], [3, 3], [4, 3]], barre: { fret: 1, from: 1, to: 5 }, name: 'Bb', mute: [6] },
   // Bbm: x13321

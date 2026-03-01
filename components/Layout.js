@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -133,7 +134,7 @@ export default function Layout({ children, fullWidth = false }) {
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 md:hidden">
         <div className="flex justify-around items-center h-16">
           {mobileNavItems.map((item) => (
-            <a 
+            <Link 
               key={item.path}
               href={item.path}
               className={`flex flex-col items-center transition ${
@@ -148,7 +149,7 @@ export default function Layout({ children, fullWidth = false }) {
                 className={`w-6 h-6 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`}
               />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
-            </a>
+            </Link>
           ))}
         </div>
       </nav>
@@ -158,7 +159,7 @@ export default function Layout({ children, fullWidth = false }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-around items-center h-16">
             {desktopNavItems.map((item) => (
-              <a 
+              <Link 
                 key={item.path}
                 href={item.path}
                 className={`flex flex-col items-center transition ${
@@ -173,7 +174,7 @@ export default function Layout({ children, fullWidth = false }) {
                   className={`w-6 h-6 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`}
                 />
                 <span className="text-xs mt-1 font-medium">{item.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

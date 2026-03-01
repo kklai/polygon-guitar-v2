@@ -84,6 +84,40 @@ export default function PublicProfile() {
       }
 
       setProfile(userData)
+      
+      // 載入最近瀏覽的譜（如果有 userId 記錄）
+      if (currentUser?.uid === id) {
+        const viewsQuery = query(
+          collection(db, 'pageViews'),
+          where('userId', '==', id),
+          where('pageType', '==', 'tab'),
+          orderBy('timestamp', 'desc'),
+          limit(5)
+        )
+        try {
+          const viewsSnapshot = await getDocs(viewsQuery)
+          const recentTabIds = viewsSnapshot.docs
+            .map(doc => doc.data().pageId)
+            .filter((v, i, a) => a.indexOf(v) === i) // 去重
+            .slice(0, 5)
+          
+          // 載入譜詳情
+          if (recentTabIds.length > 0) {
+            const recentTabs = []
+            for (const tabId of recentTabIds) {
+              if (tabId) {
+                const tabDoc = await getDoc(doc(db, 'songs', tabId))
+                if (tabDoc.exists()) {
+                  recentTabs.push({ id: tabDoc.id, ...tabDoc.data() })
+                }
+              }
+            }
+            setRecentlyViewed(recentTabs)
+          }
+        } catch (e) {
+          console.log('No recent views available')
+        }
+      }
 
       // 載入上傳的樂譜
       if (userData.showUploads !== false) {
@@ -172,6 +206,9 @@ export default function PublicProfile() {
               />
               <div className="mt-4 md:mt-0 md:ml-4 text-center md:text-left flex-1">
                 <h1 className="text-2xl font-bold text-white">{profile.displayName || '未命名用戶'}</h1>
+                {profile.penName && (
+                  <p className="text-[#FFD700] text-sm">✏️ 編譜筆名：{profile.penName}</p>
+                )}
                 <p className="text-gray-400 text-sm">{profile.email}</p>
               </div>
               {isOwnProfile && (
@@ -345,8 +382,20 @@ export default function PublicProfile() {
           </div>
         )}
 
+        {/* 最近瀏覽（只有本人看到） */}
+        {isOwnProfile && recentlyViewed.length > 0 && (
+          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+            <h2 className="text-lg font-medium text-white mb-4">👁️ 最近瀏覽</h2>
+            <div className="grid grid-cols-1 gap-3">
+              {recentlyViewed.map(tab => (
+                <TabCard key={tab.id} tab={tab} compact />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
-        {!currentlyPracticing && uploads.length === 0 && playlists.length === 0 && (
+        {!currentlyPracticing && uploads.length === 0 && playlists.length === 0 && recentlyViewed.length === 0 && (
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-12 text-center">
             <p className="text-gray-400">此用戶暫時沒有公開內容</p>
           </div>
