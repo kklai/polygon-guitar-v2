@@ -136,8 +136,14 @@ export default function GpSegmentPlayer({ segment }) {
       * { stroke-width: 0.15 !important; }
       line, path { stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
       text, tspan { fill: ${COLORS.fretNumberColor} !important; }
-      circle { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
+      circle { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
       rect { stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
+      
+      /* Chord diagram grid - force white */
+      g > line { stroke: ${COLORS.chordDiagramColor} !important; }
+      
+      /* Chord diagram dots - larger */
+      g > circle { r: 6px !important; }
     `
 
     // 1. 修改所有 text/tspan 元素 - 更全面的邏輯
