@@ -171,7 +171,7 @@ export default function NewTab() {
     content: true,
     gpSegments: false, // GP 段落默認收起
     uploader: true,
-    cover: false
+    cover: true // 封面圖片默認展開，方便用戶選擇歌手相片
   })
   
   // 區塊排序
@@ -587,6 +587,21 @@ E|----------------------------------------------------------------|
             </select>
           )}
         </div>
+        
+        {/* 歌手相片預覽 */}
+        {formData.artistPhoto && (
+          <div className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800">
+            <img 
+              src={formData.artistPhoto} 
+              alt="歌手相片"
+              className="w-12 h-12 rounded-full object-cover"
+            />
+            <div className="flex-1">
+              <p className="text-sm text-white">歌手相片</p>
+              <p className="text-xs text-gray-500">可在「封面圖片設定」選擇使用</p>
+            </div>
+          </div>
+        )}
         
         {/* 歌曲資訊網格 */}
         <div className="grid grid-cols-2 gap-3">
