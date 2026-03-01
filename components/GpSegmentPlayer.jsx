@@ -125,7 +125,7 @@ export default function GpSegmentPlayer({ segment }) {
     const svg = containerRef.current.querySelector('svg')
     if (!svg) return
 
-    // 0. 先注入強制 CSS 樣式到 SVG
+    // 0. 先注入強制 CSS 樣式到 SVG - 線條改為 0.15 更幼
     let styleEl = svg.querySelector('style[data-fix]')
     if (!styleEl) {
       styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style')
@@ -133,11 +133,11 @@ export default function GpSegmentPlayer({ segment }) {
       svg.insertBefore(styleEl, svg.firstChild)
     }
     styleEl.textContent = `
-      * { stroke-width: 0.3 !important; }
-      line, path { stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.3 !important; }
+      * { stroke-width: 0.15 !important; }
+      line, path { stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
       text, tspan { fill: ${COLORS.fretNumberColor} !important; }
-      circle { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.3 !important; }
-      rect { stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.3 !important; }
+      circle { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
+      rect { stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
     `
 
     // 1. 修改所有 text/tspan 元素 - 更全面的邏輯
@@ -198,34 +198,26 @@ export default function GpSegmentPlayer({ segment }) {
       text.style.color = fillColor
     })
     
-    // 2. 修改所有 line 元素 - 極細線條
+    // 2. 修改所有 line 元素 - 更幼線條 0.15，強制白色
     const lines = svg.querySelectorAll('line')
     lines.forEach(line => {
       line.setAttribute('stroke', COLORS.staffLineColor)
-      line.setAttribute('stroke-width', '0.3')
+      line.setAttribute('stroke-width', '0.15')
       line.style.stroke = COLORS.staffLineColor
-      line.style.strokeWidth = '0.3'
+      line.style.strokeWidth = '0.15'
     })
     
-    // 3. 修改所有 path 元素
+    // 3. 修改所有 path 元素 - 強制白色，更幼 0.15
     const paths = svg.querySelectorAll('path')
     paths.forEach(path => {
       const d = path.getAttribute('d') || ''
       const hasFill = path.getAttribute('fill') && path.getAttribute('fill') !== 'none'
       
-      // 判斷是否為和弦圖線條（簡單的直線）
-      const isChordLine = d.match(/^[ML\s\d.-]+$/) && !d.includes('C')
-      
-      if (isChordLine) {
-        path.setAttribute('stroke', COLORS.chordDiagramColor)
-        path.style.stroke = COLORS.chordDiagramColor
-      } else {
-        path.setAttribute('stroke', COLORS.barSeparatorColor)
-        path.style.stroke = COLORS.barSeparatorColor
-      }
-      
-      path.setAttribute('stroke-width', '0.3')
-      path.style.strokeWidth = '0.3'
+      // 所有 path 都使用白色（譜線、小節線等）
+      path.setAttribute('stroke', COLORS.staffLineColor)
+      path.style.stroke = COLORS.staffLineColor
+      path.setAttribute('stroke-width', '0.15')
+      path.style.strokeWidth = '0.15'
       
       if (hasFill) {
         path.setAttribute('fill', COLORS.chordDiagramFretColor)
@@ -233,13 +225,13 @@ export default function GpSegmentPlayer({ segment }) {
       }
     })
     
-    // 4. 修改 rect 元素（和弦圖格子）
+    // 4. 修改 rect 元素（和弦圖格子）- 更幼線條
     const rects = svg.querySelectorAll('rect')
     rects.forEach(rect => {
-      rect.setAttribute('stroke', COLORS.chordDiagramColor)
-      rect.setAttribute('stroke-width', '0.3')
-      rect.style.stroke = COLORS.chordDiagramColor
-      rect.style.strokeWidth = '0.3'
+      rect.setAttribute('stroke', COLORS.staffLineColor)
+      rect.setAttribute('stroke-width', '0.15')
+      rect.style.stroke = COLORS.staffLineColor
+      rect.style.strokeWidth = '0.15'
       
       const hasFill = rect.getAttribute('fill') && rect.getAttribute('fill') !== 'none'
       if (hasFill) {
@@ -248,24 +240,28 @@ export default function GpSegmentPlayer({ segment }) {
       }
     })
     
-    // 5. 修改 circle 元素（和弦圖上的點）
+    // 5. 修改 circle 元素（和弦圖上的點）- 大一倍，更幼邊框
     const circles = svg.querySelectorAll('circle')
     circles.forEach(circle => {
+      // 半徑大一倍
+      const currentR = parseFloat(circle.getAttribute('r') || '3')
+      circle.setAttribute('r', (currentR * 2).toString())
+      
       circle.setAttribute('fill', COLORS.chordDiagramFretColor)
-      circle.setAttribute('stroke', COLORS.chordDiagramColor)
-      circle.setAttribute('stroke-width', '0.3')
+      circle.setAttribute('stroke', COLORS.staffLineColor)
+      circle.setAttribute('stroke-width', '0.15')
       circle.style.fill = COLORS.chordDiagramFretColor
-      circle.style.stroke = COLORS.chordDiagramColor
-      circle.style.strokeWidth = '0.3'
+      circle.style.stroke = COLORS.staffLineColor
+      circle.style.strokeWidth = '0.15'
     })
     
     // 6. 修改 ellipse 元素（如果有）
     const ellipses = svg.querySelectorAll('ellipse')
     ellipses.forEach(ellipse => {
       ellipse.setAttribute('stroke', COLORS.staffLineColor)
-      ellipse.setAttribute('stroke-width', '0.3')
+      ellipse.setAttribute('stroke-width', '0.15')
       ellipse.style.stroke = COLORS.staffLineColor
-      ellipse.style.strokeWidth = '0.3'
+      ellipse.style.strokeWidth = '0.15'
     })
   }
   
