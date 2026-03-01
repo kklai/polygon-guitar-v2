@@ -1953,7 +1953,7 @@ const TabContent = ({
                         lineHeight: '1.1',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace'
+                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "Source Code Pro Light, Noto Sans Mono CJK TC, Sarasa Mono TC, Consolas, Courier New, monospace"
                       }}>
                         {notationParts.map((part, idx) => {
                           // 處理隱藏括號：將括號替換為空格占位
