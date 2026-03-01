@@ -1511,7 +1511,8 @@ const TabContent = ({
                   textDecoration: 'underline',
                   textUnderlineOffset: '4px',
                   color: colors.lyricInside,
-                  fontFamily: "Source Code Pro Light, Noto Sans Mono CJK TC, Sarasa Mono TC, Consolas, Courier New, monospace"
+                  fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', Consolas, 'Courier New', monospace",
+                  fontWeight: 300
                 }}>
                   {sectionCheck.marker}
                   {sectionCheck.rest && (
@@ -1627,7 +1628,8 @@ const TabContent = ({
               fontWeight: 'bold', 
               textDecoration: 'underline', 
               textUnderlineOffset: '4px',
-              fontFamily: "Source Code Pro Light, Noto Sans Mono CJK TC, Sarasa Mono TC, Consolas, Courier New, monospace"
+              fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', Consolas, 'Courier New', monospace",
+              fontWeight: 300
             }}>
               {sectionCheck.marker}
             </span>
