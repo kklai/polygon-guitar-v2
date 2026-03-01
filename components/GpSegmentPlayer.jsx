@@ -137,13 +137,16 @@ export default function GpSegmentPlayer({ segment }) {
       line, path { stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
       text, tspan { fill: ${COLORS.fretNumberColor} !important; }
       circle { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
-      rect { stroke: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
+      rect { stroke: ${COLORS.chordDiagramColor} !important; fill: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
       
       /* Chord diagram grid - force white */
       g > line { stroke: ${COLORS.chordDiagramColor} !important; }
       
       /* Chord diagram dots - larger */
       g > circle { r: 6px !important; }
+      
+      /* Beat bars (rect) - white */
+      rect[fill="#000000"], rect[fill="black"] { fill: ${COLORS.chordDiagramColor} !important; }
     `
 
     // 1. 修改所有 text/tspan 元素 - 更全面的邏輯
@@ -241,19 +244,25 @@ export default function GpSegmentPlayer({ segment }) {
       }
     })
     
-    // 4. 修改 rect 元素（和弦圖格子）- 白色線條，更幼
+    // 4. 修改 rect 元素（和弦圖格子/拍子線）- 白色，更幼
     const rects = svg.querySelectorAll('rect')
     rects.forEach(rect => {
+      const currentFill = rect.getAttribute('fill')
+      
+      // 如果是黑色填充的 rect（拍子線），改為白色
+      if (currentFill === '#000000' || currentFill === 'black') {
+        rect.setAttribute('fill', COLORS.chordDiagramColor)
+        rect.style.fill = COLORS.chordDiagramColor
+      } else if (currentFill && currentFill !== 'none') {
+        // 其他有填充的改為黃色
+        rect.setAttribute('fill', COLORS.chordDiagramFretColor)
+        rect.style.fill = COLORS.chordDiagramFretColor
+      }
+      
       rect.setAttribute('stroke', COLORS.chordDiagramColor)
       rect.setAttribute('stroke-width', '0.15')
       rect.style.stroke = COLORS.chordDiagramColor
       rect.style.strokeWidth = '0.15'
-      
-      const hasFill = rect.getAttribute('fill') && rect.getAttribute('fill') !== 'none'
-      if (hasFill) {
-        rect.setAttribute('fill', COLORS.chordDiagramFretColor)
-        rect.style.fill = COLORS.chordDiagramFretColor
-      }
     })
     
     // 5. 修改 circle 元素（和弦圖上的點）- 大一倍，更幼邊框
