@@ -2,12 +2,14 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import { getGlobalSettings } from '@/lib/tabs'
+import { useRouter } from 'next/router'
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, isAdmin } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [logoUrl, setLogoUrl] = useState(null)
   const [siteName, setSiteName] = useState('Polygon Guitar')
+  const router = useRouter()
 
   // 載入 Logo 設定
   useEffect(() => {
@@ -169,49 +171,61 @@ export default function Navbar() {
             >
               歌手分類
             </Link>
+            <Link 
+              href="/tab-requests" 
+              className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              求譜區
+            </Link>
             {isAuthenticated && (
+              <>
+                <Link 
+                  href="/tabs/new" 
+                  className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  上傳譜
+                </Link>
+                <Link 
+                  href={`/profile/${user.uid}`}
+                  className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  我的主頁
+                </Link>
+              </>
+            )}
+            {/* Admin 選項 */}
+            {isAdmin && (
               <Link 
-                href="/tabs/new" 
-                className="block text-[#FFD700] font-medium px-3 py-2"
+                href="/admin" 
+                className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium border-t border-yellow-600 mt-2 pt-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                上傳譜
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  管理後台
+                </span>
               </Link>
             )}
             {isAuthenticated ? (
-              <>
-                <Link 
-                  href={`/profile/${user.uid}`}
-                  className="flex items-center space-x-2 px-3 py-2 hover:bg-yellow-400/20 rounded-md"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {user.photoURL && (
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-8 h-8 rounded-full border-2 border-[#FFD700]"
-                    />
-                  )}
-                  <span className="text-black font-medium">
-                    我的主頁
-                  </span>
-                </Link>
-                <button
-                  onClick={() => {
-                    handleLogout()
-                    setIsMenuOpen(false)
-                  }}
-                  className="block w-full text-left text-black/70 hover:text-black font-medium px-3 py-2"
-                >
-                  登出
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  handleLogout()
+                  setIsMenuOpen(false)
+                }}
+                className="block w-full text-left text-black/70 hover:text-black font-medium px-3 py-2 border-t border-yellow-600 mt-2 pt-2"
+              >
+                登出
+              </button>
             ) : (
               <Link 
                 href="/login" 
-                className="block text-[#FFD700] font-medium px-3 py-2"
+                className="block text-black font-bold px-3 py-2 border-t border-yellow-600 mt-2 pt-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 登入
