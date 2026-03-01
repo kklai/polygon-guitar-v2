@@ -147,6 +147,9 @@ export default function GpSegmentPlayer({ segment }) {
       
       /* Beat bars (rect) - white */
       rect[fill="#000000"], rect[fill="black"] { fill: ${COLORS.chordDiagramColor} !important; }
+      
+      /* Beat bars (path with fill) - white */
+      path[style*="stroke: none"], path[stroke="none"] { fill: ${COLORS.chordDiagramColor} !important; }
     `
 
     // 1. 修改所有 text/tspan 元素 - 更全面的邏輯
@@ -239,8 +242,9 @@ export default function GpSegmentPlayer({ segment }) {
       path.style.strokeWidth = '0.15'
       
       if (hasFill) {
-        path.setAttribute('fill', COLORS.chordDiagramFretColor)
-        path.style.fill = COLORS.chordDiagramFretColor
+        // 有 fill 的 path（如拍子線）應該白色
+        path.setAttribute('fill', COLORS.chordDiagramColor)
+        path.style.fill = COLORS.chordDiagramColor
       }
     })
     
