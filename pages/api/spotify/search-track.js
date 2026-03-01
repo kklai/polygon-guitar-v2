@@ -65,13 +65,15 @@ export default async function handler(req, res) {
       })
     }
     
-    // 搜尋歌曲 - 如果有 title 同 artist 分開，用精確搜尋；否則用寬鬆搜尋
+    // 搜尋歌曲 - 返回多個結果（最多 5 個）
     const searchQuery = title && artist 
       ? `track:${title} artist:${artist}`
       : q
     
+    console.log('Spotify search query:', searchQuery)
+    
     const searchResponse = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=1`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`,
       {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
       }
@@ -86,52 +88,70 @@ export default async function handler(req, res) {
       })
     }
     
-    const track = searchData.tracks?.items?.[0]
+    const tracks = searchData.tracks?.items || []
     
-    if (!track) {
+    if (tracks.length === 0) {
       // 嘗試更寬鬆的搜尋
       const looseQuery = q || `${title} ${artist}`
+      console.log('Trying loose search:', looseQuery)
+      
       const looseSearchResponse = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(looseQuery)}&type=track&limit=3`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(looseQuery)}&type=track&limit=5`,
         {
           headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
         }
       )
       
       const looseData = await looseSearchResponse.json()
-      const looseTrack = looseData.tracks?.items?.[0]
+      const looseTracks = looseData.tracks?.items || []
       
-      if (!looseTrack) {
+      if (looseTracks.length === 0) {
         return res.status(404).json({ error: 'Track not found' })
       }
       
-      return res.status(200).json({
-        track: {
-          id: looseTrack.id,
-          name: looseTrack.name,
-          artists: looseTrack.artists.map(a => ({ name: a.name })),
-          album: {
-            name: looseTrack.album?.name,
-            images: looseTrack.album?.images
-          }
-        }
-      })
+      // 轉換格式並返回
+      const results = looseTracks.map(track => formatTrackData(track))
+      return res.status(200).json({ results })
     }
     
-    return res.status(200).json({
-      track: {
-        id: track.id,
-        name: track.name,
-        artists: track.artists.map(a => ({ name: a.name })),
-        album: {
-          name: track.album?.name,
-          images: track.album?.images
-        }
-      }
-    })
+    // 轉換格式並返回
+    const results = tracks.map(track => formatTrackData(track))
+    return res.status(200).json({ results })
     
   } catch (error) {
     console.error('Error:', error)
     return res.status(500).json({ error: error.message })
+  }
+}
+
+// 將 Spotify track 數據轉換為前端期望的格式
+function formatTrackData(track) {
+  // 從專輯圖片中選擇合適的尺寸
+  const images = track.album?.images || []
+  const albumImage = images[0]?.url || '' // 最大圖
+  const thumbnail = images[images.length - 1]?.url || '' // 最小圖
+  
+  // 從專輯發行日期提取年份
+  const releaseDate = track.album?.release_date || ''
+  const releaseYear = releaseDate ? releaseDate.split('-')[0] : ''
+  
+  // 獲取第一個歌手的 ID
+  const firstArtist = track.artists?.[0]
+  
+  return {
+    id: track.id,
+    name: track.name,
+    artist: firstArtist?.name || '',
+    artists: track.artists?.map(a => ({ name: a.name, id: a.id })) || [],
+    album: track.album?.name || '',
+    albumId: track.album?.id || '',
+    artistId: firstArtist?.id || '',
+    albumImage: albumImage,
+    thumbnail: thumbnail || albumImage,
+    duration: track.duration_ms || 0,
+    releaseYear: releaseYear,
+    popularity: track.popularity || 0,
+    previewUrl: track.preview_url || null,
+    spotifyUrl: track.external_urls?.spotify || `https://open.spotify.com/track/${track.id}`
   }
 }
