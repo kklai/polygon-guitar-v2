@@ -3,12 +3,12 @@
 export default async function handler(req, res) {
   console.log('=== Spotify Track Search API called ===')
   
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
   
   try {
-    const { q, artist } = req.query
+    const { q, artist } = req.method === 'POST' ? req.body : req.query
     console.log('Query:', q, 'Artist:', artist)
     
     if (!q || !artist) {

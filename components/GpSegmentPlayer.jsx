@@ -134,12 +134,19 @@ export default function GpSegmentPlayer({ segment }) {
     }
     styleEl.textContent = `
       * { stroke-width: 0.15 !important; }
-      line, path { stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
+      
+      /* Lines - white */
+      line { stroke: ${COLORS.staffLineColor} !important; }
+      
+      /* Paths without fill - white; with fill - yellow (barre chords) */
+      path:not([fill]) { stroke: ${COLORS.staffLineColor} !important; }
+      path[fill] { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.chordDiagramFretColor} !important; }
+      
       text, tspan { fill: ${COLORS.fretNumberColor} !important; }
       circle { fill: ${COLORS.chordDiagramFretColor} !important; stroke: ${COLORS.staffLineColor} !important; stroke-width: 0.15 !important; }
       rect { stroke: ${COLORS.chordDiagramColor} !important; fill: ${COLORS.chordDiagramColor} !important; stroke-width: 0.15 !important; }
       
-      /* Chord diagram grid - force white */
+      /* Chord diagram grid - white */
       g > line { stroke: ${COLORS.chordDiagramColor} !important; }
       
       /* Chord diagram dots - larger */
@@ -148,10 +155,7 @@ export default function GpSegmentPlayer({ segment }) {
       /* Beat bars (rect) - white */
       rect[fill="#000000"], rect[fill="black"] { fill: ${COLORS.chordDiagramColor} !important; }
       
-      /* Beat bars (path with fill) - white */
-      path[style*="stroke: none"], path[stroke="none"] { fill: ${COLORS.chordDiagramColor} !important; }
-      
-      /* Watermark - dark gray and subtle */
+      /* Watermark - dark gray */
       text:contains("alphaTab"), text:contains("rendered") { fill: #666666 !important; opacity: 0.5 !important; }
     `
 
@@ -224,32 +228,34 @@ export default function GpSegmentPlayer({ segment }) {
       line.style.strokeWidth = '0.15'
     })
     
-    // 3. 修改所有 path 元素 - 強制白色，更幼 0.15
+    // 3. 修改所有 path 元素
     const paths = svg.querySelectorAll('path')
     paths.forEach(path => {
       const d = path.getAttribute('d') || ''
-      const hasFill = path.getAttribute('fill') && path.getAttribute('fill') !== 'none'
+      const currentFill = path.getAttribute('fill')
+      const hasFill = currentFill && currentFill !== 'none'
       
-      // 判斷是否為和弦圖線條（簡單的直線，冇曲線）
-      const isChordLine = d.match(/^[ML\s\d.-]+$/) && !d.includes('C')
+      // 判斷是否為和弦圖線條（簡單的直線，冇曲線，冇 fill）
+      const isChordLine = !hasFill && d.match(/^[ML\s\d.-]+$/) && !d.includes('C')
       
       if (isChordLine) {
-        // 和弦圖線條用白色
+        // 和弦圖格仔線用白色
         path.setAttribute('stroke', COLORS.chordDiagramColor)
         path.style.stroke = COLORS.chordDiagramColor
+        path.setAttribute('stroke-width', '0.15')
+        path.style.strokeWidth = '0.15'
+      } else if (hasFill) {
+        // 有 fill 的 path（barre chord 條 bar）用黃色
+        path.setAttribute('fill', COLORS.chordDiagramFretColor)
+        path.style.fill = COLORS.chordDiagramFretColor
+        path.setAttribute('stroke', COLORS.chordDiagramFretColor)
+        path.style.stroke = COLORS.chordDiagramFretColor
       } else {
-        // 其他 path 用白色
+        // 其他 path（如譜線）用白色
         path.setAttribute('stroke', COLORS.staffLineColor)
         path.style.stroke = COLORS.staffLineColor
-      }
-      
-      path.setAttribute('stroke-width', '0.15')
-      path.style.strokeWidth = '0.15'
-      
-      if (hasFill) {
-        // 有 fill 的 path（如拍子線）應該白色
-        path.setAttribute('fill', COLORS.chordDiagramColor)
-        path.style.fill = COLORS.chordDiagramColor
+        path.setAttribute('stroke-width', '0.15')
+        path.style.strokeWidth = '0.15'
       }
     })
     
