@@ -523,8 +523,9 @@ function isNumericNotationLine(line) {
 // 從簡譜行提取所有音符（支持 1', 5#, 6, 7, 等格式，逗號表示低音）
 function extractNotationNumbers(line) {
   const numbers = [];
-  // 匹配完整簡譜音符：數字 + 可選的 ' 或 # 或 ,（高音/升號/低音）
-  const regex = /\d['#,]*/g;
+  // 匹配完整簡譜音符：數字 + 可選的一個修飾符 ' 或 # 或 ,（高音/升號/低音）
+  // 使用 ? 而不是 *，避免 2'1' 被當作一個音符
+  const regex = /\d['#,]?/g;
   let match;
   while ((match = regex.exec(line)) !== null) {
     numbers.push({
@@ -1885,10 +1886,15 @@ const TabContent = ({
                   // 嘗試對齊簡譜與歌詞
                   const aligned = alignNotationWithLyrics(notationLine, lyricLine);
                   
+                  // 檢查是否有實際歌詞（非簡譜行）
+                  const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
+                  // 沒有歌詞時，簡譜緊貼和弦；有歌詞時，簡譜和歌詞之間留 2px 間距
+                  const notationMarginBottom = hasRealLyric ? '2px' : '0em';
+                  
                   if (aligned) {
                     // 對齊模式：簡譜數字對應歌詞括號
                     return (
-                      <div key={index} style={{ marginBottom: '2px' }}>
+                      <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1' }}>
                         {/* 簡譜行 */}
                         <div style={{ 
                           fontSize: `${notationFontSize}px`, 
@@ -1937,13 +1943,17 @@ const TabContent = ({
                   } else {
                     // 普通模式：直接渲染簡譜
                     const notationParts = processNumericNotationLine(notationLine);
+                    // 檢查是否有實際歌詞
+                    const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
+                    const notationMarginBottom = hasRealLyric ? '2px' : '0em';
                     return (
                       <div key={index} style={{ 
                         fontSize: `${notationFontSize}px`, 
-                        marginBottom: '2px',
+                        marginBottom: notationMarginBottom,
+                        lineHeight: '1.1',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace'
                       }}>
                         {notationParts.map((part, idx) => {
                           // 處理隱藏括號：將括號替換為空格占位
