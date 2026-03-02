@@ -195,7 +195,7 @@ export default function TabDetail() {
     }
     try {
       const result = await toggleLikeSong(user.uid, tab.id);
-      alert(result.liked ? '已加到最喜愛 ❤️' : '已取消最喜愛');
+      alert(result.isLiked ? '已加到最喜愛 ❤️' : '已取消最喜愛');
       setShowActionMenu(false);
     } catch (error) {
       alert('操作失敗：' + error.message);
@@ -464,7 +464,7 @@ export default function TabDetail() {
         {showActionMenu && (
           <>
             <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionMenu(false)} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 animate-slide-up">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 animate-slide-up">
               <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
               
               <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
@@ -509,7 +509,7 @@ export default function TabDetail() {
                 setShowCreatePlaylistInput(false);
                 setNewPlaylistName('');
               }} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 max-h-[70vh] overflow-y-auto">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 max-h-[70vh] overflow-y-auto">
               <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
               <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
               

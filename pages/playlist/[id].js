@@ -626,7 +626,7 @@ export default function PlaylistDetail() {
               className="fixed inset-0 bg-black/60 z-50" 
               onClick={() => setShowActionModal(false)} 
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24">
               <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
               
               {selectedSong && (
@@ -676,7 +676,7 @@ export default function PlaylistDetail() {
                 setNewPlaylistName('')
               }} 
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 max-h-[70vh] overflow-y-auto">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 max-h-[70vh] overflow-y-auto">
               <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
               <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
               
