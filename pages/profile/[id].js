@@ -107,7 +107,7 @@ export default function PublicProfile() {
             const recentTabs = []
             for (const tabId of recentTabIds) {
               if (tabId) {
-                const tabDoc = await getDoc(doc(db, 'songs', tabId))
+                const tabDoc = await getDoc(doc(db, 'tabs', tabId))
                 if (tabDoc.exists()) {
                   recentTabs.push({ id: tabDoc.id, ...tabDoc.data() })
                 }
@@ -123,7 +123,7 @@ export default function PublicProfile() {
       // 載入上傳的樂譜
       if (userData.showUploads !== false) {
         const tabsQuery = query(
-          collection(db, 'songs'),
+          collection(db, 'tabs'),
           where('uploaderId', '==', id),
           orderBy('createdAt', 'desc'),
           limit(10)
@@ -146,7 +146,7 @@ export default function PublicProfile() {
 
       // 載入「正在練習」
       if (userData.currentlyPracticing) {
-        const tabDoc = await getDoc(doc(db, 'songs', userData.currentlyPracticing))
+        const tabDoc = await getDoc(doc(db, 'tabs', userData.currentlyPracticing))
         if (tabDoc.exists()) {
           setCurrentlyPracticing({ id: tabDoc.id, ...tabDoc.data() })
         }

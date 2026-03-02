@@ -1,91 +1,133 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ============ 用戶認證 ============
+
+    function isSuperAdmin() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'kermit.tam@gmail.com',
+          'showroomchan@gmail.com'
+        ];
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-    
-    // ============ songs 集合（樂譜）============
+
+    // ==================== Songs ====================
     match /songs/{songId} {
       allow read: if true;
-      
       allow create: if isAuthenticated();
-      
       allow update: if isAuthenticated() && (
-        resource.data.uploaderId == request.auth.uid || isAdmin()
+        isSuperAdmin() ||
+        resource.data.uploaderId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'ratingCount', 'totalRating', 'likes', 'viewCount'])
       );
-      
       allow delete: if isAuthenticated() && (
-        resource.data.uploaderId == request.auth.uid || isAdmin()
+        isSuperAdmin() || resource.data.uploaderId == request.auth.uid
       );
     }
-    
-    // ============ artists 集合（歌手）============
+
+    // ==================== Artists ====================
     match /artists/{artistId} {
       allow read: if true;
-      
       allow create: if isAuthenticated();
-      
       allow update: if isAuthenticated() && (
-        resource.data.createdBy == request.auth.uid || isAdmin()
+        isSuperAdmin() || resource.data.createdBy == request.auth.uid
       );
+      allow delete: if isSuperAdmin();
     }
-    
-    // ============ users 集合 ============
+
+    // ==================== Users ====================
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-    
-    // ============ pageViews 集合（分析）============
-    match /pageViews/{viewId} {
-      allow read: if isAdmin();
-      allow create: if true; // 允許任何人記錄瀏覽
-      allow update, delete: if false;
-    }
-    
-    // ============ playlists 集合 ============
-    match /playlists/{playlistId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAuthenticated() && (isOwner(userId) || isSuperAdmin());
     }
-    
-    // ============ settings 集合 ============
-    match /settings/{settingId} {
+
+    // ==================== Comments ====================
+    match /comments/{commentId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() && (isOwner(resource.data.userId) || isSuperAdmin());
     }
-    
-    // ============ admins 集合 ============
-    match /admins/{adminId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // 只允許手動在 Firebase Console 修改
-    }
-    
-    // ============ tabRequests 集合（求譜區）============
+
+    // ==================== Tab Requests ====================
     match /tabRequests/{requestId} {
       allow read: if true;
-      
       allow create: if isAuthenticated();
-      
       allow update: if isAuthenticated() && (
-        // 只允許更新 voteCount 和 voters（舉手功能）
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCount', 'voters', 'status', 'fulfilledBy', 'fulfilledAt']) ||
-        isAdmin()
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCount', 'voters', 'status', 'fulfilledBy', 'fulfilledAt'])
+        || isSuperAdmin()
       );
-      
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin();
     }
+
+    // ==================== Playlists ====================
+    match /playlists/{playlistId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isSuperAdmin());
+      allow delete: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isSuperAdmin());
+    }
+
+    // ==================== User Playlists ====================
+    match /userPlaylists/{playlistId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ==================== Settings ====================
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // ==================== Page Views ====================
+    match /pageViews/{viewId} {
+      allow create: if true;
+      allow read: if isSuperAdmin();
+      allow update, delete: if false;
+    }
+
+    // ==================== Daily Stats ====================
+    match /dailyStats/{dateId} {
+      allow read, write: if isAuthenticated() && isSuperAdmin();
+    }
+
+    // ==================== Recent Views ====================
+    match /recentViews/{docId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ==================== Ratings ====================
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+    }
+
+    // ==================== Liked Songs ====================
+    match /userLikedSongs/{docId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+      allow update: if false;
+    }
+
+    // ==================== Admins ====================
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
   }
 }
