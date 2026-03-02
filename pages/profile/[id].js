@@ -50,6 +50,7 @@ export default function PublicProfile() {
   
   const [profile, setProfile] = useState(null)
   const [uploads, setUploads] = useState([])
+  const [playlists, setPlaylists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -94,6 +95,20 @@ export default function PublicProfile() {
         setUploads(tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
       } catch (e) {
         console.log('Error loading uploads:', e)
+      }
+      
+      // 載入歌單
+      try {
+        const playlistsQuery = query(
+          collection(db, 'playlists'),
+          where('createdBy', '==', id),
+          orderBy('createdAt', 'desc'),
+          limit(5)
+        )
+        const playlistsSnapshot = await getDocs(playlistsQuery)
+        setPlaylists(playlistsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+      } catch (e) {
+        console.log('Error loading playlists:', e)
       }
     } catch (error) {
       console.error('Error loading profile:', error)
@@ -210,7 +225,7 @@ export default function PublicProfile() {
             <p className="text-sm text-gray-400">上傳樂譜</p>
           </div>
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">-</p>
+            <p className="text-2xl font-bold text-[#FFD700]">{playlists.length}</p>
             <p className="text-sm text-gray-400">歌單</p>
           </div>
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
@@ -245,6 +260,36 @@ export default function PublicProfile() {
                       {tab.likes !== undefined && <div>❤ {tab.likes}</div>}
                     </div>
                   </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Playlists */}
+        {profile.showPlaylists !== false && playlists.length > 0 && (
+          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+            <h2 className="text-lg font-medium text-white mb-4">🎵 歌單</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {playlists.map(playlist => (
+                <Link 
+                  key={playlist.id}
+                  href={`/playlist/${playlist.id}`}
+                  className="p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
+                >
+                  {playlist.coverImage ? (
+                    <img 
+                      src={playlist.coverImage} 
+                      alt={playlist.title}
+                      className="w-full h-32 object-cover rounded-lg mb-3"
+                    />
+                  ) : (
+                    <div className="w-full h-32 bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20 rounded-lg mb-3 flex items-center justify-center">
+                      <span className="text-4xl">🎵</span>
+                    </div>
+                  )}
+                  <p className="text-white font-medium truncate">{playlist.title}</p>
+                  <p className="text-sm text-gray-400">{playlist.songIds?.length || 0} 首歌</p>
                 </Link>
               ))}
             </div>
