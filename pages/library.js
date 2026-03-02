@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus, Heart, Share2, Music, MoreVertical, X } from 'lucide-react';
-import { getUserPlaylists, getPlaylistCovers, toggleLikeSong, getUserLikedSongs } from '../lib/playlistApi';
+import { getUserPlaylists, getUserLikedSongs } from '../lib/playlistApi';
 
 export default function Library() {
   const router = useRouter();
@@ -33,11 +33,20 @@ export default function Library() {
       // 獲取用戶歌單
       const userPlaylists = await getUserPlaylists(userId);
       
-      // 獲取每個歌單的封面
+      // 獲取每個歌單的第一首歌封面
       const playlistsWithCovers = await Promise.all(
         userPlaylists.map(async (pl) => {
-          const covers = await getPlaylistCovers(pl.songIds || []);
-          return { ...pl, covers };
+          const firstSongId = pl.songIds?.[0];
+          let coverUrl = null;
+          if (firstSongId) {
+            const songDoc = await getDoc(doc(db, 'tabs', firstSongId));
+            if (songDoc.exists()) {
+              const songData = songDoc.data();
+              // 優先使用專輯封面，其次是 YouTube 縮圖
+              coverUrl = songData.albumImage || songData.thumbnail || null;
+            }
+          }
+          return { ...pl, coverUrl };
         })
       );
       
@@ -143,17 +152,16 @@ export default function Library() {
                 onClick={() => router.push(`/library/playlist/${playlist.id}`)}
                 className="cursor-pointer"
               >
-                {/* 封面 */}
+                {/* 封面 - 第一首歌 */}
                 <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative max-w-[144px] max-h-[144px]">
-                  {playlist.covers && playlist.covers.length > 0 ? (
-                    <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5">
-                      {playlist.covers.map((cover, i) => (
-                        <img key={i} src={cover} className="w-full h-full object-cover" alt="" loading="lazy" decoding="async" />
-                      ))}
-                      {Array(4 - playlist.covers.length).fill(0).map((_, i) => (
-                        <div key={`empty-${i}`} className="bg-[#282828] w-full h-full" />
-                      ))}
-                    </div>
+                  {playlist.coverUrl ? (
+                    <img 
+                      src={playlist.coverUrl} 
+                      className="w-full h-full object-cover" 
+                      alt="" 
+                      loading="lazy" 
+                      decoding="async" 
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[#282828]">
                       <Music className="w-12 h-12 text-[#3E3E3E]" />
