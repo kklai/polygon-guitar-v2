@@ -319,22 +319,29 @@ function AnalyticsDashboard() {
 
   // 獲取頁面顯示名稱
   const getPageDisplayName = (page) => {
-    if (page.pageType === 'tab') {
-      return page.pageName || page.pageTitle || '未知歌曲'
+    // 優先使用 pageName（歌曲名/歌手名）
+    if (page.pageName) {
+      return page.pageName
     }
-    if (page.pageType === 'artist') {
-      return page.pageName || page.pageTitle || '未知歌手'
+    // 其次使用 pageTitle
+    if (page.pageTitle && !page.pageTitle.includes('Polygon Guitar')) {
+      return page.pageTitle
     }
-    return page.pageTitle || page.pageName || page.path
+    // 回退
+    if (page.pageType === 'tab') return '未知歌曲'
+    if (page.pageType === 'artist') return '未知歌手'
+    return page.path || '未知頁面'
   }
 
   // 獲取副標題（歌手名等）
   const getPageSubtitle = (page) => {
-    if (page.pageType === 'tab' && page.artistName) {
-      return page.artistName
+    if (page.pageType === 'tab') {
+      // 樂譜顯示歌手名
+      return page.artistName || getPageTypeLabel(page.pageType)
     }
     if (page.pageType === 'artist') {
-      return '歌手頁面'
+      // 歌手頁顯示統計
+      return '👤 歌手主頁'
     }
     return getPageTypeLabel(page.pageType)
   }
@@ -610,12 +617,17 @@ function AnalyticsDashboard() {
                         <span className="text-blue-400 w-20 text-xs">
                           {getPageTypeLabel(view.pageType)}
                         </span>
-                        <span 
-                          className="text-white flex-1 truncate cursor-pointer hover:text-[#FFD700]"
-                          onClick={() => router.push(view.pagePath)}
-                        >
-                          {view.pageName || view.pageTitle || view.pagePath}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span 
+                            className="text-white truncate cursor-pointer hover:text-[#FFD700] block"
+                            onClick={() => router.push(view.pagePath)}
+                          >
+                            {view.pageName || (view.pageTitle && !view.pageTitle.includes('Polygon Guitar') ? view.pageTitle : view.pagePath)}
+                          </span>
+                          {view.artistName && (
+                            <span className="text-gray-500 text-xs">{view.artistName}</span>
+                          )}
+                        </div>
                         <span className="text-gray-500 text-xs hidden md:block">
                           {view.screenResolution}
                         </span>
