@@ -228,7 +228,7 @@ export default function EditProfile() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
-        {/* Header */}
+        {/* Header + Save Button */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">編輯個人資料</h1>
@@ -240,6 +240,17 @@ export default function EditProfile() {
           >
             查看公開頁面 →
           </Link>
+        </div>
+
+        {/* Save Button at Top */}
+        <div className="mb-6">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full py-3 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
+          >
+            {isSaving ? '保存中...' : '💾 保存資料'}
+          </button>
         </div>
 
         {message && (
@@ -462,24 +473,7 @@ export default function EditProfile() {
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-gray-800 p-4">
-          <div className="max-w-2xl mx-auto flex gap-3">
-            <button
-              onClick={() => router.push('/profile/' + user.uid)}
-              className="flex-1 py-3 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition"
-            >
-              取消
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 py-3 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
-            >
-              {isSaving ? '保存中...' : '💾 保存資料'}
-            </button>
-          </div>
-        </div>
+
       </div>
     </Layout>
   )
