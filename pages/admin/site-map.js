@@ -623,7 +623,7 @@ function GlossarySection() {
             <ul className="text-gray-400 text-sm space-y-2">
               <li>「我想加個欄位『作曲』在樂譜資料」</li>
               <li>「歌手頁面要顯示多個 Spotify 粉絲數」</li>
-              <li「在首頁加個區域顯示『本月熱門』」</li>
+              <li>「在首頁加個區域顯示『本月熱門』」</li>
               <li>「修復歌手陳奕迅的 Hero 相片顯示問題」</li>
               <li>「幫我部署更新到正式網站」</li>
             </ul>
