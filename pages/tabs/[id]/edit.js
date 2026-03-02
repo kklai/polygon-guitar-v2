@@ -11,7 +11,7 @@ import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -222,6 +222,19 @@ export default function EditTab() {
 
       setIsAuthorized(true)
       
+      // 如果冇歌手相片但有歌手ID，嘗試從數據庫獲取
+      let artistPhoto = data.artistPhoto || ''
+      if (!artistPhoto && data.artistId) {
+        try {
+          const artistDoc = await getDoc(doc(db, 'artists', data.artistId))
+          if (artistDoc.exists()) {
+            const artistData = artistDoc.data()
+            artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || ''
+          }
+        } catch (e) {
+          console.log('獲取歌手相片失敗:', e)
+        }
+      }
 
       // 將舊資料轉換為新多歌手格式
       const parsedArtists = data.artists || [
@@ -229,7 +242,7 @@ export default function EditTab() {
           name: data.artist, 
           id: data.artistId || null, 
           relation: null,
-          photo: data.artistPhoto || ''
+          photo: artistPhoto || data.artistPhoto || ''
         }
       ]
 
@@ -242,7 +255,7 @@ export default function EditTab() {
         capo: data.capo || '',
         playKey: data.playKey || '',
         content: data.content,
-        artistPhoto: data.artistPhoto || '',
+        artistPhoto: artistPhoto || data.artistPhoto || '',
         artistBio: data.artistBio || '',
         artistYear: data.artistYear || '',
         songYear: data.songYear || '',
@@ -482,10 +495,25 @@ export default function EditTab() {
       })
     }
     
-    // 3. 歌手相片
-    if (formData.artistPhoto) {
+    // 3. 歌手相片 - 檢查多個來源
+    let artistPhotoUrl = formData.artistPhoto
+    
+    // 如果冇 artistPhoto，檢查 artists 數組中的第一個歌手
+    if (!artistPhotoUrl && formData.artists?.length > 0) {
+      const primaryArtist = formData.artists[0]
+      if (primaryArtist?.photo) {
+        artistPhotoUrl = primaryArtist.photo
+      }
+    }
+    
+    // 如果仍然冇，嘗試從 artistId 獲取
+    if (!artistPhotoUrl && formData.artistId) {
+      // 這個會在 useEffect 中異步獲取，但為了即時顯示，我們先檢查緩存
+    }
+    
+    if (artistPhotoUrl) {
       options.push({
-        url: formData.artistPhoto,
+        url: artistPhotoUrl,
         type: 'artist',
         label: '歌手相片'
       })
