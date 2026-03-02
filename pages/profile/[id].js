@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
 import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
