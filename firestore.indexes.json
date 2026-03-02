@@ -27,6 +27,16 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "artists",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "name",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
