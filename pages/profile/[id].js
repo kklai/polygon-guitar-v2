@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
@@ -99,16 +100,10 @@ export default function PublicProfile() {
       
       // 載入歌單（用戶個人歌單 userPlaylists）
       try {
-        const playlistsQuery = query(
-          collection(db, 'userPlaylists'),
-          where('userId', '==', id),
-          orderBy('createdAt', 'desc'),
-          limit(5)
-        )
-        const playlistsSnapshot = await getDocs(playlistsQuery)
-        setPlaylists(playlistsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+        const userPlaylists = await getUserPlaylists(id)
+        setPlaylists(userPlaylists.slice(0, 5)) // 只顯示前5個
       } catch (e) {
-        console.log('Error loading playlists:', e)
+        console.error('Error loading playlists:', e)
       }
     } catch (error) {
       console.error('Error loading profile:', error)
