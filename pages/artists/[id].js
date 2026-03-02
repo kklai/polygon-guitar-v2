@@ -72,20 +72,29 @@ export default function ArtistPage() {
     }
   };
 
-  // 從 createdAt 提取年份
+  // 從歌曲數據提取年份
   const getYearFromCreatedAt = (tab) => {
-    // 優先使用 uploadYear 字段
-    if (tab.uploadYear && typeof tab.uploadYear === 'number' && tab.uploadYear >= 2000 && tab.uploadYear <= 2030) {
-      return tab.uploadYear;
-    }
-    // 其次使用 songYear 字段
-    if (tab.songYear && typeof tab.songYear === 'number' && tab.songYear >= 2000 && tab.songYear <= 2030) {
-      return tab.songYear;
-    }
-    // 從 createdAt 提取
+    // 輔助函數：解析年份（支持字符串和數字）
+    const parseYear = (value) => {
+      if (!value) return null;
+      const year = parseInt(value, 10);
+      if (!isNaN(year) && year >= 1900 && year <= 2030) {
+        return year;
+      }
+      return null;
+    };
+    
+    // 優先使用 songYear 字段（歌曲發行年份）
+    const songYear = parseYear(tab.songYear);
+    if (songYear) return songYear;
+    
+    // 其次使用 uploadYear 字段（上傳年份）
+    const uploadYear = parseYear(tab.uploadYear);
+    if (uploadYear) return uploadYear;
+    
+    // 最後從 createdAt 提取（上傳時間）
     if (tab.createdAt) {
       try {
-        // 處理 Firestore Timestamp 或 ISO 字符串
         let date;
         if (tab.createdAt.seconds) {
           date = new Date(tab.createdAt.seconds * 1000);
@@ -95,7 +104,6 @@ export default function ArtistPage() {
           date = new Date(tab.createdAt);
         }
         const year = date.getFullYear();
-        // 確保年份合理
         if (year >= 2000 && year <= 2030) {
           return year;
         }
