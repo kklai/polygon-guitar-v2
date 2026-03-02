@@ -14,6 +14,7 @@ export default function PlaylistDetail() {
   const [songs, setSongs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'grid'
+  const [sortMode, setSortMode] = useState('default') // 'default' | 'artist' | 'year' | 'shuffle'
 
   useEffect(() => {
     if (id) {
@@ -64,6 +65,8 @@ export default function PlaylistDetail() {
         const songDetails = await getPlaylistSongs(playlistData.songIds)
         setSongs(songDetails)
       }
+      // 重置排序為默認
+      setSortMode('default')
     } catch (error) {
       console.error('Error loading playlist:', error)
     } finally {
@@ -100,6 +103,46 @@ export default function PlaylistDetail() {
   const handleSongClick = (songId) => {
     router.push(`/tabs/${songId}`)
   }
+
+  // 獲取排序後的歌曲列表
+  const getSortedSongs = () => {
+    if (sortMode === 'default') return songs
+    
+    const sorted = [...songs]
+    
+    switch (sortMode) {
+      case 'artist':
+        return sorted.sort((a, b) => {
+          const artistA = (a.artist || '').toLowerCase()
+          const artistB = (b.artist || '').toLowerCase()
+          return artistA.localeCompare(artistB, 'zh-HK')
+        })
+      
+      case 'year':
+        return sorted.sort((a, b) => {
+          // 先按年份排序，冇年份排最後
+          const yearA = a.songYear || a.uploadYear || 0
+          const yearB = b.songYear || b.uploadYear || 0
+          if (yearA && yearB) return yearB - yearA // 年份由新到舊
+          if (yearA) return -1
+          if (yearB) return 1
+          return 0
+        })
+      
+      case 'shuffle':
+        // Fisher-Yates 洗牌算法
+        for (let i = sorted.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [sorted[i], sorted[j]] = [sorted[j], sorted[i]]
+        }
+        return sorted
+      
+      default:
+        return songs
+    }
+  }
+
+  const sortedSongs = getSortedSongs()
 
   // 格式化時間
   const formatTimeAgo = (timestamp) => {
@@ -246,7 +289,7 @@ export default function PlaylistDetail() {
         {viewMode === 'list' ? (
           /* 列表視圖 */
           <div className="px-6">
-            {songs.map((song, index) => (
+            {sortedSongs.map((song, index) => (
               <button
                 key={song.id}
                 onClick={() => handleSongClick(song.id)}
@@ -297,7 +340,7 @@ export default function PlaylistDetail() {
         ) : (
           /* 網格視圖 - 似首頁熱門譜咁 */
           <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4 pb-4">
-            {songs.map((song, index) => (
+            {sortedSongs.map((song, index) => (
               <button
                 key={song.id}
                 onClick={() => handleSongClick(song.id)}
@@ -356,8 +399,69 @@ export default function PlaylistDetail() {
         {/* Bottom Controls - 視圖切換 + 分享 */}
         {songs.length > 0 && (
           <div className="px-6 py-6 border-t border-gray-800 mt-4">
-            {/* View Mode Toggle */}
-            <div className="flex justify-center mb-4">
+            {/* Sort & View Mode Toggle */}
+            <div className="flex flex-col sm:flex-row justify-center gap-3 mb-4">
+              {/* 排序選擇 */}
+              <div className="flex bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setSortMode('default')}
+                  className={`px-3 py-2 rounded transition flex items-center gap-1 text-sm ${
+                    sortMode === 'default' 
+                      ? 'bg-[#FFD700] text-black' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="預設排序"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span>預設</span>
+                </button>
+                <button
+                  onClick={() => setSortMode('artist')}
+                  className={`px-3 py-2 rounded transition flex items-center gap-1 text-sm ${
+                    sortMode === 'artist' 
+                      ? 'bg-[#FFD700] text-black' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="按歌手排序"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>歌手</span>
+                </button>
+                <button
+                  onClick={() => setSortMode('year')}
+                  className={`px-3 py-2 rounded transition flex items-center gap-1 text-sm ${
+                    sortMode === 'year' 
+                      ? 'bg-[#FFD700] text-black' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="按年份排序"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>年份</span>
+                </button>
+                <button
+                  onClick={() => setSortMode('shuffle')}
+                  className={`px-3 py-2 rounded transition flex items-center gap-1 text-sm ${
+                    sortMode === 'shuffle' 
+                      ? 'bg-[#FFD700] text-black' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="隨機排序"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  <span>隨機</span>
+                </button>
+              </div>
+
+              {/* 視圖切換 */}
               <div className="flex bg-gray-800 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('list')}
