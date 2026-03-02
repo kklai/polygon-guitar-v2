@@ -192,6 +192,7 @@ export default function Home() {
   const [manualPlaylists, setManualPlaylists] = useState([])
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadingPhase, setLoadingPhase] = useState('static') // 'static' | 'public' | 'user' | 'complete'
   const [totalViewCount, setTotalViewCount] = useState(0)
   
   // 首頁設置
@@ -233,21 +234,32 @@ export default function Home() {
         return (
           <section key={section.id} className="mb-6 pt-2">
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
-              {categories.map((category) => (
+              {(loadingPhase === 'static' ? DEFAULT_CATEGORIES : categories).map((category) => (
                 <div
                   key={category.id}
                   onClick={() => handleCategoryClick(category.id)}
                   className="flex-shrink-0 flex flex-col cursor-pointer"
                 >
                   <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
-                      draggable="false"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    {loadingPhase === 'static' ? (
+                      // Phase 1: 骨架屏
+                      <>
+                        <div className="absolute inset-0 bg-gray-800 animate-pulse" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-2xl opacity-50">🎵</span>
+                        </div>
+                      </>
+                    ) : (
+                      // Phase 2+: 實際圖片
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
+                        draggable="false"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
                     <div className="absolute bottom-2 right-0 w-1/2">
                       <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
                         category.id === 'male' ? 'bg-[#1fc3df]' :
@@ -260,7 +272,7 @@ export default function Home() {
                   </div>
                   <div className="w-36 mt-2 px-1">
                     <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
-                      {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+                      {loadingPhase !== 'static' && hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
                     </p>
                   </div>
                 </div>
@@ -270,9 +282,29 @@ export default function Home() {
         )
 
       case 'recent':
+        // recent 區域在用戶資料載入後才顯示
+        if (loadingPhase === 'static' || loadingPhase === 'public') {
+          return null; // 不顯示骨架屏，直接隱藏
+        }
         return <RecentItems key={section.id} items={recentItems} title={getSectionLabel(section)} />
 
       case 'hotTabs':
+        if (loadingPhase === 'static') {
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-36">
+                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-3" />
+                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
+                    <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
         return hotTabs.length > 0 && (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -290,6 +322,21 @@ export default function Home() {
         )
 
       case 'hotArtists':
+        if (loadingPhase === 'static') {
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 flex flex-col items-center">
+                    <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-800 rounded-full animate-pulse mb-3" />
+                    <div className="h-4 bg-gray-800 rounded w-20 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
         return hotArtists.all?.length > 0 && (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -307,6 +354,21 @@ export default function Home() {
         )
 
       case 'autoPlaylists':
+        if (loadingPhase === 'static') {
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-40">
+                    <div className="w-40 h-40 bg-gray-800 rounded-lg animate-pulse mb-3" />
+                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
         return autoPlaylists.length > 0 && (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -323,6 +385,22 @@ export default function Home() {
         )
 
       case 'latest':
+        if (loadingPhase === 'static') {
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-36">
+                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-3" />
+                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
+                    <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
         return latestSongs.length > 0 && (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -340,6 +418,21 @@ export default function Home() {
         )
 
       case 'manualPlaylists':
+        if (loadingPhase === 'static') {
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-40">
+                    <div className="w-40 h-40 bg-gray-800 rounded-lg animate-pulse mb-3" />
+                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
         return manualPlaylists.length > 0 && (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -356,6 +449,24 @@ export default function Home() {
         )
 
       default:
+        // 在 static 階段，自定義區域顯示骨架屏
+        if (loadingPhase === 'static') {
+          return (
+            <section key={section.id} className="mb-10">
+              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || '載入中...'}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-36">
+                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-3" />
+                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
+                    <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
+        
         // 處理自定義歌單區域
         const customSection = (homeSettings.customPlaylistSections || []).find(s => s.id === section.id)
         
@@ -429,29 +540,30 @@ export default function Home() {
     }
   }
 
+  // 分階段載入
   useEffect(() => {
-    loadHomeData()
-  }, [user])
+    // Phase 1: 立即顯示靜態內容
+    setLoadingPhase('static')
+    
+    // Phase 2: 載入公開資料（不需要登入）
+    loadPublicData().then(() => {
+      setLoadingPhase('public')
+      
+      // Phase 3: 載入需要登入的資料
+      loadUserData().then(() => {
+        setLoadingPhase('complete')
+      })
+    })
+  }, [])
 
   // 緩存設定（避免重複獲取）
   const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘緩存
   
-  const loadHomeData = async () => {
-    setIsLoading(true)
+  // Phase 2: 載入公開資料（不需要登入）
+  const loadPublicData = async () => {
     const startTime = performance.now();
     
     try {
-      // === 第1步：並行載入本地數據同獨立請求 ===
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
-      let items = saved ? JSON.parse(saved).slice(0, 10) : [];
-      
-      // 檢查喜愛歌曲（非阻塞，簡化版避免權限問題）
-      const checkLikedSongs = async () => {
-        if (!user) return;
-        // 暫時跳過，避免權限錯誤影響性能
-        // 可以直接從 localStorage 或 AuthContext 獲取喜愛狀態
-      };
-      
       // 並行載入：設置、熱門歌手、歌單、最新歌曲
       const [
         settingsDoc,
@@ -469,12 +581,10 @@ export default function Home() {
       
       const settings = settingsDoc.exists() ? settingsDoc.data() : {};
       setHomeSettings(prev => ({ ...prev, ...settings }));
-      setRecentItems(items);
-      checkLikedSongs(); // 非阻塞檢查
       
-      console.log('[Performance] Core data loaded:', Math.round(performance.now() - startTime), 'ms');
+      console.log('[Performance] Core public data loaded:', Math.round(performance.now() - startTime), 'ms');
 
-      // === 第2步：處理熱門樂譜 ===
+      // 處理熱門樂譜
       let hotTabsData = [];
       const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 100);
       
@@ -497,19 +607,14 @@ export default function Home() {
       } else {
         hotTabsData = await getHotTabs(targetCount);
       }
+      
       setHotTabs(hotTabsData);
       setLatestSongs(recentTabsData || []);
       setAutoPlaylists(autoPlaylistsData?.length > 0 ? autoPlaylistsData : FALLBACK_AUTO_PLAYLISTS);
       setManualPlaylists(manualPlaylistsData?.length > 0 ? manualPlaylistsData : FALLBACK_MANUAL_PLAYLISTS);
       
-      // === 第2.5步：加載自定義歌單區域的歌曲 ===
+      // 加載自定義歌單區域的歌曲
       const customSections = settings.customPlaylistSections || [];
-      const allPlaylistIds = new Set([
-        ...autoPlaylistsData.map(p => p.id),
-        ...manualPlaylistsData.map(p => p.id)
-      ]);
-      
-      // 收集所有自定義區域需要的歌曲 ID
       const customSongIds = new Set();
       customSections.forEach(section => {
         if (section.type === 'customPlaylist' && section.playlistId) {
@@ -521,24 +626,21 @@ export default function Home() {
         }
       });
       
-      // 過濾掉已經在 hotTabs 和 recentTabs 中的歌曲
       const existingIds = new Set([
         ...hotTabsData.map(t => t.id),
         ...recentTabsData.map(t => t.id)
       ]);
       const missingSongIds = Array.from(customSongIds).filter(id => !existingIds.has(id));
       
-      // 加載缺失的歌曲
       let customSongs = [];
       if (missingSongIds.length > 0) {
-        customSongs = await getTabsByIds(missingSongIds.slice(0, 50)); // 最多加載 50 首
+        customSongs = await getTabsByIds(missingSongIds.slice(0, 50));
       }
       setAllSongs(customSongs);
       
-      // === 第3步：處理歌手數據 ===
+      // 處理歌手數據
       let popularArtists = popularArtistsData || [];
       
-      // 並行獲取缺少嘅手動揀選歌手
       const rawManualSelection = Array.isArray(settings.manualSelection) 
         ? settings.manualSelection 
         : [
@@ -578,11 +680,10 @@ export default function Home() {
       setArtistPhotoMap(photoMap);
       setTotalViewCount(popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0));
       
-      // 根據設置排序
+      // 排序歌手
       const displayCount = settings.displayCount || 20
       const sortBy = settings.hotArtistSortBy || 'viewCount'
       
-      // 根據設置排序歌手
       const sortArtists = (artists) => {
         return [...artists].sort((a, b) => {
           if (sortBy === 'tabCount') {
@@ -611,15 +712,11 @@ export default function Home() {
 
       const sortedArtists = sortArtists(popularArtists)
       
-      // 熱門歌手（不分類別，綜合排名）
       const getHotArtists = () => {
-        // 新版：單一 manualSelection 陣列
-        // 舊版兼容：如果是對象格式，合併三個分類
         let manualIds = []
         if (Array.isArray(settings.manualSelection)) {
           manualIds = settings.manualSelection
         } else if (typeof settings.manualSelection === 'object' && settings.manualSelection) {
-          // 舊格式兼容
           manualIds = [
             ...(settings.manualSelection?.male || []),
             ...(settings.manualSelection?.female || []),
@@ -627,18 +724,15 @@ export default function Home() {
           ]
         }
         
-        // 檢查是否有手動揀選（新版直接用陣列長度判斷，舊版用 useManualSelection）
         const hasManualSelection = Array.isArray(settings.manualSelection) 
           ? manualIds.length > 0 
           : (settings.useManualSelection?.male || settings.useManualSelection?.female || settings.useManualSelection?.group)
 
         if (hasManualSelection && manualIds.length > 0) {
-          // 使用手動揀選，但從實時數據中獲取最新資料
           const manualArtists = manualIds
             .map(id => popularArtists.find(a => a.id === id))
             .filter(Boolean)
 
-          // 補充自動排序至指定數量
           const manualIdsSet = new Set(manualIds)
           const autoFill = sortedArtists
             .filter(a => !manualIdsSet.has(a.id))
@@ -646,7 +740,6 @@ export default function Home() {
 
           return [...manualArtists, ...autoFill].slice(0, displayCount)
         } else {
-          // 自動排序
           return sortedArtists.slice(0, displayCount)
         }
       }
@@ -656,20 +749,16 @@ export default function Home() {
         male: sortedArtists.filter(a => (a.artistType || a.gender) === 'male').slice(0, 5),
         female: sortedArtists.filter(a => (a.artistType || a.gender) === 'female').slice(0, 5),
         group: sortedArtists.filter(a => (a.artistType || a.gender) === 'group').slice(0, 5)
-      })
+      });
       
-      // 保留原來的總熱門歌手
       setArtists(sortedArtists.slice(0, 10));
       
-      console.log('[Performance] Artists processed:', Math.round(performance.now() - startTime), 'ms');
-      
-      // === 第4步：延遲載入分類圖片（非關鍵數據）===
+      // 延遲載入分類圖片（非關鍵數據）
       setTimeout(async () => {
         try {
           const categoryImages = await getCategoryImages();
           if (!categoryImages) return;
           
-          // 使用已載入的歌手數據，避免重複查詢
           const artistMap = new Map(popularArtists.map(a => [a.id, a]));
           
           const updatedCategories = DEFAULT_CATEGORIES.map(cat => {
@@ -694,13 +783,27 @@ export default function Home() {
         } catch (e) {
           console.error('Error loading category images:', e);
         }
-      }, 100); // 延遲100ms，讓關鍵內容先渲染
+      }, 100);
+      
     } catch (error) {
-      console.error('Error loading home data:', error)
-    } finally {
-      setIsLoading(false)
+      console.error('Error loading public data:', error);
     }
-  }
+  };
+  
+  // Phase 3: 載入需要登入的資料
+  const loadUserData = async () => {
+    try {
+      // 載入最近瀏覽（從 localStorage）
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
+      let items = saved ? JSON.parse(saved).slice(0, 10) : [];
+      setRecentItems(items);
+      
+      // 如果有登入用戶，可以載入個人化資料
+      // 例如：喜愛歌曲、推薦等
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
 
   // 獲取歌曲/歌單縮圖
   const getThumbnail = (item, artistPhoto = null) => {
@@ -754,27 +857,42 @@ export default function Home() {
     router.push(`/playlist/${playlistId}`)
   }
 
-  if (isLoading) {
+  // 初始靜態載入（Phase 1）- 立即顯示骨架屏
+  if (loadingPhase === 'static') {
     return (
       <Layout>
         <div className="min-h-screen bg-black pb-24">
-          {/* 分類骨架屏 */}
-          <div className="px-6 py-8">
-            <div className="h-8 bg-gray-800 rounded w-48 mb-6 animate-pulse" />
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex-shrink-0">
-                  <div className="w-36 h-36 bg-gray-800 rounded-[4px] animate-pulse" />
-                  <div className="w-36 h-4 bg-gray-800 rounded mt-2 animate-pulse" />
+          {/* 分類骨架屏 - 可點擊 */}
+          <section className="mb-6 pt-2">
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-3">
+              {DEFAULT_CATEGORIES.map((category) => (
+                <div
+                  key={category.id}
+                  className="flex-shrink-0 flex flex-col cursor-pointer"
+                >
+                  <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800 animate-pulse">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl opacity-50">🎵</span>
+                    </div>
+                    <div className="absolute bottom-2 right-0 w-1/2">
+                      <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
+                        category.id === 'male' ? 'bg-[#1fc3df]' :
+                        category.id === 'female' ? 'bg-[#ff9b98]' :
+                        'bg-[#fed702]'
+                      }`}>
+                        {category.name}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
           
           {/* 熱門譜骨架屏 */}
-          <div className="px-6 py-4">
-            <div className="h-8 bg-gray-800 rounded w-32 mb-4 animate-pulse" />
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+          <section className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門結他譜</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex-shrink-0 w-36">
                   <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-3" />
@@ -783,12 +901,12 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
           
           {/* 熱門歌手骨架屏 */}
-          <div className="px-6 py-4">
-            <div className="h-8 bg-gray-800 rounded w-32 mb-4 animate-pulse" />
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+          <section className="mb-10">
+            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌手</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex-shrink-0 flex flex-col items-center">
                   <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-800 rounded-full animate-pulse mb-3" />
@@ -796,7 +914,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         </div>
       </Layout>
     )
