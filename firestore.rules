@@ -18,8 +18,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // ==================== Songs ====================
-    match /songs/{songId} {
+    // ==================== Tabs ====================
+    match /tabs/{tabId} {
       allow read: if true;
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (
@@ -91,7 +91,7 @@ service cloud.firestore {
     // ==================== Page Views ====================
     match /pageViews/{viewId} {
       allow create: if true;
-      allow read: if isSuperAdmin();
+      allow read: if isSuperAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow update, delete: if false;
     }
 

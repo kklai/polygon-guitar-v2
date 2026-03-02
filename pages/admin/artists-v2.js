@@ -249,7 +249,7 @@ export default function ArtistsV2Page() {
           for (const id of possibleIds) {
             try {
               const songsQuery = query(
-                collection(db, 'songs'),
+                collection(db, 'tabs'),
                 where('artistId', '==', id)
               )
               const snapshot = await getDocs(songsQuery)
@@ -261,7 +261,7 @@ export default function ArtistsV2Page() {
           for (const id of possibleIds) {
             try {
               const songsQuery = query(
-                collection(db, 'songs'),
+                collection(db, 'tabs'),
                 where('artistSlug', '==', id)
               )
               const snapshot = await getDocs(songsQuery)
@@ -272,7 +272,7 @@ export default function ArtistsV2Page() {
           // 方法3：用 artistName 查詢
           try {
             const songsQuery = query(
-              collection(db, 'songs'),
+              collection(db, 'tabs'),
               where('artistName', '==', selectedArtist.name)
             )
             const snapshot = await getDocs(songsQuery)
