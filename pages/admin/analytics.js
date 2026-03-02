@@ -317,17 +317,48 @@ function AnalyticsDashboard() {
   const maxTrend = Math.max(...dailyTrend.map(d => d.count), 1)
   const maxType = Math.max(...pageTypeStats.map(t => t.count), 1)
 
+  // 清理標題，移除通用的 Polygon Guitar 標題
+  const cleanTitle = (title) => {
+    if (!title) return ''
+    // 移除各種變體的通用標題
+    return title
+      .replace(/Polygon Guitar - 香港最大結他譜庫 \| 3000\+ 結他譜/g, '')
+      .replace(/Polygon Guitar - .*/g, '')
+      .replace(/ - Polygon Guitar/g, '')
+      .trim()
+  }
+
   // 獲取頁面顯示名稱
   const getPageDisplayName = (page) => {
-    // 優先使用 pageName（歌曲名/歌手名）
-    if (page.pageName) {
+    // 優先使用 pageName（歌曲名/歌手名）- 這是最準確的
+    if (page.pageName && page.pageName.trim()) {
       return page.pageName
     }
-    // 其次使用 pageTitle
-    if (page.pageTitle && !page.pageTitle.includes('Polygon Guitar')) {
-      return page.pageTitle
+    
+    // 其次使用清理後的 pageTitle
+    const cleanedTitle = cleanTitle(page.pageTitle)
+    if (cleanedTitle) {
+      return cleanedTitle
     }
-    // 回退
+    
+    // 從 path 提取名稱
+    if (page.path) {
+      if (page.pageType === 'tab') {
+        // 嘗試從路徑提取（如 /tabs/xxx）
+        return '樂譜頁面'
+      }
+      if (page.pageType === 'artist') {
+        // 嘗試從路徑提取歌手名
+        const artistSlug = page.path.split('/')[2]
+        if (artistSlug) {
+          // 將 slug 轉換為可讀名稱（e.g., "eason-chan" -> "eason chan"）
+          return artistSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        }
+        return '歌手頁面'
+      }
+    }
+    
+    // 最後回退
     if (page.pageType === 'tab') return '未知歌曲'
     if (page.pageType === 'artist') return '未知歌手'
     return page.path || '未知頁面'
@@ -337,7 +368,10 @@ function AnalyticsDashboard() {
   const getPageSubtitle = (page) => {
     if (page.pageType === 'tab') {
       // 樂譜顯示歌手名
-      return page.artistName || getPageTypeLabel(page.pageType)
+      if (page.artistName) {
+        return `🎤 ${page.artistName}`
+      }
+      return '🎵 樂譜'
     }
     if (page.pageType === 'artist') {
       // 歌手頁顯示統計
@@ -622,10 +656,10 @@ function AnalyticsDashboard() {
                             className="text-white truncate cursor-pointer hover:text-[#FFD700] block"
                             onClick={() => router.push(view.pagePath)}
                           >
-                            {view.pageName || (view.pageTitle && !view.pageTitle.includes('Polygon Guitar') ? view.pageTitle : view.pagePath)}
+                            {view.pageName || cleanTitle(view.pageTitle) || view.pagePath}
                           </span>
                           {view.artistName && (
-                            <span className="text-gray-500 text-xs">{view.artistName}</span>
+                            <span className="text-gray-500 text-xs">🎤 {view.artistName}</span>
                           )}
                         </div>
                         <span className="text-gray-500 text-xs hidden md:block">
