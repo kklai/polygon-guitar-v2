@@ -118,14 +118,14 @@ export default function Library() {
 
       {/* 歌單網格 */}
       <div className="px-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-3xl mx-auto">
           {/* 喜愛結他譜（系統預設） */}
           <div 
             onClick={handleLikedSongsClick}
-            className="cursor-pointer group"
+            className="cursor-pointer group max-w-[144px]"
           >
-            <div className="aspect-square rounded-[4px] bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center mb-2 relative overflow-hidden shadow-lg">
-              <Heart className="w-16 h-16 text-white fill-white" />
+            <div className="aspect-square rounded-[4px] bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center mb-2 relative overflow-hidden shadow-lg max-w-[144px] max-h-[144px]">
+              <Heart className="w-12 h-12 sm:w-14 sm:h-14 text-white fill-white" />
               {likedCount > 0 && (
                 <div className="absolute bottom-2 right-2 bg-black/20 px-2 py-1 rounded-full">
                   <span className="text-white text-xs font-bold">{likedCount}</span>
@@ -138,13 +138,13 @@ export default function Library() {
 
           {/* 用戶自建歌單 */}
           {playlists.map((playlist) => (
-            <div key={playlist.id} className="relative group">
+            <div key={playlist.id} className="relative group max-w-[144px]">
               <div 
-                onClick={() => handlePlaylistClick(playlist.id)}
+                onClick={() => router.push(`/library/playlist/${playlist.id}`)}
                 className="cursor-pointer"
               >
                 {/* 封面 */}
-                <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative">
+                <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative max-w-[144px] max-h-[144px]">
                   {playlist.covers && playlist.covers.length > 0 ? (
                     <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5">
                       {playlist.covers.map((cover, i) => (
@@ -180,9 +180,9 @@ export default function Library() {
           {/* 創建新歌單 */}
           <div 
             onClick={() => setShowCreateModal(true)}
-            className="aspect-square rounded-[4px] bg-[#121212] border-2 border-dashed border-[#3E3E3E] flex flex-col items-center justify-center cursor-pointer hover:border-[#FFD700] hover:bg-[#1a1a1a] transition-colors"
+            className="aspect-square rounded-[4px] bg-[#121212] border-2 border-dashed border-[#3E3E3E] flex flex-col items-center justify-center cursor-pointer hover:border-[#FFD700] hover:bg-[#1a1a1a] transition-colors max-w-[144px] max-h-[144px]"
           >
-            <Plus className="w-12 h-12 text-[#3E3E3E] mb-2" />
+            <Plus className="w-10 h-10 text-[#3E3E3E] mb-2" />
             <span className="text-[#B3B3B3] text-sm">創新歌單</span>
           </div>
         </div>
