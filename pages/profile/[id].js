@@ -86,7 +86,7 @@ export default function PublicProfile() {
       try {
         const tabsQuery = query(
           collection(db, 'tabs'),
-          where('uploaderId', '==', id),
+          where('createdBy', '==', id),
           orderBy('createdAt', 'desc'),
           limit(10)
         )
