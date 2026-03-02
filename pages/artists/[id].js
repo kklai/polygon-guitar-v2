@@ -74,13 +74,34 @@ export default function ArtistPage() {
 
   // 從 createdAt 提取年份
   const getYearFromCreatedAt = (tab) => {
-    if (tab.uploadYear) return tab.uploadYear;
+    // 優先使用 uploadYear 字段
+    if (tab.uploadYear && typeof tab.uploadYear === 'number' && tab.uploadYear >= 2000 && tab.uploadYear <= 2030) {
+      return tab.uploadYear;
+    }
+    // 其次使用 songYear 字段
+    if (tab.songYear && typeof tab.songYear === 'number' && tab.songYear >= 2000 && tab.songYear <= 2030) {
+      return tab.songYear;
+    }
+    // 從 createdAt 提取
     if (tab.createdAt) {
-      // 處理 Firestore Timestamp 或 ISO 字符串
-      const date = tab.createdAt.seconds 
-        ? new Date(tab.createdAt.seconds * 1000) 
-        : new Date(tab.createdAt);
-      return date.getFullYear();
+      try {
+        // 處理 Firestore Timestamp 或 ISO 字符串
+        let date;
+        if (tab.createdAt.seconds) {
+          date = new Date(tab.createdAt.seconds * 1000);
+        } else if (tab.createdAt.toDate) {
+          date = tab.createdAt.toDate();
+        } else {
+          date = new Date(tab.createdAt);
+        }
+        const year = date.getFullYear();
+        // 確保年份合理
+        if (year >= 2000 && year <= 2030) {
+          return year;
+        }
+      } catch (e) {
+        console.warn('Error parsing date for tab:', tab.id, tab.createdAt);
+      }
     }
     return null;
   };
@@ -101,8 +122,9 @@ export default function ArtistPage() {
       groups[range].push({ ...tab, year });
     });
     
-    // 把沒有年份的放在 '未知年份' 組
+    // 把沒有年份的放在 '未知年份' 組，並按瀏覽數排序
     if (noYearTabs.length > 0) {
+      noYearTabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
       groups['未知年份'] = noYearTabs;
     }
     
@@ -189,10 +211,17 @@ export default function ArtistPage() {
       tabs.sort((a, b) => {
         const yearA = getYearFromCreatedAt(a) || 0;
         const yearB = getYearFromCreatedAt(b) || 0;
-        if (yearA === 0 && yearB === 0) return 0;
+        if (yearA === 0 && yearB === 0) {
+          // 都沒有年份，按瀏覽數排序
+          return (b.viewCount || 0) - (a.viewCount || 0);
+        }
         if (yearA === 0) return 1;  // A 沒年份，排後
         if (yearB === 0) return -1; // B 沒年份，排後
-        return yearB - yearA; // 新到舊
+        // 先按年份新到舊，同年份按瀏覽數
+        if (yearB !== yearA) {
+          return yearB - yearA;
+        }
+        return (b.viewCount || 0) - (a.viewCount || 0);
       });
     } else if (sortBy === 'views') {
       tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
@@ -439,7 +468,16 @@ export default function ArtistPage() {
           // 按年份分組顯示
           Object.entries(displayData.data).map(([yearRange, tabs]) => (
             <div key={yearRange} className="mb-6">
-              <h3 className="text-[#FFD700] text-sm font-medium mb-3 sticky top-0 bg-black/95 py-2 z-10">{yearRange}</h3>
+              <h3 className={`text-sm font-medium mb-3 sticky top-0 bg-black/95 py-2 z-10 ${
+                yearRange === '未知年份' 
+                  ? 'text-gray-500 italic' 
+                  : 'text-[#FFD700]'
+              }`}>
+                {yearRange}
+                {yearRange === '未知年份' && tabs.length > 0 && (
+                  <span className="ml-2 text-xs">({tabs.length} 首)</span>
+                )}
+              </h3>
               <div className="space-y-1">
                 {tabs.map((tab) => (
                   <div 
