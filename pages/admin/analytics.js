@@ -11,7 +11,9 @@ import {
   orderBy,
   limit,
   Timestamp,
-  onSnapshot
+  onSnapshot,
+  doc,
+  getDoc
 } from 'firebase/firestore'
 
 function AnalyticsDashboard() {
@@ -25,12 +27,15 @@ function AnalyticsDashboard() {
   })
   const [pageTypeStats, setPageTypeStats] = useState([])
   const [topPages, setTopPages] = useState([])
-  const [recentViews, setRecentViews] = useState([])
+  const [recentViews, setRecentViews] = useState([]
+  const [dailyTrend, setDailyTrend] = useState([])
+  const [hourlyStats, setHourlyStats] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [dateRange, setDateRange] = useState('today') // today, yesterday, 7days, 30days
+  const [dateRange, setDateRange] = useState('7days')
 
   useEffect(() => {
     loadStats()
+    loadTrendData()
     
     // 實時監聽今日數據
     const today = new Date()
@@ -43,7 +48,6 @@ function AnalyticsDashboard() {
         orderBy('timestamp', 'desc')
       ),
       (snapshot) => {
-        // 過濾掉後台頁面
         const filteredDocs = snapshot.docs.filter(doc => {
           const data = doc.data()
           return !(data.pageType === 'admin' || 
@@ -52,7 +56,6 @@ function AnalyticsDashboard() {
         
         setStats(prev => ({ ...prev, today: filteredDocs.length }))
         
-        // 更新最近訪問列表（排除後台頁面）
         const views = []
         filteredDocs.slice(0, 20).forEach(doc => {
           views.push({ id: doc.id, ...doc.data() })
@@ -61,18 +64,55 @@ function AnalyticsDashboard() {
       },
       (error) => {
         console.error('Realtime stats error:', error)
-        alert('實時統計監聽失敗：' + error.message)
       }
     )
     
     return () => unsubscribe()
   }, [])
 
+  // 加載趨勢數據（最近7天每天）
+  const loadTrendData = async () => {
+    const trend = []
+    const now = new Date()
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now)
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+      
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
+      
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'pageViews'),
+          where('timestamp', '>=', Timestamp.fromDate(date)),
+          where('timestamp', '<', Timestamp.fromDate(nextDate))
+        ))
+        
+        const count = snap.docs.filter(doc => {
+          const data = doc.data()
+          return !(data.pageType === 'admin' || 
+                  (data.pagePath && data.pagePath.startsWith('/admin')))
+        }).length
+        
+        trend.push({
+          date: date.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' }),
+          day: date.toLocaleDateString('zh-HK', { weekday: 'short' }),
+          count,
+          fullDate: date
+        })
+      } catch (e) {
+        trend.push({ date: date.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' }), day: date.toLocaleDateString('zh-HK', { weekday: 'short' }), count: 0 })
+      }
+    }
+    
+    setDailyTrend(trend)
+  }
+
   const loadStats = async () => {
     setIsLoading(true)
     try {
-      console.log('Loading analytics stats...')
-      // 計算各時間段
       const now = new Date()
       const today = new Date(now)
       today.setHours(0, 0, 0, 0)
@@ -86,7 +126,6 @@ function AnalyticsDashboard() {
       const last30Days = new Date(today)
       last30Days.setDate(last30Days.getDate() - 30)
 
-      // 並行查詢各時間段
       const [
         todaySnap,
         yesterdaySnap,
@@ -114,7 +153,6 @@ function AnalyticsDashboard() {
         getDocs(collection(db, 'pageViews'))
       ])
 
-      // 過濾掉後台頁面（pageType === 'admin' 或路徑以 /admin 開頭）
       const filterAdminPages = (snap) => {
         let count = 0
         snap.forEach(doc => {
@@ -134,7 +172,7 @@ function AnalyticsDashboard() {
         total: filterAdminPages(totalSnap)
       })
 
-      // 計算頁面類型分布（排除後台頁面）
+      // 頁面類型分布
       const typeCount = {}
       last30DaysSnap.forEach(doc => {
         const data = doc.data()
@@ -152,8 +190,10 @@ function AnalyticsDashboard() {
       
       setPageTypeStats(typeStats)
 
-      // 熱門頁面（最近30天，排除後台頁面）
+      // 熱門頁面（帶詳細信息）
       const pageCount = {}
+      const pageData = {}
+      
       last30DaysSnap.forEach(doc => {
         const data = doc.data()
         const isAdmin = data.pageType === 'admin' || 
@@ -170,22 +210,65 @@ function AnalyticsDashboard() {
             pageType: data.pageType,
             pageId: data.pageId,
             pageTitle: data.pageTitle || key,
+            pageName: data.pageName || data.pageTitle || '',
+            artistName: data.artistName || '',
             path: data.pagePath,
             count: 0
           }
         }
         pageCount[key].count++
+        // 保存最詳細的標題
+        if (data.pageName && !pageCount[key].pageName) {
+          pageCount[key].pageName = data.pageName
+        }
+        if (data.artistName && !pageCount[key].artistName) {
+          pageCount[key].artistName = data.artistName
+        }
       })
 
-      const top = Object.values(pageCount)
+      // 加載額外詳細信息（歌曲名、歌手名）
+      const topPageEntries = Object.values(pageCount)
         .sort((a, b) => b.count - a.count)
         .slice(0, 20)
       
-      setTopPages(top)
+      // 為 tab 和 artist 類型加載詳細信息
+      const enrichedPages = await Promise.all(
+        topPageEntries.map(async (page) => {
+          if (page.pageType === 'tab' && page.pageId) {
+            try {
+              const tabDoc = await getDoc(doc(db, 'tabs', page.pageId))
+              if (tabDoc.exists()) {
+                const tabData = tabDoc.data()
+                return {
+                  ...page,
+                  pageName: tabData.title || page.pageName,
+                  artistName: tabData.artist || page.artistName,
+                  thumbnail: tabData.thumbnail || tabData.albumImage
+                }
+              }
+            } catch (e) {}
+          }
+          if (page.pageType === 'artist' && page.pageId) {
+            try {
+              const artistDoc = await getDoc(doc(db, 'artists', page.pageId))
+              if (artistDoc.exists()) {
+                const artistData = artistDoc.data()
+                return {
+                  ...page,
+                  pageName: artistData.name || page.pageName,
+                  photoURL: artistData.photoURL || artistData.wikiPhotoURL
+                }
+              }
+            } catch (e) {}
+          }
+          return page
+        })
+      )
+      
+      setTopPages(enrichedPages)
 
     } catch (error) {
       console.error('Error loading stats:', error)
-      alert('載入統計數據失敗：' + error.message)
     } finally {
       setIsLoading(false)
     }
@@ -193,11 +276,11 @@ function AnalyticsDashboard() {
 
   const getPageTypeLabel = (type) => {
     const labels = {
-      'tab': '🎵 樂譜頁',
-      'artist': '👤 歌手頁',
+      'tab': '🎵 樂譜',
+      'artist': '👤 歌手',
       'artists-list': '📋 歌手列表',
       'home': '🏠 首頁',
-      'search': '🔍 搜尋頁',
+      'search': '🔍 搜尋',
       'library': '📚 樂譜庫',
       'playlist': '📀 歌單',
       'admin': '⚙️ 後台',
@@ -205,6 +288,19 @@ function AnalyticsDashboard() {
       'other': '📄 其他'
     }
     return labels[type] || type
+  }
+
+  const getPageTypeColor = (type) => {
+    const colors = {
+      'tab': '#FFD700',
+      'artist': '#1fc3df',
+      'home': '#10b981',
+      'search': '#f59e0b',
+      'library': '#8b5cf6',
+      'playlist': '#ec4899',
+      'other': '#6b7280'
+    }
+    return colors[type] || '#6b7280'
   }
 
   const formatTime = (timestamp) => {
@@ -217,9 +313,35 @@ function AnalyticsDashboard() {
     })
   }
 
+  // 計算最大值的百分比（用於圖表）
+  const maxTrend = Math.max(...dailyTrend.map(d => d.count), 1)
+  const maxType = Math.max(...pageTypeStats.map(t => t.count), 1)
+
+  // 獲取頁面顯示名稱
+  const getPageDisplayName = (page) => {
+    if (page.pageType === 'tab') {
+      return page.pageName || page.pageTitle || '未知歌曲'
+    }
+    if (page.pageType === 'artist') {
+      return page.pageName || page.pageTitle || '未知歌手'
+    }
+    return page.pageTitle || page.pageName || page.path
+  }
+
+  // 獲取副標題（歌手名等）
+  const getPageSubtitle = (page) => {
+    if (page.pageType === 'tab' && page.artistName) {
+      return page.artistName
+    }
+    if (page.pageType === 'artist') {
+      return '歌手頁面'
+    }
+    return getPageTypeLabel(page.pageType)
+  }
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 pb-8">
+      <div className="max-w-7xl mx-auto px-4 pb-8">
         {/* Header */}
         <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
@@ -227,7 +349,7 @@ function AnalyticsDashboard() {
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                 <span>📊</span> 全站瀏覽統計
               </h1>
-              <p className="text-sm text-[#B3B3B3]">類似 Google Analytics 的頁面瀏覽追蹤</p>
+              <p className="text-sm text-[#B3B3B3]">實時追蹤所有頁面瀏覽數據</p>
             </div>
             <button
               onClick={() => router.push('/admin')}
@@ -248,6 +370,9 @@ function AnalyticsDashboard() {
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <p className="text-gray-400 text-sm">昨日瀏覽</p>
             <p className="text-2xl font-bold text-white">{stats.yesterday.toLocaleString()}</p>
+            {stats.today > stats.yesterday && (
+              <p className="text-xs text-green-400 mt-1">↗ 較昨日多</p>
+            )}
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
             <p className="text-gray-400 text-sm">近7天</p>
@@ -269,75 +394,203 @@ function AnalyticsDashboard() {
             <p className="text-gray-400">載入統計數據...</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* 頁面類型分布 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800">
-              <div className="p-4 border-b border-gray-800">
-                <h2 className="text-lg font-medium text-white">📈 頁面類型分布（30天）</h2>
+          <>
+            {/* 7天趨勢圖表 */}
+            <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h2 className="text-lg font-medium text-white">📈 7天瀏覽趨勢</h2>
+                <span className="text-sm text-gray-500">最近7天每日瀏覽量</span>
               </div>
-              <div className="p-4">
-                {pageTypeStats.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">暫無數據</p>
-                ) : (
-                  <div className="space-y-3">
-                    {pageTypeStats.map(({ type, count }) => (
-                      <div key={type} className="flex items-center justify-between">
-                        <span className="text-gray-300">{getPageTypeLabel(type)}</span>
-                        <div className="flex items-center gap-3">
-                          <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-[#FFD700]"
-                              style={{ 
-                                width: `${(count / stats.last30Days * 100).toFixed(1)}%` 
-                              }}
-                            />
-                          </div>
-                          <span className="text-white font-medium w-16 text-right">
-                            {count.toLocaleString()}
-                          </span>
-                        </div>
+              <div className="p-6">
+                <div className="flex items-end gap-2 h-48">
+                  {dailyTrend.map((day, idx) => (
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                      <div className="w-full flex flex-col items-center gap-1">
+                        <span className="text-xs text-gray-400">{day.count}</span>
+                        <div 
+                          className="w-full bg-[#FFD700] rounded-t transition-all duration-500"
+                          style={{ 
+                            height: `${(day.count / maxTrend) * 160}px`,
+                            opacity: 0.6 + (day.count / maxTrend) * 0.4
+                          }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="text-center">
+                        <p className="text-xs text-white">{day.day}</p>
+                        <p className="text-[10px] text-gray-500">{day.date}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 熱門頁面 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800">
-              <div className="p-4 border-b border-gray-800">
-                <h2 className="text-lg font-medium text-white">🔥 熱門頁面（30天）</h2>
-              </div>
-              <div className="p-4 max-h-96 overflow-y-auto">
-                {topPages.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">暫無數據</p>
-                ) : (
-                  <div className="space-y-2">
-                    {topPages.map((page, index) => (
-                      <div 
-                        key={page.key}
-                        className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer"
-                        onClick={() => router.push(page.path)}
-                      >
-                        <span className="text-gray-500 w-6">{index + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm truncate">
-                            {page.pageTitle || page.key}
-                          </p>
-                          <p className="text-xs text-gray-500">{getPageTypeLabel(page.pageType)}</p>
+            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+              {/* 頁面類型分布 - 圓環圖樣式 */}
+              <div className="bg-[#121212] rounded-xl border border-gray-800">
+                <div className="p-4 border-b border-gray-800">
+                  <h2 className="text-lg font-medium text-white">🥧 頁面類型分布（30天）</h2>
+                </div>
+                <div className="p-4">
+                  {pageTypeStats.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">暫無數據</p>
+                  ) : (
+                    <>
+                      {/* 簡單圓環圖 */}
+                      <div className="flex items-center gap-6 mb-6">
+                        <div className="relative w-32 h-32">
+                          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                            {pageTypeStats.reduce((acc, { type, count }, idx, arr) => {
+                              const total = arr.reduce((s, i) => s + i.count, 0)
+                              const prevTotal = arr.slice(0, idx).reduce((s, i) => s + i.count, 0)
+                              const percentage = count / total
+                              const prevPercentage = prevTotal / total
+                              
+                              const circumference = 2 * Math.PI * 40
+                              const strokeDasharray = `${percentage * circumference} ${circumference}`
+                              const strokeDashoffset = -prevPercentage * circumference
+                              
+                              acc.push(
+                                <circle
+                                  key={type}
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  fill="none"
+                                  stroke={getPageTypeColor(type)}
+                                  strokeWidth="20"
+                                  strokeDasharray={strokeDasharray}
+                                  strokeDashoffset={strokeDashoffset}
+                                />
+                              )
+                              return acc
+                            }, [])}
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xl font-bold text-white">
+                              {stats.last30Days.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[#FFD700] font-medium">
-                          {page.count.toLocaleString()}
-                        </span>
+                        
+                        {/* 圖例 */}
+                        <div className="flex-1 space-y-2">
+                          {pageTypeStats.slice(0, 5).map(({ type, count }) => {
+                            const total = pageTypeStats.reduce((s, i) => s + i.count, 0)
+                            const percentage = ((count / total) * 100).toFixed(1)
+                            return (
+                              <div key={type} className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: getPageTypeColor(type) }}
+                                />
+                                <span className="text-gray-300 text-sm flex-1">{getPageTypeLabel(type)}</span>
+                                <span className="text-white text-sm font-medium">{percentage}%</span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      
+                      {/* 詳細列表 */}
+                      <div className="space-y-2">
+                        {pageTypeStats.map(({ type, count }) => (
+                          <div key={type} className="flex items-center justify-between p-2 hover:bg-gray-800 rounded">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: getPageTypeColor(type) }}
+                              />
+                              <span className="text-gray-300">{getPageTypeLabel(type)}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full"
+                                  style={{ 
+                                    width: `${(count / maxType * 100).toFixed(1)}%`,
+                                    backgroundColor: getPageTypeColor(type)
+                                  }}
+                                />
+                              </div>
+                              <span className="text-white font-medium w-14 text-right">
+                                {count.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* 熱門頁面 - 帶詳細信息 */}
+              <div className="bg-[#121212] rounded-xl border border-gray-800">
+                <div className="p-4 border-b border-gray-800">
+                  <h2 className="text-lg font-medium text-white">🔥 熱門頁面（30天）</h2>
+                </div>
+                <div className="p-4 max-h-[500px] overflow-y-auto">
+                  {topPages.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">暫無數據</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {topPages.map((page, index) => (
+                        <div 
+                          key={page.key}
+                          className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer group"
+                          onClick={() => router.push(page.path)}
+                        >
+                          {/* 排名 */}
+                          <span className={`
+                            w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold
+                            ${index < 3 ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-gray-400'}
+                          `}>
+                            {index + 1}
+                          </span>
+                          
+                          {/* 縮圖（如果有） */}
+                          {(page.thumbnail || page.photoURL) ? (
+                            <img 
+                              src={page.thumbnail || page.photoURL} 
+                              alt=""
+                              className="w-10 h-10 rounded object-cover bg-gray-800"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center text-lg">
+                              {page.pageType === 'tab' ? '🎵' : 
+                               page.pageType === 'artist' ? '👤' : 
+                               page.pageType === 'home' ? '🏠' : '📄'}
+                            </div>
+                          )}
+                          
+                          {/* 標題和副標題 */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate group-hover:text-[#FFD700] transition">
+                              {getPageDisplayName(page)}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {getPageSubtitle(page)}
+                            </p>
+                          </div>
+                          
+                          {/* 瀏覽數 */}
+                          <div className="text-right">
+                            <span className="text-[#FFD700] font-bold">
+                              {page.count.toLocaleString()}
+                            </span>
+                            <p className="text-[10px] text-gray-500">瀏覽</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* 最近訪問 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 md:col-span-2">
+            <div className="bg-[#121212] rounded-xl border border-gray-800">
               <div className="p-4 border-b border-gray-800">
                 <h2 className="text-lg font-medium text-white">🕐 最近訪問（實時）</h2>
               </div>
@@ -351,17 +604,17 @@ function AnalyticsDashboard() {
                         key={view.id}
                         className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg text-sm"
                       >
-                        <span className="text-gray-500 w-16">
+                        <span className="text-gray-500 w-16 text-xs">
                           {formatTime(view.timestamp)}
                         </span>
-                        <span className="text-blue-400 w-20">
+                        <span className="text-blue-400 w-20 text-xs">
                           {getPageTypeLabel(view.pageType)}
                         </span>
                         <span 
                           className="text-white flex-1 truncate cursor-pointer hover:text-[#FFD700]"
                           onClick={() => router.push(view.pagePath)}
                         >
-                          {view.pageTitle || view.pagePath}
+                          {view.pageName || view.pageTitle || view.pagePath}
                         </span>
                         <span className="text-gray-500 text-xs hidden md:block">
                           {view.screenResolution}
@@ -372,7 +625,7 @@ function AnalyticsDashboard() {
                 )}
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* 說明 */}
@@ -381,8 +634,7 @@ function AnalyticsDashboard() {
           <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
             <li>統計包含<strong>所有訪客</strong>（包括未登入用戶）</li>
             <li>每次頁面載入都會記錄（包括刷新）</li>
-            <li>自動過濾機器人/爬蟲訪問</li>
-            <li>本地開發環境（localhost）不會記錄</li>
+            <li>熱門頁面會實時加載歌曲名和歌手名</li>
             <li>數據儲存在 Firestore <code>pageViews</code> 集合</li>
           </ul>
         </div>

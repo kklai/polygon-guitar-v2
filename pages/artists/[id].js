@@ -9,6 +9,7 @@ import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
+import { recordPageView } from '../../lib/analytics';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -54,6 +55,11 @@ export default function ArtistPage() {
 
       // 記錄瀏覽（支援未登入用戶）
       recordArtistView(user?.uid || null, artistData);
+      // 記錄詳細頁面瀏覽
+      recordPageView('artist', artistDoc.id, artistData.name, {
+        pageName: artistData.name,
+        photoURL: artistData.photoURL || artistData.wikiPhotoURL
+      }, user?.uid || null);
 
       // 使用 getTabsByArtist 獲取歌曲（支援多種 artistId 格式兼容）
       const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);

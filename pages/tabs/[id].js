@@ -12,6 +12,7 @@ import TabComments from '@/components/TabComments'
 import RatingSystem from '@/components/RatingSystem'
 import GpSegmentPlayer from '@/components/GpSegmentPlayer'
 import { recordSongView } from '@/lib/recentViews'
+import { recordPageView } from '@/lib/analytics'
 import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
 import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist } from '@/lib/playlistApi'
 import Head from 'next/head'
@@ -128,6 +129,13 @@ export default function TabDetail() {
         if (user) {
           recordSongView(user.uid, data)
         }
+        // 記錄詳細頁面瀏覽（帶歌曲名和歌手名）
+        recordPageView('tab', id, data.title, {
+          pageName: data.title,
+          artistName: data.artist,
+          originalKey: data.originalKey,
+          thumbnail: data.thumbnail || data.albumImage
+        }, user?.uid || null)
         if (data.createdBy) {
           const userDoc = await getDoc(doc(db, 'users', data.createdBy))
           if (userDoc.exists()) {
