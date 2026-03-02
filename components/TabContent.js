@@ -2102,7 +2102,7 @@ const TabContent = ({
       return { total: uniqueChords.length, barreCount };
     })();
     
-    const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.strummingPattern || songInfo.fingeringTips);
+    const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.album || songInfo.strummingPattern || songInfo.fingeringTips);
     
     return (
       <div className="px-2 sm:px-4 py-2 border-b border-gray-800">
@@ -2173,6 +2173,7 @@ const TabContent = ({
             {hasSongInfo && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-gray-400">
                 {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
+                {songInfo.album && <span>專輯：<span className="text-white">{songInfo.album}</span></span>}
                 {songInfo.composer && <span>作曲：<span className="text-white">{songInfo.composer}</span></span>}
                 {songInfo.lyricist && <span>填詞：<span className="text-white">{songInfo.lyricist}</span></span>}
                 {songInfo.arranger && <span>編曲：<span className="text-white">{songInfo.arranger}</span></span>}
