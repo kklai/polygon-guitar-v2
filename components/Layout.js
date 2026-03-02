@@ -53,6 +53,7 @@ export default function Layout({ children, fullWidth = false }) {
       { path: '/search', label: '搜尋', icon: 'search' },
       { path: '/artists', label: '歌手', icon: 'artists' },
       { path: '/library', label: '收藏', icon: 'library' },
+      { path: '/tab-requests', label: '求譜', icon: 'hand' },
       { path: '/tabs/new', label: '上傳', icon: 'upload' },
     ]
     
