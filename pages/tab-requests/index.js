@@ -32,10 +32,10 @@ export default function TabRequestsPage() {
 
   const loadRequests = async () => {
     try {
+      // 使用單一字段排序（避免需要複合索引）
       const q = query(
         collection(db, 'tabRequests'),
-        orderBy('voteCount', 'desc'),
-        orderBy('createdAt', 'desc')
+        orderBy('voteCount', 'desc')
       )
       const snapshot = await getDocs(q)
       const data = snapshot.docs.map(doc => ({
@@ -43,6 +43,13 @@ export default function TabRequestsPage() {
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate?.() || new Date(),
       }))
+      // 在客戶端進行二次排序：先按 voteCount，再按 createdAt
+      data.sort((a, b) => {
+        if (b.voteCount !== a.voteCount) {
+          return b.voteCount - a.voteCount
+        }
+        return b.createdAt - a.createdAt
+      })
       setRequests(data)
     } catch (error) {
       console.error('Error loading requests:', error)
