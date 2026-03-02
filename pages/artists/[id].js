@@ -144,7 +144,11 @@ export default function ArtistPage() {
     if (year >= 2016) return '2016-2020';
     if (year >= 2011) return '2011-2015';
     if (year >= 2006) return '2006-2010';
-    return '2000-2005';
+    if (year >= 2000) return '2000-2005';
+    if (year >= 1995) return '1995-1999';
+    if (year >= 1990) return '1990-1994';
+    if (year >= 1980) return '1980-1989';
+    return '1979 或更早';
   };
 
   const handleMoreClick = async (e, tab) => {
