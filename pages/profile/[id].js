@@ -7,41 +7,84 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 
-// 選項對照表
-const EXPERIENCE_LABELS = {
-  'beginner': '初學者（少於1年）',
-  '1-2': '1-2年',
-  '3-5': '3-5年',
-  '6-10': '6-10年',
-  '10+': '10年以上',
-  'pro': '專業演奏'
-}
+// 社交媒體圖標組件
+const SocialIcon = ({ platform, url }) => {
+  if (!url) return null
+  
+  const icons = {
+    facebook: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      </svg>
+    ),
+    instagram: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+      </svg>
+    ),
+    youtube: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      </svg>
+    ),
+    whatsapp: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+    ),
+    spotify: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+      </svg>
+    ),
+    website: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c2.333 0 4.44.881 6.057 2.324l-1.28 1.28C15.661 4.756 13.896 4.179 12 4.179c-1.896 0-3.661.577-5.777 1.425l-1.28-1.28C7.56 2.881 9.667 2 12 2zm-8 8c0-.677.073-1.337.209-1.972l2.02.554c-.107.461-.179.939-.179 1.418 0 2.55 1.39 4.77 3.455 5.956l-.971 1.728C5.832 17.718 4 15.076 4 12zm16 0c0 3.076-1.832 5.718-4.534 6.684l-.971-1.728c2.065-1.186 3.455-3.406 3.455-5.956 0-.479-.072-.957-.179-1.418l2.02-.554c.136.635.209 1.295.209 1.972z"/>
+      </svg>
+    ),
+    twitter: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    ),
+    threads: (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.781 3.632 2.695 6.54 2.717 2.623-.02 4.358-.631 5.8-1.845 1.647-1.396 2.461-3.432 2.461-6.093v-1.386h-6.55v-2.09h8.64v1.668c0 2.324-.551 4.402-1.594 6.087-1.165 1.87-2.907 3.146-5.18 3.788l-.068.019c-.926.252-1.936.39-3.01.39z"/>
+      </svg>
+    )
+  }
 
-const STYLE_LABELS = {
-  'sing-play': '自彈自唱',
-  'accompaniment': '伴奏',
-  'fingerstyle': '指彈',
-  'lead': '主音結他',
-  'all': '全部都有'
-}
+  const getFullUrl = (url, type) => {
+    if (!url) return null
+    if (url.startsWith('http')) return url
+    
+    const prefixes = {
+      facebook: 'https://facebook.com/',
+      instagram: 'https://instagram.com/',
+      youtube: 'https://youtube.com/@',
+      whatsapp: 'https://wa.me/',
+      spotify: 'https://open.spotify.com/user/',
+      twitter: 'https://twitter.com/',
+      threads: 'https://threads.net/@'
+    }
+    
+    return prefixes[type] ? prefixes[type] + url : url
+  }
 
-const LOCATION_LABELS = {
-  'home': '家中',
-  'studio': 'Band房/練習室',
-  'school': '學校',
-  'park': '公園/街頭',
-  'cafe': '咖啡廳',
-  'church': '教會',
-  'online': '線上直播'
-}
+  const fullUrl = getFullUrl(url, platform)
+  if (!fullUrl) return null
 
-const CHORDS_LABELS = {
-  'open': '開放和弦',
-  'barre': 'Barre 和弦',
-  'jazz': 'Jazz 和弦',
-  'power': 'Power Chords',
-  'sus': 'Sus4 / Add9',
-  'all': '全部我都鍾意'
+  return (
+    <a
+      href={fullUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-11 h-11 rounded-full bg-[#FFD700] flex items-center justify-center text-black hover:scale-110 transition-transform"
+      title={platform}
+    >
+      {icons[platform] || icons.website}
+    </a>
+  )
 }
 
 export default function PublicProfile() {
@@ -54,6 +97,8 @@ export default function PublicProfile() {
   const [playlists, setPlaylists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followerCount, setFollowerCount] = useState(0)
 
   useEffect(() => {
     if (id) {
@@ -64,7 +109,6 @@ export default function PublicProfile() {
   const loadProfile = async () => {
     setIsLoading(true)
     try {
-      // 淨係載入用戶基本資料
       const userDoc = await getDoc(doc(db, 'users', id))
       
       if (!userDoc.exists()) {
@@ -75,7 +119,6 @@ export default function PublicProfile() {
 
       const userData = { id: userDoc.id, ...userDoc.data() }
       
-      // 檢查是否公開
       if (userData.isPublicProfile === false && currentUser?.uid !== id) {
         setError('此用戶的個人主頁未公開')
         setIsLoading(false)
@@ -83,6 +126,7 @@ export default function PublicProfile() {
       }
 
       setProfile(userData)
+      setFollowerCount(userData.followerCount || 0)
       
       // 載入上傳的樂譜
       try {
@@ -98,12 +142,24 @@ export default function PublicProfile() {
         console.log('Error loading uploads:', e)
       }
       
-      // 載入歌單（用戶個人歌單 userPlaylists）
-      try {
-        const userPlaylists = await getUserPlaylists(id)
-        setPlaylists(userPlaylists.slice(0, 5)) // 只顯示前5個
-      } catch (e) {
-        console.error('Error loading playlists:', e)
+      // 載入歌單
+      if (userData.showPlaylists !== false) {
+        try {
+          const userPlaylists = await getUserPlaylists(id)
+          setPlaylists(userPlaylists.slice(0, 5))
+        } catch (e) {
+          console.error('Error loading playlists:', e)
+        }
+      }
+
+      // 檢查是否已追蹤
+      if (currentUser) {
+        try {
+          const followDoc = await getDoc(doc(db, 'users', id, 'followers', currentUser.uid))
+          setIsFollowing(followDoc.exists())
+        } catch (e) {
+          console.log('Error checking follow status:', e)
+        }
       }
     } catch (error) {
       console.error('Error loading profile:', error)
@@ -113,39 +169,47 @@ export default function PublicProfile() {
     }
   }
 
-  const isOwnProfile = currentUser?.uid === id
-
-  // 生成個人簡介句子
-  const generateBioSentence = () => {
-    if (!profile) return ''
-    
-    const parts = []
-    
-    if (profile.guitarExperience && EXPERIENCE_LABELS[profile.guitarExperience]) {
-      parts.push(EXPERIENCE_LABELS[profile.guitarExperience] + '結他手')
+  const handleFollow = async () => {
+    if (!currentUser) {
+      router.push('/login')
+      return
     }
     
-    if (profile.practiceLocation && LOCATION_LABELS[profile.practiceLocation]) {
-      parts.push('鍾意喺' + LOCATION_LABELS[profile.practiceLocation] + '練習')
+    if (currentUser.uid === id) return
+    
+    try {
+      const { doc, setDoc, deleteDoc, increment, updateDoc } = await import('firebase/firestore')
+      
+      if (isFollowing) {
+        await deleteDoc(doc(db, 'users', id, 'followers', currentUser.uid))
+        await updateDoc(doc(db, 'users', id), {
+          followerCount: increment(-1)
+        })
+        setFollowerCount(prev => Math.max(0, prev - 1))
+        setIsFollowing(false)
+      } else {
+        await setDoc(doc(db, 'users', id, 'followers', currentUser.uid), {
+          createdAt: new Date().toISOString()
+        })
+        await updateDoc(doc(db, 'users', id), {
+          followerCount: increment(1)
+        })
+        setFollowerCount(prev => prev + 1)
+        setIsFollowing(true)
+      }
+    } catch (error) {
+      console.error('Follow error:', error)
     }
-    
-    if (profile.playingStyle && STYLE_LABELS[profile.playingStyle]) {
-      parts.push(STYLE_LABELS[profile.playingStyle])
-    }
-    
-    if (profile.favoriteChords && CHORDS_LABELS[profile.favoriteChords]) {
-      parts.push('最愛用' + CHORDS_LABELS[profile.favoriteChords])
-    }
-    
-    if (parts.length === 0) return profile.bio || ''
-    
-    return '「' + parts.join('，') + '。」'
   }
+
+  const totalViews = uploads.reduce((sum, tab) => sum + (tab.viewCount || 0), 0)
+
+  const isOwnProfile = currentUser?.uid === id
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
+      <Layout hideHeader>
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full"></div>
         </div>
       </Layout>
@@ -154,8 +218,8 @@ export default function PublicProfile() {
 
   if (error) {
     return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
+      <Layout hideHeader>
+        <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-400 mb-4">{error}</p>
             <Link href="/" className="text-[#FFD700] hover:underline">
@@ -169,90 +233,135 @@ export default function PublicProfile() {
 
   if (!profile) return null
 
+  const socialMedia = profile.socialMedia || {}
+  const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
+
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto px-4 py-8 pb-24">
-        {/* Header Card */}
-        <div className="bg-[#121212] rounded-2xl border border-gray-800 overflow-hidden mb-6">
-          {/* Cover */}
-          <div className="h-32 bg-gradient-to-r from-[#FFD700]/20 to-[#FFD700]/5"></div>
-          
-          {/* Profile Info */}
-          <div className="px-6 pb-6">
-            <div className="flex flex-col md:flex-row items-center md:items-end -mt-12 mb-4">
-              <img 
-                src={profile.photoURL || '/default-avatar.png'} 
-                alt={profile.displayName}
-                className="w-24 h-24 rounded-full border-4 border-[#121212] object-cover"
-              />
-              <div className="mt-4 md:mt-0 md:ml-4 text-center md:text-left flex-1">
-                <h1 className="text-2xl font-bold text-white">{profile.displayName || '未命名用戶'}</h1>
+    <Layout hideHeader>
+      <div className="min-h-screen bg-black pb-24">
+        {/* Yellow Header */}
+        <div className="bg-[#FFD700] px-4 py-3">
+          <Link href="/" className="flex items-center gap-2">
+            <svg className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none"/>
+            </svg>
+            <div>
+              <h1 className="text-black font-bold text-lg leading-tight">POLYGON</h1>
+              <p className="text-black/70 text-[10px] leading-tight">香港廣東歌結他譜網</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Profile Header */}
+        <div className="px-4 py-6">
+          <div className="flex items-start gap-4">
+            {/* Avatar */}
+            <img 
+              src={profile.photoURL || '/default-avatar.png'} 
+              alt={profile.displayName}
+              className="w-24 h-24 rounded-full object-cover border-2 border-[#FFD700]"
+            />
+            
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-white text-xl font-bold truncate">
+                  {profile.displayName || '未命名用戶'}
+                </h1>
                 {profile.penName && (
-                  <p className="text-[#FFD700] text-sm">✏️ 編譜筆名：{profile.penName}</p>
+                  <span className="text-[#FFD700] text-xs">@{profile.penName}</span>
                 )}
               </div>
+              
+              {!isOwnProfile && (
+                <button
+                  onClick={handleFollow}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                    isFollowing 
+                      ? 'bg-gray-700 text-white' 
+                      : 'bg-[#FFD700] text-black'
+                  }`}
+                >
+                  {isFollowing ? '追蹤中' : '追蹤'}
+                </button>
+              )}
+              
               {isOwnProfile && (
                 <Link
                   href="/profile/edit"
-                  className="mt-4 md:mt-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition"
+                  className="inline-block px-4 py-1.5 rounded-full text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition"
                 >
-                  編輯資料
+                  編輯
                 </Link>
               )}
             </div>
+          </div>
 
-            {/* Bio 句子 */}
-            {generateBioSentence() && (
-              <p className="text-gray-300 mt-4 text-lg">{generateBioSentence()}</p>
-            )}
-            
-            {/* 原有 Bio */}
-            {profile.bio && !generateBioSentence().includes(profile.bio) && (
-              <p className="text-gray-400 mt-2 text-sm">{profile.bio}</p>
-            )}
+          {/* Stats */}
+          <div className="flex items-center justify-around mt-6 py-4 border-y border-gray-800">
+            <div className="text-center">
+              <p className="text-[#FFD700] text-xl font-bold">{uploads.length}</p>
+              <p className="text-gray-400 text-xs">出譜數目</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[#FFD700] text-xl font-bold">{totalViews.toLocaleString()}</p>
+              <p className="text-gray-400 text-xs">總瀏覽量</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[#FFD700] text-xl font-bold">{followerCount}</p>
+              <p className="text-gray-400 text-xs">粉絲</p>
+            </div>
           </div>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">{uploads.length}</p>
-            <p className="text-sm text-gray-400">上傳樂譜</p>
-          </div>
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">{playlists.length}</p>
-            <p className="text-sm text-gray-400">歌單</p>
-          </div>
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">
-              {EXPERIENCE_LABELS[profile.guitarExperience] || '-'}
+          {/* Social Media Icons */}
+          {hasSocialLinks && (
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <SocialIcon platform="facebook" url={socialMedia.facebook} />
+              <SocialIcon platform="instagram" url={socialMedia.instagram} />
+              <SocialIcon platform="youtube" url={socialMedia.youtube} />
+              <SocialIcon platform="whatsapp" url={socialMedia.whatsapp} />
+              <SocialIcon platform="spotify" url={socialMedia.spotify} />
+              <SocialIcon platform="website" url={socialMedia.website} />
+              <SocialIcon platform="twitter" url={socialMedia.twitter} />
+              <SocialIcon platform="threads" url={socialMedia.threads} />
+            </div>
+          )}
+
+          {/* Bio */}
+          {profile.bio && (
+            <p className="text-gray-300 text-sm mt-5 leading-relaxed">
+              {profile.bio}
             </p>
-            <p className="text-sm text-gray-400">彈結他經驗</p>
-          </div>
+          )}
         </div>
 
-        {/* Uploads */}
-        {uploads.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
-            <h2 className="text-lg font-medium text-white mb-4">📝 上傳的樂譜</h2>
+        {/* Popular Tabs */}
+        {profile.showUploads !== false && uploads.length > 0 && (
+          <div className="px-4 mt-2">
+            <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
             <div className="space-y-3">
-              {uploads.map(tab => (
+              {uploads.slice(0, 5).map((tab, index) => (
                 <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                  <div className="flex items-center gap-4 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer">
-                    {tab.thumbnail && (
+                  <div className="flex items-center gap-3 p-2 hover:bg-gray-900 rounded-lg transition cursor-pointer">
+                    <span className="text-gray-500 text-lg w-6 text-center">{index + 1}</span>
+                    {tab.thumbnail ? (
                       <img
                         src={tab.thumbnail}
                         alt={tab.title}
-                        className="w-16 h-12 rounded object-cover"
+                        className="w-14 h-14 rounded object-cover"
                       />
+                    ) : (
+                      <div className="w-14 h-14 rounded bg-gray-800 flex items-center justify-center">
+                        <span className="text-2xl">🎵</span>
+                      </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium truncate">{tab.title}</h3>
-                      <p className="text-sm text-gray-500">{tab.artist}</p>
+                      <p className="text-gray-500 text-sm">{tab.artist}</p>
                     </div>
-                    <div className="text-right text-xs text-gray-400">
-                      {tab.viewCount !== undefined && <div>👁 {tab.viewCount}</div>}
-                      {tab.likes !== undefined && <div>❤ {tab.likes}</div>}
+                    <div className="text-right text-xs text-gray-500">
+                      <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
+                      <p>{(tab.likes || 0).toLocaleString()} ❤</p>
                     </div>
                   </div>
                 </Link>
@@ -261,40 +370,49 @@ export default function PublicProfile() {
           </div>
         )}
 
+        {/* All Songs Link */}
+        {uploads.length > 5 && (
+          <div className="px-4 mt-4">
+            <Link 
+              href={`/profile/${id}/tabs`}
+              className="block text-center py-3 text-[#FFD700] border border-[#FFD700]/30 rounded-lg hover:bg-[#FFD700]/10 transition"
+            >
+              所有歌曲 ({uploads.length})
+            </Link>
+          </div>
+        )}
+
         {/* Playlists */}
         {profile.showPlaylists !== false && playlists.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
-            <h2 className="text-lg font-medium text-white mb-4">🎵 歌單</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="px-4 mt-8">
+            <h2 className="text-white font-bold text-lg mb-4">歌單</h2>
+            <div className="space-y-3">
               {playlists.map(playlist => (
                 <Link 
                   key={playlist.id}
                   href={`/library/playlist/${playlist.id}`}
-                  className="p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
+                  className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
                 >
                   {playlist.coverImage ? (
                     <img 
                       src={playlist.coverImage} 
                       alt={playlist.title}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
+                      className="w-14 h-14 rounded object-cover"
                     />
                   ) : (
-                    <div className="w-full h-32 bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20 rounded-lg mb-3 flex items-center justify-center">
-                      <span className="text-4xl">🎵</span>
+                    <div className="w-14 h-14 rounded bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20 flex items-center justify-center">
+                      <span className="text-xl">🎵</span>
                     </div>
                   )}
-                  <p className="text-white font-medium truncate">{playlist.title}</p>
-                  <p className="text-sm text-gray-400">{playlist.songIds?.length || 0} 首歌</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{playlist.title}</p>
+                    <p className="text-gray-500 text-sm">{playlist.songIds?.length || 0} 首歌</p>
+                  </div>
                 </Link>
               ))}
             </div>
           </div>
         )}
-
-        {/* Info */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 text-center text-gray-400">
-          <p>更多功能開發中...</p>
-        </div>
       </div>
     </Layout>
   )

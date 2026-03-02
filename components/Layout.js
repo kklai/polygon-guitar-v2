@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
 
-export default function Layout({ children, fullWidth = false }) {
+export default function Layout({ children, fullWidth = false, hideHeader = false }) {
   const router = useRouter()
   const { isAdmin } = useAuth()
   const currentPath = router.pathname
@@ -129,9 +129,12 @@ export default function Layout({ children, fullWidth = false }) {
 
   return (
     <div className="bg-black text-white min-h-screen">
-      <Navbar />
+      {!hideHeader && <Navbar />}
       <main 
-        className={fullWidth ? 'pt-20 pb-16 md:pb-0' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24'}
+        className={fullWidth 
+          ? (hideHeader ? 'pb-16 md:pb-0' : 'pt-20 pb-16 md:pb-0')
+          : (hideHeader ? 'pb-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24')
+        }
       >
         {children}
       </main>

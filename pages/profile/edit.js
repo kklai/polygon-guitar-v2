@@ -63,6 +63,18 @@ const FAVORITE_CHORDS_OPTIONS = [
   { value: 'all', label: '全部我都鍾意' }
 ]
 
+// 社交媒體配置
+const SOCIAL_MEDIA_CONFIG = [
+  { key: 'facebook', label: 'Facebook', placeholder: '用戶名或完整網址', icon: 'f' },
+  { key: 'instagram', label: 'Instagram', placeholder: '用戶名（不用 @）', icon: '📷' },
+  { key: 'youtube', label: 'YouTube', placeholder: '頻道名或 @用戶名', icon: '▶️' },
+  { key: 'whatsapp', label: 'WhatsApp', placeholder: '電話號碼（如 85291234567）', icon: '💬' },
+  { key: 'spotify', label: 'Spotify', placeholder: '用戶名或 Spotify 連結', icon: '🎵' },
+  { key: 'twitter', label: 'X (Twitter)', placeholder: '用戶名（不用 @）', icon: '𝕏' },
+  { key: 'threads', label: 'Threads', placeholder: '用戶名（不用 @）', icon: '🧵' },
+  { key: 'website', label: '個人網站', placeholder: 'https://...', icon: '🌐' }
+]
+
 export default function EditProfile() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -70,7 +82,7 @@ export default function EditProfile() {
   
   const [formData, setFormData] = useState({
     displayName: '',
-    penName: '', // 編譜者筆名（出譜時使用）
+    penName: '',
     bio: '',
     guitarExperience: '',
     favoriteArtist: '',
@@ -81,7 +93,8 @@ export default function EditProfile() {
     photoURL: '',
     isPublicProfile: true,
     showPlaylists: true,
-    showUploads: true
+    showUploads: true,
+    socialMedia: {}
   })
   
   const [originalData, setOriginalData] = useState(null)
@@ -119,12 +132,12 @@ export default function EditProfile() {
           photoURL: data.photoURL || user.photoURL || '',
           isPublicProfile: data.isPublicProfile !== false,
           showPlaylists: data.showPlaylists !== false,
-          showUploads: data.showUploads !== false
+          showUploads: data.showUploads !== false,
+          socialMedia: data.socialMedia || {}
         }
         setFormData(profileData)
         setOriginalData(profileData)
       } else {
-        // 新用戶，使用默認值
         const defaultData = {
           displayName: user.displayName || '',
           penName: user.displayName || '',
@@ -138,7 +151,8 @@ export default function EditProfile() {
           photoURL: user.photoURL || '',
           isPublicProfile: true,
           showPlaylists: true,
-          showUploads: true
+          showUploads: true,
+          socialMedia: {}
         }
         setFormData(defaultData)
         setOriginalData(defaultData)
@@ -158,6 +172,16 @@ export default function EditProfile() {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSocialMediaChange = (platform, value) => {
+    setFormData(prev => ({
+      ...prev,
+      socialMedia: {
+        ...prev.socialMedia,
+        [platform]: value
+      }
+    }))
   }
 
   const handlePhotoUpload = async (file) => {
@@ -345,11 +369,39 @@ export default function EditProfile() {
               <textarea
                 value={formData.bio}
                 onChange={(e) => handleChange('bio', e.target.value)}
-                placeholder="介紹一下自己，例如音樂風格、喜歡的歌手..."
+                placeholder="介紹一下自己，例如音樂風格、喜歡的歌手、聯絡方式..."
                 rows={4}
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Social Media */}
+        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+          <h2 className="text-lg font-medium text-white mb-4">🔗 社交媒體</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            添加你的社交媒體帳號，讓其他人可以追蹤你
+          </p>
+          
+          <div className="space-y-4">
+            {SOCIAL_MEDIA_CONFIG.map(({ key, label, placeholder, icon }) => (
+              <div key={key}>
+                <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-[#FFD700] flex items-center justify-center text-black text-xs">
+                    {icon}
+                  </span>
+                  {label}
+                </label>
+                <input
+                  type="text"
+                  value={formData.socialMedia?.[key] || ''}
+                  onChange={(e) => handleSocialMediaChange(key, e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -472,7 +524,6 @@ export default function EditProfile() {
             </label>
           </div>
         </div>
-
 
       </div>
     </Layout>
