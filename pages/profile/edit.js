@@ -473,7 +473,7 @@ export default function EditProfile() {
             </button>
             <button
               onClick={handleSave}
-              disabled={!hasChanges || isSaving}
+              disabled={isSaving}
               className="flex-1 py-3 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
             >
               {isSaving ? '保存中...' : '💾 保存資料'}
