@@ -7,7 +7,7 @@ import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Musi
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
-import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist } from '../../lib/playlistApi';
+import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
@@ -144,6 +144,17 @@ export default function ArtistPage() {
   const handleAddToPlaylistClick = () => {
     setShowActionModal(false);
     setShowAddToPlaylist(true);
+  };
+
+  const handleAddToLiked = async () => {
+    if (!selectedTab || !user) return;
+    try {
+      const result = await toggleLikeSong(user.uid, selectedTab.id);
+      alert(result.liked ? '已加到最喜愛 ❤️' : '已取消最喜愛');
+      setShowActionModal(false);
+    } catch (error) {
+      alert('操作失敗：' + error.message);
+    }
   };
 
   const addToPlaylist = async (playlistId) => {
@@ -536,6 +547,11 @@ export default function ArtistPage() {
               <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
                 <Share2 className="w-5 h-5 text-[#B3B3B3]" />
                 <span className="text-white">分享</span>
+              </button>
+              
+              <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                <Heart className="w-5 h-5 text-red-500" />
+                <span className="text-white">加到我最喜愛</span>
               </button>
               
               <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
