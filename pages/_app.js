@@ -86,6 +86,22 @@ export default function App({ Component, pageProps }) {
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <link rel="manifest" href="/api/manifest.json" />
+        
+        {/* 全局字體設定：英文字用 Source Code Pro Light */}
+        <style jsx global>{`
+          html, body {
+            font-family: 'Source Code Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-weight: 300;
+          }
+          /* 確保所有文字元素都繼承字體 */
+          h1, h2, h3, h4, h5, h6, p, span, a, button, input, textarea, label, div {
+            font-family: inherit;
+          }
+          /* 英文字符特別處理 */
+          * {
+            font-family: 'Source Code Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+          }
+        `}</style>
       </Head>
       <Component {...pageProps} />
     </AuthProvider>

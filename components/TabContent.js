@@ -378,11 +378,17 @@ function extractSectionMarker(line) {
     const markerLower = marker.toLowerCase();
     
     if (trimmedLower.startsWith(markerLower)) {
-      // 找到 marker 後的內容
-      const afterMarker = trimmed.substring(marker.length).trim();
+      // 檢查後面是否緊跟著冒號（可選）
+      let afterMarker = trimmed.substring(marker.length);
+      // 如果後面是冒號，跳過它
+      if (afterMarker.startsWith(':')) {
+        afterMarker = afterMarker.substring(1).trim();
+      } else {
+        afterMarker = afterMarker.trim();
+      }
       return { 
         hasMarker: true, 
-        marker: marker,
+        marker: marker,  // 返回的 marker 不包含冒號
         rest: afterMarker 
       };
     }
@@ -1509,7 +1515,6 @@ const TabContent = ({
                   fontSize: `${fontSize}px`, 
                   marginTop: '0.5em',
                   marginBottom: '0.3em',
-                  fontWeight: 'bold',
                   textDecoration: 'underline',
                   textUnderlineOffset: '4px',
                   color: colors.lyricInside,
@@ -1627,7 +1632,6 @@ const TabContent = ({
             <span style={{ 
               color: colors.lyricInside, 
               fontSize: `${lineFontSize}px`, 
-              fontWeight: 'bold', 
               textDecoration: 'underline', 
               textUnderlineOffset: '4px',
               fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', Consolas, 'Courier New', monospace",
