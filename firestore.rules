@@ -117,9 +117,10 @@ service cloud.firestore {
 
     // ==================== Liked Songs ====================
     match /userLikedSongs/{docId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
-      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
+      // 使用文檔 ID 前綴驗證（格式: {userId}_{songId}）
+      allow read: if isAuthenticated() && docId.matches(request.auth.uid + '_.*');
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && docId.matches(request.auth.uid + '_.*');
       allow update: if false;
     }
 

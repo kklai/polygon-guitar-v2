@@ -1,13 +1,13 @@
 // pages/artists/[id].js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { auth, db } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
 import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info, Edit } from 'lucide-react';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
-import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs } from '../../lib/playlistApi';
+import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
@@ -21,21 +21,20 @@ export default function ArtistPage() {
   const [allTabs, setAllTabs] = useState([]);
   const [sortBy, setSortBy] = useState('year'); // year, strokes, views
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  // user 來自 AuthContext
   const [selectedTab, setSelectedTab] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false); // 控制歌手資訊顯示
   
-  // 使用 AuthContext 獲取 Admin 狀態
-  const { isAdmin } = useAuth();
+  // 使用 AuthContext
+  const { user, isAdmin } = useAuth();
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
-    return () => unsubscribe();
-  }, []);
+  // user 已由 AuthContext 提供
 
   useEffect(() => {
     if (id) loadArtistData();
@@ -154,6 +153,21 @@ export default function ArtistPage() {
       setShowActionModal(false);
     } catch (error) {
       alert('操作失敗：' + error.message);
+    }
+  };
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim() || !user) return;
+    try {
+      const result = await createPlaylist(user.uid, newPlaylistName.trim());
+      // 創建後直接加入歌曲
+      await addSongToPlaylist(result.playlistId, selectedTab.id);
+      setShowCreatePlaylistInput(false);
+      setShowAddToPlaylist(false);
+      setNewPlaylistName('');
+      alert(`已創建歌單「${newPlaylistName.trim()}」並加入歌曲`);
+    } catch (error) {
+      alert('創建歌單失敗：' + error.message);
     }
   };
 
@@ -566,7 +580,11 @@ export default function ArtistPage() {
       {/* 加入歌單 Modal */}
       {showAddToPlaylist && (
         <>
-          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowAddToPlaylist(false)} />
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => {
+              setShowAddToPlaylist(false);
+              setShowCreatePlaylistInput(false);
+              setNewPlaylistName('');
+            }} />
           <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 max-h-[70vh] overflow-y-auto">
             <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
             <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
@@ -585,8 +603,47 @@ export default function ArtistPage() {
                 </button>
               ))}
               
-              {userPlaylists.length === 0 && (
-                <p className="text-[#B3B3B3] text-center py-4">還沒有歌單，先去創建一個吧</p>
+              {/* 創建新歌單按鈕 */}
+              <button
+                onClick={() => setShowCreatePlaylistInput(true)}
+                className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+              >
+                <div className="w-12 h-12 rounded-[4px] bg-[#FFD700] flex items-center justify-center">
+                  <span className="text-black text-2xl font-light">+</span>
+                </div>
+                <span className="text-[#FFD700] font-medium">創建新歌單</span>
+              </button>
+
+              {/* 創建輸入框 */}
+              {showCreatePlaylistInput && (
+                <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                  <input
+                    type="text"
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    placeholder="輸入歌單名稱"
+                    className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-[#FFD700]"
+                    autoFocus
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleCreatePlaylist}
+                      disabled={!newPlaylistName.trim()}
+                      className="flex-1 bg-[#FFD700] text-black py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      創建並加入
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowCreatePlaylistInput(false);
+                        setNewPlaylistName('');
+                      }}
+                      className="flex-1 bg-[#282828] text-white py-2 rounded-lg"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

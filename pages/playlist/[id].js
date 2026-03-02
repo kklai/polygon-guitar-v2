@@ -5,6 +5,8 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { recordPlaylistView } from '@/lib/recentViews'
 import { useAuth } from '@/contexts/AuthContext'
+import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
+import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist } from '@/lib/playlistApi'
 
 export default function PlaylistDetail() {
   const router = useRouter()
@@ -15,6 +17,14 @@ export default function PlaylistDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'grid'
   const [sortMode, setSortMode] = useState('default') // 'default' | 'artist' | 'year' | 'shuffle'
+
+  // 操作選單狀態
+  const [selectedSong, setSelectedSong] = useState(null)
+  const [showActionModal, setShowActionModal] = useState(false)
+  const [userPlaylists, setUserPlaylists] = useState([])
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
+  const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
+  const [newPlaylistName, setNewPlaylistName] = useState('')
 
   useEffect(() => {
     if (id) {
@@ -183,6 +193,79 @@ export default function PlaylistDetail() {
     }
   }
 
+  // 更多操作
+  const handleMoreClick = async (e, song) => {
+    e.stopPropagation()
+    setSelectedSong(song)
+    if (user) {
+      const playlists = await getUserPlaylists(user.uid)
+      setUserPlaylists(playlists)
+    }
+    setShowActionModal(true)
+  }
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/tabs/${selectedSong.id}`
+    if (navigator.share) {
+      await navigator.share({
+        title: `${selectedSong.title} - ${selectedSong.artist}`,
+        url
+      })
+    } else {
+      await navigator.clipboard.writeText(url)
+      alert('已複製連結到剪貼簿')
+    }
+    setShowActionModal(false)
+  }
+
+  const handleAddToLiked = async () => {
+    if (!selectedSong || !user) {
+      alert('請先登入')
+      return
+    }
+    try {
+      const result = await toggleLikeSong(user.uid, selectedSong.id)
+      alert(result.isLiked ? '已加到最喜愛 ❤️' : '已取消最喜愛')
+      setShowActionModal(false)
+    } catch (error) {
+      alert('操作失敗：' + error.message)
+    }
+  }
+
+  const handleAddToPlaylistClick = () => {
+    if (!user) {
+      alert('請先登入')
+      return
+    }
+    setShowActionModal(false)
+    setShowAddToPlaylist(true)
+  }
+
+  const addToPlaylist = async (playlistId) => {
+    if (!selectedSong) return
+    try {
+      await addSongToPlaylist(playlistId, selectedSong.id)
+      setShowAddToPlaylist(false)
+      alert('已加入歌單')
+    } catch (error) {
+      alert('加入失敗：' + error.message)
+    }
+  }
+
+  const handleCreatePlaylist = async () => {
+    if (!newPlaylistName.trim() || !user || !selectedSong) return
+    try {
+      const result = await createPlaylist(user.uid, newPlaylistName.trim())
+      await addSongToPlaylist(result.playlistId, selectedSong.id)
+      setShowCreatePlaylistInput(false)
+      setShowAddToPlaylist(false)
+      setNewPlaylistName('')
+      alert(`已創建歌單「${newPlaylistName.trim()}」並加入歌曲`)
+    } catch (error) {
+      alert('創建歌單失敗：' + error.message)
+    }
+  }
+
   if (isLoading) {
     return (
       <Layout>
@@ -290,64 +373,72 @@ export default function PlaylistDetail() {
           /* 列表視圖 */
           <div className="px-6">
             {sortedSongs.map((song, index) => (
-              <button
-                key={song.id}
-                onClick={() => handleSongClick(song.id)}
-                className="w-full flex items-center gap-4 py-3 hover:bg-white/5 transition group"
-              >
-                {/* Number */}
-                <span className="text-gray-500 w-8 text-center text-sm">
-                  {index + 1}
-                </span>
-
-                {/* Thumbnail */}
-                <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {getThumbnail(song) ? (
-                    <img
-                      src={getThumbnail(song)}
-                      alt={song.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <span className="text-xl">🎸</span>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 text-left min-w-0">
-                  <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                    {song.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 truncate">{song.artist}</p>
-                </div>
-
-                {/* Key */}
-                <span className="text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-1 rounded">
-                  {song.originalKey || 'C'}
-                </span>
-
-                {/* Views - 只在自動歌單顯示 */}
-                {playlist.source === 'auto' && (
-                  <span className="text-xs text-gray-600 hidden sm:block">
-                    {(song.viewCount || 0).toLocaleString()} 瀏覽
+              <div key={song.id} className="group">
+                <button
+                  onClick={() => handleSongClick(song.id)}
+                  className="w-full flex items-center gap-4 py-3 hover:bg-white/5 transition"
+                >
+                  {/* Number */}
+                  <span className="text-gray-500 w-8 text-center text-sm">
+                    {index + 1}
                   </span>
-                )}
-              </button>
+
+                  {/* Thumbnail */}
+                  <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {getThumbnail(song) ? (
+                      <img
+                        src={getThumbnail(song)}
+                        alt={song.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span className="text-xl">🎸</span>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 text-left min-w-0">
+                    <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                      {song.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 truncate">{song.artist}</p>
+                  </div>
+
+                  {/* Key */}
+                  <span className="text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-1 rounded">
+                    {song.originalKey || 'C'}
+                  </span>
+
+                  {/* Views - 只在自動歌單顯示 */}
+                  {playlist.source === 'auto' && (
+                    <span className="text-xs text-gray-600 hidden sm:block">
+                      {(song.viewCount || 0).toLocaleString()} 瀏覽
+                    </span>
+                  )}
+
+                  {/* 三點按鈕 */}
+                  <button
+                    onClick={(e) => handleMoreClick(e, song)}
+                    className="p-2 text-[#B3B3B3] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                </button>
+              </div>
             ))}
           </div>
         ) : (
           /* 網格視圖 - 似首頁熱門譜咁 */
           <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4 pb-4">
             {sortedSongs.map((song, index) => (
-              <button
-                key={song.id}
-                onClick={() => handleSongClick(song.id)}
-                className="flex-shrink-0 flex flex-col group text-left w-32"
-              >
+              <div key={song.id} className="flex-shrink-0 flex flex-col group w-32 relative">
                 {/* Square Cover */}
-                <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative">
+                <button
+                  onClick={() => handleSongClick(song.id)}
+                  className="w-32 h-32 rounded-lg overflow-hidden bg-gray-800 mb-3 transition-transform duration-300 group-hover:scale-105 shadow-lg relative"
+                >
                   {getThumbnail(song) ? (
                     <img
                       src={getThumbnail(song)}
@@ -366,17 +457,27 @@ export default function PlaylistDetail() {
                   <div className="absolute top-2 left-2 bg-black/60 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-medium">
                     {index + 1}
                   </div>
-                </div>
+                </button>
+
+                {/* 三點按鈕 - 網格視圖 */}
+                <button
+                  onClick={(e) => handleMoreClick(e, song)}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
                 
                 {/* Song Info */}
-                <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
-                  {song.title}
-                </h3>
-                <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                <p className="text-xs text-[#FFD700] mt-1">
-                  {song.originalKey || 'C'} Key
-                </p>
-              </button>
+                <button onClick={() => handleSongClick(song.id)} className="text-left">
+                  <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+                    {song.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+                  <p className="text-xs text-[#FFD700] mt-1">
+                    {song.originalKey || 'C'} Key
+                  </p>
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -516,6 +617,128 @@ export default function PlaylistDetail() {
               複製連結分享
             </button>
           </div>
+        )}
+
+        {/* Action Modal */}
+        {showActionModal && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black/60 z-50" 
+              onClick={() => setShowActionModal(false)} 
+            />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8">
+              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+              
+              {selectedSong && (
+                <div className="mb-4 pb-4 border-b border-gray-800">
+                  <p className="text-white font-medium truncate">{selectedSong.title}</p>
+                  <p className="text-gray-400 text-sm truncate">{selectedSong.artist}</p>
+                </div>
+              )}
+              
+              <div className="space-y-1">
+                <button 
+                  onClick={handleShare}
+                  className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg"
+                >
+                  <Share2 className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">分享</span>
+                </button>
+                
+                <button 
+                  onClick={handleAddToLiked}
+                  className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg"
+                >
+                  <Heart className="w-5 h-5 text-red-500" />
+                  <span className="text-white">加到我最喜愛</span>
+                </button>
+                
+                <button 
+                  onClick={handleAddToPlaylistClick}
+                  className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg"
+                >
+                  <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">加入歌單</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 加入歌單 Modal */}
+        {showAddToPlaylist && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black/60 z-50" 
+              onClick={() => {
+                setShowAddToPlaylist(false)
+                setShowCreatePlaylistInput(false)
+                setNewPlaylistName('')
+              }} 
+            />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-50 p-4 pb-8 max-h-[70vh] overflow-y-auto">
+              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+              <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
+              
+              <div className="space-y-2">
+                {userPlaylists.map((pl) => (
+                  <button
+                    key={pl.id}
+                    onClick={() => addToPlaylist(pl.id)}
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left"
+                  >
+                    <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center">
+                      <Music className="w-6 h-6 text-[#3E3E3E]" />
+                    </div>
+                    <span className="text-white font-medium">{pl.title}</span>
+                  </button>
+                ))}
+                
+                {/* 創建新歌單按鈕 */}
+                <button
+                  onClick={() => setShowCreatePlaylistInput(true)}
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+                >
+                  <div className="w-12 h-12 rounded-[4px] bg-[#FFD700] flex items-center justify-center">
+                    <span className="text-black text-2xl font-light">+</span>
+                  </div>
+                  <span className="text-[#FFD700] font-medium">創建新歌單</span>
+                </button>
+
+                {/* 創建輸入框 */}
+                {showCreatePlaylistInput && (
+                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                    <input
+                      type="text"
+                      value={newPlaylistName}
+                      onChange={(e) => setNewPlaylistName(e.target.value)}
+                      placeholder="輸入歌單名稱"
+                      className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-[#FFD700]"
+                      autoFocus
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleCreatePlaylist}
+                        disabled={!newPlaylistName.trim()}
+                        className="flex-1 bg-[#FFD700] text-black py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        創建並加入
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreatePlaylistInput(false)
+                          setNewPlaylistName('')
+                        }}
+                        className="flex-1 bg-[#282828] text-white py-2 rounded-lg"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
 
