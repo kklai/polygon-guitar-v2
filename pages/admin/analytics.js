@@ -320,12 +320,33 @@ function AnalyticsDashboard() {
   // 清理標題，移除通用的 Polygon Guitar 標題
   const cleanTitle = (title) => {
     if (!title) return ''
+    
     // 移除各種變體的通用標題
-    return title
-      .replace(/Polygon Guitar - 香港最大結他譜庫 \| 3000\+ 結他譜/g, '')
-      .replace(/Polygon Guitar - .*/g, '')
-      .replace(/ - Polygon Guitar/g, '')
+    let cleaned = title
+      .replace(/Polygon Guitar - 香港最大結他譜庫 \| 3000\+ 結他譜/gi, '')
+      .replace(/Polygon Guitar - .*/gi, '')
+      .replace(/ - Polygon Guitar/gi, '')
+      .replace(/歌手分類 - Polygon Guitar/gi, '歌手分類')
       .trim()
+    
+    // 如果清理後為空或只剩空白，返回空字符串
+    return cleaned || ''
+  }
+
+  // 從 path 獲取可讀名稱
+  const getNameFromPath = (path, pageType) => {
+    if (!path) return null
+    
+    const parts = path.split('/').filter(Boolean)
+    const lastPart = parts[parts.length - 1]
+    
+    if (!lastPart) return null
+    
+    // 將 slug 轉換為可讀名稱
+    // e.g., "eason-chan" -> "Eason Chan", "mc-zhang-tian-fu" -> "Mc Zhang Tian Fu"
+    return lastPart
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase())
   }
 
   // 獲取頁面顯示名稱
@@ -341,27 +362,24 @@ function AnalyticsDashboard() {
       return cleanedTitle
     }
     
-    // 從 path 提取名稱
-    if (page.path) {
-      if (page.pageType === 'tab') {
-        // 嘗試從路徑提取（如 /tabs/xxx）
-        return '樂譜頁面'
-      }
-      if (page.pageType === 'artist') {
-        // 嘗試從路徑提取歌手名
-        const artistSlug = page.path.split('/')[2]
-        if (artistSlug) {
-          // 將 slug 轉換為可讀名稱（e.g., "eason-chan" -> "eason chan"）
-          return artistSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-        }
-        return '歌手頁面'
-      }
+    // 嘗試從 path 提取名稱
+    const pathName = getNameFromPath(page.path, page.pageType)
+    if (pathName) {
+      return pathName
     }
     
-    // 最後回退
-    if (page.pageType === 'tab') return '未知歌曲'
-    if (page.pageType === 'artist') return '未知歌手'
-    return page.path || '未知頁面'
+    // 根據類型返回默認名稱
+    const defaultNames = {
+      'tab': '樂譜頁面',
+      'artist': '歌手頁面',
+      'home': '🏠 首頁',
+      'search': '🔍 搜尋',
+      'library': '📚 樂譜庫',
+      'login': '🔐 登入',
+      'artists-list': '📋 歌手列表'
+    }
+    
+    return defaultNames[page.pageType] || page.path || '未知頁面'
   }
 
   // 獲取副標題（歌手名等）
@@ -656,7 +674,7 @@ function AnalyticsDashboard() {
                             className="text-white truncate cursor-pointer hover:text-[#FFD700] block"
                             onClick={() => router.push(view.pagePath)}
                           >
-                            {view.pageName || cleanTitle(view.pageTitle) || view.pagePath}
+                            {view.pageName || cleanTitle(view.pageTitle) || getNameFromPath(view.pagePath, view.pageType) || view.pagePath}
                           </span>
                           {view.artistName && (
                             <span className="text-gray-500 text-xs">🎤 {view.artistName}</span>
