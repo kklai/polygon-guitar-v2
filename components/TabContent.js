@@ -1245,6 +1245,8 @@ const TabContent = ({
   songInfo = {},
   // 編譜者名稱
   arrangedBy = '',
+  // 上傳者ID（用於跳轉到Profile）
+  uploaderId = '',
   // 顯示字體設定
   displayFont = 'mono',
   // GP 段落
@@ -2119,7 +2121,16 @@ const TabContent = ({
               <span className="text-gray-600">|</span>
               {arrangedBy && (
                 <span className="text-gray-400">
-                  出譜: <span className="text-[#FFD700]">{arrangedBy}</span>
+                  出譜: {uploaderId ? (
+                    <a 
+                      href={`/profile/${uploaderId}`}
+                      className="text-[#FFD700] hover:underline cursor-pointer"
+                    >
+                      {arrangedBy}
+                    </a>
+                  ) : (
+                    <span className="text-[#FFD700]">{arrangedBy}</span>
+                  )}
                 </span>
               )}
               {chordStats.total > 0 && (

@@ -51,6 +51,7 @@ export default function TabDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [uploaderName, setUploaderName] = useState('')
+  const [uploaderId, setUploaderId] = useState('')
   const [currentKey, setCurrentKey] = useState(null)
   // showInfo 提升去父組件，確保轉調嗰陣 YouTube 唔會閂
   const [showInfo, setShowInfo] = useState(() => {
@@ -123,6 +124,7 @@ export default function TabDetail() {
           if (userDoc.exists()) {
             const userData = userDoc.data()
             setUploaderName(userData.displayName || userData.name || '未知用戶')
+            setUploaderId(tabData.createdBy || '')
           }
         }
         
@@ -349,6 +351,7 @@ export default function TabDetail() {
           setTheme={setTheme}
           youtubeVideoId={tab.youtubeVideoId}
           arrangedBy={tab.uploaderPenName || tab.arrangedBy || '結他友'}
+          uploaderId={uploaderId}
           displayFont={tab.displayFont || 'mono'}
           songInfo={{
             songYear: tab.songYear,
