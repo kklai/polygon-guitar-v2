@@ -86,39 +86,38 @@ export default function PublicProfile() {
 
       setProfile(userData)
       
-      // 載入最近瀏覽的譜（如果有 userId 記錄）
-      if (currentUser?.uid === id) {
-        const viewsQuery = query(
-          collection(db, 'pageViews'),
-          where('userId', '==', id),
-          where('pageType', '==', 'tab'),
-          orderBy('timestamp', 'desc'),
-          limit(5)
-        )
-        try {
-          const viewsSnapshot = await getDocs(viewsQuery)
-          const recentTabIds = viewsSnapshot.docs
-            .map(doc => doc.data().pageId)
-            .filter((v, i, a) => a.indexOf(v) === i) // 去重
-            .slice(0, 5)
-          
-          // 載入譜詳情
-          if (recentTabIds.length > 0) {
-            const recentTabs = []
-            for (const tabId of recentTabIds) {
-              if (tabId) {
-                const tabDoc = await getDoc(doc(db, 'tabs', tabId))
-                if (tabDoc.exists()) {
-                  recentTabs.push({ id: tabDoc.id, ...tabDoc.data() })
-                }
-              }
-            }
-            setRecentlyViewed(recentTabs)
-          }
-        } catch (e) {
-          console.log('No recent views available')
-        }
-      }
+      // 載入最近瀏覽的譜（暫時禁用 - 需要 index）
+      // if (currentUser?.uid === id) {
+      //   const viewsQuery = query(
+      //     collection(db, 'pageViews'),
+      //     where('userId', '==', id),
+      //     where('pageType', '==', 'tab'),
+      //     orderBy('timestamp', 'desc'),
+      //     limit(5)
+      //   )
+      //   try {
+      //     const viewsSnapshot = await getDocs(viewsQuery)
+      //     const recentTabIds = viewsSnapshot.docs
+      //       .map(doc => doc.data().pageId)
+      //       .filter((v, i, a) => a.indexOf(v) === i)
+      //       .slice(0, 5)
+      //     
+      //     if (recentTabIds.length > 0) {
+      //       const recentTabs = []
+      //       for (const tabId of recentTabIds) {
+      //         if (tabId) {
+      //           const tabDoc = await getDoc(doc(db, 'tabs', tabId))
+      //           if (tabDoc.exists()) {
+      //             recentTabs.push({ id: tabDoc.id, ...tabDoc.data() })
+      //           }
+      //         }
+      //       }
+      //       setRecentlyViewed(recentTabs)
+      //     }
+      //   } catch (e) {
+      //     console.log('No recent views available')
+      //   }
+      // }
 
       // 載入上傳的樂譜
       if (userData.showUploads !== false) {
