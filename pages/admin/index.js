@@ -9,6 +9,14 @@ export default function AdminIndex() {
   // 所有可用鏈接
   const allAdminLinks = [
     {
+      href: '/admin/site-map',
+      title: '🗺️ 網站地圖 & 說明書',
+      description: '查看完整網站結構、術語表、使用指南（給非技術人員）',
+      icon: '🗺️',
+      color: 'bg-[#FFD700] text-black',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER, ROLES.ART_DIRECTOR, ROLES.PLAYLIST_MAKER]
+    },
+    {
       href: '/admin/playlists',
       title: '歌單管理',
       description: '管理精選歌單、編輯歌單內容',
