@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
@@ -49,6 +49,7 @@ export default function PublicProfile() {
   const { user: currentUser } = useAuth()
   
   const [profile, setProfile] = useState(null)
+  const [uploads, setUploads] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -80,6 +81,20 @@ export default function PublicProfile() {
       }
 
       setProfile(userData)
+      
+      // 載入上傳的樂譜
+      try {
+        const tabsQuery = query(
+          collection(db, 'tabs'),
+          where('uploaderId', '==', id),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        )
+        const tabsSnapshot = await getDocs(tabsQuery)
+        setUploads(tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+      } catch (e) {
+        console.log('Error loading uploads:', e)
+      }
     } catch (error) {
       console.error('Error loading profile:', error)
       setError('載入資料失敗: ' + error.message)
@@ -191,7 +206,7 @@ export default function PublicProfile() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">-</p>
+            <p className="text-2xl font-bold text-[#FFD700]">{uploads.length}</p>
             <p className="text-sm text-gray-400">上傳樂譜</p>
           </div>
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
@@ -205,6 +220,36 @@ export default function PublicProfile() {
             <p className="text-sm text-gray-400">彈結他經驗</p>
           </div>
         </div>
+
+        {/* Uploads */}
+        {uploads.length > 0 && (
+          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+            <h2 className="text-lg font-medium text-white mb-4">📝 上傳的樂譜</h2>
+            <div className="space-y-3">
+              {uploads.map(tab => (
+                <Link key={tab.id} href={`/tabs/${tab.id}`}>
+                  <div className="flex items-center gap-4 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer">
+                    {tab.thumbnail && (
+                      <img
+                        src={tab.thumbnail}
+                        alt={tab.title}
+                        className="w-16 h-12 rounded object-cover"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                      <p className="text-sm text-gray-500">{tab.artist}</p>
+                    </div>
+                    <div className="text-right text-xs text-gray-400">
+                      {tab.viewCount !== undefined && <div>👁 {tab.viewCount}</div>}
+                      {tab.likes !== undefined && <div>❤ {tab.likes}</div>}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Info */}
         <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 text-center text-gray-400">
