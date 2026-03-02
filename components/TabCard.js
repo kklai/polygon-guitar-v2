@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { useState } from 'react'
+import Skeleton from './Skeleton'
 
 export default function TabCard({ tab, compact = false, artistPhoto = null }) {
   // 計算歌手的 normalizedName 用于链接
   const artistNormalizedName = tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')
   const [imageError, setImageError] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
   
   // 獲取封面圖 - 優先順序：Spotify > YouTube > 歌手相 > fallback
   const getCoverImage = () => {
@@ -26,15 +28,23 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
     return (
       <Link href={`/tabs/${tab.id}`}>
         <div className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer">
-          {tab.thumbnail && (
-            <img
-              src={tab.thumbnail}
-              alt={tab.title}
-              loading="lazy"
-              decoding="async"
-              className="w-14 h-10 rounded object-cover"
-            />
-          )}
+          {/* 縮圖區域 - 骨架屏或圖片 */}
+          <div className="w-14 h-10 rounded bg-[#282828] overflow-hidden flex-shrink-0">
+            {tab.thumbnail && (
+              <>
+                {!imageLoaded && <Skeleton className="w-full h-full" />}
+                <img
+                  src={tab.thumbnail}
+                  alt={tab.title}
+                  loading="lazy"
+                  decoding="async"
+                  className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setImageLoaded(true)}
+                  onError={() => setImageError(true)}
+                />
+              </>
+            )}
+          </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-white font-medium truncate">{tab.title}</h3>
             <div className="flex items-center gap-2 text-sm">
@@ -53,16 +63,27 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
     <div className="bg-[#121212] rounded-lg shadow-md overflow-hidden border border-gray-800">
       {/* 封面圖片 */}
       <Link href={`/tabs/${tab.id}`}>
-        <div className="w-full aspect-square bg-gray-800 overflow-hidden cursor-pointer">
+        <div className="w-full aspect-square bg-[#282828] overflow-hidden cursor-pointer relative">
           {coverImage ? (
-            <img
-              src={coverImage}
-              alt={tab.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              onError={() => setImageError(true)}
-            />
+            <>
+              {/* 骨架屏 - 圖片載入前顯示 */}
+              {!imageLoaded && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Skeleton className="w-full h-full absolute inset-0" />
+                  <span className="text-4xl mb-2 relative z-10">🎵</span>
+                  <span className="text-xs text-gray-500 text-center px-4 relative z-10">{tab.artist}</span>
+                </div>
+              )}
+              <img
+                src={coverImage}
+                alt={tab.title}
+                loading="lazy"
+                decoding="async"
+                className={`w-full h-full object-cover hover:scale-105 transition-all duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+              />
+            </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
               <span className="text-4xl mb-2">🎵</span>

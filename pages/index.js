@@ -10,6 +10,7 @@ import Link from 'next/link'
 import Head from 'next/head'
 import { siteConfig, generateBreadcrumbSchema } from '@/lib/seo'
 import RecentItems from '@/components/RecentItems'
+import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
 
 // 歌手分類預設資料
 const DEFAULT_CATEGORIES = [
@@ -277,28 +278,12 @@ export default function Home() {
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {hotTabs.map((song) => (
-                <button
+                <SongCard
                   key={song.id}
+                  song={song}
+                  artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
                   onClick={() => handleSongClick(song.id)}
-                  className="flex-shrink-0 flex flex-col text-left w-36"
-                >
-                  <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg relative">
-                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                      <img
-                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                        alt={song.title}
-                        className="w-full h-full object-cover"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                    )}
-                  </div>
-                  <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
-                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                </button>
+                />
               ))}
             </div>
           </section>
@@ -310,26 +295,11 @@ export default function Home() {
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {hotArtists.all.map((artist) => (
-                <div
-                  key={artist.id}
-                  onClick={() => handleArtistClick(artist)}
-                  className="flex-shrink-0 flex flex-col text-left w-36 cursor-pointer"
-                >
-                  <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                    {artist.photoURL || artist.wikiPhotoURL || artist.photo ? (
-                      <img 
-                        src={artist.photoURL || artist.wikiPhotoURL || artist.photo} 
-                        alt={artist.name} 
-                        className="w-full h-full object-cover pointer-events-none select-none"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                    )}
-                  </div>
-                  <span className="text-sm text-gray-300 truncate">{artist.name}</span>
+                <div key={artist.id} className="flex-shrink-0">
+                  <ArtistAvatar
+                    artist={artist}
+                    onClick={() => handleArtistClick(artist)}
+                  />
                 </div>
               ))}
             </div>
@@ -342,30 +312,11 @@ export default function Home() {
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {autoPlaylists.map((playlist) => (
-                <button
+                <PlaylistCard
                   key={playlist.id}
+                  playlist={playlist}
                   onClick={() => handlePlaylistClick(playlist.id)}
-                  className="flex-shrink-0 flex flex-col text-left w-36"
-                >
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-blue-900/30 to-gray-800 mb-3 shadow-lg">
-                    {getThumbnail(playlist) ? (
-                      <img
-                        src={getThumbnail(playlist)}
-                        alt={playlist.title}
-                        className="w-full h-full object-cover"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                    )}
-                  </div>
-                  <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
-                  {playlist.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{playlist.description}</p>
-                  )}
-                </button>
+                />
               ))}
             </div>
           </section>
@@ -377,28 +328,12 @@ export default function Home() {
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {latestSongs.map((song) => (
-                <button
+                <SongCard
                   key={song.id}
+                  song={song}
+                  artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
                   onClick={() => handleSongClick(song.id)}
-                  className="flex-shrink-0 flex flex-col text-left w-36"
-                >
-                  <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                    {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                      <img
-                        src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                        alt={song.title}
-                        className="w-full h-full object-cover"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                    )}
-                  </div>
-                  <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
-                  <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                </button>
+                />
               ))}
             </div>
           </section>
@@ -410,27 +345,11 @@ export default function Home() {
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
               {manualPlaylists.map((playlist) => (
-                <button
+                <PlaylistCard
                   key={playlist.id}
+                  playlist={playlist}
                   onClick={() => handlePlaylistClick(playlist.id)}
-                  className="flex-shrink-0 flex flex-col text-left w-36"
-                >
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
-                    {getThumbnail(playlist) ? (
-                      <img
-                        src={getThumbnail(playlist)}
-                        alt={playlist.title}
-                        className="w-full h-full object-cover"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl"></div>
-                    )}
-                  </div>
-                  <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
-                </button>
+                />
               ))}
             </div>
           </section>
@@ -468,28 +387,12 @@ export default function Home() {
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
               <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                 {sectionSongs.map((song) => (
-                  <button
+                  <SongCard
                     key={song.id}
+                    song={song}
+                    artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
                     onClick={() => handleSongClick(song.id)}
-                    className="flex-shrink-0 flex flex-col text-left w-36"
-                  >
-                    <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 mb-3 shadow-lg">
-                      {getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]) ? (
-                        <img
-                          src={getThumbnail(song, artistPhotoMap[song.artistId] || artistPhotoMap[song.artist])}
-                          alt={song.title}
-                          className="w-full h-full object-cover"
-                          draggable="false"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                      )}
-                    </div>
-                    <h3 className="text-sm text-white font-medium truncate">{song.title}</h3>
-                    <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                  </button>
+                  />
                 ))}
               </div>
             </section>
@@ -511,27 +414,11 @@ export default function Home() {
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
               <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
                 {playlists.map((playlist) => (
-                  <button
+                  <PlaylistCard
                     key={playlist.id}
+                    playlist={playlist}
                     onClick={() => handlePlaylistClick(playlist.id)}
-                    className="flex-shrink-0 flex flex-col text-left w-36"
-                  >
-                    <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 mb-3 shadow-lg">
-                      {getThumbnail(playlist) ? (
-                        <img
-                          src={getThumbnail(playlist)}
-                          alt={playlist.title}
-                          className="w-full h-full object-cover"
-                          draggable="false"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                      )}
-                    </div>
-                    <h3 className="text-base text-white font-medium truncate">{playlist.title}</h3>
-                  </button>
+                  />
                 ))}
               </div>
             </section>
@@ -871,11 +758,42 @@ export default function Home() {
     return (
       <Layout>
         <div className="min-h-screen bg-black pb-24">
+          {/* 分類骨架屏 */}
           <div className="px-6 py-8">
             <div className="h-8 bg-gray-800 rounded w-48 mb-6 animate-pulse" />
-            <div className="flex gap-4 overflow-x-auto">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-[40vw] h-[25vh] bg-gray-800 rounded-xl animate-pulse" />
+                <div key={i} className="flex-shrink-0">
+                  <div className="w-36 h-36 bg-gray-800 rounded-[4px] animate-pulse" />
+                  <div className="w-36 h-4 bg-gray-800 rounded mt-2 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* 熱門譜骨架屏 */}
+          <div className="px-6 py-4">
+            <div className="h-8 bg-gray-800 rounded w-32 mb-4 animate-pulse" />
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-36">
+                  <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-3" />
+                  <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
+                  <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* 熱門歌手骨架屏 */}
+          <div className="px-6 py-4">
+            <div className="h-8 bg-gray-800 rounded w-32 mb-4 animate-pulse" />
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 flex flex-col items-center">
+                  <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-800 rounded-full animate-pulse mb-3" />
+                  <div className="h-4 bg-gray-800 rounded w-20 animate-pulse" />
+                </div>
               ))}
             </div>
           </div>
