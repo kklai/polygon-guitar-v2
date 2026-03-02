@@ -7,6 +7,43 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 
+// 選項對照表
+const EXPERIENCE_LABELS = {
+  'beginner': '初學者（少於1年）',
+  '1-2': '1-2年',
+  '3-5': '3-5年',
+  '6-10': '6-10年',
+  '10+': '10年以上',
+  'pro': '專業演奏'
+}
+
+const STYLE_LABELS = {
+  'sing-play': '自彈自唱',
+  'accompaniment': '伴奏',
+  'fingerstyle': '指彈',
+  'lead': '主音結他',
+  'all': '全部都有'
+}
+
+const LOCATION_LABELS = {
+  'home': '家中',
+  'studio': 'Band房/練習室',
+  'school': '學校',
+  'park': '公園/街頭',
+  'cafe': '咖啡廳',
+  'church': '教會',
+  'online': '線上直播'
+}
+
+const CHORDS_LABELS = {
+  'open': '開放和弦',
+  'barre': 'Barre 和弦',
+  'jazz': 'Jazz 和弦',
+  'power': 'Power Chords',
+  'sus': 'Sus4 / Add9',
+  'all': '全部和弦'
+}
+
 // 社交媒體圖標組件
 const SocialIcon = ({ platform, url }) => {
   if (!url) return null
@@ -87,6 +124,33 @@ const SocialIcon = ({ platform, url }) => {
   )
 }
 
+// 生成自動簡介句子
+const generateBioSentence = (profile) => {
+  if (!profile) return ''
+  
+  const parts = []
+  
+  if (profile.guitarExperience && EXPERIENCE_LABELS[profile.guitarExperience]) {
+    parts.push(EXPERIENCE_LABELS[profile.guitarExperience] + '結他手')
+  }
+  
+  if (profile.playingStyle && STYLE_LABELS[profile.playingStyle]) {
+    parts.push('鍾意' + STYLE_LABELS[profile.playingStyle])
+  }
+  
+  if (profile.practiceLocation && LOCATION_LABELS[profile.practiceLocation]) {
+    parts.push('平時喺' + LOCATION_LABELS[profile.practiceLocation] + '練習')
+  }
+  
+  if (profile.favoriteChords && CHORDS_LABELS[profile.favoriteChords]) {
+    parts.push('最愛用' + CHORDS_LABELS[profile.favoriteChords])
+  }
+  
+  if (parts.length === 0) return ''
+  
+  return '「' + parts.join('，') + '。」'
+}
+
 export default function PublicProfile() {
   const router = useRouter()
   const { id } = router.query
@@ -128,13 +192,12 @@ export default function PublicProfile() {
       setProfile(userData)
       setFollowerCount(userData.followerCount || 0)
       
-      // 載入上傳的樂譜
+      // 載入上傳的樂譜 - 獲取所有
       try {
         const tabsQuery = query(
           collection(db, 'tabs'),
           where('createdBy', '==', id),
-          orderBy('createdAt', 'desc'),
-          limit(10)
+          orderBy('createdAt', 'desc')
         )
         const tabsSnapshot = await getDocs(tabsQuery)
         setUploads(tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
@@ -203,8 +266,15 @@ export default function PublicProfile() {
   }
 
   const totalViews = uploads.reduce((sum, tab) => sum + (tab.viewCount || 0), 0)
-
   const isOwnProfile = currentUser?.uid === id
+  const autoBio = generateBioSentence(profile)
+  const socialMedia = profile?.socialMedia || {}
+  const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
+
+  // 獲取縮圖 URL
+  const getThumbnail = (tab) => {
+    return tab.thumbnail || tab.youtubeThumbnail || null
+  }
 
   if (isLoading) {
     return (
@@ -233,9 +303,6 @@ export default function PublicProfile() {
 
   if (!profile) return null
 
-  const socialMedia = profile.socialMedia || {}
-  const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
-
   return (
     <Layout hideHeader>
       <div className="min-h-screen bg-black pb-24">
@@ -254,29 +321,29 @@ export default function PublicProfile() {
 
         {/* Profile Header */}
         <div className="px-4 py-6">
-          <div className="flex items-start gap-4">
-            {/* Avatar */}
+          {/* 頭像 + 名稱 + 追蹤按鈕 橫排 */}
+          <div className="flex items-center gap-4">
+            {/* 更大的頭像 */}
             <img 
               src={profile.photoURL || '/default-avatar.png'} 
               alt={profile.displayName}
-              className="w-24 h-24 rounded-full object-cover border-2 border-[#FFD700]"
+              className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-[#FFD700] flex-shrink-0"
             />
             
-            {/* Info */}
+            {/* 名稱和按鈕 */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-white text-xl font-bold truncate">
-                  {profile.displayName || '未命名用戶'}
-                </h1>
-                {profile.penName && (
-                  <span className="text-[#FFD700] text-xs">@{profile.penName}</span>
-                )}
-              </div>
+              <h1 className="text-white text-xl font-bold truncate mb-1">
+                {profile.displayName || '未命名用戶'}
+              </h1>
+              {profile.penName && (
+                <p className="text-[#FFD700] text-sm mb-2">@{profile.penName}</p>
+              )}
               
-              {!isOwnProfile && (
+              {/* 追蹤按鈕 - 對非自己顯示 */}
+              {!isOwnProfile && currentUser && (
                 <button
                   onClick={handleFollow}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                  className={`px-6 py-1.5 rounded-full text-sm font-medium transition ${
                     isFollowing 
                       ? 'bg-gray-700 text-white' 
                       : 'bg-[#FFD700] text-black'
@@ -286,12 +353,23 @@ export default function PublicProfile() {
                 </button>
               )}
               
+              {/* 編輯按鈕 - 對自己顯示 */}
               {isOwnProfile && (
                 <Link
                   href="/profile/edit"
-                  className="inline-block px-4 py-1.5 rounded-full text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition"
+                  className="inline-block px-6 py-1.5 rounded-full text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition"
                 >
                   編輯
+                </Link>
+              )}
+              
+              {/* 未登入提示 */}
+              {!currentUser && !isOwnProfile && (
+                <Link
+                  href="/login"
+                  className="inline-block px-6 py-1.5 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition"
+                >
+                  追蹤
                 </Link>
               )}
             </div>
@@ -327,58 +405,79 @@ export default function PublicProfile() {
             </div>
           )}
 
-          {/* Bio */}
+          {/* 自動生成的 Bio 句子 */}
+          {autoBio && (
+            <p className="text-gray-300 text-base mt-5 leading-relaxed">
+              {autoBio}
+            </p>
+          )}
+
+          {/* 用戶自己填的 Bio */}
           {profile.bio && (
-            <p className="text-gray-300 text-sm mt-5 leading-relaxed">
+            <p className="text-gray-400 text-sm mt-3 leading-relaxed">
               {profile.bio}
             </p>
           )}
         </div>
 
-        {/* Popular Tabs */}
+        {/* Popular Tabs - 熱門（前5首有縮圖）*/}
         {profile.showUploads !== false && uploads.length > 0 && (
           <div className="px-4 mt-2">
             <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
             <div className="space-y-3">
-              {uploads.slice(0, 5).map((tab, index) => (
-                <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                  <div className="flex items-center gap-3 p-2 hover:bg-gray-900 rounded-lg transition cursor-pointer">
-                    <span className="text-gray-500 text-lg w-6 text-center">{index + 1}</span>
-                    {tab.thumbnail ? (
-                      <img
-                        src={tab.thumbnail}
-                        alt={tab.title}
-                        className="w-14 h-14 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded bg-gray-800 flex items-center justify-center">
-                        <span className="text-2xl">🎵</span>
+              {uploads.slice(0, 5).map((tab, index) => {
+                const thumbnail = getThumbnail(tab)
+                return (
+                  <Link key={tab.id} href={`/tabs/${tab.id}`}>
+                    <div className="flex items-center gap-3 p-2 hover:bg-gray-900 rounded-lg transition cursor-pointer">
+                      <span className="text-gray-500 text-lg w-6 text-center flex-shrink-0">{index + 1}</span>
+                      {thumbnail ? (
+                        <img
+                          src={thumbnail}
+                          alt={tab.title}
+                          className="w-14 h-14 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
+                          <span className="text-2xl">🎵</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                        <p className="text-gray-500 text-sm">{tab.artist}</p>
                       </div>
-                    )}
+                      <div className="text-right text-xs text-gray-500 flex-shrink-0">
+                        <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
+                        <p>{(tab.likes || 0).toLocaleString()} ❤</p>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* All Songs - 所有歌曲（白色文字，無縮圖）*/}
+        {profile.showUploads !== false && uploads.length > 5 && (
+          <div className="px-4 mt-6">
+            <h2 className="text-white font-bold text-lg mb-4">所有歌曲</h2>
+            <div className="space-y-2">
+              {uploads.slice(5).map((tab, index) => (
+                <Link key={tab.id} href={`/tabs/${tab.id}`}>
+                  <div className="flex items-center gap-3 py-3 px-2 hover:bg-gray-900 rounded-lg transition cursor-pointer border-b border-gray-800">
+                    <span className="text-gray-500 text-sm w-6 text-center flex-shrink-0">{index + 6}</span>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium truncate">{tab.title}</h3>
                       <p className="text-gray-500 text-sm">{tab.artist}</p>
                     </div>
-                    <div className="text-right text-xs text-gray-500">
+                    <div className="text-right text-xs text-gray-500 flex-shrink-0">
                       <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
-                      <p>{(tab.likes || 0).toLocaleString()} ❤</p>
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* All Songs Link */}
-        {uploads.length > 5 && (
-          <div className="px-4 mt-4">
-            <Link 
-              href={`/profile/${id}/tabs`}
-              className="block text-center py-3 text-[#FFD700] border border-[#FFD700]/30 rounded-lg hover:bg-[#FFD700]/10 transition"
-            >
-              所有歌曲 ({uploads.length})
-            </Link>
           </div>
         )}
 
@@ -397,10 +496,10 @@ export default function PublicProfile() {
                     <img 
                       src={playlist.coverImage} 
                       alt={playlist.title}
-                      className="w-14 h-14 rounded object-cover"
+                      className="w-14 h-14 rounded object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20 flex items-center justify-center flex-shrink-0">
                       <span className="text-xl">🎵</span>
                     </div>
                   )}
