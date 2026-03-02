@@ -1495,13 +1495,15 @@ const TabContent = ({
         return hasChordPattern && !hasChinese;
       };
       
-      // 輔助函數：檢查是否為歌詞行（必須有中文字，且沒有和弦特徵）
+      // 輔助函數：檢查是否為歌詞行（有中文字或純英文單詞，且沒有和弦特徵）
       const checkIsLyricLine = (line) => {
         if (!line) return false;
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
         const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
-        // 歌詞行：必須有中文字，且沒有和弦模式
-        return hasChinese && !hasChordPattern;
+        // 有英文單詞（至少2個字母）
+        const hasEnglishWords = /[a-zA-Z]{2,}/.test(line);
+        // 歌詞行：有中文字或純英文單詞，且沒有和弦模式
+        return (hasChinese || hasEnglishWords) && !hasChordPattern;
       };
       
       return (
@@ -1550,7 +1552,6 @@ const TabContent = ({
             const isLyricLine = checkIsLyricLine(line);
             // 檢查是否為簡譜行（數字譜）
             const isNumericNotation = isNumericNotationLine(line);
-            const hasChinese = /[\u4e00-\u9fff]/.test(line);
             
             // 如果是和弦行且有轉調，處理轉調
             let displayLine = line;
@@ -1585,6 +1586,9 @@ const TabContent = ({
             const marginBottom = isFollowedByLyric ? '0em' : '0.3em';
             const marginTop = isPrecededByChord ? '0em' : '0';
             
+            // 判斷顏色：歌詞行用白色，和弦行用黃色
+            const lineColor = isLyricLine ? colors.lyricInside : colors.chord;
+            
             return (
               <div key={idx} style={{ 
                 fontSize: `${fontSize}px`, 
@@ -1592,7 +1596,7 @@ const TabContent = ({
                 marginBottom,
                 lineHeight,
                 whiteSpace: 'pre',
-                color: hasChinese ? colors.lyricInside : colors.chord
+                color: lineColor
               }}>
                 {displayLine || ' '}
               </div>
