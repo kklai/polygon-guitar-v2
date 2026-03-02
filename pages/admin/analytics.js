@@ -27,7 +27,7 @@ function AnalyticsDashboard() {
   })
   const [pageTypeStats, setPageTypeStats] = useState([])
   const [topPages, setTopPages] = useState([])
-  const [recentViews, setRecentViews] = useState([]
+  const [recentViews, setRecentViews] = useState([])
   const [dailyTrend, setDailyTrend] = useState([])
   const [hourlyStats, setHourlyStats] = useState([])
   const [isLoading, setIsLoading] = useState(true)
