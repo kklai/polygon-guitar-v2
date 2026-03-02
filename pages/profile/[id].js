@@ -97,11 +97,11 @@ export default function PublicProfile() {
         console.log('Error loading uploads:', e)
       }
       
-      // 載入歌單
+      // 載入歌單（用戶個人歌單 userPlaylists）
       try {
         const playlistsQuery = query(
-          collection(db, 'playlists'),
-          where('createdBy', '==', id),
+          collection(db, 'userPlaylists'),
+          where('userId', '==', id),
           orderBy('createdAt', 'desc'),
           limit(5)
         )
@@ -274,7 +274,7 @@ export default function PublicProfile() {
               {playlists.map(playlist => (
                 <Link 
                   key={playlist.id}
-                  href={`/playlist/${playlist.id}`}
+                  href={`/library/playlist/${playlist.id}`}
                   className="p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
                 >
                   {playlist.coverImage ? (
