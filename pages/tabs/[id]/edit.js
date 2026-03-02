@@ -103,7 +103,12 @@ export default function EditTab() {
     // GP 段落
     gpSegments: [],
     // GP 顯示主題
-    gpTheme: 'dark'
+    gpTheme: 'dark',
+    // Spotify 資訊
+    spotifyTrackId: null,
+    spotifyAlbumId: null,
+    spotifyArtistId: null,
+    spotifyUrl: null
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -259,7 +264,12 @@ export default function EditTab() {
         displayFont: data.displayFont || 'mono',
         inputFont: data.displayFont || 'mono', // 統一使用 displayFont 作為輸入字體
         gpSegments: data.gpSegments || [],
-        gpTheme: data.gpTheme || 'dark'
+        gpTheme: data.gpTheme || 'dark',
+        // Spotify 資訊
+        spotifyTrackId: data.spotifyTrackId || null,
+        spotifyAlbumId: data.spotifyAlbumId || null,
+        spotifyArtistId: data.spotifyArtistId || null,
+        spotifyUrl: data.spotifyUrl || null
       })
     } catch (error) {
       console.error('Error loading tab:', error)
