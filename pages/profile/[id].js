@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import TabCard from '@/components/TabCard'
 
 // 選項對照表
 const EXPERIENCE_LABELS = {
@@ -50,10 +49,6 @@ export default function PublicProfile() {
   const { user: currentUser } = useAuth()
   
   const [profile, setProfile] = useState(null)
-  const [uploads, setUploads] = useState([])
-  const [playlists, setPlaylists] = useState([])
-  const [currentlyPracticing, setCurrentlyPracticing] = useState(null)
-  const [recentlyViewed, setRecentlyViewed] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -66,7 +61,7 @@ export default function PublicProfile() {
   const loadProfile = async () => {
     setIsLoading(true)
     try {
-      // 載入用戶資料
+      // 淨係載入用戶基本資料
       const userDoc = await getDoc(doc(db, 'users', id))
       
       if (!userDoc.exists()) {
@@ -85,81 +80,42 @@ export default function PublicProfile() {
       }
 
       setProfile(userData)
-      
-      // 載入最近瀏覽的譜（暫時禁用 - 需要 index）
-      // if (currentUser?.uid === id) {
-      //   const viewsQuery = query(
-      //     collection(db, 'pageViews'),
-      //     where('userId', '==', id),
-      //     where('pageType', '==', 'tab'),
-      //     orderBy('timestamp', 'desc'),
-      //     limit(5)
-      //   )
-      //   try {
-      //     const viewsSnapshot = await getDocs(viewsQuery)
-      //     const recentTabIds = viewsSnapshot.docs
-      //       .map(doc => doc.data().pageId)
-      //       .filter((v, i, a) => a.indexOf(v) === i)
-      //       .slice(0, 5)
-      //     
-      //     if (recentTabIds.length > 0) {
-      //       const recentTabs = []
-      //       for (const tabId of recentTabIds) {
-      //         if (tabId) {
-      //           const tabDoc = await getDoc(doc(db, 'tabs', tabId))
-      //           if (tabDoc.exists()) {
-      //             recentTabs.push({ id: tabDoc.id, ...tabDoc.data() })
-      //           }
-      //         }
-      //       }
-      //       setRecentlyViewed(recentTabs)
-      //     }
-      //   } catch (e) {
-      //     console.log('No recent views available')
-      //   }
-      // }
-
-      // 載入上傳的樂譜
-      if (userData.showUploads !== false) {
-        const tabsQuery = query(
-          collection(db, 'tabs'),
-          where('uploaderId', '==', id),
-          orderBy('createdAt', 'desc'),
-          limit(10)
-        )
-        const tabsSnapshot = await getDocs(tabsQuery)
-        setUploads(tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-      }
-
-      // 載入歌單（暫時禁用 orderBy - 需要 index）
-      if (userData.showPlaylists !== false) {
-        const playlistsQuery = query(
-          collection(db, 'playlists'),
-          where('createdBy', '==', id),
-          // orderBy('createdAt', 'desc'),
-          limit(5)
-        )
-        const playlistsSnapshot = await getDocs(playlistsQuery)
-        setPlaylists(playlistsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-      }
-
-      // 載入「正在練習」
-      if (userData.currentlyPracticing) {
-        const tabDoc = await getDoc(doc(db, 'tabs', userData.currentlyPracticing))
-        if (tabDoc.exists()) {
-          setCurrentlyPracticing({ id: tabDoc.id, ...tabDoc.data() })
-        }
-      }
-
     } catch (error) {
       console.error('Error loading profile:', error)
-      setError('載入資料失敗')
+      setError('載入資料失敗: ' + error.message)
     } finally {
       setIsLoading(false)
     }
   }
 
   const isOwnProfile = currentUser?.uid === id
+
+  // 生成個人簡介句子
+  const generateBioSentence = () => {
+    if (!profile) return ''
+    
+    const parts = []
+    
+    if (profile.guitarExperience && EXPERIENCE_LABELS[profile.guitarExperience]) {
+      parts.push(EXPERIENCE_LABELS[profile.guitarExperience] + '結他手')
+    }
+    
+    if (profile.practiceLocation && LOCATION_LABELS[profile.practiceLocation]) {
+      parts.push('鍾意喺' + LOCATION_LABELS[profile.practiceLocation] + '練習')
+    }
+    
+    if (profile.playingStyle && STYLE_LABELS[profile.playingStyle]) {
+      parts.push(STYLE_LABELS[profile.playingStyle])
+    }
+    
+    if (profile.favoriteChords && CHORDS_LABELS[profile.favoriteChords]) {
+      parts.push('最愛用' + CHORDS_LABELS[profile.favoriteChords])
+    }
+    
+    if (parts.length === 0) return profile.bio || ''
+    
+    return '「' + parts.join('，') + '。」'
+  }
 
   if (isLoading) {
     return (
@@ -209,7 +165,6 @@ export default function PublicProfile() {
                 {profile.penName && (
                   <p className="text-[#FFD700] text-sm">✏️ 編譜筆名：{profile.penName}</p>
                 )}
-                <p className="text-gray-400 text-sm">{profile.email}</p>
               </div>
               {isOwnProfile && (
                 <Link
@@ -221,9 +176,14 @@ export default function PublicProfile() {
               )}
             </div>
 
-            {/* Bio */}
-            {profile.bio && (
-              <p className="text-gray-300 mt-4">{profile.bio}</p>
+            {/* Bio 句子 */}
+            {generateBioSentence() && (
+              <p className="text-gray-300 mt-4 text-lg">{generateBioSentence()}</p>
+            )}
+            
+            {/* 原有 Bio */}
+            {profile.bio && !generateBioSentence().includes(profile.bio) && (
+              <p className="text-gray-400 mt-2 text-sm">{profile.bio}</p>
             )}
           </div>
         </div>
@@ -231,11 +191,11 @@ export default function PublicProfile() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">{uploads.length}</p>
+            <p className="text-2xl font-bold text-[#FFD700]">-</p>
             <p className="text-sm text-gray-400">上傳樂譜</p>
           </div>
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
-            <p className="text-2xl font-bold text-[#FFD700]">{playlists.length}</p>
+            <p className="text-2xl font-bold text-[#FFD700]">-</p>
             <p className="text-sm text-gray-400">歌單</p>
           </div>
           <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 text-center">
@@ -246,160 +206,10 @@ export default function PublicProfile() {
           </div>
         </div>
 
-        {/* Currently Practicing */}
-        {currentlyPracticing && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
-            <h2 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-              <span>🎸</span> 正在練習
-            </h2>
-            <Link 
-              href={`/tabs/${currentlyPracticing.id}`}
-              className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
-            >
-              {currentlyPracticing.thumbnail && (
-                <img 
-                  src={currentlyPracticing.thumbnail} 
-                  alt={currentlyPracticing.title}
-                  className="w-16 h-12 rounded object-cover"
-                />
-              )}
-              <div>
-                <p className="text-white font-medium">{currentlyPracticing.title}</p>
-                <p className="text-sm text-gray-400">{currentlyPracticing.artist}</p>
-              </div>
-            </Link>
-            {isOwnProfile && (
-              <button
-                onClick={() => router.push('/profile/practicing')}
-                className="mt-3 text-sm text-[#FFD700] hover:underline"
-              >
-                更改正在練習的歌曲
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Music Profile */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-4">🎵 音樂人檔案</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {profile.favoriteArtist && (
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🎤</span>
-                <div>
-                  <p className="text-sm text-gray-400">最喜歡的歌手</p>
-                  <p className="text-white">{profile.favoriteArtist}</p>
-                </div>
-              </div>
-            )}
-            
-            {profile.favoriteKey && (
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🎼</span>
-                <div>
-                  <p className="text-sm text-gray-400">最喜歡的 Key</p>
-                  <p className="text-white">{profile.favoriteKey}</p>
-                </div>
-              </div>
-            )}
-            
-            {profile.playingStyle && (
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🎸</span>
-                <div>
-                  <p className="text-sm text-gray-400">演奏風格</p>
-                  <p className="text-white">{STYLE_LABELS[profile.playingStyle] || profile.playingStyle}</p>
-                </div>
-              </div>
-            )}
-            
-            {profile.favoriteChords && (
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🎹</span>
-                <div>
-                  <p className="text-sm text-gray-400">最喜歡的和弦</p>
-                  <p className="text-white">{CHORDS_LABELS[profile.favoriteChords] || profile.favoriteChords}</p>
-                </div>
-              </div>
-            )}
-            
-            {profile.practiceLocation && (
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📍</span>
-                <div>
-                  <p className="text-sm text-gray-400">練習地點</p>
-                  <p className="text-white">{LOCATION_LABELS[profile.practiceLocation] || profile.practiceLocation}</p>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Info */}
+        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 text-center text-gray-400">
+          <p>更多功能開發中...</p>
         </div>
-
-        {/* Uploads */}
-        {profile.showUploads !== false && uploads.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
-            <h2 className="text-lg font-medium text-white mb-4">📝 上傳的樂譜</h2>
-            
-            <div className="grid grid-cols-1 gap-3">
-              {uploads.slice(0, 5).map(tab => (
-                <TabCard key={tab.id} tab={tab} compact />
-              ))}
-            </div>
-            
-            {uploads.length > 5 && (
-              <p className="text-center text-gray-400 text-sm mt-4">
-                還有 {uploads.length - 5} 份樂譜...
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Playlists */}
-        {profile.showPlaylists !== false && playlists.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
-            <h2 className="text-lg font-medium text-white mb-4">🎵 歌單</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {playlists.map(playlist => (
-                <Link 
-                  key={playlist.id}
-                  href={`/playlist/${playlist.id}`}
-                  className="p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
-                >
-                  {playlist.coverImage && (
-                    <img 
-                      src={playlist.coverImage} 
-                      alt={playlist.title}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
-                    />
-                  )}
-                  <p className="text-white font-medium">{playlist.title}</p>
-                  <p className="text-sm text-gray-400">{playlist.songIds?.length || 0} 首歌</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 最近瀏覽（只有本人看到） */}
-        {isOwnProfile && recentlyViewed.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
-            <h2 className="text-lg font-medium text-white mb-4">👁️ 最近瀏覽</h2>
-            <div className="grid grid-cols-1 gap-3">
-              {recentlyViewed.map(tab => (
-                <TabCard key={tab.id} tab={tab} compact />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!currentlyPracticing && uploads.length === 0 && playlists.length === 0 && recentlyViewed.length === 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-12 text-center">
-            <p className="text-gray-400">此用戶暫時沒有公開內容</p>
-          </div>
-        )}
       </div>
     </Layout>
   )
