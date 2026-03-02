@@ -131,12 +131,12 @@ export default function PublicProfile() {
         setUploads(tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
       }
 
-      // 載入歌單
+      // 載入歌單（暫時禁用 orderBy - 需要 index）
       if (userData.showPlaylists !== false) {
         const playlistsQuery = query(
           collection(db, 'playlists'),
           where('createdBy', '==', id),
-          orderBy('createdAt', 'desc'),
+          // orderBy('createdAt', 'desc'),
           limit(5)
         )
         const playlistsSnapshot = await getDocs(playlistsQuery)
