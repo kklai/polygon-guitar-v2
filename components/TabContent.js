@@ -1662,7 +1662,15 @@ const TabContent = ({
         if (restLine) {
           const transposedRest = transposeChordLine(restLine, transposeSemitones);
           elements.push(
-            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: `${lineFontSize * 0.6}px` }}>
+            <div key={i} style={{ 
+              color: colors.chord, 
+              fontWeight: 'bold', 
+              fontSize: `${lineFontSize}px`, 
+              fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+              whiteSpace: 'pre-wrap', 
+              overflowWrap: 'break-word', 
+              marginBottom: `${lineFontSize * 0.6}px` 
+            }}>
               {transposedRest}
             </div>
           );
@@ -2066,7 +2074,16 @@ const TabContent = ({
           const chordMarginBottom = isFollowedByLyric ? '0em' : `${lineFontSize * 0.6}px`;
           
           elements.push(
-            <div key={i} style={{ color: colors.chord, fontWeight: 'bold', fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', marginBottom: chordMarginBottom, lineHeight: isFollowedByLyric ? '1.1' : 'normal' }}>
+            <div key={i} style={{ 
+              color: colors.chord, 
+              fontWeight: 'bold', 
+              fontSize: `${lineFontSize}px`, 
+              fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+              whiteSpace: 'pre-wrap', 
+              overflowWrap: 'break-word', 
+              marginBottom: chordMarginBottom, 
+              lineHeight: isFollowedByLyric ? '1.1' : 'normal' 
+            }}>
               {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
               {suffix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{suffix}</span>}
