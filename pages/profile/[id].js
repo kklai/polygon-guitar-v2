@@ -8,41 +8,52 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 
-// 選項對照表
-const EXPERIENCE_LABELS = {
-  'beginner': '初學者（少於1年）',
-  '1-2': '1-2年',
-  '3-5': '3-5年',
-  '6-10': '6-10年',
-  '10+': '10年以上',
-  'pro': '專業演奏'
-}
-
-const STYLE_LABELS = {
-  'sing-play': '自彈自唱',
-  'accompaniment': '伴奏',
-  'fingerstyle': '指彈',
-  'lead': '主音結他',
-  'all': '全部都有'
-}
-
-const LOCATION_LABELS = {
-  'home': '家中',
-  'studio': 'Band房/練習室',
-  'school': '學校',
-  'park': '公園/街頭',
-  'cafe': '咖啡廳',
-  'church': '教會',
-  'online': '線上直播'
-}
-
-const CHORDS_LABELS = {
-  'open': '開放和弦',
-  'barre': 'Barre 和弦',
-  'jazz': 'Jazz 和弦',
-  'power': 'Power Chords',
-  'sus': 'Sus4 / Add9',
-  'all': '全部和弦'
+// Bio 配置（會從資料庫載入）
+const DEFAULT_BIO_CONFIG = {
+  experience: {
+    options: [
+      { value: 'beginner', sentence: '初學結他' },
+      { value: '1-2', sentence: '彈結他1-2年' },
+      { value: '3-5', sentence: '彈結他3-5年' },
+      { value: '6-10', sentence: '有6-10年結他經驗' },
+      { value: '10+', sentence: '彈結他超過10年' },
+      { value: 'pro', sentence: '專業結他手' }
+    ]
+  },
+  style: {
+    options: [
+      { value: 'sing-play', sentence: '鍾意自彈自唱' },
+      { value: 'accompaniment', sentence: '主力伴奏' },
+      { value: 'fingerstyle', sentence: '鍾意指彈' },
+      { value: 'lead', sentence: '玩主音結他' },
+      { value: 'all', sentence: '什麼風格都玩' }
+    ]
+  },
+  location: {
+    options: [
+      { value: 'home', sentence: '平時喺屋企練習' },
+      { value: 'studio', sentence: '喺Band房練習' },
+      { value: 'school', sentence: '喺學校練習' },
+      { value: 'park', sentence: '鍾意喺街頭彈結他' },
+      { value: 'cafe', sentence: '喺咖啡廳彈結他' },
+      { value: 'church', sentence: '喺教會彈結他' },
+      { value: 'online', sentence: '會做線上直播' }
+    ]
+  },
+  chords: {
+    options: [
+      { value: 'open', sentence: '最愛用開放和弦' },
+      { value: 'barre', sentence: '最愛用Barre Chord' },
+      { value: 'jazz', sentence: '鍾意用Jazz和弦' },
+      { value: 'power', sentence: '愛用Power Chords' },
+      { value: 'sus', sentence: '鍾意用Sus4同Add9' },
+      { value: 'all', sentence: '什麼和弦都用' }
+    ]
+  },
+  templates: {
+    prefix: '「',
+    suffix: '。』'
+  }
 }
 
 // 社交媒體圖標組件
@@ -164,6 +175,7 @@ export default function PublicProfile() {
   const [error, setError] = useState(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
+  const [bioConfig, setBioConfig] = useState(DEFAULT_BIO_CONFIG)
   const [logoUrl, setLogoUrl] = useState(null)
   const [siteName, setSiteName] = useState('Polygon Guitar')
 
@@ -187,6 +199,16 @@ export default function PublicProfile() {
   const loadProfile = async () => {
     setIsLoading(true)
     try {
+      // 同時載入 Bio 配置
+      try {
+        const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
+        if (bioDoc.exists()) {
+          setBioConfig({ ...DEFAULT_BIO_CONFIG, ...bioDoc.data() })
+        }
+      } catch (e) {
+        console.log('Bio config not found, using default')
+      }
+      
       const userDoc = await getDoc(doc(db, 'users', id))
       
       if (!userDoc.exists()) {
@@ -281,7 +303,7 @@ export default function PublicProfile() {
 
   const totalViews = uploads.reduce((sum, tab) => sum + (tab.viewCount || 0), 0)
   const isOwnProfile = currentUser?.uid === id
-  const autoBio = generateBioSentence(profile)
+  const autoBio = generateBioSentence(profile, bioConfig)
   const socialMedia = profile?.socialMedia || {}
   const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
 

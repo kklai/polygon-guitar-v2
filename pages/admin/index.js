@@ -25,6 +25,14 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN]
     },
     {
+      href: '/admin/profile-bio-settings',
+      title: '📝 個人簡介設定',
+      description: '修改生成用戶簡介的問題和句子，讓簡介更自然不生硬',
+      icon: '📝',
+      color: 'bg-pink-500 text-white',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
       href: '/admin/playlists',
       title: '歌單管理',
       description: '管理精選歌單、編輯歌單內容',

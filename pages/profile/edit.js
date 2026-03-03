@@ -7,25 +7,45 @@ import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 
-// 選項定義
-const GUITAR_EXPERIENCE_OPTIONS = [
-  { value: '', label: '請選擇...' },
-  { value: 'beginner', label: '初學者（少於1年）' },
-  { value: '1-2', label: '1-2年' },
-  { value: '3-5', label: '3-5年' },
-  { value: '6-10', label: '6-10年' },
-  { value: '10+', label: '10年以上' },
-  { value: 'pro', label: '專業演奏' }
-]
-
-const PLAYING_STYLE_OPTIONS = [
-  { value: '', label: '請選擇...' },
-  { value: 'sing-play', label: '自彈自唱' },
-  { value: 'accompaniment', label: '伴奏' },
-  { value: 'fingerstyle', label: '指彈' },
-  { value: 'lead', label: '主音結他' },
-  { value: 'all', label: '全部都有' }
-]
+// 默認選項（會從資料庫覆蓋）
+const DEFAULT_OPTIONS = {
+  experience: [
+    { value: '', label: '請選擇...' },
+    { value: 'beginner', label: '初學者（少於1年）' },
+    { value: '1-2', label: '1-2年' },
+    { value: '3-5', label: '3-5年' },
+    { value: '6-10', label: '6-10年' },
+    { value: '10+', label: '10年以上' },
+    { value: 'pro', label: '專業演奏' }
+  ],
+  style: [
+    { value: '', label: '請選擇...' },
+    { value: 'sing-play', label: '自彈自唱' },
+    { value: 'accompaniment', label: '伴奏' },
+    { value: 'fingerstyle', label: '指彈' },
+    { value: 'lead', label: '主音結他' },
+    { value: 'all', label: '全部都有' }
+  ],
+  location: [
+    { value: '', label: '請選擇...' },
+    { value: 'home', label: '家中' },
+    { value: 'studio', label: 'Band房/練習室' },
+    { value: 'school', label: '學校' },
+    { value: 'park', label: '公園/街頭' },
+    { value: 'cafe', label: '咖啡廳' },
+    { value: 'church', label: '教會' },
+    { value: 'online', label: '線上直播' }
+  ],
+  chords: [
+    { value: '', label: '請選擇...' },
+    { value: 'open', label: '開放和弦 (C, G, D, Am, Em)' },
+    { value: 'barre', label: 'Barre 和弦 (F, Bm)' },
+    { value: 'jazz', label: 'Jazz 和弦 (maj7, m7, 9th)' },
+    { value: 'power', label: 'Power Chords' },
+    { value: 'sus', label: 'Sus4 / Add9 和弦' },
+    { value: 'all', label: '全部我都鍾意' }
+  ]
+}
 
 const FAVORITE_KEY_OPTIONS = [
   { value: '', label: '請選擇...' },
@@ -40,27 +60,6 @@ const FAVORITE_KEY_OPTIONS = [
   { value: 'Em', label: 'E Minor' },
   { value: 'Dm', label: 'D Minor' },
   { value: 'all', label: '全部都可以' }
-]
-
-const PRACTICE_LOCATION_OPTIONS = [
-  { value: '', label: '請選擇...' },
-  { value: 'home', label: '家中' },
-  { value: 'studio', label: 'Band房/練習室' },
-  { value: 'school', label: '學校' },
-  { value: 'park', label: '公園/街頭' },
-  { value: 'cafe', label: '咖啡廳' },
-  { value: 'church', label: '教會' },
-  { value: 'online', label: '線上直播' }
-]
-
-const FAVORITE_CHORDS_OPTIONS = [
-  { value: '', label: '請選擇...' },
-  { value: 'open', label: '開放和弦 (C, G, D, Am, Em)' },
-  { value: 'barre', label: 'Barre 和弦 (F, Bm)' },
-  { value: 'jazz', label: 'Jazz 和弦 (maj7, m7, 9th)' },
-  { value: 'power', label: 'Power Chords' },
-  { value: 'sus', label: 'Sus4 / Add9 和弦' },
-  { value: 'all', label: '全部我都鍾意' }
 ]
 
 // 社交媒體配置
@@ -98,6 +97,7 @@ export default function EditProfile() {
   })
   
   const [originalData, setOriginalData] = useState(null)
+  const [bioOptions, setBioOptions] = useState(DEFAULT_OPTIONS)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -116,6 +116,22 @@ export default function EditProfile() {
 
   const loadUserProfile = async () => {
     try {
+      // 同時載入 Bio 配置
+      try {
+        const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
+        if (bioDoc.exists()) {
+          const config = bioDoc.data()
+          setBioOptions({
+            experience: [{ value: '', label: '請選擇...' }, ...(config.experience?.options || DEFAULT_OPTIONS.experience.slice(1))],
+            style: [{ value: '', label: '請選擇...' }, ...(config.style?.options || DEFAULT_OPTIONS.style.slice(1))],
+            location: [{ value: '', label: '請選擇...' }, ...(config.location?.options || DEFAULT_OPTIONS.location.slice(1))],
+            chords: [{ value: '', label: '請選擇...' }, ...(config.chords?.options || DEFAULT_OPTIONS.chords.slice(1))]
+          })
+        }
+      } catch (e) {
+        console.log('Bio config not found')
+      }
+      
       const userDoc = await getDoc(doc(db, 'users', user.uid))
       if (userDoc.exists()) {
         const data = userDoc.data()
@@ -417,7 +433,7 @@ export default function EditProfile() {
                 onChange={(e) => handleChange('guitarExperience', e.target.value)}
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
               >
-                {GUITAR_EXPERIENCE_OPTIONS.map(opt => (
+                {bioOptions.experience.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -454,7 +470,7 @@ export default function EditProfile() {
                 onChange={(e) => handleChange('playingStyle', e.target.value)}
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
               >
-                {PLAYING_STYLE_OPTIONS.map(opt => (
+                {bioOptions.style.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -467,7 +483,7 @@ export default function EditProfile() {
                 onChange={(e) => handleChange('favoriteChords', e.target.value)}
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
               >
-                {FAVORITE_CHORDS_OPTIONS.map(opt => (
+                {bioOptions.chords.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
@@ -480,7 +496,7 @@ export default function EditProfile() {
                 onChange={(e) => handleChange('practiceLocation', e.target.value)}
                 className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
               >
-                {PRACTICE_LOCATION_OPTIONS.map(opt => (
+                {bioOptions.location.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
