@@ -30,7 +30,7 @@ export default function TabShareTool() {
   const [isSearching, setIsSearching] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   
-  // 內容選擇 - 最多2行和弦 + 2行歌詞
+  // 內容選擇
   const [selectedChords, setSelectedChords] = useState('')
   const [selectedLyrics, setSelectedLyrics] = useState([])
   
@@ -84,15 +84,14 @@ export default function TabShareTool() {
           parsedContent: parsed
         })
         
-        // 默認選擇第一個和弦行（最多2行）
+        // 默認選擇第一個和弦行
         if (parsed.chords.length > 0) {
-          const chordText = parsed.chords.slice(0, 2).join(' | ')
-          setSelectedChords(chordText)
+          setSelectedChords(parsed.chords[0])
         }
         
-        // 默認選擇前2行歌詞
+        // 默認選擇前5行歌詞
         if (parsed.lyrics.length > 0) {
-          setSelectedLyrics(parsed.lyrics.slice(0, 2))
+          setSelectedLyrics(parsed.lyrics.slice(0, 5))
         }
       }
     } catch (error) {
@@ -132,10 +131,10 @@ export default function TabShareTool() {
     try {
       const html2canvas = window.html2canvas
       const canvas = await html2canvas(previewRef.current, {
-        scale: 2.16, // 1080 / 500
+        scale: 2.16,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#000000'
+        backgroundColor: '#f5f5f5'
       })
       
       const link = document.createElement('a')
@@ -170,7 +169,7 @@ export default function TabShareTool() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">📱 樂譜分享圖片生成器</h1>
-          <p className="text-gray-400">製作 Instagram 分享圖片（2行和弦 + 2行歌詞）</p>
+          <p className="text-gray-400">製作 Instagram 分享圖片</p>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">
@@ -249,21 +248,15 @@ export default function TabShareTool() {
                   </div>
                 </div>
 
-                {/* 選擇和弦 - 最多2行 */}
+                {/* 選擇和弦 - 1行 */}
                 {selectedTab.parsedContent?.chords?.length > 0 && (
                   <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
-                    <h3 className="text-white font-bold mb-3">選擇和弦（最多2行）</h3>
+                    <h3 className="text-white font-bold mb-3">選擇和弦（1行）</h3>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {selectedTab.parsedContent.chords.slice(0, 4).map((chord, idx) => (
+                      {selectedTab.parsedContent.chords.slice(0, 5).map((chord, idx) => (
                         <button
                           key={idx}
-                          onClick={() => {
-                            if (selectedChords === chord) {
-                              setSelectedChords('')
-                            } else {
-                              setSelectedChords(chord)
-                            }
-                          }}
+                          onClick={() => setSelectedChords(selectedChords === chord ? '' : chord)}
                           className={`w-full text-left p-3 rounded-lg text-sm font-mono transition ${
                             selectedChords === chord
                               ? 'bg-[#FFD700]/20 border border-[#FFD700] text-[#FFD700]'
@@ -277,35 +270,31 @@ export default function TabShareTool() {
                   </div>
                 )}
 
-                {/* 選擇歌詞 - 最多2行 */}
+                {/* 選擇歌詞 - 多行 */}
                 {selectedTab.parsedContent?.lyrics?.length > 0 && (
                   <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
-                    <h3 className="text-white font-bold mb-3">選擇歌詞（最多2行）</h3>
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                    <h3 className="text-white font-bold mb-3">選擇歌詞（多行）已選 {selectedLyrics.length} 行</h3>
+                    <div className="space-y-1 max-h-64 overflow-y-auto">
                       {selectedTab.parsedContent.lyrics.map((lyric, idx) => {
                         const isSelected = selectedLyrics.includes(lyric)
-                        const canSelect = isSelected || selectedLyrics.length < 2
                         return (
                           <button
                             key={idx}
                             onClick={() => {
                               if (isSelected) {
                                 setSelectedLyrics(selectedLyrics.filter(l => l !== lyric))
-                              } else if (canSelect) {
+                              } else {
                                 setSelectedLyrics([...selectedLyrics, lyric])
                               }
                             }}
-                            disabled={!canSelect && !isSelected}
                             className={`w-full text-left p-2 rounded text-sm transition ${
                               isSelected
                                 ? 'bg-[#FFD700]/20 text-[#FFD700]'
-                                : canSelect
-                                  ? 'text-gray-400 hover:bg-gray-800'
-                                  : 'text-gray-600 cursor-not-allowed'
+                                : 'text-gray-400 hover:bg-gray-800'
                             }`}
                           >
-                            <span className="mr-2">{isSelected ? '☑' : selectedLyrics.length >= 2 ? '☐' : '☐'}</span>
-                            {lyric.length > 30 ? lyric.substring(0, 30) + '...' : lyric}
+                            <span className="mr-2">{isSelected ? '☑' : '☐'}</span>
+                            {lyric.length > 25 ? lyric.substring(0, 25) + '...' : lyric}
                           </button>
                         )
                       })}
@@ -335,46 +324,49 @@ export default function TabShareTool() {
             
             {selectedTab ? (
               <div className="flex justify-center">
-                {/* Instagram 正方形 1:1 */}
+                {/* 正方形 - 淺色背景 */}
                 <div 
                   ref={previewRef}
-                  className="relative w-[500px] h-[500px] overflow-hidden bg-black"
-                  style={{ fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif" }}
+                  className="relative w-[500px] h-[500px] overflow-hidden"
+                  style={{ 
+                    fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
+                    backgroundColor: '#e8e8e8'
+                  }}
                 >
-                  {/* 上方：和弦行（置中，白底） */}
+                  {/* 上方：和弦行（正中間，無底框） */}
                   {selectedChords && (
-                    <div className="absolute top-[8%] left-1/2 transform -translate-x-1/2 z-30">
-                      <div className="bg-white/95 rounded-lg px-6 py-2 shadow-lg">
-                        <p className="text-gray-500 text-[10px] mb-0.5 text-center">和弦進行</p>
-                        <p className="text-gray-900 font-mono text-base tracking-wider text-center whitespace-nowrap">
-                          {selectedChords}
-                        </p>
-                      </div>
+                    <div className="absolute top-[5%] left-0 right-0 text-center">
+                      <p 
+                        className="text-gray-700 font-mono tracking-widest"
+                        style={{ fontSize: '16px', letterSpacing: '0.15em' }}
+                      >
+                        {selectedChords}
+                      </p>
                     </div>
                   )}
 
-                  {/* 中間區域：照片 + 歌詞 */}
-                  <div className="absolute top-[22%] left-[5%] right-[5%] h-[56%] flex gap-4">
-                    {/* 左側：正方形歌手相 */}
+                  {/* 中間：照片 + 歌詞 */}
+                  <div className="absolute top-[12%] left-[5%] right-[5%] h-[60%] flex gap-[3%]">
+                    {/* 左側：照片（約40%寬度） */}
                     <div 
-                      className="w-1/2 h-full bg-cover bg-center rounded-sm"
+                      className="w-[42%] h-full bg-cover bg-center"
                       style={{ 
                         backgroundImage: getArtistImage() ? `url(${getArtistImage()})` : 'none',
-                        backgroundColor: '#1a1a1a'
+                        backgroundColor: '#333'
                       }}
                     />
                     
-                    {/* 右側：白色背景歌詞（同高度） */}
-                    <div className="w-1/2 h-full bg-white flex items-center justify-center p-4">
+                    {/* 右側：白色背景歌詞（約50%寬度） */}
+                    <div className="w-[50%] h-full bg-white flex items-center justify-center p-4">
                       {selectedLyrics.length > 0 ? (
-                        <div className="space-y-3 w-full">
-                          {selectedLyrics.slice(0, 2).map((lyric, idx) => (
+                        <div className="space-y-2 w-full">
+                          {selectedLyrics.map((lyric, idx) => (
                             <p 
                               key={idx} 
-                              className="text-gray-900 text-center leading-relaxed"
+                              className="text-gray-800 text-center leading-snug"
                               style={{ 
-                                fontSize: lyric.length > 20 ? '14px' : '16px',
-                                lineHeight: '1.5'
+                                fontSize: lyric.length > 18 ? '13px' : '15px',
+                                lineHeight: '1.4'
                               }}
                             >
                               {lyric}
@@ -387,37 +379,33 @@ export default function TabShareTool() {
                     </div>
                   </div>
 
-                  {/* 下方：歌名 + 歌手 */}
-                  <div className="absolute bottom-[12%] left-0 right-0 text-center z-20">
+                  {/* 下方：歌名 + 歌手（在照片和歌詞下方） */}
+                  <div className="absolute bottom-[15%] left-0 right-0 text-center">
                     <h3 
-                      className="text-white font-bold mb-1"
-                      style={{ fontSize: '22px', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
+                      className="text-gray-900 font-bold mb-1"
+                      style={{ fontSize: '24px' }}
                     >
                       {selectedTab.title}
                     </h3>
                     <p 
-                      className="text-white/80"
-                      style={{ fontSize: '13px', textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+                      className="text-gray-600"
+                      style={{ fontSize: '14px' }}
                     >
                       {selectedTab.artist}
                     </p>
                   </div>
 
                   {/* 底部：Logo + IG */}
-                  <div className="absolute bottom-0 left-0 right-0 h-[10%] flex items-center justify-between px-6 z-20">
+                  <div className="absolute bottom-[3%] left-0 right-0 flex items-center justify-between px-6">
                     <div className="flex items-center gap-2">
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
-                              stroke="#FFFFFF" strokeWidth="2" fill="none"/>
+                              stroke="#333" strokeWidth="2" fill="none"/>
                       </svg>
-                      <span className="text-white text-xs font-bold tracking-wide">POLYGON</span>
+                      <span className="text-gray-800 text-xs font-bold tracking-wide">POLYGON</span>
                     </div>
-                    <div className="text-white/70 text-xs">@polygonguitar</div>
+                    <div className="text-gray-600 text-xs">@polygonguitar</div>
                   </div>
-
-                  {/* 上下漸變遮罩 */}
-                  <div className="absolute top-0 left-0 right-0 h-[22%] bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10" />
-                  <div className="absolute bottom-0 left-0 right-0 h-[22%] bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
                 </div>
               </div>
             ) : (
