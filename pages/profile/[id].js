@@ -479,19 +479,16 @@ export default function PublicProfile() {
             </div>
           )}
 
-          {/* 自動生成的 Bio 句子 */}
-          {autoBio && (
-            <p className="text-gray-300 text-base mt-4 leading-relaxed">
-              {autoBio}
-            </p>
-          )}
-
-          {/* 用戶自己填的 Bio */}
-          {profile.bio && (
-            <p className="text-gray-400 text-sm mt-2 leading-relaxed">
+          {/* Bio - 優先顯示用戶自定義，否則顯示自動生成 */}
+          {profile.bio ? (
+            <p className="text-gray-300 text-base mt-4 leading-relaxed whitespace-pre-wrap">
               {profile.bio}
             </p>
-          )}
+          ) : autoBio ? (
+            <p className="text-gray-500 text-base mt-4 leading-relaxed italic">
+              {autoBio}
+            </p>
+          ) : null}
         </div>
 
         {/* Popular Tabs - 熱門（前5首有縮圖，參考設計風格）*/}

@@ -74,6 +74,180 @@ const SOCIAL_MEDIA_CONFIG = [
   { key: 'website', label: '個人網站', placeholder: 'https://...', icon: '🌐' }
 ]
 
+// 自動生成簡介組件
+function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
+  const [bioConfig, setBioConfig] = useState(null)
+  const [selectedStyle, setSelectedStyle] = useState('normal')
+  const [generatedBio, setGeneratedBio] = useState('')
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // 載入 Bio 配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore')
+        const { db } = await import('@/lib/firebase')
+        const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
+        if (bioDoc.exists()) {
+          setBioConfig(bioDoc.data())
+        }
+      } catch (e) {
+        console.log('Bio config not found')
+      }
+    }
+    loadConfig()
+  }, [])
+
+  // 生成簡介
+  useEffect(() => {
+    if (!bioConfig) return
+    
+    const style = bioConfig.styles?.find(s => s.id === selectedStyle) || {
+      prefix: '「',
+      suffix: '。」',
+      connector: '，'
+    }
+    
+    const parts = []
+    
+    // 根據問題 ID 對應 formData 欄位
+    const fieldMap = {
+      'experience': 'guitarExperience',
+      'style': 'playingStyle',
+      'location': 'practiceLocation',
+      'chords': 'favoriteChords'
+    }
+    
+    bioConfig.questions?.forEach(q => {
+      const fieldName = fieldMap[q.id]
+      const answer = formData[fieldName]
+      if (answer) {
+        const option = q.options.find(o => o.value === answer)
+        if (option && option.sentences?.[selectedStyle]) {
+          parts.push(option.sentences[selectedStyle])
+        }
+      }
+    })
+    
+    const bio = parts.length > 0 
+      ? style.prefix + parts.join(style.connector) + style.suffix
+      : ''
+    
+    setGeneratedBio(bio)
+  }, [formData, bioConfig, selectedStyle])
+
+  const applyGeneratedBio = () => {
+    onBioChange(generatedBio)
+  }
+
+  const styles = bioConfig?.styles || [
+    { id: 'normal', name: '普通' },
+    { id: 'humor', name: '幽默' },
+    { id: 'serious', name: '認真' },
+    { id: 'sincere', name: '誠懇' },
+    { id: 'teacher', name: '老師' }
+  ]
+
+  return (
+    <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+      <div 
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div>
+          <h2 className="text-lg font-medium text-white flex items-center gap-2">
+            ✨ 自動生成簡介
+            <span className="text-xs font-normal text-gray-400">（可選）</span>
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">
+            {isExpanded ? '回答問題，系統會幫你生成簡介' : '點擊展開，快速生成個人簡介'}
+          </p>
+        </div>
+        <svg 
+          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {isExpanded && (
+        <div className="mt-4 space-y-4">
+          {/* 風格選擇 */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">選擇風格</label>
+            <div className="flex flex-wrap gap-2">
+              {styles.map(style => (
+                <button
+                  key={style.id}
+                  onClick={() => setSelectedStyle(style.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm transition ${
+                    selectedStyle === style.id
+                      ? 'bg-[#FFD700] text-black'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  {style.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 預覽 */}
+          <div className="bg-black rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-500 text-xs">預覽：</span>
+              {generatedBio && (
+                <button
+                  onClick={() => navigator.clipboard.writeText(generatedBio)}
+                  className="text-xs text-[#FFD700] hover:underline"
+                >
+                  複製
+                </button>
+              )}
+            </div>
+            <p className="text-white min-h-[3rem]">
+              {generatedBio || '（回答上方的音樂檔案問題，這裡會顯示生成的簡介）'}
+            </p>
+          </div>
+
+          {/* 操作按鈜 */}
+          <div className="flex gap-3">
+            <button
+              onClick={applyGeneratedBio}
+              disabled={!generatedBio}
+              className="flex-1 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              使用這段簡介
+            </button>
+          </div>
+
+          {/* 手動編輯區 */}
+          <div className="pt-4 border-t border-gray-800">
+            <label className="block text-sm text-gray-400 mb-2">
+              或自行編輯
+              <span className="text-xs text-gray-500 ml-1">（可複製上方修改）</span>
+            </label>
+            <textarea
+              value={formData.bio || ''}
+              onChange={(e) => onBioChange(e.target.value)}
+              placeholder="例如：大家好，我係Kermit，彈結他十年，鍾意自彈自唱，歡迎交流..."
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
+              rows={4}
+            />
+          </div>
+
+          <p className="text-gray-500 text-xs">
+            💡 小提示：不需要回答所有問題，選擇你想分享的即可。生成的簡介可以複製後自行修改。
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function EditProfile() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -503,6 +677,13 @@ export default function EditProfile() {
             </div>
           </div>
         </div>
+
+        {/* Auto Bio Generator */}
+        <AutoBioGenerator 
+          formData={formData}
+          bioOptions={bioOptions}
+          onBioChange={(bio) => handleChange('bio', bio)}
+        />
 
         {/* Privacy Settings */}
         <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
