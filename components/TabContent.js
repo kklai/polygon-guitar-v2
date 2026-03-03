@@ -1838,6 +1838,7 @@ const TabContent = ({
             lineHeight: prevIsChord ? '1.1' : 'normal',
             whiteSpace: 'pre-wrap', 
             overflowWrap: 'break-word',
+            fontWeight: displayFont === 'arial' ? 'normal' : 300,
             fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
           }}>
             {notationParts.map((part, idx) => {
@@ -1954,6 +1955,7 @@ const TabContent = ({
                           fontSize: `${notationFontSize}px`, 
                           whiteSpace: 'pre-wrap',
                           overflowWrap: 'break-word',
+                          fontWeight: displayFont === 'arial' ? 'normal' : 300,
                           fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                           color: colors.numericNotation,
                           display: 'flex',
@@ -2007,7 +2009,8 @@ const TabContent = ({
                         lineHeight: '1.1',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "Source Code Pro Light, Noto Sans Mono CJK TC, Sarasa Mono TC, Consolas, Courier New, monospace"
+                        fontWeight: displayFont === 'arial' ? 'normal' : 300,
+                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
                       }}>
                         {notationParts.map((part, idx) => {
                           // 處理隱藏括號：將括號替換為空格占位
