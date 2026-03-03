@@ -80,6 +80,7 @@ export default function TabRequestsPage() {
           title: formData.songTitle,
           artist: formData.artistName,
           albumImage: null,
+          albumName: null,
         })
       }
     } catch (error) {
@@ -88,6 +89,7 @@ export default function TabRequestsPage() {
         title: formData.songTitle,
         artist: formData.artistName,
         albumImage: null,
+        albumName: null,
       })
     } finally {
       setSearching(false)
@@ -138,8 +140,8 @@ export default function TabRequestsPage() {
         await addDoc(collection(db, 'tabRequests'), {
           songTitle: searchResults.title,
           artistName: searchResults.artist,
-          albumImage: searchResults.albumImage,
-          albumName: searchResults.albumName,
+          albumImage: searchResults.albumImage || null,
+          albumName: searchResults.albumName || null,
           requestedBy: user.uid,
           requesterName: user.displayName || '匿名用戶',
           requesterPhoto: user.photoURL,
