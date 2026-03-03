@@ -17,6 +17,14 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER, ROLES.ART_DIRECTOR, ROLES.PLAYLIST_MAKER]
     },
     {
+      href: '/admin/tech-stack',
+      title: '🏗️ 技術架構說明書',
+      description: 'Firebase/Vercel/Cloudinary/API 技術詳情、成本分析、擴展方案（給技術 Admin）',
+      icon: '🏗️',
+      color: 'bg-blue-500 text-white',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
       href: '/admin/playlists',
       title: '歌單管理',
       description: '管理精選歌單、編輯歌單內容',
