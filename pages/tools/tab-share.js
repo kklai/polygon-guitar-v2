@@ -44,6 +44,9 @@ export default function TabShareTool() {
   const [logoImage, setLogoImage] = useState(null)
   const [igHandle, setIgHandle] = useState('@polygonguitar')
   
+  // 標記符號選擇
+  const [markerType, setMarkerType] = useState('star') // 'star' | 'dot'
+  
   const previewRef = useRef(null)
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false)
 
@@ -132,6 +135,42 @@ export default function TabShareTool() {
     return sections
   }
 
+  // 處理歌詞：提取字符並標記和弦位置
+  const processLyricsWithMarkers = (lyric, chordLine) => {
+    if (!lyric || !chordLine) return lyric
+    
+    // 提取和弦位置（簡化：按字符數平均分配）
+    const chords = chordLine.match(/[A-G][#b]?(?:m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?(?:\/[A-G][#b]?)?/g) || []
+    const chars = lyric.split('')
+    
+    if (chords.length === 0) return lyric
+    
+    // 計算每個和弦對應的大致字符位置
+    const charsPerChord = Math.floor(chars.length / chords.length)
+    const markerPositions = []
+    
+    for (let i = 0; i < chords.length; i++) {
+      const pos = Math.min(i * charsPerChord, chars.length - 1)
+      markerPositions.push(pos)
+    }
+    
+    // 在對應位置插入標記
+    let result = ''
+    let chordIdx = 0
+    
+    for (let i = 0; i < chars.length; i++) {
+      if (markerPositions.includes(i) && chordIdx < chords.length) {
+        const marker = markerType === 'star' ? '✦' : '●'
+        result += marker + chars[i]
+        chordIdx++
+      } else {
+        result += chars[i]
+      }
+    }
+    
+    return result
+  }
+
   // 上傳Logo
   const handleLogoUpload = (e) => {
     const file = e.target.files[0]
@@ -178,6 +217,13 @@ export default function TabShareTool() {
   }
 
   const theme = THEMES[selectedTheme]
+
+  // 計算統一字體大小（根據兩行歌詞中較長的一行）
+  const calculateUnifiedFontSize = (lyrics) => {
+    if (!lyrics || lyrics.length === 0) return 17
+    const maxLength = Math.max(...lyrics.map(l => l.length))
+    return maxLength > 14 ? Math.max(11, 17 - (maxLength - 14) * 0.4) : 17
+  }
 
   return (
     <Layout>
@@ -243,6 +289,25 @@ export default function TabShareTool() {
                         {t.name}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* 標記符號選擇 */}
+                <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                  <h3 className="text-white font-bold mb-3">和弦標記</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setMarkerType('star')}
+                      className={`p-3 rounded-lg text-sm font-medium ${markerType === 'star' ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-gray-300'}`}
+                    >
+                      ✦ 六角星
+                    </button>
+                    <button
+                      onClick={() => setMarkerType('dot')}
+                      className={`p-3 rounded-lg text-sm font-medium ${markerType === 'dot' ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-gray-300'}`}
+                    >
+                      ● 圓點
+                    </button>
                   </div>
                 </div>
 
@@ -341,39 +406,61 @@ export default function TabShareTool() {
                     ))}
                   </div>
 
-                  {/* 中間：正方形照片 + 歌詞（居中，無間隙） */}
+                  {/* 中間：正方形照片 + 歌詞（貼左邊，無間隙） */}
                   <div 
-                    className="absolute left-1/2 transform -translate-x-1/2 flex"
-                    style={{ top: '18%', height: '55%', width: '90%' }}
+                    className="absolute flex"
+                    style={{ top: '18%', left: '5%', height: '55%', width: '90%' }}
                   >
                     {/* 左：正方形照片 */}
-                    <div 
-                      className="h-full aspect-square bg-cover bg-center"
-                      style={{ 
-                        backgroundImage: getArtistImage() ? `url(${getArtistImage()})` : 'none',
-                        backgroundColor: '#333'
-                      }}
-                    />
+                    <div className="relative h-full aspect-square">
+                      {/* 照片背景 */}
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ 
+                          backgroundImage: getArtistImage() ? `url(${getArtistImage()})` : 'none',
+                          backgroundColor: '#333'
+                        }}
+                      />
+                      {/* 頂部漸變 */}
+                      <div 
+                        className="absolute top-0 left-0 right-0 h-[30%]"
+                        style={{
+                          background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)'
+                        }}
+                      />
+                      {/* 底部漸變 */}
+                      <div 
+                        className="absolute bottom-0 left-0 right-0 h-[40%]"
+                        style={{
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)'
+                        }}
+                      />
+                    </div>
                     
                     {/* 右：歌詞（同高度，緊貼） */}
                     <div 
                       className="flex-1 h-full flex flex-col justify-center px-5"
                       style={{ backgroundColor: theme.lyricBg }}
                     >
-                      {selectedSection.lyrics.map((lyric, idx) => (
-                        <p 
-                          key={idx} 
-                          className="text-center whitespace-nowrap overflow-hidden"
-                          style={{ 
-                            fontSize: lyric.length > 14 ? Math.max(11, 17 - (lyric.length - 14) * 0.4) + 'px' : '17px',
-                            lineHeight: '1.6',
-                            color: '#333',
-                            marginBottom: '8px'
-                          }}
-                        >
-                          {lyric}
-                        </p>
-                      ))}
+                      {(() => {
+                        const unifiedFontSize = calculateUnifiedFontSize(selectedSection.lyrics)
+                        return selectedSection.lyrics.map((lyric, idx) => {
+                          const processedLyric = processLyricsWithMarkers(lyric, selectedSection.chords[idx])
+                          return (
+                            <p 
+                              key={idx} 
+                              className="text-center whitespace-nowrap overflow-hidden leading-relaxed"
+                              style={{ 
+                                fontSize: `${unifiedFontSize}px`,
+                                color: '#333',
+                                marginBottom: idx === 0 ? '16px' : '0'
+                              }}
+                            >
+                              {processedLyric}
+                            </p>
+                          )
+                        })
+                      })()}
                     </div>
                   </div>
 
