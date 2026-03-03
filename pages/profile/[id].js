@@ -271,9 +271,30 @@ export default function PublicProfile() {
   const socialMedia = profile?.socialMedia || {}
   const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
 
-  // 獲取縮圖 URL
+  // 獲取縮圖 URL - 嘗試多個欄位
   const getThumbnail = (tab) => {
-    return tab.thumbnail || tab.youtubeThumbnail || null
+    // 優先順序：thumbnail > albumImage > youtube thumbnail > youtubeUrl 提取
+    if (tab.thumbnail) return tab.thumbnail
+    if (tab.albumImage) return tab.albumImage
+    if (tab.youtubeThumbnail) return tab.youtubeThumbnail
+    
+    // 從 youtubeUrl 提取視頻 ID 生成縮圖
+    if (tab.youtubeUrl) {
+      const videoId = extractYouTubeId(tab.youtubeUrl)
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+      }
+    }
+    
+    return null
+  }
+  
+  // 提取 YouTube 視頻 ID
+  const extractYouTubeId = (url) => {
+    if (!url) return null
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
   }
 
   if (isLoading) {
@@ -378,19 +399,19 @@ export default function PublicProfile() {
                 <p className="text-[#FFD700] text-sm mb-3">@{profile.penName}</p>
               )}
               
-              {/* 統計數字一排 */}
-              <div className="flex items-center gap-6">
-                <div>
-                  <span className="text-[#FFD700] text-xl font-bold">{uploads.length}</span>
-                  <span className="text-gray-400 text-sm ml-1">出譜數目</span>
+              {/* 統計數字一排 - 防止換行 */}
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="flex items-baseline gap-1 whitespace-nowrap">
+                  <span className="text-[#FFD700] text-lg md:text-xl font-bold">{uploads.length}</span>
+                  <span className="text-gray-400 text-xs md:text-sm">出譜</span>
                 </div>
-                <div>
-                  <span className="text-[#FFD700] text-xl font-bold">{totalViews.toLocaleString()}</span>
-                  <span className="text-gray-400 text-sm ml-1">總瀏覽量</span>
+                <div className="flex items-baseline gap-1 whitespace-nowrap">
+                  <span className="text-[#FFD700] text-lg md:text-xl font-bold">{totalViews.toLocaleString()}</span>
+                  <span className="text-gray-400 text-xs md:text-sm">瀏覽</span>
                 </div>
-                <div>
-                  <span className="text-[#FFD700] text-xl font-bold">{followerCount}</span>
-                  <span className="text-gray-400 text-sm ml-1">粉絲</span>
+                <div className="flex items-baseline gap-1 whitespace-nowrap">
+                  <span className="text-[#FFD700] text-lg md:text-xl font-bold">{followerCount}</span>
+                  <span className="text-gray-400 text-xs md:text-sm">粉絲</span>
                 </div>
               </div>
             </div>
@@ -427,14 +448,14 @@ export default function PublicProfile() {
 
         {/* Popular Tabs - 熱門（前5首有縮圖，參考設計風格）*/}
         {profile.showUploads !== false && uploads.length > 0 && (
-          <div className="px-4 mt-4">
+          <div className="px-4 mt-6">
             <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {uploads.slice(0, 5).map((tab, index) => {
                 const thumbnail = getThumbnail(tab)
                 return (
                   <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                    <div className="flex items-center gap-3 hover:bg-gray-900/50 rounded-lg transition cursor-pointer group">
+                    <div className="flex items-center gap-3 p-2 hover:bg-gray-900/50 rounded-lg transition cursor-pointer group">
                       {/* 排名數字 */}
                       <span className="text-gray-500 text-lg w-6 text-center flex-shrink-0">{index + 1}</span>
                       
@@ -452,7 +473,7 @@ export default function PublicProfile() {
                       )}
                       
                       {/* 歌曲信息 */}
-                      <div className="flex-1 min-w-0 py-1">
+                      <div className="flex-1 min-w-0">
                         <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
                         <p className="text-gray-500 text-sm">{tab.artist}</p>
                       </div>
