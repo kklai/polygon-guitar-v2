@@ -63,8 +63,8 @@ export default function TabRequestsPage() {
 
   // 搜尋歌曲資料（Spotify -> YouTube）
   const searchSong = async () => {
-    // 只需要歌名或歌手其中一個
-    if (!formData.songTitle && !formData.artistName) return
+    // 必須有歌名才能搜尋
+    if (!formData.songTitle) return
     
     setSearching(true)
     setSearchSource(null)
@@ -325,13 +325,13 @@ export default function TabRequestsPage() {
               
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">歌名（選填）</label>
+                  <label className="block text-gray-400 text-sm mb-2">歌名</label>
                   <input
                     type="text"
                     value={formData.songTitle}
                     onChange={(e) => setFormData({...formData, songTitle: e.target.value})}
                     className="w-full bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#FFD700] focus:outline-none"
-                    placeholder="輸入歌名（可只輸入歌手名）"
+                    placeholder="輸入歌名"
                   />
                 </div>
                 
@@ -342,7 +342,7 @@ export default function TabRequestsPage() {
                     value={formData.artistName}
                     onChange={(e) => setFormData({...formData, artistName: e.target.value})}
                     className="w-full bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#FFD700] focus:outline-none"
-                    placeholder="輸入歌手名（可只輸入歌名）"
+                    placeholder="輸入歌手名"
                   />
                 </div>
 
