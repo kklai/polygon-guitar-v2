@@ -554,13 +554,18 @@ export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
 }
 
 // Hover 顯示和弦圖的組件
-export function ChordWithHover({ chord, theme = 'dark' }) {
+export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) {
   const [showDiagram, setShowDiagram] = useState(false);
   const shape = getChordShape(chord);
   const isDark = theme === 'dark';
   
+  // 根據 displayFont 決定字體
+  const fontFamily = displayFont === 'arial' 
+    ? "Arial, Helvetica, sans-serif" 
+    : "'Source Code Pro', monospace";
+  
   if (!shape) {
-    return <span className="text-[#FFD700] font-bold">{chord}</span>;
+    return <span className="text-[#FFD700] font-bold" style={{ fontFamily }}>{chord}</span>;
   }
   
   return (
@@ -569,7 +574,7 @@ export function ChordWithHover({ chord, theme = 'dark' }) {
       onMouseEnter={() => setShowDiagram(true)}
       onMouseLeave={() => setShowDiagram(false)}
     >
-      <span className="text-[#FFD700] font-bold hover:underline">{chord}</span>
+      <span className="text-[#FFD700] font-bold hover:underline" style={{ fontFamily }}>{chord}</span>
       
       {/* Hover 彈出框 */}
       {showDiagram && (
@@ -586,12 +591,17 @@ export function ChordWithHover({ chord, theme = 'dark' }) {
 }
 
 // 可 hover 的和弦行組件
-export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme = 'dark' }) {
+export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme = 'dark', displayFont = 'mono' }) {
   const isDark = theme === 'dark';
   const colors = {
     chord: '#FFD700',
     prefixSuffix: isDark ? '#B3B3B3' : '#666',
   };
+  
+  // 根據 displayFont 決定字體
+  const fontFamily = displayFont === 'arial' 
+    ? "Arial, Helvetica, sans-serif" 
+    : "'Source Code Pro', monospace";
   
   // 解析和弦行，分離和弦和非和弦部分（支援 slash chord 如 E/G#）
   const parts = [];
@@ -634,7 +644,8 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
         whiteSpace: 'pre-wrap', 
         marginBottom: '0.05em', 
         lineHeight: '1.2', 
-        fontWeight: 700 
+        fontWeight: 700,
+        fontFamily
       }}
     >
       {prefix && (
@@ -645,7 +656,7 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
       
       {parts.map((part, index) => (
         part.type === 'chord' ? (
-          <ChordWithHover key={index} chord={part.content} theme={theme} />
+          <ChordWithHover key={index} chord={part.content} theme={theme} displayFont={displayFont} />
         ) : (
           <span key={index} style={{ color: colors.chord }}>{part.content}</span>
         )

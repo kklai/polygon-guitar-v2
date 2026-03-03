@@ -1922,6 +1922,7 @@ const TabContent = ({
                   suffix={pairIndex === pairs.length - 1 ? suffix : null}
                   fontSize={lineFontSize}
                   theme={theme}
+                  displayFont={displayFont}
                 />
                 
                 {/* 只在第一個 pair 顯示簡譜行（如果有） */}

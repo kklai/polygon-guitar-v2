@@ -510,7 +510,7 @@ export default function EditProfile() {
                 onChange={(e) => handleChange('showUploads', e.target.checked)}
                 className="w-5 h-5 text-[#FFD700] rounded"
               />
-              <span className="text-white">顯示我上传的樂譜</span>
+              <span className="text-white">顯示我上傳的樂譜</span>
             </label>
             
             <label className="flex items-center gap-3 cursor-pointer">
