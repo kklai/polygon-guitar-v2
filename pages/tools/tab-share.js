@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore'
-import { Search, Download, RefreshCw, Upload } from 'lucide-react'
+import { Search, Download, RefreshCw, Upload, Settings2 } from 'lucide-react'
 
 const loadHtml2Canvas = () => {
   return new Promise((resolve, reject) => {
@@ -46,6 +46,22 @@ export default function TabShareTool() {
   
   // 標記符號選擇
   const [markerType, setMarkerType] = useState('star') // 'star' | 'dot'
+  
+  // 布局自訂
+  const [layoutConfig, setLayoutConfig] = useState({
+    photoWidth: 200,      // 照片寬度 (px)
+    photoLeft: 0,         // 照片左邊距 (%)
+    sectionTop: 18,       // 照片+歌詞區域頂部位置 (%)
+    sectionHeight: 55,    // 照片+歌詞區域高度 (%)
+    lyricPadding: 20,     // 歌詞左右內邊距 (px)
+    maxLyricLines: 4,     // 最大歌詞行數
+    lyricFontSize: 16,    // 歌詞字體大小 (px)
+    lyricLineHeight: 1.8, // 歌詞行距
+    lyricSpacing: 16,     // 歌詞行之間的間距 (px)
+    useUnifiedFont: true, // 是否統一字體大小
+  })
+  
+  const [showLayoutSettings, setShowLayoutSettings] = useState(false)
   
   const previewRef = useRef(null)
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false)
@@ -121,9 +137,6 @@ export default function TabShareTool() {
   }
 
   // 創建段落（和弦+歌詞配對）
-  // 支持兩種格式：
-  // 1. 傳統：2行和弦 + 2行歌詞 = 1個段落
-  // 2. 簡譜交錯：和弦、簡譜、和弦、簡譜 = 2個段落
   const createSections = (chords, lyrics) => {
     const sections = []
     
@@ -165,7 +178,6 @@ export default function TabShareTool() {
   }
 
   // 處理歌詞：提取字符並標記和弦位置
-  // 支持簡譜格式：(3) 3 323 中的括號表示和弦對應位置
   const processLyricsWithMarkers = (lyric, chordLine) => {
     if (!lyric) return lyric
     
@@ -180,7 +192,6 @@ export default function TabShareTool() {
       let chordIdx = 0
       return lyric.replace(/\((\d[^)]*)\)/g, (match, content) => {
         const marker = markerType === 'star' ? '✦' : '●'
-        const chord = chords[chordIdx] || ''
         chordIdx++
         return marker + content
       })
@@ -189,10 +200,9 @@ export default function TabShareTool() {
     if (chords.length === 0) return lyric
     
     // 普通歌詞：按字符數平均分配標記位置
-    const chars = lyric.replace(/\s/g, '').split('') // 移除空格計算
+    const chars = lyric.replace(/\s/g, '').split('')
     const charsPerChord = Math.max(1, Math.floor(chars.length / chords.length))
     
-    // 在原字符串的對應位置插入標記（考慮空格）
     let result = ''
     let charIdx = 0
     let chordIdx = 0
@@ -200,16 +210,13 @@ export default function TabShareTool() {
     for (let i = 0; i < lyric.length; i++) {
       const char = lyric[i]
       
-      // 在對應字符位置插入標記
       if (charIdx === chordIdx * charsPerChord && chordIdx < chords.length && char !== ' ') {
         const marker = markerType === 'star' ? '✦' : '●'
         result += marker
         chordIdx++
       }
       
-      if (char !== ' ') {
-        charIdx++
-      }
+      if (char !== ' ') charIdx++
       result += char
     }
     
@@ -263,11 +270,17 @@ export default function TabShareTool() {
 
   const theme = THEMES[selectedTheme]
 
-  // 計算統一字體大小（根據兩行歌詞中較長的一行）
+  // 計算統一字體大小
   const calculateUnifiedFontSize = (lyrics) => {
-    if (!lyrics || lyrics.length === 0) return 17
+    if (!lyrics || lyrics.length === 0) return layoutConfig.lyricFontSize
     const maxLength = Math.max(...lyrics.map(l => l.length))
-    return maxLength > 14 ? Math.max(11, 17 - (maxLength - 14) * 0.4) : 17
+    return maxLength > 14 ? Math.max(11, layoutConfig.lyricFontSize - (maxLength - 14) * 0.4) : layoutConfig.lyricFontSize
+  }
+
+  // 獲取要顯示的歌詞行（限制行數）
+  const getDisplayLyrics = () => {
+    if (!selectedSection) return []
+    return selectedSection.lyrics.slice(0, layoutConfig.maxLyricLines)
   }
 
   return (
@@ -356,6 +369,89 @@ export default function TabShareTool() {
                   </div>
                 </div>
 
+                {/* 布局設定 */}
+                <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-white font-bold">布局設定</h3>
+                    <button 
+                      onClick={() => setShowLayoutSettings(!showLayoutSettings)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <Settings2 size={18} />
+                    </button>
+                  </div>
+                  
+                  {showLayoutSettings && (
+                    <div className="space-y-4 pt-3 border-t border-gray-700">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-gray-400 text-xs">照片寬度 (px)</label>
+                          <input
+                            type="number"
+                            value={layoutConfig.photoWidth}
+                            onChange={(e) => setLayoutConfig({...layoutConfig, photoWidth: parseInt(e.target.value) || 200})}
+                            className="w-full mt-1 px-2 py-1 bg-gray-800 rounded text-white text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-xs">最大行數</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={6}
+                            value={layoutConfig.maxLyricLines}
+                            onChange={(e) => setLayoutConfig({...layoutConfig, maxLyricLines: parseInt(e.target.value) || 4})}
+                            className="w-full mt-1 px-2 py-1 bg-gray-800 rounded text-white text-sm"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-gray-400 text-xs">字體大小 (px)</label>
+                          <input
+                            type="number"
+                            value={layoutConfig.lyricFontSize}
+                            onChange={(e) => setLayoutConfig({...layoutConfig, lyricFontSize: parseInt(e.target.value) || 16})}
+                            className="w-full mt-1 px-2 py-1 bg-gray-800 rounded text-white text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-xs">行距</label>
+                          <input
+                            type="number"
+                            step={0.1}
+                            value={layoutConfig.lyricLineHeight}
+                            onChange={(e) => setLayoutConfig({...layoutConfig, lyricLineHeight: parseFloat(e.target.value) || 1.8})}
+                            className="w-full mt-1 px-2 py-1 bg-gray-800 rounded text-white text-sm"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-gray-400 text-xs">行間距 (px)</label>
+                        <input
+                          type="number"
+                          value={layoutConfig.lyricSpacing}
+                          onChange={(e) => setLayoutConfig({...layoutConfig, lyricSpacing: parseInt(e.target.value) || 16})}
+                          className="w-full mt-1 px-2 py-1 bg-gray-800 rounded text-white text-sm"
+                        />
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="unifiedFont"
+                          checked={layoutConfig.useUnifiedFont}
+                          onChange={(e) => setLayoutConfig({...layoutConfig, useUnifiedFont: e.target.checked})}
+                          className="rounded bg-gray-800 border-gray-600"
+                        />
+                        <label htmlFor="unifiedFont" className="text-gray-300 text-sm">統一字體大小</label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* 段落選擇（和弦+歌詞配對） */}
                 <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
                   <h3 className="text-white font-bold mb-3">選擇段落（和弦+歌詞）</h3>
@@ -426,88 +522,126 @@ export default function TabShareTool() {
 
           {/* 右側預覽 */}
           <div className="lg:col-span-3">
-            <h2 className="text-lg font-bold text-white mb-4">預覽</h2>
+            <h2 className="text-lg font-bold text-white mb-4">預覽 (500x500px)</h2>
             
             {selectedTab && selectedSection ? (
               <div className="flex justify-center">
                 <div 
                   ref={previewRef}
-                  className="relative w-[500px] h-[500px] overflow-hidden"
+                  className="relative overflow-hidden"
                   style={{ 
+                    width: '500px',
+                    height: '500px',
                     fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
                     backgroundColor: theme.bg
                   }}
                 >
                   {/* 頂部：兩行和弦（正中間） */}
-                  <div className="absolute top-[5%] left-0 right-0 text-center">
-                    {selectedSection.chords.map((chord, idx) => (
+                  <div style={{ position: 'absolute', top: '5%', left: 0, right: 0, textAlign: 'center' }}>
+                    {selectedSection.chords.slice(0, 2).map((chord, idx) => (
                       <p 
                         key={idx}
-                        className="font-mono tracking-widest mb-1"
-                        style={{ fontSize: '16px', letterSpacing: '0.15em', color: theme.chordColor }}
+                        style={{ 
+                          fontFamily: "'Source Code Pro', monospace",
+                          fontSize: '16px', 
+                          letterSpacing: '0.15em', 
+                          color: theme.chordColor,
+                          marginBottom: '4px'
+                        }}
                       >
                         {chord}
                       </p>
                     ))}
                   </div>
 
-                  {/* 中間：正方形照片 + 歌詞（貼左邊，無間隙） */}
+                  {/* 中間：正方形照片 + 歌詞 */}
                   <div 
-                    className="absolute flex"
-                    style={{ top: '18%', left: '5%', height: '55%', width: '90%' }}
+                    style={{ 
+                      position: 'absolute',
+                      top: `${layoutConfig.sectionTop}%`,
+                      left: 0,
+                      height: `${layoutConfig.sectionHeight}%`,
+                      width: '100%',
+                      display: 'flex'
+                    }}
                   >
-                    {/* 左：正方形照片 */}
-                    <div className="relative h-full aspect-square">
+                    {/* 左：正方形照片 - 真正貼左 */}
+                    <div 
+                      style={{ 
+                        width: `${layoutConfig.photoWidth}px`,
+                        height: '100%',
+                        position: 'relative',
+                        flexShrink: 0
+                      }}
+                    >
                       {/* 照片背景 */}
                       <div 
-                        className="absolute inset-0 bg-cover bg-center"
                         style={{ 
+                          position: 'absolute',
+                          inset: 0,
                           backgroundImage: getArtistImage() ? `url(${getArtistImage()})` : 'none',
-                          backgroundColor: '#333'
+                          backgroundColor: '#333',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center'
                         }}
                       />
                       {/* 頂部漸變 */}
                       <div 
-                        className="absolute top-0 left-0 right-0 h-[30%]"
                         style={{
+                          position: 'absolute',
+                          top: 0, left: 0, right: 0,
+                          height: '30%',
                           background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)'
                         }}
                       />
                       {/* 底部漸變 */}
                       <div 
-                        className="absolute bottom-0 left-0 right-0 h-[40%]"
                         style={{
+                          position: 'absolute',
+                          bottom: 0, left: 0, right: 0,
+                          height: '40%',
                           background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)'
                         }}
                       />
                     </div>
                     
-                    {/* 右：歌詞（同高度，緊貼） */}
+                    {/* 右：歌詞區域 - 剩餘寬度 */}
                     <div 
-                      className="flex-1 h-full flex flex-col px-5"
                       style={{ 
+                        flex: 1,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        paddingLeft: `${layoutConfig.lyricPadding}px`,
+                        paddingRight: `${layoutConfig.lyricPadding}px`,
                         backgroundColor: theme.lyricBg,
-                        justifyContent: selectedSection.lyrics.length === 1 ? 'center' : 'center'
+                        overflow: 'hidden'
                       }}
                     >
                       {(() => {
-                        const unifiedFontSize = calculateUnifiedFontSize(selectedSection.lyrics)
-                        const lyricCount = selectedSection.lyrics.length
-                        return selectedSection.lyrics.map((lyric, idx) => {
-                          // 對應的和弦行：簡譜交錯格式時，chords和lyrics一一對應
-                          const correspondingChord = selectedSection.chords.length === lyricCount 
-                            ? selectedSection.chords[idx] 
-                            : selectedSection.chords[Math.min(idx, selectedSection.chords.length - 1)]
+                        const displayLyrics = getDisplayLyrics()
+                        const lyricCount = displayLyrics.length
+                        const fontSize = layoutConfig.useUnifiedFont 
+                          ? calculateUnifiedFontSize(displayLyrics)
+                          : layoutConfig.lyricFontSize
+                        
+                        return displayLyrics.map((lyric, idx) => {
+                          const correspondingChord = selectedSection.chords[Math.min(idx, selectedSection.chords.length - 1)]
                           const processedLyric = processLyricsWithMarkers(lyric, correspondingChord)
+                          
                           return (
                             <p 
                               key={idx} 
-                              className="text-center whitespace-nowrap overflow-hidden"
                               style={{ 
-                                fontSize: `${unifiedFontSize}px`,
+                                fontSize: `${fontSize}px`,
                                 color: '#333',
-                                lineHeight: '1.8',
-                                marginBottom: lyricCount > 1 && idx < lyricCount - 1 ? '20px' : '0'
+                                lineHeight: layoutConfig.lyricLineHeight,
+                                marginBottom: idx < lyricCount - 1 ? `${layoutConfig.lyricSpacing}px` : '0',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                textAlign: 'center'
                               }}
                             >
                               {processedLyric}
@@ -520,10 +654,14 @@ export default function TabShareTool() {
 
                   {/* 底部：歌名 + 歌手 */}
                   <div 
-                    className="absolute left-0 right-0 text-center"
-                    style={{ bottom: '12%' }}
+                    style={{ 
+                      position: 'absolute',
+                      bottom: '12%',
+                      left: 0, right: 0,
+                      textAlign: 'center'
+                    }}
                   >
-                    <h3 className="font-bold mb-1" style={{ fontSize: '28px', color: theme.textColor }}>
+                    <h3 style={{ fontSize: '28px', fontWeight: 'bold', color: theme.textColor, marginBottom: '4px' }}>
                       {selectedTab.title}
                     </h3>
                     <p style={{ fontSize: '14px', color: theme.textColor, opacity: 0.8 }}>
@@ -533,26 +671,35 @@ export default function TabShareTool() {
 
                   {/* 最底部：深色BAR */}
                   <div 
-                    className="absolute bottom-0 left-0 right-0 h-[8%] flex items-center justify-between px-6"
-                    style={{ backgroundColor: theme.bottomBar }}
+                    style={{
+                      position: 'absolute',
+                      bottom: 0, left: 0, right: 0,
+                      height: '8%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingLeft: '24px',
+                      paddingRight: '24px',
+                      backgroundColor: theme.bottomBar
+                    }}
                   >
                     {/* Logo */}
-                    <div className="flex items-center gap-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {logoImage ? (
-                        <img src={logoImage} alt="Logo" className="h-6 object-contain" />
+                        <img src={logoImage} alt="Logo" style={{ height: '24px', objectFit: 'contain' }} />
                       ) : (
                         <>
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
                                   stroke="#fff" strokeWidth="2" fill="none"/>
                           </svg>
-                          <span className="text-white text-xs font-bold tracking-wide">POLYGON</span>
+                          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.05em' }}>POLYGON</span>
                         </>
                       )}
                     </div>
                     
                     {/* IG */}
-                    <span className="text-white/80 text-xs">{igHandle}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>{igHandle}</span>
                   </div>
                 </div>
               </div>
@@ -562,7 +709,7 @@ export default function TabShareTool() {
               </div>
             )}
             
-            <p className="text-gray-500 text-sm text-center mt-4">1080 x 1080px</p>
+            <p className="text-gray-500 text-sm text-center mt-4">實際輸出: 1080 x 1080px</p>
           </div>
         </div>
       </div>
