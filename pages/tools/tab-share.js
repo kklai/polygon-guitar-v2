@@ -30,8 +30,8 @@ export default function TabShareTool() {
   const [isSearching, setIsSearching] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   
-  // 內容選擇
-  const [selectedChords, setSelectedChords] = useState([])
+  // 內容選擇 - 最多2行和弦 + 2行歌詞
+  const [selectedChords, setSelectedChords] = useState('')
   const [selectedLyrics, setSelectedLyrics] = useState([])
   
   const previewRef = useRef(null)
@@ -84,12 +84,15 @@ export default function TabShareTool() {
           parsedContent: parsed
         })
         
-        // 默認選擇第一組和弦和前6行歌詞
+        // 默認選擇第一個和弦行（最多2行）
         if (parsed.chords.length > 0) {
-          setSelectedChords([parsed.chords[0]])
+          const chordText = parsed.chords.slice(0, 2).join(' | ')
+          setSelectedChords(chordText)
         }
+        
+        // 默認選擇前2行歌詞
         if (parsed.lyrics.length > 0) {
-          setSelectedLyrics(parsed.lyrics.slice(0, 6))
+          setSelectedLyrics(parsed.lyrics.slice(0, 2))
         }
       }
     } catch (error) {
@@ -121,26 +124,6 @@ export default function TabShareTool() {
     return { chords, lyrics }
   }
 
-  // 切換和弦選擇
-  const toggleChord = (chord) => {
-    if (selectedChords.includes(chord)) {
-      setSelectedChords(selectedChords.filter(c => c !== chord))
-    } else {
-      setSelectedChords([...selectedChords, chord])
-    }
-  }
-
-  // 切換歌詞選擇
-  const toggleLyric = (lyric) => {
-    if (selectedLyrics.includes(lyric)) {
-      setSelectedLyrics(selectedLyrics.filter(l => l !== lyric))
-    } else {
-      if (selectedLyrics.length < 8) {
-        setSelectedLyrics([...selectedLyrics, lyric])
-      }
-    }
-  }
-
   // 生成圖片
   const generateImage = async () => {
     if (!previewRef.current || !html2canvasLoaded) return
@@ -149,7 +132,7 @@ export default function TabShareTool() {
     try {
       const html2canvas = window.html2canvas
       const canvas = await html2canvas(previewRef.current, {
-        scale: 2.7,
+        scale: 2.16, // 1080 / 500
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#000000'
@@ -181,20 +164,13 @@ export default function TabShareTool() {
     return (match && match[2].length === 11) ? match[2] : null
   }
 
-  // 格式化和弦顯示
-  const formatChords = () => {
-    if (selectedChords.length === 0) return ''
-    // 取第一行和弦，替換 | 為空格
-    return selectedChords[0].replace(/\|/g, ' ').trim()
-  }
-
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8 pb-24">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">📱 樂譜分享圖片生成器</h1>
-          <p className="text-gray-400">將喜愛的樂譜製作成精美的 Instagram 分享圖片</p>
+          <p className="text-gray-400">製作 Instagram 分享圖片（2行和弦 + 2行歌詞）</p>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">
@@ -263,7 +239,7 @@ export default function TabShareTool() {
                     <button
                       onClick={() => {
                         setSelectedTab(null)
-                        setSelectedChords([])
+                        setSelectedChords('')
                         setSelectedLyrics([])
                       }}
                       className="text-gray-400 hover:text-white text-sm"
@@ -273,17 +249,23 @@ export default function TabShareTool() {
                   </div>
                 </div>
 
-                {/* 選擇和弦 */}
+                {/* 選擇和弦 - 最多2行 */}
                 {selectedTab.parsedContent?.chords?.length > 0 && (
                   <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
-                    <h3 className="text-white font-bold mb-3">選擇和弦進行（選一個）</h3>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {selectedTab.parsedContent.chords.map((chord, idx) => (
+                    <h3 className="text-white font-bold mb-3">選擇和弦（最多2行）</h3>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {selectedTab.parsedContent.chords.slice(0, 4).map((chord, idx) => (
                         <button
                           key={idx}
-                          onClick={() => toggleChord(chord)}
+                          onClick={() => {
+                            if (selectedChords === chord) {
+                              setSelectedChords('')
+                            } else {
+                              setSelectedChords(chord)
+                            }
+                          }}
                           className={`w-full text-left p-3 rounded-lg text-sm font-mono transition ${
-                            selectedChords.includes(chord)
+                            selectedChords === chord
                               ? 'bg-[#FFD700]/20 border border-[#FFD700] text-[#FFD700]'
                               : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                           }`}
@@ -295,25 +277,35 @@ export default function TabShareTool() {
                   </div>
                 )}
 
-                {/* 選擇歌詞 */}
+                {/* 選擇歌詞 - 最多2行 */}
                 {selectedTab.parsedContent?.lyrics?.length > 0 && (
                   <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
-                    <h3 className="text-white font-bold mb-3">選擇歌詞（最多8行）</h3>
-                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                    <h3 className="text-white font-bold mb-3">選擇歌詞（最多2行）</h3>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
                       {selectedTab.parsedContent.lyrics.map((lyric, idx) => {
                         const isSelected = selectedLyrics.includes(lyric)
+                        const canSelect = isSelected || selectedLyrics.length < 2
                         return (
                           <button
                             key={idx}
-                            onClick={() => toggleLyric(lyric)}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedLyrics(selectedLyrics.filter(l => l !== lyric))
+                              } else if (canSelect) {
+                                setSelectedLyrics([...selectedLyrics, lyric])
+                              }
+                            }}
+                            disabled={!canSelect && !isSelected}
                             className={`w-full text-left p-2 rounded text-sm transition ${
                               isSelected
                                 ? 'bg-[#FFD700]/20 text-[#FFD700]'
-                                : 'text-gray-400 hover:bg-gray-800'
+                                : canSelect
+                                  ? 'text-gray-400 hover:bg-gray-800'
+                                  : 'text-gray-600 cursor-not-allowed'
                             }`}
                           >
-                            <span className="mr-2">{isSelected ? '☑' : '☐'}</span>
-                            {lyric.length > 35 ? lyric.substring(0, 35) + '...' : lyric}
+                            <span className="mr-2">{isSelected ? '☑' : selectedLyrics.length >= 2 ? '☐' : '☐'}</span>
+                            {lyric.length > 30 ? lyric.substring(0, 30) + '...' : lyric}
                           </button>
                         )
                       })}
@@ -343,105 +335,89 @@ export default function TabShareTool() {
             
             {selectedTab ? (
               <div className="flex justify-center">
-                {/* Instagram 正方形 - 完全參考設計風格 */}
+                {/* Instagram 正方形 1:1 */}
                 <div 
                   ref={previewRef}
-                  className="relative w-[500px] h-[500px] overflow-hidden"
-                  style={{ 
-                    fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
-                    background: '#000000'
-                  }}
+                  className="relative w-[500px] h-[500px] overflow-hidden bg-black"
+                  style={{ fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif" }}
                 >
-                  {/* 左側：正方形歌手相（占滿整個高度） */}
-                  <div className="absolute left-0 top-0 w-1/2 h-full">
+                  {/* 上方：和弦行（置中，白底） */}
+                  {selectedChords && (
+                    <div className="absolute top-[8%] left-1/2 transform -translate-x-1/2 z-30">
+                      <div className="bg-white/95 rounded-lg px-6 py-2 shadow-lg">
+                        <p className="text-gray-500 text-[10px] mb-0.5 text-center">和弦進行</p>
+                        <p className="text-gray-900 font-mono text-base tracking-wider text-center whitespace-nowrap">
+                          {selectedChords}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 中間區域：照片 + 歌詞 */}
+                  <div className="absolute top-[22%] left-[5%] right-[5%] h-[56%] flex gap-4">
+                    {/* 左側：正方形歌手相 */}
                     <div 
-                      className="w-full h-full bg-cover bg-center"
+                      className="w-1/2 h-full bg-cover bg-center rounded-sm"
                       style={{ 
                         backgroundImage: getArtistImage() ? `url(${getArtistImage()})` : 'none',
                         backgroundColor: '#1a1a1a'
                       }}
                     />
-                    {/* 左側漸變遮罩（上下） */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/70" />
-                  </div>
-
-                  {/* 右側：白色背景歌詞區 */}
-                  <div className="absolute right-0 top-0 w-1/2 h-full bg-white">
-                    {/* 歌詞內容 - 垂直置中 */}
-                    <div className="h-full flex flex-col justify-center px-6">
+                    
+                    {/* 右側：白色背景歌詞（同高度） */}
+                    <div className="w-1/2 h-full bg-white flex items-center justify-center p-4">
                       {selectedLyrics.length > 0 ? (
-                        <div className="space-y-3">
-                          {selectedLyrics.slice(0, 8).map((lyric, idx) => (
+                        <div className="space-y-3 w-full">
+                          {selectedLyrics.slice(0, 2).map((lyric, idx) => (
                             <p 
                               key={idx} 
-                              className="text-gray-900 text-base leading-relaxed"
-                              style={{ fontSize: '16px', lineHeight: '1.6' }}
+                              className="text-gray-900 text-center leading-relaxed"
+                              style={{ 
+                                fontSize: lyric.length > 20 ? '14px' : '16px',
+                                lineHeight: '1.5'
+                              }}
                             >
                               {lyric}
                             </p>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-400 text-center">選擇歌詞顯示於此</p>
+                        <p className="text-gray-400 text-sm">選擇歌詞</p>
                       )}
                     </div>
                   </div>
 
-                  {/* 上方：和弦進行（置中） */}
-                  {selectedChords.length > 0 && (
-                    <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
-                      <div className="bg-white/95 backdrop-blur-sm rounded-lg px-6 py-3 shadow-lg">
-                        <p className="text-gray-400 text-xs mb-1 text-center">和弦進行</p>
-                        <p 
-                          className="text-gray-900 font-mono text-lg tracking-wider text-center whitespace-nowrap"
-                          style={{ fontSize: '18px', letterSpacing: '0.1em' }}
-                        >
-                          {formatChords()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 底部：歌名 + 歌手（在全寬漸變上） */}
-                  <div className="absolute bottom-0 left-0 right-0 z-20">
-                    {/* 底部漸變 */}
-                    <div className="h-32 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                    
-                    {/* 歌名區域 */}
-                    <div className="absolute bottom-12 left-0 right-0 text-center">
-                      <h3 
-                        className="text-white font-bold mb-1"
-                        style={{ fontSize: '24px', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}
-                      >
-                        {selectedTab.title}
-                      </h3>
-                      <p 
-                        className="text-white/80"
-                        style={{ fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                      >
-                        {selectedTab.artist}
-                      </p>
-                    </div>
-
-                    {/* 底部 Logo 列 */}
-                    <div className="absolute bottom-0 left-0 right-0 h-12 flex items-center justify-between px-6">
-                      {/* Logo */}
-                      <div className="flex items-center gap-2">
-                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
-                                stroke="#FFFFFF" strokeWidth="2" fill="none"/>
-                        </svg>
-                        <span className="text-white text-sm font-bold tracking-wide">
-                          POLYGON
-                        </span>
-                      </div>
-                      
-                      {/* IG Handle */}
-                      <div className="text-white/70 text-sm">
-                        @polygonguitar
-                      </div>
-                    </div>
+                  {/* 下方：歌名 + 歌手 */}
+                  <div className="absolute bottom-[12%] left-0 right-0 text-center z-20">
+                    <h3 
+                      className="text-white font-bold mb-1"
+                      style={{ fontSize: '22px', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
+                    >
+                      {selectedTab.title}
+                    </h3>
+                    <p 
+                      className="text-white/80"
+                      style={{ fontSize: '13px', textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+                    >
+                      {selectedTab.artist}
+                    </p>
                   </div>
+
+                  {/* 底部：Logo + IG */}
+                  <div className="absolute bottom-0 left-0 right-0 h-[10%] flex items-center justify-between px-6 z-20">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
+                              stroke="#FFFFFF" strokeWidth="2" fill="none"/>
+                      </svg>
+                      <span className="text-white text-xs font-bold tracking-wide">POLYGON</span>
+                    </div>
+                    <div className="text-white/70 text-xs">@polygonguitar</div>
+                  </div>
+
+                  {/* 上下漸變遮罩 */}
+                  <div className="absolute top-0 left-0 right-0 h-[22%] bg-gradient-to-b from-black/80 via-black/40 to-transparent z-10" />
+                  <div className="absolute bottom-0 left-0 right-0 h-[22%] bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
                 </div>
               </div>
             ) : (
