@@ -23,8 +23,9 @@ export default function TabRequestsPage() {
     artistName: '',
   })
   const [searchResults, setSearchResults] = useState(null)
+  const [multipleResults, setMultipleResults] = useState([])
   const [searching, setSearching] = useState(false)
-  const [searchSource, setSearchSource] = useState(null) // 'spotify', 'youtube', 'manual'
+  const [searchSource, setSearchSource] = useState(null) // 'spotify', 'youtube', 'manual', 'multiple'
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   // 載入求譜列表
@@ -62,25 +63,41 @@ export default function TabRequestsPage() {
 
   // 搜尋歌曲資料（Spotify -> YouTube）
   const searchSong = async () => {
-    if (!formData.songTitle || !formData.artistName) return
+    // 只需要歌名或歌手其中一個
+    if (!formData.songTitle && !formData.artistName) return
     
     setSearching(true)
     setSearchSource(null)
+    setMultipleResults([])
     
     try {
-      // 1. 先搜尋 Spotify
-      const spotifyRes = await fetch(`/api/spotify/search-track?q=${encodeURIComponent(formData.songTitle)}&artist=${encodeURIComponent(formData.artistName)}`)
+      // 1. 先搜尋 Spotify（返回多個結果）
+      const searchQuery = formData.songTitle && formData.artistName
+        ? `${formData.songTitle} ${formData.artistName}`
+        : formData.songTitle || formData.artistName
+        
+      const spotifyRes = await fetch(`/api/spotify/search-track?q=${encodeURIComponent(searchQuery)}`)
       const spotifyData = await spotifyRes.json()
       
-      if (spotifyData.track) {
-        setSearchResults({
-          title: spotifyData.track.name,
-          artist: spotifyData.track.artists.map(a => a.name).join(', '),
-          albumImage: spotifyData.track.album?.images?.[0]?.url,
-          albumName: spotifyData.track.album?.name,
-          youtubeUrl: null,
-        })
-        setSearchSource('spotify')
+      // 處理多個結果
+      if (spotifyData.results && spotifyData.results.length > 0) {
+        if (spotifyData.results.length === 1) {
+          // 只有一個結果，直接選擇
+          const track = spotifyData.results[0]
+          setSearchResults({
+            title: track.name,
+            artist: track.artists.map(a => a.name).join(', '),
+            albumImage: track.albumImage,
+            albumName: track.album,
+            youtubeUrl: null,
+            spotifyId: track.id
+          })
+          setSearchSource('spotify')
+        } else {
+          // 多個結果，讓用戶選擇
+          setMultipleResults(spotifyData.results)
+          setSearchSource('multiple')
+        }
         setSearching(false)
         return
       }
@@ -88,7 +105,10 @@ export default function TabRequestsPage() {
       // 2. Spotify 找不到，改搜尋 YouTube
       let youtubeData = null
       try {
-        const youtubeRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(formData.songTitle + ' ' + formData.artistName)}`)
+        const youtubeQuery = formData.songTitle && formData.artistName
+          ? `${formData.songTitle} ${formData.artistName}`
+          : formData.songTitle || formData.artistName
+        const youtubeRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(youtubeQuery)}`)
         youtubeData = await youtubeRes.json()
         
         // 檢查是否 quota exceeded
@@ -96,8 +116,8 @@ export default function TabRequestsPage() {
           console.warn('YouTube API quota exceeded, falling back to manual')
         } else if (youtubeData.video) {
           setSearchResults({
-            title: formData.songTitle,
-            artist: formData.artistName,
+            title: formData.songTitle || youtubeData.video.title,
+            artist: formData.artistName || '',
             albumImage: youtubeData.video.thumbnail,
             albumName: null,
             youtubeUrl: `https://youtube.com/watch?v=${youtubeData.video.id}`,
@@ -113,8 +133,8 @@ export default function TabRequestsPage() {
       // 3. 都找不到（或 API 錯誤），顯示確認對話框
       setShowConfirmModal(true)
       setSearchResults({
-        title: formData.songTitle,
-        artist: formData.artistName,
+        title: formData.songTitle || '',
+        artist: formData.artistName || '',
         albumImage: null,
         albumName: null,
         youtubeUrl: null,
@@ -126,8 +146,8 @@ export default function TabRequestsPage() {
       // 出錯時也顯示確認對話框
       setShowConfirmModal(true)
       setSearchResults({
-        title: formData.songTitle,
-        artist: formData.artistName,
+        title: formData.songTitle || '',
+        artist: formData.artistName || '',
         albumImage: null,
         albumName: null,
         youtubeUrl: null,
@@ -305,24 +325,24 @@ export default function TabRequestsPage() {
               
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">歌名</label>
+                  <label className="block text-gray-400 text-sm mb-2">歌名（選填）</label>
                   <input
                     type="text"
                     value={formData.songTitle}
                     onChange={(e) => setFormData({...formData, songTitle: e.target.value})}
                     className="w-full bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#FFD700] focus:outline-none"
-                    placeholder="輸入歌名"
+                    placeholder="輸入歌名（可只輸入歌手名）"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">歌手</label>
+                  <label className="block text-gray-400 text-sm mb-2">歌手（選填）</label>
                   <input
                     type="text"
                     value={formData.artistName}
                     onChange={(e) => setFormData({...formData, artistName: e.target.value})}
                     className="w-full bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-3 text-white focus:border-[#FFD700] focus:outline-none"
-                    placeholder="輸入歌手名"
+                    placeholder="輸入歌手名（可只輸入歌名）"
                   />
                 </div>
 
@@ -334,8 +354,73 @@ export default function TabRequestsPage() {
                   {searching ? '搜尋中...' : '搜尋歌曲資料'}
                 </button>
 
+                {/* 多結果選擇 - 當找到多首歌曲時 */}
+                {multipleResults.length > 0 && searchSource === 'multiple' && (
+                  <div className="bg-[#1a1a1a] rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full flex items-center gap-1">
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                        </svg>
+                        Spotify - 找到 {multipleResults.length} 首歌曲
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-sm mb-3">請選擇正確的歌曲：</p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {multipleResults.map((track, idx) => (
+                        <button
+                          key={track.id}
+                          onClick={() => {
+                            setSearchResults({
+                              title: track.name,
+                              artist: track.artists.map(a => a.name).join(', '),
+                              albumImage: track.albumImage,
+                              albumName: track.album,
+                              youtubeUrl: null,
+                              spotifyId: track.id
+                            })
+                            setSearchSource('spotify')
+                            setMultipleResults([])
+                          }}
+                          className="w-full flex items-center gap-3 p-3 bg-[#282828] hover:bg-[#333] rounded-lg transition text-left"
+                        >
+                          <div className="w-12 h-12 bg-[#1a1a1a] rounded overflow-hidden flex-shrink-0">
+                            {track.albumImage ? (
+                              <img src={track.albumImage} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-600">🎵</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-medium truncate">{track.name}</div>
+                            <div className="text-gray-500 text-sm truncate">{track.artists.map(a => a.name).join(', ')}</div>
+                            <div className="text-gray-600 text-xs">{track.album} {track.releaseYear && `(${track.releaseYear})`}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setMultipleResults([])
+                        setShowConfirmModal(true)
+                        setSearchResults({
+                          title: formData.songTitle,
+                          artist: formData.artistName,
+                          albumImage: null,
+                          albumName: null,
+                          youtubeUrl: null
+                        })
+                        setSearchSource('manual')
+                      }}
+                      className="w-full mt-3 py-2 text-gray-400 hover:text-white text-sm"
+                    >
+                      都不是，手動輸入
+                    </button>
+                  </div>
+                )}
+
                 {/* 搜尋結果預覽 */}
-                {searchResults && !showConfirmModal && (
+                {searchResults && !showConfirmModal && searchSource !== 'multiple' && (
                   <div className="bg-[#1a1a1a] rounded-xl p-4">
                     {/* 來源標籤 */}
                     <div className="flex items-center gap-2 mb-3">
