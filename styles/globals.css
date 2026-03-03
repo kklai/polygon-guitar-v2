@@ -116,3 +116,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #FFD700;
 }
+
+.navbar-tagline {
+  font-size: 0.9rem;
+  line-height: 0.7rem;
+}
