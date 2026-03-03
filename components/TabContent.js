@@ -1666,7 +1666,7 @@ const TabContent = ({
               color: colors.chord, 
               fontWeight: 'bold', 
               fontSize: `${lineFontSize}px`, 
-              fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+              fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
               whiteSpace: 'pre-wrap', 
               overflowWrap: 'break-word', 
               marginBottom: `${lineFontSize * 0.6}px` 
@@ -1838,7 +1838,7 @@ const TabContent = ({
             lineHeight: prevIsChord ? '1.1' : 'normal',
             whiteSpace: 'pre-wrap', 
             overflowWrap: 'break-word',
-            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
+            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace"
           }}>
             {notationParts.map((part, idx) => {
               // 處理隱藏括號：將括號替換為空格占位
@@ -1954,7 +1954,7 @@ const TabContent = ({
                           fontSize: `${notationFontSize}px`, 
                           whiteSpace: 'pre-wrap',
                           overflowWrap: 'break-word',
-                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
                           color: colors.numericNotation,
                           display: 'flex',
                           flexWrap: 'wrap',
@@ -2078,7 +2078,7 @@ const TabContent = ({
               color: colors.chord, 
               fontWeight: 'bold', 
               fontSize: `${lineFontSize}px`, 
-              fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
+              fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace",
               whiteSpace: 'pre-wrap', 
               overflowWrap: 'break-word', 
               marginBottom: chordMarginBottom, 
@@ -2311,7 +2311,7 @@ const TabContent = ({
     <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
-        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro Light', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
+        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>
       </div>
