@@ -55,7 +55,7 @@ export default function Navbar() {
                     className="h-10 max-w-[160px] object-contain"
                   />
                   {/* 副標題 */}
-                  <span className="text-base text-black tracking-[0.5em] mt-0.5 w-full pb-2">
+                  <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
                     香港廣東歌結他譜網
                   </span>
                 </>
@@ -65,7 +65,7 @@ export default function Navbar() {
                   <span className="font-bold text-xl text-black">
                     Polygon Guitar
                   </span>
-                  <span className="text-base text-black tracking-[0.5em] mt-0.5 w-full pb-2">
+                  <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
                     香港廣東歌結他譜網
                   </span>
                 </>
