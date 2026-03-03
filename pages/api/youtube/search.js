@@ -26,9 +26,22 @@ export default async function handler(req, res) {
     const response = await fetch(searchUrl)
     
     if (!response.ok) {
-      const error = await response.text()
-      console.error('YouTube API error:', error)
-      return res.status(500).json({ error: 'YouTube search failed' })
+      const errorData = await response.json().catch(() => ({}))
+      console.error('YouTube API error:', errorData)
+      
+      // 檢查是否 quota exceeded
+      if (errorData.error?.errors?.[0]?.reason === 'quotaExceeded') {
+        return res.status(429).json({ 
+          error: 'quotaExceeded',
+          message: 'YouTube API 配額已用完，請稍後再試或使用手動輸入'
+        })
+      }
+      
+      // 其他錯誤（如 invalid key, access forbidden 等）
+      return res.status(500).json({ 
+        error: 'YouTube search failed',
+        video: null 
+      })
     }
 
     const data = await response.json()

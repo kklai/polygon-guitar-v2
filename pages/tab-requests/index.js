@@ -86,23 +86,31 @@ export default function TabRequestsPage() {
       }
       
       // 2. Spotify 找不到，改搜尋 YouTube
-      const youtubeRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(formData.songTitle + ' ' + formData.artistName)}`)
-      const youtubeData = await youtubeRes.json()
-      
-      if (youtubeData.video) {
-        setSearchResults({
-          title: formData.songTitle,
-          artist: formData.artistName,
-          albumImage: youtubeData.video.thumbnail,
-          albumName: null,
-          youtubeUrl: `https://youtube.com/watch?v=${youtubeData.video.id}`,
-        })
-        setSearchSource('youtube')
-        setSearching(false)
-        return
+      let youtubeData = null
+      try {
+        const youtubeRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(formData.songTitle + ' ' + formData.artistName)}`)
+        youtubeData = await youtubeRes.json()
+        
+        // 檢查是否 quota exceeded
+        if (youtubeData.error === 'quotaExceeded') {
+          console.warn('YouTube API quota exceeded, falling back to manual')
+        } else if (youtubeData.video) {
+          setSearchResults({
+            title: formData.songTitle,
+            artist: formData.artistName,
+            albumImage: youtubeData.video.thumbnail,
+            albumName: null,
+            youtubeUrl: `https://youtube.com/watch?v=${youtubeData.video.id}`,
+          })
+          setSearchSource('youtube')
+          setSearching(false)
+          return
+        }
+      } catch (youtubeError) {
+        console.error('YouTube search error:', youtubeError)
       }
       
-      // 3. 都找不到，顯示確認對話框
+      // 3. 都找不到（或 API 錯誤），顯示確認對話框
       setShowConfirmModal(true)
       setSearchResults({
         title: formData.songTitle,
@@ -389,9 +397,14 @@ export default function TabRequestsPage() {
                           在 Spotify 和 YouTube 上都找不到「{formData.songTitle} - {formData.artistName}」。
                         </p>
                         <p className="text-gray-500 text-xs mt-2">
-                          你可能輸入了錯誤的歌名或歌手名，或者這首歌還未在這些平台上發布。
+                          可能原因：
                         </p>
-                        <p className="text-gray-400 text-xs mt-2 font-medium">
+                        <ul className="text-gray-500 text-xs mt-1 list-disc list-inside">
+                          <li>歌名或歌手名輸入錯誤</li>
+                          <li>歌曲尚未在這些平台發布</li>
+                          <li>YouTube 搜尋配額暫時用完</li>
+                        </ul>
+                        <p className="text-gray-400 text-xs mt-3 font-medium">
                           你確定要使用這個歌名和歌手名提交求譜嗎？
                         </p>
                       </div>
