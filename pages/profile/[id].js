@@ -319,81 +319,86 @@ export default function PublicProfile() {
           </Link>
         </div>
 
-        {/* Profile Header */}
+        {/* Profile Header - 參考設計布局 */}
         <div className="px-4 py-6">
-          {/* 頭像 + 名稱 + 追蹤按鈕 橫排 */}
-          <div className="flex items-center gap-4">
-            {/* 更大的頭像 */}
+          {/* 第一行：頭像 + 名稱/按鈕 + 統計 */}
+          <div className="flex gap-4">
+            {/* 左側：頭像 */}
             <img 
               src={profile.photoURL || '/default-avatar.png'} 
               alt={profile.displayName}
-              className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-[#FFD700] flex-shrink-0"
+              className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-2 border-[#FFD700] flex-shrink-0"
             />
             
-            {/* 名稱和按鈕 */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-white text-xl font-bold truncate mb-1">
-                {profile.displayName || '未命名用戶'}
-              </h1>
+            {/* 右側：名字、按鈕、統計 */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              {/* 名字 + 編輯/追蹤按鈕 同一行 */}
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-white text-2xl font-bold truncate">
+                  {profile.displayName || '未命名用戶'}
+                </h1>
+                
+                {/* 編輯按鈕 - 對自己顯示 */}
+                {isOwnProfile && (
+                  <Link
+                    href="/profile/edit"
+                    className="px-4 py-1 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition flex-shrink-0"
+                  >
+                    編輯
+                  </Link>
+                )}
+                
+                {/* 追蹤按鈕 - 對非自己顯示 */}
+                {!isOwnProfile && currentUser && (
+                  <button
+                    onClick={handleFollow}
+                    className={`px-4 py-1 rounded-full text-sm font-medium transition flex-shrink-0 ${
+                      isFollowing 
+                        ? 'bg-gray-700 text-white' 
+                        : 'bg-[#FFD700] text-black'
+                    }`}
+                  >
+                    {isFollowing ? '追蹤中' : '追蹤'}
+                  </button>
+                )}
+                
+                {/* 未登入提示 */}
+                {!currentUser && !isOwnProfile && (
+                  <Link
+                    href="/login"
+                    className="px-4 py-1 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition flex-shrink-0"
+                  >
+                    追蹤
+                  </Link>
+                )}
+              </div>
+              
+              {/* Pen Name */}
               {profile.penName && (
-                <p className="text-[#FFD700] text-sm mb-2">@{profile.penName}</p>
+                <p className="text-[#FFD700] text-sm mb-3">@{profile.penName}</p>
               )}
               
-              {/* 追蹤按鈕 - 對非自己顯示 */}
-              {!isOwnProfile && currentUser && (
-                <button
-                  onClick={handleFollow}
-                  className={`px-6 py-1.5 rounded-full text-sm font-medium transition ${
-                    isFollowing 
-                      ? 'bg-gray-700 text-white' 
-                      : 'bg-[#FFD700] text-black'
-                  }`}
-                >
-                  {isFollowing ? '追蹤中' : '追蹤'}
-                </button>
-              )}
-              
-              {/* 編輯按鈕 - 對自己顯示 */}
-              {isOwnProfile && (
-                <Link
-                  href="/profile/edit"
-                  className="inline-block px-6 py-1.5 rounded-full text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition"
-                >
-                  編輯
-                </Link>
-              )}
-              
-              {/* 未登入提示 */}
-              {!currentUser && !isOwnProfile && (
-                <Link
-                  href="/login"
-                  className="inline-block px-6 py-1.5 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition"
-                >
-                  追蹤
-                </Link>
-              )}
+              {/* 統計數字一排 */}
+              <div className="flex items-center gap-6">
+                <div>
+                  <span className="text-[#FFD700] text-xl font-bold">{uploads.length}</span>
+                  <span className="text-gray-400 text-sm ml-1">出譜數目</span>
+                </div>
+                <div>
+                  <span className="text-[#FFD700] text-xl font-bold">{totalViews.toLocaleString()}</span>
+                  <span className="text-gray-400 text-sm ml-1">總瀏覽量</span>
+                </div>
+                <div>
+                  <span className="text-[#FFD700] text-xl font-bold">{followerCount}</span>
+                  <span className="text-gray-400 text-sm ml-1">粉絲</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center justify-around mt-6 py-4 border-y border-gray-800">
-            <div className="text-center">
-              <p className="text-[#FFD700] text-xl font-bold">{uploads.length}</p>
-              <p className="text-gray-400 text-xs">出譜數目</p>
-            </div>
-            <div className="text-center">
-              <p className="text-[#FFD700] text-xl font-bold">{totalViews.toLocaleString()}</p>
-              <p className="text-gray-400 text-xs">總瀏覽量</p>
-            </div>
-            <div className="text-center">
-              <p className="text-[#FFD700] text-xl font-bold">{followerCount}</p>
-              <p className="text-gray-400 text-xs">粉絲</p>
-            </div>
-          </div>
-
-          {/* Social Media Icons */}
+          {/* Social Media Icons - 左對齊 */}
           {hasSocialLinks && (
-            <div className="flex items-center justify-center gap-3 mt-5">
+            <div className="flex items-center gap-3 mt-4">
               <SocialIcon platform="facebook" url={socialMedia.facebook} />
               <SocialIcon platform="instagram" url={socialMedia.instagram} />
               <SocialIcon platform="youtube" url={socialMedia.youtube} />
@@ -407,48 +412,54 @@ export default function PublicProfile() {
 
           {/* 自動生成的 Bio 句子 */}
           {autoBio && (
-            <p className="text-gray-300 text-base mt-5 leading-relaxed">
+            <p className="text-gray-300 text-base mt-4 leading-relaxed">
               {autoBio}
             </p>
           )}
 
           {/* 用戶自己填的 Bio */}
           {profile.bio && (
-            <p className="text-gray-400 text-sm mt-3 leading-relaxed">
+            <p className="text-gray-400 text-sm mt-2 leading-relaxed">
               {profile.bio}
             </p>
           )}
         </div>
 
-        {/* Popular Tabs - 熱門（前5首有縮圖）*/}
+        {/* Popular Tabs - 熱門（前5首有縮圖，參考設計風格）*/}
         {profile.showUploads !== false && uploads.length > 0 && (
-          <div className="px-4 mt-2">
+          <div className="px-4 mt-4">
             <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
             <div className="space-y-3">
               {uploads.slice(0, 5).map((tab, index) => {
                 const thumbnail = getThumbnail(tab)
                 return (
                   <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                    <div className="flex items-center gap-3 p-2 hover:bg-gray-900 rounded-lg transition cursor-pointer">
+                    <div className="flex items-center gap-3 hover:bg-gray-900/50 rounded-lg transition cursor-pointer group">
+                      {/* 排名數字 */}
                       <span className="text-gray-500 text-lg w-6 text-center flex-shrink-0">{index + 1}</span>
+                      
+                      {/* 封面圖 - 更大 */}
                       {thumbnail ? (
                         <img
                           src={thumbnail}
                           alt={tab.title}
-                          className="w-14 h-14 rounded object-cover flex-shrink-0"
+                          className="w-16 h-16 rounded object-cover flex-shrink-0 bg-gray-800"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
+                        <div className="w-16 h-16 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
                           <span className="text-2xl">🎵</span>
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                      
+                      {/* 歌曲信息 */}
+                      <div className="flex-1 min-w-0 py-1">
+                        <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
                         <p className="text-gray-500 text-sm">{tab.artist}</p>
                       </div>
-                      <div className="text-right text-xs text-gray-500 flex-shrink-0">
+                      
+                      {/* 瀏覽量 */}
+                      <div className="text-right text-sm text-gray-400 flex-shrink-0">
                         <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
-                        <p>{(tab.likes || 0).toLocaleString()} ❤</p>
                       </div>
                     </div>
                   </Link>
