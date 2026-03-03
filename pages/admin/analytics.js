@@ -30,12 +30,16 @@ function AnalyticsDashboard() {
   const [recentViews, setRecentViews] = useState([])
   const [dailyTrend, setDailyTrend] = useState([])
   const [hourlyStats, setHourlyStats] = useState([])
+  const [dailyUsers, setDailyUsers] = useState([])  // 每日獨立用戶數
+  const [peakHours, setPeakHours] = useState([])    // 高峰時段
   const [isLoading, setIsLoading] = useState(true)
   const [dateRange, setDateRange] = useState('7days')
 
   useEffect(() => {
     loadStats()
     loadTrendData()
+    loadDailyUsers()
+    loadPeakHours()
     
     // 實時監聽今日數據
     const today = new Date()
@@ -108,6 +112,110 @@ function AnalyticsDashboard() {
     }
     
     setDailyTrend(trend)
+  }
+
+  // 加載每日獨立用戶數
+  const loadDailyUsers = async () => {
+    const userStats = []
+    const now = new Date()
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now)
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+      
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
+      
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'pageViews'),
+          where('timestamp', '>=', Timestamp.fromDate(date)),
+          where('timestamp', '<', Timestamp.fromDate(nextDate))
+        ))
+        
+        // 去重：按 sessionId 或用戶ID
+        const uniqueSessions = new Set()
+        let loggedInUsers = 0
+        
+        snap.docs.forEach(doc => {
+          const data = doc.data()
+          const isAdmin = data.pageType === 'admin' || 
+                         (data.pagePath && data.pagePath.startsWith('/admin'))
+          if (isAdmin) return
+          
+          // 優先使用 sessionId，其次 userId
+          const id = data.sessionId || data.userId || 'anonymous'
+          uniqueSessions.add(id)
+          
+          if (data.userId) loggedInUsers++
+        })
+        
+        userStats.push({
+          date: date.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' }),
+          day: date.toLocaleDateString('zh-HK', { weekday: 'short' }),
+          totalUsers: uniqueSessions.size,
+          loggedInUsers,
+          anonymousUsers: uniqueSessions.size - loggedInUsers,
+          fullDate: date
+        })
+      } catch (e) {
+        userStats.push({
+          date: date.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' }),
+          day: date.toLocaleDateString('zh-HK', { weekday: 'short' }),
+          totalUsers: 0,
+          loggedInUsers: 0,
+          anonymousUsers: 0
+        })
+      }
+    }
+    
+    setDailyUsers(userStats)
+  }
+
+  // 加載高峰時段（按小時統計）
+  const loadPeakHours = async () => {
+    const now = new Date()
+    const sevenDaysAgo = new Date(now)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    sevenDaysAgo.setHours(0, 0, 0, 0)
+    
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'pageViews'),
+        where('timestamp', '>=', Timestamp.fromDate(sevenDaysAgo))
+      ))
+      
+      // 按小時統計（0-23）
+      const hourCount = Array(24).fill(0)
+      const hourUniqueUsers = Array.from({ length: 24 }, () => new Set())
+      
+      snap.docs.forEach(doc => {
+        const data = doc.data()
+        const isAdmin = data.pageType === 'admin' || 
+                       (data.pagePath && data.pagePath.startsWith('/admin'))
+        if (isAdmin) return
+        
+        const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp)
+        const hour = timestamp.getHours()
+        
+        hourCount[hour]++
+        
+        const id = data.sessionId || data.userId || 'anonymous'
+        hourUniqueUsers[hour].add(id)
+      })
+      
+      const hourlyData = hourCount.map((count, hour) => ({
+        hour,
+        hourLabel: `${hour.toString().padStart(2, '0')}:00`,
+        count,
+        uniqueUsers: hourUniqueUsers[hour].size
+      }))
+      
+      setPeakHours(hourlyData)
+    } catch (e) {
+      console.error('Error loading peak hours:', e)
+    }
   }
 
   const loadStats = async () => {
@@ -700,6 +808,8 @@ function AnalyticsDashboard() {
             <li>每次頁面載入都會記錄（包括刷新）</li>
             <li>熱門頁面會實時加載歌曲名和歌手名</li>
             <li>數據儲存在 Firestore <code>pageViews</code> 集合</li>
+            <li><strong>獨立用戶：</strong>按 Session ID 去重，同一用戶多次訪問只計一次</li>
+            <li><strong>高峰時段：</strong>按香港時間統計，顯示 7 天平均分布</li>
           </ul>
         </div>
       </div>
