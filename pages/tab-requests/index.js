@@ -348,7 +348,7 @@ export default function TabRequestsPage() {
 
                 <button
                   onClick={searchSong}
-                  disabled={!formData.songTitle || !formData.artistName || searching}
+                  disabled={!formData.songTitle || searching}
                   className="w-full py-3 bg-[#282828] text-white rounded-xl font-medium disabled:opacity-50"
                 >
                   {searching ? '搜尋中...' : '搜尋歌曲資料'}
