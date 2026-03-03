@@ -1733,22 +1733,22 @@ const TabContent = ({
       // 檢查是否有 | 開頭的和弦標記
       const hasChordBar = /\|[\s]*[A-G]/.test(line);
       
-      // 檢查是否為和弦行（添加 \d* 支持 Em9 等數字結尾和弦）
-      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/g;
+      // 檢查是否為和弦行（支持組合後綴如 madd9, maj7, add9 等）
+      // 和弦格式：[根音][升降]([m/maj/min/sus/dim/aug])([add/7/9/11/13]數字)?
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/g;
       const chordMatches = line.match(strictChordPattern) || [];
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
       const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
       // 修復：單一和弦（無|）也要識別，只要全行符合和弦模式
       const isChordOnlyLine = validChordMatches.length > 0 && line.trim().split(/\s+/).every(part => {
         // 檢查每個部分是否為和弦或小節線
-        // 支援 slash chord：先檢查是否為完整和弦格式（包括 slash）
         if (!part || part === '|' || part === '｜') return true;
-        // 支援 D/F# 這樣的 slash chord
-        const chordWithSlash = part.match(/^[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?$/);
+        // 支援 D/F# 這樣的 slash chord 以及 Dmadd9, Cmaj7 等組合後綴
+        const chordWithSlash = part.match(/^[A-G][#b]?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?$/);
         if (chordWithSlash) return true;
         // 清理後再檢查（處理 |G| 這樣的情況）
         const cleanPart = part.replace(/[\|\/\s]/g, '');
-        return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/);
+        return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*$/);
       });
       const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
       // 排除元數據行：包含 Key/Capo/制譜/編譜/原調/調性 關鍵詞的行
