@@ -512,7 +512,7 @@ export default function TabRequestsPage() {
 
                   {/* 出譜按鈕 */}
                   <Link
-                    href={`/tabs/new?title=${encodeURIComponent(request.songTitle)}&artist=${encodeURIComponent(request.artistName)}`}
+                    href={`/tabs/new?title=${encodeURIComponent(request.songTitle)}&artist=${encodeURIComponent(request.artistName)}${request.youtubeUrl ? `&youtube=${encodeURIComponent(request.youtubeUrl)}` : ''}`}
                     className="w-10 h-10 rounded-full bg-[#1a1a1a] text-[#FFD700] flex items-center justify-center hover:bg-[#FFD700] hover:text-black transition"
                     title="我要出譜"
                   >

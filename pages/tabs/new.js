@@ -297,12 +297,14 @@ export default function NewTab() {
   // 從 URL query 參數預填數據（來自求譜區）
   useEffect(() => {
     if (router.isReady) {
-      const { title, artist } = router.query
-      if (title || artist) {
+      const { title, artist, youtube } = router.query
+      if (title || artist || youtube) {
         setFormData(prev => ({
           ...prev,
           title: title || prev.title,
-          artist: artist || prev.artist
+          artist: artist || prev.artist,
+          artists: artist ? [{ name: artist, id: null, relation: null }] : prev.artists,
+          youtubeUrl: youtube || prev.youtubeUrl
         }))
       }
     }
