@@ -121,51 +121,96 @@ export default function TabShareTool() {
   }
 
   // 創建段落（和弦+歌詞配對）
+  // 支持兩種格式：
+  // 1. 傳統：2行和弦 + 2行歌詞 = 1個段落
+  // 2. 簡譜交錯：和弦、簡譜、和弦、簡譜 = 2個段落
   const createSections = (chords, lyrics) => {
     const sections = []
-    const maxPairs = Math.min(Math.floor(chords.length / 2), Math.floor(lyrics.length / 2))
     
-    for (let i = 0; i < maxPairs; i++) {
-      sections.push({
-        id: i,
-        chords: [chords[i * 2], chords[i * 2 + 1]].filter(Boolean),
-        lyrics: [lyrics[i * 2], lyrics[i * 2 + 1]].filter(Boolean)
-      })
+    // 檢查是否為簡譜交錯格式（簡譜行包含數字和括號）
+    const isNumericNotation = (line) => {
+      if (!line) return false
+      const digitCount = (line.match(/\d/g) || []).length
+      const bracketCount = (line.match(/[()]/g) || []).length
+      return digitCount >= 3 && bracketCount >= 2
     }
+    
+    // 如果 lyrics 都是簡譜格式，且數量與 chords 相近，使用交錯配對
+    const allLyricsAreNotation = lyrics.every(isNumericNotation)
+    const useInterleavedFormat = allLyricsAreNotation && Math.abs(chords.length - lyrics.length) <= 1
+    
+    if (useInterleavedFormat && chords.length > 0 && lyrics.length > 0) {
+      // 交錯格式：每行和弦配對對應的簡譜行
+      const count = Math.min(chords.length, lyrics.length)
+      for (let i = 0; i < count; i++) {
+        sections.push({
+          id: i,
+          chords: [chords[i]],
+          lyrics: [lyrics[i]]
+        })
+      }
+    } else {
+      // 傳統格式：2行和弦 + 2行歌詞
+      const maxPairs = Math.min(Math.floor(chords.length / 2), Math.floor(lyrics.length / 2))
+      for (let i = 0; i < maxPairs; i++) {
+        sections.push({
+          id: i,
+          chords: [chords[i * 2], chords[i * 2 + 1]].filter(Boolean),
+          lyrics: [lyrics[i * 2], lyrics[i * 2 + 1]].filter(Boolean)
+        })
+      }
+    }
+    
     return sections
   }
 
   // 處理歌詞：提取字符並標記和弦位置
+  // 支持簡譜格式：(3) 3 323 中的括號表示和弦對應位置
   const processLyricsWithMarkers = (lyric, chordLine) => {
-    if (!lyric || !chordLine) return lyric
+    if (!lyric) return lyric
     
-    // 提取和弦位置（簡化：按字符數平均分配）
-    const chords = chordLine.match(/[A-G][#b]?(?:m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?(?:\/[A-G][#b]?)?/g) || []
-    const chars = lyric.split('')
+    // 提取和弦
+    const chords = chordLine ? chordLine.match(/[A-G][#b]?(?:m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?(?:\/[A-G][#b]?)?/g) || [] : []
+    
+    // 檢查是否為簡譜格式（包含括號內的數字）
+    const hasBrackets = /\(\d/.test(lyric)
+    
+    if (hasBrackets && chords.length > 0) {
+      // 簡譜格式：將括號替換為標記符號
+      let chordIdx = 0
+      return lyric.replace(/\((\d[^)]*)\)/g, (match, content) => {
+        const marker = markerType === 'star' ? '✦' : '●'
+        const chord = chords[chordIdx] || ''
+        chordIdx++
+        return marker + content
+      })
+    }
     
     if (chords.length === 0) return lyric
     
-    // 計算每個和弦對應的大致字符位置
-    const charsPerChord = Math.floor(chars.length / chords.length)
-    const markerPositions = []
+    // 普通歌詞：按字符數平均分配標記位置
+    const chars = lyric.replace(/\s/g, '').split('') // 移除空格計算
+    const charsPerChord = Math.max(1, Math.floor(chars.length / chords.length))
     
-    for (let i = 0; i < chords.length; i++) {
-      const pos = Math.min(i * charsPerChord, chars.length - 1)
-      markerPositions.push(pos)
-    }
-    
-    // 在對應位置插入標記
+    // 在原字符串的對應位置插入標記（考慮空格）
     let result = ''
+    let charIdx = 0
     let chordIdx = 0
     
-    for (let i = 0; i < chars.length; i++) {
-      if (markerPositions.includes(i) && chordIdx < chords.length) {
+    for (let i = 0; i < lyric.length; i++) {
+      const char = lyric[i]
+      
+      // 在對應字符位置插入標記
+      if (charIdx === chordIdx * charsPerChord && chordIdx < chords.length && char !== ' ') {
         const marker = markerType === 'star' ? '✦' : '●'
-        result += marker + chars[i]
+        result += marker
         chordIdx++
-      } else {
-        result += chars[i]
       }
+      
+      if (char !== ' ') {
+        charIdx++
+      }
+      result += char
     }
     
     return result
@@ -439,21 +484,30 @@ export default function TabShareTool() {
                     
                     {/* 右：歌詞（同高度，緊貼） */}
                     <div 
-                      className="flex-1 h-full flex flex-col justify-center px-5"
-                      style={{ backgroundColor: theme.lyricBg }}
+                      className="flex-1 h-full flex flex-col px-5"
+                      style={{ 
+                        backgroundColor: theme.lyricBg,
+                        justifyContent: selectedSection.lyrics.length === 1 ? 'center' : 'center'
+                      }}
                     >
                       {(() => {
                         const unifiedFontSize = calculateUnifiedFontSize(selectedSection.lyrics)
+                        const lyricCount = selectedSection.lyrics.length
                         return selectedSection.lyrics.map((lyric, idx) => {
-                          const processedLyric = processLyricsWithMarkers(lyric, selectedSection.chords[idx])
+                          // 對應的和弦行：簡譜交錯格式時，chords和lyrics一一對應
+                          const correspondingChord = selectedSection.chords.length === lyricCount 
+                            ? selectedSection.chords[idx] 
+                            : selectedSection.chords[Math.min(idx, selectedSection.chords.length - 1)]
+                          const processedLyric = processLyricsWithMarkers(lyric, correspondingChord)
                           return (
                             <p 
                               key={idx} 
-                              className="text-center whitespace-nowrap overflow-hidden leading-relaxed"
+                              className="text-center whitespace-nowrap overflow-hidden"
                               style={{ 
                                 fontSize: `${unifiedFontSize}px`,
                                 color: '#333',
-                                marginBottom: idx === 0 ? '16px' : '0'
+                                lineHeight: '1.8',
+                                marginBottom: lyricCount > 1 && idx < lyricCount - 1 ? '20px' : '0'
                               }}
                             >
                               {processedLyric}
