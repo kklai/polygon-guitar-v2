@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { getGlobalSettings } from '@/lib/tabs'
 import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
@@ -163,12 +164,25 @@ export default function PublicProfile() {
   const [error, setError] = useState(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
+  const [logoUrl, setLogoUrl] = useState(null)
+  const [siteName, setSiteName] = useState('Polygon Guitar')
 
   useEffect(() => {
     if (id) {
       loadProfile()
+      loadLogo()
     }
   }, [id])
+  
+  const loadLogo = async () => {
+    try {
+      const settings = await getGlobalSettings()
+      if (settings.logoUrl) setLogoUrl(settings.logoUrl)
+      if (settings.siteName) setSiteName(settings.siteName)
+    } catch (e) {
+      console.error('Error loading logo:', e)
+    }
+  }
 
   const loadProfile = async () => {
     setIsLoading(true)
@@ -327,16 +341,28 @@ export default function PublicProfile() {
   return (
     <Layout hideHeader>
       <div className="min-h-screen bg-black pb-24">
-        {/* Yellow Header */}
+        {/* Yellow Header - 與其他頁面一致 */}
         <div className="bg-[#FFD700] px-4 py-3">
-          <Link href="/" className="flex items-center gap-2">
-            <svg className="w-8 h-8 text-black" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none"/>
-            </svg>
-            <div>
-              <h1 className="text-black font-bold text-lg leading-tight">POLYGON</h1>
-              <p className="text-black/70 text-[10px] leading-tight">香港廣東歌結他譜網</p>
-            </div>
+          <Link href="/" className="flex flex-col">
+            {logoUrl ? (
+              <>
+                <img
+                  src={logoUrl}
+                  alt={siteName}
+                  className="h-8 max-w-[140px] object-contain"
+                />
+                <span className="text-black/80 text-xs tracking-wider mt-0.5">
+                  香港廣東歌結他譜網
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-black font-bold text-xl">Polygon Guitar</span>
+                <span className="text-black/80 text-xs tracking-wider mt-0.5">
+                  香港廣東歌結他譜網
+                </span>
+              </>
+            )}
           </Link>
         </div>
 
