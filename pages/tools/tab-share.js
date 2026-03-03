@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore'
-import { Search, Download, RefreshCw, Image as ImageIcon, Type } from 'lucide-react'
+import { Search, Download, RefreshCw, Image as ImageIcon, Type, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // 加載 html2canvas
 const loadHtml2Canvas = () => {
@@ -30,20 +30,12 @@ export default function TabShareTool() {
   const [isSearching, setIsSearching] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   
-  // 顯示設定
-  const [showSettings, setShowSettings] = useState({
-    showChords: true,
-    showLyrics: true,
-    showArtistImage: true,
-    showLogo: true,
-    showInstagramHandle: true,
-    theme: 'dark'
-  })
-  
-  // 樣式設定
-  const [styleSettings, setStyleSettings] = useState({
-    overlayOpacity: 70
-  })
+  // 內容選擇
+  const [selectedChords, setSelectedChords] = useState([])
+  const [selectedLyrics, setSelectedLyrics] = useState([])
+  const [chordsPage, setChordsPage] = useState(0)
+  const [lyricsPage, setLyricsPage] = useState(0)
+  const [linesPerPage, setLinesPerPage] = useState(6)
   
   const previewRef = useRef(null)
   const [html2canvasLoaded, setHtml2canvasLoaded] = useState(false)
@@ -60,7 +52,6 @@ export default function TabShareTool() {
     
     setIsSearching(true)
     try {
-      // 搜索標題
       const tabsQuery = query(
         collection(db, 'tabs'),
         where('title', '>=', searchQuery),
@@ -82,15 +73,12 @@ export default function TabShareTool() {
     }
   }
 
-  // 選擇樂譜並加載詳情
+  // 選擇樂譜
   const selectTab = async (tab) => {
     try {
-      // 加載完整樂譜內容
       const tabDoc = await getDoc(doc(db, 'tabs', tab.id))
       if (tabDoc.exists()) {
         const data = tabDoc.data()
-        
-        // 解析內容，提取和弦行和歌詞
         const parsed = parseTabContent(data.content)
         
         setSelectedTab({
@@ -98,6 +86,16 @@ export default function TabShareTool() {
           id: tab.id,
           parsedContent: parsed
         })
+        
+        // 默認選擇第一組和弦和前幾行歌詞
+        if (parsed.chords.length > 0) {
+          setSelectedChords([parsed.chords[0]])
+        }
+        if (parsed.lyrics.length > 0) {
+          setSelectedLyrics(parsed.lyrics.slice(0, linesPerPage))
+        }
+        setChordsPage(0)
+        setLyricsPage(0)
       }
     } catch (error) {
       console.error('Error loading tab:', error)
@@ -112,21 +110,72 @@ export default function TabShareTool() {
     const chords = []
     const lyrics = []
     
+    let currentSection = []
+    let isChordSection = false
+    
     lines.forEach(line => {
-      // 檢測是否為和弦行（包含 | 或常見和弦符號）
-      if (line.match(/[A-G][#b]?(m|maj|min|sus|add|dim|aug)?[0-9]?/) && 
-          (line.includes('|') || line.match(/^[\sA-G#bmsusadddimaug0-9\/]+$/))) {
-        chords.push(line.trim())
-      } else if (line.trim() && !line.startsWith('[') && !line.startsWith('(')) {
-        // 視為歌詞行
-        lyrics.push(line.trim())
+      const trimmed = line.trim()
+      if (!trimmed) return
+      
+      // 檢測是否為和弦行
+      if (trimmed.match(/[A-G][#b]?(m|maj|min|sus|add|dim|aug)?[0-9]?/) && 
+          (trimmed.includes('|') || trimmed.match(/^[\sA-G#bmsusadddimaug0-9\/|\-]+$/))) {
+        if (!isChordSection && currentSection.length > 0) {
+          // 保存之前的歌詞
+          lyrics.push(...currentSection)
+          currentSection = []
+        }
+        isChordSection = true
+        chords.push(trimmed)
+      } else if (!trimmed.match(/^(Intro|Verse|Chorus|Bridge|Outro|Pre-Chorus|Solo|\[|\()/i)) {
+        // 非標記行的視為歌詞
+        if (isChordSection) {
+          isChordSection = false
+        }
+        lyrics.push(trimmed)
       }
     })
     
-    return {
-      chords: chords.slice(0, 3),
-      lyrics: lyrics.slice(0, 8)
+    return { chords, lyrics }
+  }
+
+  // 切換和弦選擇
+  const toggleChord = (chord) => {
+    if (selectedChords.includes(chord)) {
+      setSelectedChords(selectedChords.filter(c => c !== chord))
+    } else {
+      setSelectedChords([...selectedChords, chord])
     }
+  }
+
+  // 切換歌詞選擇
+  const toggleLyric = (lyric) => {
+    if (selectedLyrics.includes(lyric)) {
+      setSelectedLyrics(selectedLyrics.filter(l => l !== lyric))
+    } else {
+      setSelectedLyrics([...selectedLyrics, lyric])
+    }
+  }
+
+  // 獲取當前頁的歌詞
+  const getCurrentPageLyrics = () => {
+    if (!selectedTab?.parsedContent?.lyrics) return []
+    const start = lyricsPage * linesPerPage
+    return selectedTab.parsedContent.lyrics.slice(start, start + linesPerPage)
+  }
+
+  // 獲取背景圖
+  const getArtistImage = () => {
+    if (!selectedTab) return null
+    return selectedTab.thumbnail || selectedTab.albumImage || 
+           (selectedTab.youtubeUrl ? `https://img.youtube.com/vi/${extractYouTubeId(selectedTab.youtubeUrl)}/mqdefault.jpg` : null)
+  }
+
+  const extractYouTubeId = (url) => {
+    if (!url) return null
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
   }
 
   // 生成圖片
@@ -137,13 +186,12 @@ export default function TabShareTool() {
     try {
       const html2canvas = window.html2canvas
       const canvas = await html2canvas(previewRef.current, {
-        scale: 2.7, // 1080px / 400px = 2.7
+        scale: 2.7,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null
+        backgroundColor: '#ffffff'
       })
       
-      // 下載
       const link = document.createElement('a')
       link.download = `${selectedTab.title}-${selectedTab.artist}-polygon.png`
       link.href = canvas.toDataURL('image/png')
@@ -156,40 +204,22 @@ export default function TabShareTool() {
     }
   }
 
-  // 獲取背景圖
-  const getBackgroundImage = () => {
-    if (!selectedTab) return null
-    return selectedTab.thumbnail || selectedTab.albumImage || 
-           (selectedTab.youtubeUrl ? `https://img.youtube.com/vi/${extractYouTubeId(selectedTab.youtubeUrl)}/hqdefault.jpg` : null)
-  }
-
-  const extractYouTubeId = (url) => {
-    if (!url) return null
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
-    const match = url.match(regExp)
-    return (match && match[2].length === 11) ? match[2] : null
-  }
-
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8 pb-24">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-24">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">📱 樂譜分享圖片生成器</h1>
-          <p className="text-gray-400">將喜愛的樂譜製作成精美的 Instagram 分享圖片</p>
+          <p className="text-gray-400">選擇和弦與歌詞，製作精美的 Instagram 分享圖片</p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* 左側：設定區 */}
-          <div className="space-y-6">
-            {/* 搜索樂譜 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Search size={20} />
-                選擇樂譜
-              </h2>
+        {!selectedTab ? (
+          /* 搜索界面 */
+          <div className="max-w-xl mx-auto">
+            <div className="bg-[#121212] rounded-xl border border-gray-800 p-8">
+              <h2 className="text-xl font-bold text-white mb-6 text-center">搜索樂譜</h2>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <input
                   type="text"
                   value={searchQuery}
@@ -201,7 +231,7 @@ export default function TabShareTool() {
                 <button
                   onClick={searchTabs}
                   disabled={isSearching}
-                  className="px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+                  className="px-6 py-3 bg-[#FFD700] text-black rounded-lg font-bold hover:opacity-90 disabled:opacity-50"
                 >
                   {isSearching ? '...' : '搜索'}
                 </button>
@@ -209,250 +239,258 @@ export default function TabShareTool() {
               
               {/* 搜索結果 */}
               {searchResults.length > 0 && (
-                <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
+                <div className="mt-6 space-y-2">
+                  <p className="text-gray-400 text-sm mb-3">選擇一首歌曲：</p>
                   {searchResults.map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => selectTab(tab)}
-                      className={`w-full text-left p-3 rounded-lg transition ${
-                        selectedTab?.id === tab.id 
-                          ? 'bg-[#FFD700]/20 border border-[#FFD700]' 
-                          : 'bg-gray-800 hover:bg-gray-700'
-                      }`}
+                      className="w-full text-left p-4 rounded-lg bg-gray-800 hover:bg-gray-700 transition flex items-center gap-4"
                     >
-                      <p className="text-white font-medium">{tab.title}</p>
-                      <p className="text-gray-400 text-sm">{tab.artist}</p>
+                      <img 
+                        src={tab.thumbnail || `https://img.youtube.com/vi/${extractYouTubeId(tab.youtubeUrl)}/default.jpg`} 
+                        alt=""
+                        className="w-16 h-16 rounded object-cover bg-gray-700"
+                      />
+                      <div>
+                        <p className="text-white font-bold">{tab.title}</p>
+                        <p className="text-gray-400">{tab.artist}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          /* 編輯界面 */
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* 左側：內容選擇 */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* 歌曲信息 */}
+              <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                <div className="flex items-center gap-4">
+                  <img 
+                    src={getArtistImage()} 
+                    alt=""
+                    className="w-16 h-16 rounded object-cover"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-white font-bold">{selectedTab.title}</h3>
+                    <p className="text-gray-400 text-sm">{selectedTab.artist}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedTab(null)
+                      setSelectedChords([])
+                      setSelectedLyrics([])
+                    }}
+                    className="text-gray-400 hover:text-white text-sm"
+                  >
+                    重新選擇
+                  </button>
+                </div>
+              </div>
 
-            {/* 顯示設定 */}
-            {selectedTab && (
-              <>
-                <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Type size={20} />
-                    顯示內容
-                  </h2>
+              {/* 選擇和弦 */}
+              {selectedTab.parsedContent?.chords?.length > 0 && (
+                <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                  <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                    <Type size={18} />
+                    選擇和弦進行
+                    <span className="text-gray-500 text-xs font-normal">({selectedChords.length} 已選)</span>
+                  </h3>
                   
-                  <div className="space-y-3">
-                    {[
-                      { key: 'showChords', label: '顯示和弦進行' },
-                      { key: 'showLyrics', label: '顯示歌詞' },
-                      { key: 'showArtistImage', label: '顯示歌手圖片' },
-                      { key: 'showLogo', label: '顯示 Polygon Logo' },
-                      { key: 'showInstagramHandle', label: '顯示 Instagram 帳號' }
-                    ].map(({ key, label }) => (
-                      <label key={key} className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={showSettings[key]}
-                          onChange={(e) => setShowSettings({ ...showSettings, [key]: e.target.checked })}
-                          className="w-5 h-5 rounded text-[#FFD700]"
-                        />
-                        <span className="text-gray-300">{label}</span>
-                      </label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedTab.parsedContent.chords.map((chord, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => toggleChord(chord)}
+                        className={`w-full text-left p-3 rounded-lg text-sm font-mono transition ${
+                          selectedChords.includes(chord)
+                            ? 'bg-[#FFD700]/20 border border-[#FFD700] text-[#FFD700]'
+                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                        }`}
+                      >
+                        {chord}
+                      </button>
                     ))}
                   </div>
                 </div>
+              )}
 
-                <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <ImageIcon size={20} />
-                    樣式設定
-                  </h2>
+              {/* 選擇歌詞 */}
+              {selectedTab.parsedContent?.lyrics?.length > 0 && (
+                <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-white font-bold flex items-center gap-2">
+                      <Type size={18} />
+                      選擇歌詞
+                      <span className="text-gray-500 text-xs font-normal">({selectedLyrics.length} 行)</span>
+                    </h3>
+                    <select
+                      value={linesPerPage}
+                      onChange={(e) => setLinesPerPage(parseInt(e.target.value))}
+                      className="bg-gray-800 text-white text-sm rounded px-2 py-1"
+                    >
+                      <option value={4}>4行</option>
+                      <option value={6}>6行</option>
+                      <option value={8}>8行</option>
+                    </select>
+                  </div>
                   
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-gray-400 text-sm block mb-2">主題風格</label>
-                      <div className="flex gap-2">
-                        {[
-                          { value: 'dark', label: '深色' },
-                          { value: 'light', label: '淺色' },
-                          { value: 'color', label: '彩色' }
-                        ].map(({ value, label }) => (
-                          <button
-                            key={value}
-                            onClick={() => setShowSettings({ ...showSettings, theme: value })}
-                            className={`flex-1 py-2 rounded-lg text-sm transition ${
-                              showSettings.theme === value
-                                ? 'bg-[#FFD700] text-black'
-                                : 'bg-gray-800 text-gray-300'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="text-gray-400 text-sm block mb-2">
-                        背景遮罩透明度 ({styleSettings.overlayOpacity}%)
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="90"
-                        value={styleSettings.overlayOpacity}
-                        onChange={(e) => setStyleSettings({ ...styleSettings, overlayOpacity: parseInt(e.target.value) })}
-                        className="w-full"
-                      />
-                    </div>
+                  {/* 分頁 */}
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      onClick={() => setLyricsPage(Math.max(0, lyricsPage - 1))}
+                      disabled={lyricsPage === 0}
+                      className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <span className="text-gray-400 text-xs">
+                      第 {lyricsPage + 1} / {Math.ceil(selectedTab.parsedContent.lyrics.length / linesPerPage)} 頁
+                    </span>
+                    <button
+                      onClick={() => setLyricsPage(Math.min(Math.ceil(selectedTab.parsedContent.lyrics.length / linesPerPage) - 1, lyricsPage + 1))}
+                      className="p-1 text-gray-400 hover:text-white disabled:opacity-30"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    {getCurrentPageLyrics().map((lyric, idx) => {
+                      const isSelected = selectedLyrics.includes(lyric)
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => toggleLyric(lyric)}
+                          className={`w-full text-left p-2 rounded text-sm transition ${
+                            isSelected
+                              ? 'bg-[#FFD700]/20 text-[#FFD700]'
+                              : 'text-gray-400 hover:bg-gray-800'
+                          }`}
+                        >
+                          <span className="mr-2">{isSelected ? '☑' : '☐'}</span>
+                          {lyric.length > 30 ? lyric.substring(0, 30) + '...' : lyric}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
+              )}
 
-                {/* 生成按鈕 */}
-                <button
-                  onClick={generateImage}
-                  disabled={isGenerating || !html2canvasLoaded}
-                  className="w-full py-4 bg-[#FFD700] text-black rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isGenerating ? (
-                    <><RefreshCw className="animate-spin" size={20} /> 生成中...</>
-                  ) : (
-                    <><Download size={20} /> 下載分享圖片</>
-                  )}
-                </button>
-                
-                {!html2canvasLoaded && (
-                  <p className="text-yellow-500 text-sm text-center">正在載入圖片生成工具...</p>
+              {/* 生成按鈕 */}
+              <button
+                onClick={generateImage}
+                disabled={isGenerating || !html2canvasLoaded}
+                className="w-full py-4 bg-[#FFD700] text-black rounded-xl font-bold text-lg hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isGenerating ? (
+                  <><RefreshCw className="animate-spin" size={20} /> 生成中...</>
+                ) : (
+                  <><Download size={20} /> 下載分享圖片</>
                 )}
-              </>
-            )}
-          </div>
+              </button>
+            </div>
 
-          {/* 右側：預覽區 */}
-          <div className="lg:sticky lg:top-24 h-fit">
-            <h2 className="text-lg font-bold text-white mb-4">預覽</h2>
-            
-            {selectedTab ? (
+            {/* 右側：預覽 */}
+            <div className="lg:col-span-3">
+              <h2 className="text-lg font-bold text-white mb-4">預覽</h2>
+              
               <div className="flex justify-center">
-                {/* Instagram 正方形預覽 */}
+                {/* Instagram 正方形 - 參考設計風格 */}
                 <div 
                   ref={previewRef}
-                  className="relative w-[400px] h-[400px] overflow-hidden"
-                  style={{
-                    background: showSettings.theme === 'dark' ? '#1a1a1a' : 
-                               showSettings.theme === 'light' ? '#ffffff' : 
-                               `linear-gradient(135deg, #1a1a1a 0%, #2d1810 100%)`
-                  }}
+                  className="relative w-[400px] h-[400px] bg-white overflow-hidden"
+                  style={{ fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif" }}
                 >
-                  {/* 背景圖片 */}
-                  {showSettings.showArtistImage && getBackgroundImage() && (
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{
-                        backgroundImage: `url(${getBackgroundImage()})`,
-                        opacity: (100 - styleSettings.overlayOpacity) / 100
-                      }}
-                    />
-                  )}
-                  
-                  {/* 遮罩層 */}
-                  <div 
-                    className="absolute inset-0"
-                    style={{
-                      background: showSettings.theme === 'dark' ? `rgba(0,0,0,${styleSettings.overlayOpacity/100})` : 
-                                 showSettings.theme === 'light' ? `rgba(255,255,255,${styleSettings.overlayOpacity/100})` : 
-                                 `rgba(20,10,5,${styleSettings.overlayOpacity/100})`
-                    }}
-                  />
-                  
-                  {/* 內容 */}
-                  <div className="relative z-10 h-full flex flex-col p-6">
-                    {/* 頂部：和弦進行 */}
-                    {showSettings.showChords && selectedTab.parsedContent?.chords?.length > 0 && (
-                      <div className="mb-4">
-                        <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 border border-white/10">
-                          <p className="text-gray-400 text-xs mb-2">和弦進行</p>
-                          {selectedTab.parsedContent.chords.map((chordLine, idx) => (
-                            <p 
-                              key={idx} 
-                              className={`font-mono text-lg tracking-wider ${
-                                showSettings.theme === 'light' ? 'text-gray-800' : 'text-[#FFD700]'
-                              }`}
-                            >
-                              {chordLine}
-                            </p>
-                          ))}
+                  {/* 主容器 - 左右分欄 */}
+                  <div className="absolute inset-0 flex">
+                    {/* 左側：照片區域 */}
+                    <div className="w-[45%] relative">
+                      {/* 歌手照片 */}
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ 
+                          backgroundImage: getArtistImage() ? `url(${getArtistImage()})` : 'none',
+                          backgroundColor: '#2a2a2a'
+                        }}
+                      />
+                      
+                      {/* 左側遮罩（讓文字更清晰） */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/40" />
+                      
+                      {/* 和弦進行 - 放在左側上方 */}
+                      {selectedChords.length > 0 && (
+                        <div className="absolute top-4 left-4 right-4">
+                          <div className="bg-white/95 rounded-lg p-3 shadow-lg">
+                            <p className="text-gray-400 text-[10px] mb-1">和弦進行</p>
+                            {selectedChords.slice(0, 2).map((chord, idx) => (
+                              <p key={idx} className="text-gray-800 font-mono text-sm leading-tight">
+                                {chord}
+                              </p>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    {/* 中間：歌詞 */}
-                    {showSettings.showLyrics && selectedTab.parsedContent?.lyrics?.length > 0 && (
-                      <div className="flex-1 overflow-hidden">
-                        <div className={`text-sm leading-relaxed ${
-                          showSettings.theme === 'light' ? 'text-gray-700' : 'text-gray-200'
-                        }`}>
-                          {selectedTab.parsedContent.lyrics.map((line, idx) => (
-                            <p key={idx} className="mb-1">{line}</p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* 底部：歌曲信息 */}
-                    <div className="mt-auto pt-4">
-                      <div className="text-center mb-3">
-                        <h3 className={`text-xl font-bold ${
-                          showSettings.theme === 'light' ? 'text-gray-900' : 'text-white'
-                        }`}>
+                      )}
+                      
+                      {/* 底部：歌曲名稱 */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <p className="text-white text-lg font-bold leading-tight drop-shadow-lg">
                           {selectedTab.title}
-                        </h3>
-                        <p className={`text-sm ${
-                          showSettings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'
-                        }`}>
+                        </p>
+                        <p className="text-white/80 text-sm mt-1 drop-shadow">
                           {selectedTab.artist}
                         </p>
                       </div>
-                      
-                      {/* Logo 和 IG Handle */}
-                      <div className="flex items-center justify-between">
-                        {showSettings.showLogo && (
-                          <div className="flex items-center gap-2">
-                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
-                                    stroke={showSettings.theme === 'light' ? '#000' : '#FFD700'} 
-                                    strokeWidth="2" fill="none"/>
-                            </svg>
-                            <span className={`text-sm font-bold ${
-                              showSettings.theme === 'light' ? 'text-gray-900' : 'text-[#FFD700]'
-                            }`}>
-                              POLYGON
-                            </span>
+                    </div>
+                    
+                    {/* 右側：歌詞區域（白色背景） */}
+                    <div className="w-[55%] bg-white p-5 flex flex-col">
+                      {/* 歌詞內容 */}
+                      <div className="flex-1 overflow-hidden">
+                        {selectedLyrics.length > 0 ? (
+                          <div className="space-y-3">
+                            {selectedLyrics.slice(0, linesPerPage).map((lyric, idx) => (
+                              <p key={idx} className="text-gray-800 text-base leading-relaxed">
+                                {lyric}
+                              </p>
+                            ))}
                           </div>
-                        )}
-                        
-                        {showSettings.showInstagramHandle && (
-                          <div className={`text-xs ${
-                            showSettings.theme === 'light' ? 'text-gray-500' : 'text-gray-400'
-                          }`}>
-                            @polygonguitar
-                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm italic">選擇歌詞顯示於此</p>
                         )}
                       </div>
                     </div>
                   </div>
+                  
+                  {/* 底部欄 - Logo 和 IG */}
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-white/95 border-t border-gray-100 flex items-center justify-between px-4">
+                    {/* Logo */}
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
+                              stroke="#1a1a1a" strokeWidth="2" fill="none"/>
+                      </svg>
+                      <span className="text-gray-900 text-sm font-bold tracking-wide">POLYGON</span>
+                    </div>
+                    
+                    {/* Instagram */}
+                    <div className="text-gray-500 text-xs">
+                      @polygonguitar
+                    </div>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="w-[400px] h-[400px] bg-[#121212] rounded-xl border border-gray-800 flex items-center justify-center mx-auto">
-                <div className="text-center text-gray-500">
-                  <ImageIcon size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>選擇樂譜後預覽</p>
-                </div>
-              </div>
-            )}
-            
-            <p className="text-gray-500 text-sm text-center mt-4">
-              尺寸：1080 x 1080px（Instagram 正方形）
-            </p>
+              
+              <p className="text-gray-500 text-sm text-center mt-4">
+                尺寸：1080 x 1080px（Instagram 正方形）
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Layout>
   )
