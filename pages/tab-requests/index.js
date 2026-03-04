@@ -400,21 +400,58 @@ export default function TabRequestsPage() {
                       ))}
                     </div>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setMultipleResults([])
-                        setShowConfirmModal(true)
-                        setSearchResults({
-                          title: formData.songTitle,
-                          artist: formData.artistName,
-                          albumImage: null,
-                          albumName: null,
-                          youtubeUrl: null
-                        })
-                        setSearchSource('manual')
+                        setSearching(true)
+                        
+                        // 去 YouTube 搜尋
+                        try {
+                          const youtubeQuery = formData.songTitle && formData.artistName
+                            ? `${formData.songTitle} ${formData.artistName}`
+                            : formData.songTitle || formData.artistName
+                          const youtubeRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(youtubeQuery)}`)
+                          const youtubeData = await youtubeRes.json()
+                          
+                          if (youtubeData.video) {
+                            setSearchResults({
+                              title: formData.songTitle || youtubeData.video.title,
+                              artist: formData.artistName || '',
+                              albumImage: youtubeData.video.thumbnail,
+                              albumName: null,
+                              youtubeUrl: `https://youtube.com/watch?v=${youtubeData.video.id}`,
+                            })
+                            setSearchSource('youtube')
+                          } else {
+                            // YouTube 也找不到，才顯示手動輸入
+                            setShowConfirmModal(true)
+                            setSearchResults({
+                              title: formData.songTitle,
+                              artist: formData.artistName,
+                              albumImage: null,
+                              albumName: null,
+                              youtubeUrl: null
+                            })
+                            setSearchSource('manual')
+                          }
+                        } catch (err) {
+                          console.error('YouTube search error:', err)
+                          // 出錯時顯示手動輸入
+                          setShowConfirmModal(true)
+                          setSearchResults({
+                            title: formData.songTitle,
+                            artist: formData.artistName,
+                            albumImage: null,
+                            albumName: null,
+                            youtubeUrl: null
+                          })
+                          setSearchSource('manual')
+                        } finally {
+                          setSearching(false)
+                        }
                       }}
                       className="w-full mt-3 py-2 text-gray-400 hover:text-white text-sm"
                     >
-                      都不是，手動輸入
+                      都不是，搜尋 YouTube
                     </button>
                   </div>
                 )}

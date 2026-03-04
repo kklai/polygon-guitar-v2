@@ -62,16 +62,17 @@ function isMatch(track, targetTitle, targetArtist) {
   // 歌名相似度
   const titleSim = similarity(trackName, targetTitle)
   
-  // 如果沒有指定歌手，只看歌名
+  // 如果沒有指定歌手，只看歌名（需要 >= 80% 相似度）
   if (!targetArtist) {
-    return titleSim >= 0.6
+    return titleSim >= 0.8
   }
   
-  // 檢查歌手相似度
-  const artistSim = artistNames.some(name => similarity(name, targetArtist) >= 0.5)
+  // 檢查歌手相似度（需要 >= 70% 相似度）
+  const artistSim = artistNames.some(name => similarity(name, targetArtist) >= 0.7)
   
-  // 歌名相似度 >= 0.6 且（歌手匹配 或 歌名非常相似 >= 0.8）
-  return titleSim >= 0.6 && (artistSim || titleSim >= 0.8)
+  // 嚴格匹配：歌名相似度 >= 80% 且歌手相似度 >= 70%
+  // 或者歌名幾乎完全匹配（>= 95%）
+  return (titleSim >= 0.8 && artistSim) || titleSim >= 0.95
 }
 
 export default async function handler(req, res) {
