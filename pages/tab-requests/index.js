@@ -5,17 +5,21 @@ import { db } from '@/lib/firebase'
 import { 
   collection, query, orderBy, getDocs, addDoc, 
   updateDoc, doc, arrayUnion, arrayRemove, serverTimestamp,
-  where
+  where, deleteDoc
 } from 'firebase/firestore'
 import Link from 'next/link'
 import Image from 'next/image'
 
 export default function TabRequestsPage() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  
+  // Admin 編輯狀態
+  const [editingRequest, setEditingRequest] = useState(null)
+  const [editFormData, setEditFormData] = useState({ songTitle: '', artistName: '' })
   
   // 表單數據
   const [formData, setFormData] = useState({
@@ -27,6 +31,10 @@ export default function TabRequestsPage() {
   const [searching, setSearching] = useState(false)
   const [searchSource, setSearchSource] = useState(null) // 'spotify', 'youtube', 'manual', 'multiple'
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  
+  // 檢查現有樂譜
+  const [existingTab, setExistingTab] = useState(null)
+  const [showExistingTabModal, setShowExistingTabModal] = useState(false)
 
   // 載入求譜列表
   useEffect(() => {
@@ -158,6 +166,35 @@ export default function TabRequestsPage() {
     }
   }
 
+  // 檢查是否已有相同樂譜
+  const checkExistingTab = async () => {
+    if (!searchResults) return false
+    
+    try {
+      // 搜尋相同歌名和歌手的樂譜
+      const tabsQuery = query(
+        collection(db, 'tabs'),
+        where('title', '==', searchResults.title),
+        where('artist', '==', searchResults.artist)
+      )
+      const tabsSnap = await getDocs(tabsQuery)
+      
+      if (!tabsSnap.empty) {
+        setExistingTab({
+          id: tabsSnap.docs[0].id,
+          ...tabsSnap.docs[0].data()
+        })
+        setShowExistingTabModal(true)
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error checking existing tab:', error)
+      return false
+    }
+  }
+
   // 提交求譜
   const handleSubmit = async () => {
     if (!user) {
@@ -168,6 +205,25 @@ export default function TabRequestsPage() {
 
     setSubmitting(true)
     try {
+      // 先檢查是否已有相同樂譜
+      const hasExistingTab = await checkExistingTab()
+      if (hasExistingTab) {
+        setSubmitting(false)
+        return
+      }
+      
+      // 繼續提交求譜...
+      await submitRequest()
+    } catch (error) {
+      console.error('Error submitting request:', error)
+      alert('提交失敗，請重試')
+      setSubmitting(false)
+    }
+  }
+  
+  // 實際提交求譜的邏輯
+  const submitRequest = async () => {
+    try {
       // 檢查是否已有相同求譜
       const existingQuery = query(
         collection(db, 'tabRequests'),
@@ -177,7 +233,7 @@ export default function TabRequestsPage() {
       const existingSnap = await getDocs(existingQuery)
       
       if (!existingSnap.empty) {
-        // 已有相同求譜，直接投票（使用內部邏輯避免重複載入）
+        // 已有相同求譜，直接投票
         const existing = existingSnap.docs[0]
         const requestId = existing.id
         const requestData = existing.data()
@@ -290,6 +346,63 @@ export default function TabRequestsPage() {
     return request.voters?.includes(user?.uid)
   }
 
+  // Admin 刪除求譜
+  const deleteRequest = async (requestId) => {
+    if (!isAdmin) return
+    
+    if (!confirm('確定要刪除這個求譜嗎？此操作無法復原。')) return
+    
+    try {
+      await deleteDoc(doc(db, 'tabRequests', requestId))
+      // 從本地列表移除
+      setRequests(requests.filter(r => r.id !== requestId))
+    } catch (error) {
+      console.error('Error deleting request:', error)
+      alert('刪除失敗，請重試')
+    }
+  }
+
+  // Admin 開始編輯
+  const startEdit = (request) => {
+    if (!isAdmin) return
+    setEditingRequest(request)
+    setEditFormData({
+      songTitle: request.songTitle,
+      artistName: request.artistName
+    })
+  }
+
+  // Admin 保存編輯
+  const saveEdit = async () => {
+    if (!isAdmin || !editingRequest) return
+    
+    try {
+      const requestRef = doc(db, 'tabRequests', editingRequest.id)
+      await updateDoc(requestRef, {
+        songTitle: editFormData.songTitle,
+        artistName: editFormData.artistName
+      })
+      
+      // 更新本地列表
+      setRequests(requests.map(r => 
+        r.id === editingRequest.id 
+          ? { ...r, songTitle: editFormData.songTitle, artistName: editFormData.artistName }
+          : r
+      ))
+      
+      setEditingRequest(null)
+    } catch (error) {
+      console.error('Error updating request:', error)
+      alert('更新失敗，請重試')
+    }
+  }
+
+  // Admin 取消編輯
+  const cancelEdit = () => {
+    setEditingRequest(null)
+    setEditFormData({ songTitle: '', artistName: '' })
+  }
+
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
@@ -400,21 +513,58 @@ export default function TabRequestsPage() {
                       ))}
                     </div>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setMultipleResults([])
-                        setShowConfirmModal(true)
-                        setSearchResults({
-                          title: formData.songTitle,
-                          artist: formData.artistName,
-                          albumImage: null,
-                          albumName: null,
-                          youtubeUrl: null
-                        })
-                        setSearchSource('manual')
+                        setSearching(true)
+                        
+                        // 去 YouTube 搜尋
+                        try {
+                          const youtubeQuery = formData.songTitle && formData.artistName
+                            ? `${formData.songTitle} ${formData.artistName}`
+                            : formData.songTitle || formData.artistName
+                          const youtubeRes = await fetch(`/api/youtube/search?q=${encodeURIComponent(youtubeQuery)}`)
+                          const youtubeData = await youtubeRes.json()
+                          
+                          if (youtubeData.video) {
+                            setSearchResults({
+                              title: formData.songTitle || youtubeData.video.title,
+                              artist: formData.artistName || '',
+                              albumImage: youtubeData.video.thumbnail,
+                              albumName: null,
+                              youtubeUrl: `https://youtube.com/watch?v=${youtubeData.video.id}`,
+                            })
+                            setSearchSource('youtube')
+                          } else {
+                            // YouTube 也找不到，才顯示手動輸入
+                            setShowConfirmModal(true)
+                            setSearchResults({
+                              title: formData.songTitle,
+                              artist: formData.artistName,
+                              albumImage: null,
+                              albumName: null,
+                              youtubeUrl: null
+                            })
+                            setSearchSource('manual')
+                          }
+                        } catch (err) {
+                          console.error('YouTube search error:', err)
+                          // 出錯時顯示手動輸入
+                          setShowConfirmModal(true)
+                          setSearchResults({
+                            title: formData.songTitle,
+                            artist: formData.artistName,
+                            albumImage: null,
+                            albumName: null,
+                            youtubeUrl: null
+                          })
+                          setSearchSource('manual')
+                        } finally {
+                          setSearching(false)
+                        }
                       }}
                       className="w-full mt-3 py-2 text-gray-400 hover:text-white text-sm"
                     >
-                      都不是，手動輸入
+                      都不是，搜尋 YouTube
                     </button>
                   </div>
                 )}
@@ -571,15 +721,93 @@ export default function TabRequestsPage() {
 
                 {/* 歌曲資訊 */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-white font-medium truncate">{request.songTitle}</div>
-                  <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
-                  <div className="text-[#FFD700] text-xs mt-1">
-                    {request.voteCount}人求譜
-                  </div>
+                  {editingRequest?.id === request.id ? (
+                    // 編輯模式
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editFormData.songTitle}
+                        onChange={(e) => setEditFormData({...editFormData, songTitle: e.target.value})}
+                        className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-white text-sm"
+                        placeholder="歌名"
+                      />
+                      <input
+                        type="text"
+                        value={editFormData.artistName}
+                        onChange={(e) => setEditFormData({...editFormData, artistName: e.target.value})}
+                        className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-gray-300 text-sm"
+                        placeholder="歌手"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveEdit}
+                          className="px-2 py-1 bg-[#FFD700] text-black rounded text-xs font-medium"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-2 py-1 bg-[#282828] text-gray-400 rounded text-xs"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // 顯示模式
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className={`font-medium truncate ${request.status === 'fulfilled' ? 'text-green-400' : 'text-white'}`}>
+                          {request.songTitle}
+                        </div>
+                        {request.status === 'fulfilled' && (
+                          <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded flex-shrink-0">
+                            已完成
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
+                      <div className="text-[#FFD700] text-xs mt-1">
+                        {request.status === 'fulfilled' ? (
+                          <span className="text-green-400">
+                            ✓ 已由 {request.fulfilledByName || '結他友'} 出譜
+                          </span>
+                        ) : (
+                          <span>{request.voteCount}人求譜</span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* 操作按鈕 */}
                 <div className="flex items-center gap-2">
+                  {/* Admin 編輯按鈕 */}
+                  {isAdmin && editingRequest?.id !== request.id && (
+                    <button
+                      onClick={() => startEdit(request)}
+                      className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500/30 transition"
+                      title="編輯"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Admin 刪除按鈕 */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => deleteRequest(request.id)}
+                      className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/30 transition"
+                      title="刪除"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+
                   {/* 舉手按鈕 */}
                   <button
                     onClick={() => voteForRequest(request.id)}
@@ -608,6 +836,86 @@ export default function TabRequestsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 現有樂譜提示對話框 */}
+        {showExistingTabModal && existingTab && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-[#121212] rounded-2xl w-full max-w-md overflow-hidden">
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">已存在相同樂譜</h2>
+                <button onClick={() => setShowExistingTabModal(false)} className="text-gray-400">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-green-400 font-medium text-sm">找到相同樂譜！</p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        資料庫中已有「{existingTab.title} - {existingTab.artist}」的樂譜。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 現有樂譜預覽 */}
+                <div className="bg-[#1a1a1a] rounded-xl p-4 flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#282828] rounded-lg overflow-hidden flex-shrink-0">
+                    {existingTab.thumbnail || existingTab.albumImage ? (
+                      <img 
+                        src={existingTab.thumbnail || existingTab.albumImage} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-medium truncate">{existingTab.title}</div>
+                    <div className="text-gray-500 text-sm truncate">{existingTab.artist}</div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Link
+                    href={`/tabs/${existingTab.id}`}
+                    onClick={() => setShowExistingTabModal(false)}
+                    className="flex-1 py-3 bg-[#FFD700] text-black rounded-xl font-bold text-center"
+                  >
+                    查看樂譜
+                  </Link>
+                </div>
+
+                <div className="border-t border-gray-800 pt-4">
+                  <p className="text-gray-500 text-sm mb-3">
+                    這份樂譜不符合你的需求？你仍然可以提交求譜：
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowExistingTabModal(false)
+                      submitRequest()
+                    }}
+                    className="w-full py-2 bg-[#282828] text-gray-400 hover:text-white rounded-lg text-sm"
+                  >
+                    仍然要求譜（例如：需要不同版本）
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
