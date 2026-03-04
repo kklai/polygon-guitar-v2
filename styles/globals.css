@@ -1,29 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono+CJK+TC&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono+CJK+TC&family=Source+Code+Pro:wght@400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Sarasa Mono TC - 等寬中文字體 (備用) */
-@font-face {
-  font-family: 'Sarasa Mono TC';
-  src: local('Sarasa Mono TC'),
-       local('SarasaMonoTC-Regular'),
-       url('https://cdn.jsdelivr.net/gh/laishulu/Sarasa-Mono-TTF@latest/sarasa-mono-tc-regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Sarasa Mono TC';
-  src: local('Sarasa Mono TC Bold'),
-       local('SarasaMonoTC-Bold'),
-       url('https://cdn.jsdelivr.net/gh/laishulu/Sarasa-Mono-TTF@latest/sarasa-mono-tc-bold.ttf') format('truetype');
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-}
 
 body {
   @apply bg-black text-white;
@@ -34,7 +14,7 @@ body {
   white-space: pre-wrap;
   word-wrap: break-word;
   /* 優先使用 Google Fonts，確保跨平台一致 */
-  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace;
+  font-family: 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace;
   line-height: 1.6;
   color: #FFFFFF;
 }
@@ -42,7 +22,7 @@ body {
 /* TabContent wrapper - ensure no internal scroll */
 .tab-content-wrapper {
   /* 優先使用 Google Fonts，確保跨平台一致 */
-  font-family: 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'Consolas', 'Courier New', monospace;
+  font-family: 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace;
   line-height: 1.6;
 }
 
@@ -120,4 +100,8 @@ body {
 .navbar-tagline {
   font-size: 0.9rem;
   line-height: 0.7rem;
+}
+
+.text-xl {
+  margin-top: 15px;
 }

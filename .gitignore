@@ -26,3 +26,6 @@ npm-debug.log*
 .vercel
 .env*.local
 scripts/firebase-service-account.json
+
+# Firebase
+.firebase/

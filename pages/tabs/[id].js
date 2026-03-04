@@ -141,7 +141,7 @@ export default function TabDetail() {
           if (userDoc.exists()) {
             const userData = userDoc.data()
             setUploaderName(userData.displayName || userData.name || '未知用戶')
-            setUploaderId(tabData.createdBy || '')
+            setUploaderId(data.createdBy || '')
           }
         }
         
@@ -403,7 +403,16 @@ export default function TabDetail() {
                   
                   {/* 心心 */}
                   <LikeButton tab={tab} onLikeToggle={loadTab} compact />
-                  
+
+                  {/* 生成分享圖片 */}
+                  <button
+                    onClick={() => router.push(`/tools/tab-share?tabId=${tab.id}`)}
+                    className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
+                    title="生成分享圖片"
+                  >
+                    <Share2 className="w-4 h-4 md:w-5 md:h-5" />
+                  </button>
+
                   {/* 更多選項 */}
                   <button
                     onClick={handleMoreClick}
@@ -494,6 +503,7 @@ export default function TabDetail() {
                   <Share2 className="w-5 h-5 text-[#B3B3B3]" />
                   <span className="text-white">分享</span>
                 </button>
+
                 
                 <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
                   <Heart className="w-5 h-5 text-red-500" />
