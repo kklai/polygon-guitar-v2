@@ -163,16 +163,20 @@ export default function TabShareTool() {
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
+  const MAX_SELECTION = 3 // max 4 lines (0-indexed span)
+
   const onHandlePointerMove = (e) => {
     if (!dragTarget.current) return
     const idx = getIdxFromClientY(e.clientY)
     const lyricsLen = selectedTab?.parsedContent?.lyrics?.length ?? 0
     if (dragTarget.current === 'start') {
-      setSelectionStart(idx)
+      const end = selEndRef.current ?? 0
+      setSelectionStart(Math.max(end - MAX_SELECTION, Math.min(end, idx)))
     } else if (dragTarget.current === 'end') {
-      setSelectionEnd(idx)
+      const start = selStartRef.current ?? 0
+      setSelectionEnd(Math.min(start + MAX_SELECTION, Math.max(start, idx)))
     } else if (dragTarget.current === 'middle') {
-      const selLen = Math.abs((selEndRef.current ?? 0) - (selStartRef.current ?? 0))
+      const selLen = Math.min(Math.abs((selEndRef.current ?? 0) - (selStartRef.current ?? 0)), MAX_SELECTION)
       const newStart = Math.max(0, Math.min(lyricsLen - 1 - selLen, idx - dragOffset.current))
       setSelectionStart(newStart)
       setSelectionEnd(newStart + selLen)

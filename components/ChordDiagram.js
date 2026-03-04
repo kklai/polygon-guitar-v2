@@ -543,7 +543,7 @@ export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
         <div className="p-4 border-t border-gray-700 text-center">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition"
+            className="px-6 py-2 bg-[#FFD700] text-black rounded-lg font-light hover:opacity-90 transition"
           >
             關閉
           </button>
