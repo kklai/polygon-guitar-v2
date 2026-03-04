@@ -11,7 +11,7 @@ import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -359,12 +359,49 @@ export default function NewTab() {
         uploaderPenName: formData.uploaderPenName.trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
+      
+      // 標記相關求譜為已完成
+      await fulfillTabRequests(submitData, newTab.id, user)
+      
       router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)
       alert('上傳失敗，請重試')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+  
+  // 標記相關求譜為已完成
+  const fulfillTabRequests = async (submitData, tabId, user) => {
+    try {
+      // 查找相同歌名和歌手的待處理求譜
+      const requestsQuery = query(
+        collection(db, 'tabRequests'),
+        where('songTitle', '==', submitData.title),
+        where('artistName', '==', submitData.artist),
+        where('status', '==', 'pending')
+      )
+      
+      const requestsSnap = await getDocs(requestsQuery)
+      
+      if (!requestsSnap.empty) {
+        const updatePromises = requestsSnap.docs.map(async (requestDoc) => {
+          await updateDoc(doc(db, 'tabRequests', requestDoc.id), {
+            status: 'fulfilled',
+            fulfilledBy: user.uid,
+            fulfilledByName: user.displayName || user.email || '匿名用戶',
+            fulfilledAt: new Date(),
+            tabId: tabId
+          })
+        })
+        
+        await Promise.all(updatePromises)
+        console.log(`已標記 ${requestsSnap.docs.length} 個求譜為已完成`)
+      }
+    } catch (error) {
+      console.error('Error fulfilling tab requests:', error)
+      // 不影響主流程，只是記錄錯誤
     }
   }
 
