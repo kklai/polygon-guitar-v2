@@ -66,8 +66,8 @@ const S = 3
 const p = (n) => n / S
 const OUT_W = PREVIEW_W * S
 const OUT_H = PREVIEW_H * S
-const ITEM_H = 34
-const HANDLE_H = 11
+const ITEM_H = 40
+const HANDLE_H = 15
 const PICKER_PAD = 15
 
 export default function TabShareTool() {
@@ -160,7 +160,8 @@ export default function TabShareTool() {
     const isHeader = (t) =>
       /^(key\s*:|intro|verse|chor|chrou|pre.?chor|pre.?chrou|bridge|outro|solo)/i.test(t) ||
       /^\[[^\]]*\]\s*$/.test(t) ||
-      /^\([^)]{1,20}\)\s*$/.test(t)
+      /^\([^)]{1,20}\)\s*$/.test(t) ||
+      /^\/(v|p|c|i|o|b)\s*$/i.test(t)
     const isNumericNotation = (t) => {
       const digits = (t.match(/\d/g) || []).length
       const chinese = (t.match(/[\u4e00-\u9fff]/g) || []).length
@@ -172,7 +173,8 @@ export default function TabShareTool() {
     const isChorus = (t) =>
       /^(chor|chrou|副歌|\*)/i.test(t) ||
       /^\[chorus\]/i.test(t) ||
-      /^\(副歌\)\s*$/i.test(t)
+      /^\(副歌\)\s*$/i.test(t) ||
+      /^\/c\s*$/i.test(t)
 
     const classified = []
     lines.forEach(line => {
@@ -180,7 +182,7 @@ export default function TabShareTool() {
       if (!trimmed) return
       if (isChord(trimmed)) classified.push({ type: 'chord', text: trimmed })
       else if (isHeader(trimmed)) classified.push({ type: 'header', text: trimmed, isChorus: isChorus(trimmed) })
-      else if (!isNumericNotation(trimmed)) classified.push({ type: 'lyric', text: trimmed })
+      else if (!isNumericNotation(trimmed)) classified.push({ type: 'lyric', text: trimmed.replace(/\s*\/(v|p|c|i|o|b)\s*$/i, '').trim() })
     })
 
     const chords = []
@@ -203,7 +205,7 @@ export default function TabShareTool() {
         if (next && next.type === 'lyric') {
           if (inChorus && chorusStart === -1) chorusStart = lyrics.length
           const chunks = splitLyricLine(next.text)
-          chords.push(classified[i].text)
+          chords.push(classified[i].text.replace(/[\s\u3000]+/g, ' ').trim())
           lyrics.push(chunks[0])
           for (let j = 1; j < chunks.length; j++) { chords.push(null); lyrics.push(chunks[j]) }
           i++
@@ -406,20 +408,20 @@ export default function TabShareTool() {
       }
 
       y += 40
-      ctx.font = `300 50px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
+      ctx.font = `600 50px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
       ctx.textAlign = 'center'
       ctx.fillStyle = '#ffffff'
       ctx.fillText(selectedTab.title, OUT_W / 2, y)
       y += titleH
 
       y += 10
-      ctx.font = `300 40px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
+      ctx.font = `400 40px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
       ctx.fillStyle = '#cccccc'
       ctx.fillText(selectedTab.artist, OUT_W / 2, y)
       y += artistH
 
       y += 50
-      ctx.font = `300 ${lyricFontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
+      ctx.font = `bold ${lyricFontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
       ctx.fillStyle = '#ffffff'; ctx.lineWidth = 0
 
       for (const lyric of effectiveSection.lyrics) {
@@ -501,10 +503,10 @@ export default function TabShareTool() {
       <>
         <img src="/polygon-logo-white.png" alt="Polygon" style={{ width: `${p(360)}px`, objectFit: 'contain' }} />
         <img src={getArtistImage() || ''} alt={selectedTab.title} style={{ width: `${p(712)}px`, height: `${p(712)}px`, objectFit: 'cover', marginTop: `${p(40)}px`, flexShrink: 0 }} />
-        <p style={{ marginTop: `${p(40)}px`, fontSize: `${p(50)}px`, fontWeight: 300, color: '#ffffff', textAlign: 'center', lineHeight: 1.2, paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
+        <p style={{ marginTop: `${p(40)}px`, fontSize: `${p(50)}px`, fontWeight: 600, color: '#ffffff', textAlign: 'center', lineHeight: 1.2, paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
           {selectedTab.title}
         </p>
-        <p style={{ marginTop: `${p(10)}px`, fontSize: `${p(40)}px`, fontWeight: 300, color: '#cccccc', textAlign: 'center', lineHeight: 1.2 }}>
+        <p style={{ marginTop: `${p(10)}px`, fontSize: `${p(40)}px`, fontWeight: 400, color: '#cccccc', textAlign: 'center', lineHeight: 1.2 }}>
           {selectedTab.artist}
         </p>
         <div style={{ marginTop: `${p(40)}px`, textAlign: 'center', paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
@@ -517,7 +519,7 @@ export default function TabShareTool() {
             }, baseFontPx)
             const lyricLH = lyricSize * (100 / 58)
             return effectiveSection.lyrics.map((lyric, idx) => (
-              <p key={idx} style={{ fontSize: `${lyricSize}px`, fontWeight: 300, color: '#ffffff', lineHeight: `${lyricLH}px`, whiteSpace: 'nowrap' }}>
+              <p key={idx} style={{ fontSize: `${lyricSize}px`, fontWeight: 'bold', color: '#ffffff', lineHeight: `${lyricLH}px`, whiteSpace: 'nowrap' }}>
                 {renderLyric(lyric, lyricSize * 0.35)}
               </p>
             ))
