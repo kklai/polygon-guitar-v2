@@ -1500,7 +1500,7 @@ const TabContent = ({
         if (/^\s*[A-G][#b]?\s*\(?.{0,30}capo.{0,30}\)?$/i.test(line)) {
           return false;
         }
-        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/.test(line);
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
         return hasChordPattern && !hasChinese;
       };
@@ -1509,7 +1509,7 @@ const TabContent = ({
       const checkIsLyricLine = (line) => {
         if (!line) return false;
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
-        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/.test(line);
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/.test(line);
         // 有英文單詞（至少2個字母）
         const hasEnglishWords = /[a-zA-Z]{2,}/.test(line);
         // 歌詞行：有中文字或純英文單詞，且沒有和弦模式
@@ -1745,7 +1745,7 @@ const TabContent = ({
       
       // 檢查是否為和弦行（支持組合後綴如 madd9, maj7, add9 等）
       // 和弦格式：[根音][升降]([m/maj/min/sus/dim/aug])([add/7/9/11/13]數字)?
-      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?\b/g;
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
       const chordMatches = line.match(strictChordPattern) || [];
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
       const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
@@ -1789,7 +1789,7 @@ const TabContent = ({
         const lyricParts = processLyricLine(line);
         // 檢查上一行是否為和弦行
         const prevLine = lines[i - 1];
-        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(prevLine);
+        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(prevLine);
         const prevHasChinese = prevLine && /[\u4e00-\u9fff]/.test(prevLine);
         const prevIsChord = prevHasChordPattern && !prevHasChinese;
         const marginTop = prevIsChord ? '0em' : '0';
@@ -1829,12 +1829,12 @@ const TabContent = ({
         const notationParts = processNumericNotationLine(line);
         // 檢查上一行是否為和弦行，如果是則緊貼
         const prevLine = lines[i - 1];
-        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(prevLine);
+        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(prevLine);
         const prevHasChinese = prevLine && /[\u4e00-\u9fff]/.test(prevLine);
         const prevIsChord = prevHasChordPattern && !prevHasChinese;
         // 檢查下一行是否為和弦行
         const nextLine = lines[i + 1];
-        const nextHasChordPattern = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(nextLine);
+        const nextHasChordPattern = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(nextLine);
         const nextHasChinese = nextLine && /[\u4e00-\u9fff]/.test(nextLine);
         const nextIsChord = nextHasChordPattern && !nextHasChinese;
         const marginTop = prevIsChord ? '0em' : '0';
@@ -2081,7 +2081,7 @@ const TabContent = ({
           // 檢查下一行是否為歌詞行或簡譜行
           const nextLine = lines[i + 1];
           const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine));
-          const nextHasChordOnly = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*\b/.test(nextLine) && !/[\u4e00-\u9fff]/.test(nextLine);
+          const nextHasChordOnly = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(nextLine) && !/[\u4e00-\u9fff]/.test(nextLine);
           const nextIsNotation = nextLine && isNumericNotationLine(nextLine);
           const isFollowedByLyric = (nextHasLyric && !nextHasChordOnly) || nextIsNotation;
           const chordMarginBottom = isFollowedByLyric ? '0em' : `${lineFontSize * 0.6}px`;
@@ -2133,7 +2133,7 @@ const TabContent = ({
     
     const chordStats = (() => {
       if (!content) return { total: 0, barreCount: 0 };
-      const chordPattern = /\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(?:\/[A-G][#b]?)?\b/g;
+      const chordPattern = /\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(?:\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
       const matches = content.match(chordPattern) || [];
       const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/;
       const chords = matches.filter(c => validChordPattern.test(c.replace(/\/.*/, '')));
