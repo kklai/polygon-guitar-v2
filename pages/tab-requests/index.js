@@ -5,17 +5,21 @@ import { db } from '@/lib/firebase'
 import { 
   collection, query, orderBy, getDocs, addDoc, 
   updateDoc, doc, arrayUnion, arrayRemove, serverTimestamp,
-  where
+  where, deleteDoc
 } from 'firebase/firestore'
 import Link from 'next/link'
 import Image from 'next/image'
 
 export default function TabRequestsPage() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  
+  // Admin 編輯狀態
+  const [editingRequest, setEditingRequest] = useState(null)
+  const [editFormData, setEditFormData] = useState({ songTitle: '', artistName: '' })
   
   // 表單數據
   const [formData, setFormData] = useState({
@@ -288,6 +292,63 @@ export default function TabRequestsPage() {
   // 檢查是否已投票
   const hasVoted = (request) => {
     return request.voters?.includes(user?.uid)
+  }
+
+  // Admin 刪除求譜
+  const deleteRequest = async (requestId) => {
+    if (!isAdmin) return
+    
+    if (!confirm('確定要刪除這個求譜嗎？此操作無法復原。')) return
+    
+    try {
+      await deleteDoc(doc(db, 'tabRequests', requestId))
+      // 從本地列表移除
+      setRequests(requests.filter(r => r.id !== requestId))
+    } catch (error) {
+      console.error('Error deleting request:', error)
+      alert('刪除失敗，請重試')
+    }
+  }
+
+  // Admin 開始編輯
+  const startEdit = (request) => {
+    if (!isAdmin) return
+    setEditingRequest(request)
+    setEditFormData({
+      songTitle: request.songTitle,
+      artistName: request.artistName
+    })
+  }
+
+  // Admin 保存編輯
+  const saveEdit = async () => {
+    if (!isAdmin || !editingRequest) return
+    
+    try {
+      const requestRef = doc(db, 'tabRequests', editingRequest.id)
+      await updateDoc(requestRef, {
+        songTitle: editFormData.songTitle,
+        artistName: editFormData.artistName
+      })
+      
+      // 更新本地列表
+      setRequests(requests.map(r => 
+        r.id === editingRequest.id 
+          ? { ...r, songTitle: editFormData.songTitle, artistName: editFormData.artistName }
+          : r
+      ))
+      
+      setEditingRequest(null)
+    } catch (error) {
+      console.error('Error updating request:', error)
+      alert('更新失敗，請重試')
+    }
+  }
+
+  // Admin 取消編輯
+  const cancelEdit = () => {
+    setEditingRequest(null)
+    setEditFormData({ songTitle: '', artistName: '' })
   }
 
   return (
@@ -608,15 +669,78 @@ export default function TabRequestsPage() {
 
                 {/* 歌曲資訊 */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-white font-medium truncate">{request.songTitle}</div>
-                  <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
-                  <div className="text-[#FFD700] text-xs mt-1">
-                    {request.voteCount}人求譜
-                  </div>
+                  {editingRequest?.id === request.id ? (
+                    // 編輯模式
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editFormData.songTitle}
+                        onChange={(e) => setEditFormData({...editFormData, songTitle: e.target.value})}
+                        className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-white text-sm"
+                        placeholder="歌名"
+                      />
+                      <input
+                        type="text"
+                        value={editFormData.artistName}
+                        onChange={(e) => setEditFormData({...editFormData, artistName: e.target.value})}
+                        className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-gray-300 text-sm"
+                        placeholder="歌手"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveEdit}
+                          className="px-2 py-1 bg-[#FFD700] text-black rounded text-xs font-medium"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-2 py-1 bg-[#282828] text-gray-400 rounded text-xs"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // 顯示模式
+                    <>
+                      <div className="text-white font-medium truncate">{request.songTitle}</div>
+                      <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
+                      <div className="text-[#FFD700] text-xs mt-1">
+                        {request.voteCount}人求譜
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* 操作按鈕 */}
                 <div className="flex items-center gap-2">
+                  {/* Admin 編輯按鈕 */}
+                  {isAdmin && editingRequest?.id !== request.id && (
+                    <button
+                      onClick={() => startEdit(request)}
+                      className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500/30 transition"
+                      title="編輯"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Admin 刪除按鈕 */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => deleteRequest(request.id)}
+                      className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/30 transition"
+                      title="刪除"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+
                   {/* 舉手按鈕 */}
                   <button
                     onClick={() => voteForRequest(request.id)}
