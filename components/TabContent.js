@@ -1662,10 +1662,10 @@ const TabContent = ({
         if (restLine) {
           const transposedRest = transposeChordLine(restLine, transposeSemitones);
           elements.push(
-            <div key={i} style={{ 
-              color: colors.chord, 
-              fontWeight: 'bold', 
-              fontSize: `${lineFontSize}px`, 
+            <div key={i} style={{
+              color: colors.chord,
+              fontWeight: displayFont === 'arial' ? 'normal' : 300,
+              fontSize: `${lineFontSize}px`,
               fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
               whiteSpace: 'pre-wrap', 
               overflowWrap: 'break-word', 
@@ -2077,15 +2077,15 @@ const TabContent = ({
           const chordMarginBottom = isFollowedByLyric ? '0em' : `${lineFontSize * 0.6}px`;
           
           elements.push(
-            <div key={i} style={{ 
-              color: colors.chord, 
-              fontWeight: 'bold', 
-              fontSize: `${lineFontSize}px`, 
+            <div key={i} style={{
+              color: colors.chord,
+              fontWeight: displayFont === 'arial' ? 'normal' : 300,
+              fontSize: `${lineFontSize}px`,
               fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
-              whiteSpace: 'pre-wrap', 
-              overflowWrap: 'break-word', 
-              marginBottom: chordMarginBottom, 
-              lineHeight: isFollowedByLyric ? '1.1' : 'normal' 
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'break-word',
+              marginBottom: chordMarginBottom,
+              lineHeight: isFollowedByLyric ? '1.1' : 'normal'
             }}>
               {prefix && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{prefix}</span>}
               {transposedChordLine}
@@ -2314,7 +2314,7 @@ const TabContent = ({
     <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
-        <div className="tab-content-wrapper" style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>
+        <div className={`tab-content-wrapper ${displayFont !== 'arial' ? 'font-light' : ''}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>
       </div>

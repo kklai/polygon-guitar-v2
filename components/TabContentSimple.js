@@ -81,7 +81,7 @@ export default function TabContentSimple({
               // 和弦字母（黃色）
               if (/[A-G]/.test(char)) {
                 return (
-                  <span key={i} className="text-[#FFD700] font-bold">
+                  <span key={i} className="text-[#FFD700] font-light">
                     {char}
                   </span>
                 );
@@ -108,7 +108,7 @@ export default function TabContentSimple({
             {transposedLine.split('').map((char, i) => {
               if (/[A-G]/.test(char)) {
                 return (
-                  <span key={i} className="text-[#FFD700] font-bold">
+                  <span key={i} className="text-[#FFD700] font-light">
                     {char}
                   </span>
                 );

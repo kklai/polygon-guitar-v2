@@ -565,7 +565,7 @@ export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) 
     : "'Source Code Pro', monospace";
   
   if (!shape) {
-    return <span className="text-[#FFD700] font-bold" style={{ fontFamily }}>{chord}</span>;
+    return <span className="text-[#FFD700] font-light" style={{ fontFamily }}>{chord}</span>;
   }
   
   return (
@@ -574,7 +574,7 @@ export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) 
       onMouseEnter={() => setShowDiagram(true)}
       onMouseLeave={() => setShowDiagram(false)}
     >
-      <span className="text-[#FFD700] font-bold hover:underline" style={{ fontFamily }}>{chord}</span>
+      <span className="text-[#FFD700] font-light hover:underline" style={{ fontFamily }}>{chord}</span>
       
       {/* Hover 彈出框 */}
       {showDiagram && (
@@ -637,14 +637,14 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
   }
   
   return (
-    <div 
-      className="font-bold"
-      style={{ 
-        fontSize: `${fontSize}px`, 
-        whiteSpace: 'pre-wrap', 
-        marginBottom: '0.05em', 
-        lineHeight: '1.2', 
-        fontWeight: 700,
+    <div
+      className="font-light"
+      style={{
+        fontSize: `${fontSize}px`,
+        whiteSpace: 'pre-wrap',
+        marginBottom: '0.05em',
+        lineHeight: '1.2',
+        fontWeight: 300,
         fontFamily
       }}
     >

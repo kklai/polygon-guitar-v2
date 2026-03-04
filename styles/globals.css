@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono+CJK+TC&family=Source+Code+Pro:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono+CJK+TC&family=Source+Code+Pro:wght@300;400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,6 +15,7 @@ body {
   word-wrap: break-word;
   /* 優先使用 Google Fonts，確保跨平台一致 */
   font-family: 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace;
+  font-weight: 300;
   line-height: 1.6;
   color: #FFFFFF;
 }
