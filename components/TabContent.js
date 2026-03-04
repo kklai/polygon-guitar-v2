@@ -648,23 +648,33 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
           isInside: true
         });
       } else if (unitCharCount === 1) {
-        // 單個字符在括號內
+        // 單個字符在括號內 - 只取括號內的字符（去掉括號）用於寬度計算
+        const innerContent = unit.content.slice(1, -1); // 去掉首尾括號
         result.push({
           type: 'pair',
           notation: numbers[charIndex]?.value || '',
-          lyric: unit.content,
+          lyric: innerContent, // 存括號內的純文字，不包括括號
           isInside: true
         });
         charIndex++;
       } else {
-        // 多個字符在括號內 - 只取第一個對應的簡譜，也是白色
-        result.push({
-          type: 'bracket',
-          content: unit.content,
-          notation: numbers[charIndex]?.value || '',
-          isInside: true
-        });
-        charIndex += unitCharCount;
+        // 多個字符在括號內 - 為每個字符創建獨立的 pair
+        const innerContent = unit.content.slice(1, -1);
+        // 匹配中文字、英文單詞或 [~]
+        const charMatches = [...innerContent.matchAll(/[\u4e00-\u9fff]|[a-zA-Z]+|\[~\]/g)];
+        
+        for (let i = 0; i < charMatches.length; i++) {
+          const char = charMatches[i][0];
+          const isLast = i === charMatches.length - 1;
+          
+          result.push({
+            type: 'pair',
+            notation: numbers[charIndex]?.value || '',
+            lyric: char, // 每個字符獨立
+            isInside: true
+          });
+          charIndex++;
+        }
       }
     } else {
       // 純文字單元
