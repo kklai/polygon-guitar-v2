@@ -1,9 +1,77 @@
-// Spotify API - 搜尋歌曲
+// Spotify API - 搜尋歌曲（嚴格匹配版本）
 
 export const config = {
   api: {
     bodyParser: true,
   },
+}
+
+// 計算字符串相似度 (0-1)
+function similarity(str1, str2) {
+  if (!str1 || !str2) return 0
+  
+  const s1 = str1.toLowerCase().trim()
+  const s2 = str2.toLowerCase().trim()
+  
+  // 完全匹配
+  if (s1 === s2) return 1
+  
+  // 包含匹配
+  if (s1.includes(s2) || s2.includes(s1)) return 0.9
+  
+  // 移除常見後綴再比較
+  const cleanS1 = s1.replace(/\s*[-–—:]\s*(live|remix|version|ver\.?|acoustic|studio|edit|radio|feat\.?|ft\.?|with).*$/, '').trim()
+  const cleanS2 = s2.replace(/\s*[-–—:]\s*(live|remix|version|ver\.?|acoustic|studio|edit|radio|feat\.?|ft\.?|with).*$/, '').trim()
+  
+  if (cleanS1 === cleanS2) return 0.85
+  if (cleanS1.includes(cleanS2) || cleanS2.includes(cleanS1)) return 0.8
+  
+  // Levenshtein 距離計算
+  const len1 = s1.length
+  const len2 = s2.length
+  const matrix = []
+  
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i]
+  }
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j
+  }
+  
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      )
+    }
+  }
+  
+  const distance = matrix[len1][len2]
+  const maxLen = Math.max(len1, len2)
+  return maxLen === 0 ? 1 : (maxLen - distance) / maxLen
+}
+
+// 檢查是否匹配（考慮歌名和歌手）
+function isMatch(track, targetTitle, targetArtist) {
+  const trackName = track.name || ''
+  const artistNames = track.artists?.map(a => a.name) || []
+  
+  // 歌名相似度
+  const titleSim = similarity(trackName, targetTitle)
+  
+  // 如果沒有指定歌手，只看歌名
+  if (!targetArtist) {
+    return titleSim >= 0.6
+  }
+  
+  // 檢查歌手相似度
+  const artistSim = artistNames.some(name => similarity(name, targetArtist) >= 0.5)
+  
+  // 歌名相似度 >= 0.6 且（歌手匹配 或 歌名非常相似 >= 0.8）
+  return titleSim >= 0.6 && (artistSim || titleSim >= 0.8)
 }
 
 export default async function handler(req, res) {
@@ -15,18 +83,13 @@ export default async function handler(req, res) {
   }
   
   try {
-    // 支援多種參數名組合
     const params = req.method === 'POST' ? req.body : req.query
     console.log('Params received:', params)
     
-    // 支援: q (完整查詢) 或 artist + title 組合
-    let q = params.q || params.query
     const artist = params.artist || params.artistName
     const title = params.title || params.songTitle || params.name
+    let q = params.q || params.query
     
-    console.log('Parsed - q:', q, 'artist:', artist, 'title:', title)
-    
-    // 如果冇 q 但有 artist 同 title，組合成 q
     if (!q && artist && title) {
       q = `${title} ${artist}`
     }
@@ -35,7 +98,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing query or artist/title' })
     }
     
-    // 獲取環境變數
     const SPOTIFY_CLIENT_ID = (process.env.SPOTIFY_CLIENT_ID || '').trim()
     const SPOTIFY_CLIENT_SECRET = (process.env.SPOTIFY_CLIENT_SECRET || '').trim()
     
@@ -65,15 +127,15 @@ export default async function handler(req, res) {
       })
     }
     
-    // 搜尋歌曲 - 返回多個結果（最多 5 個）
+    // 使用精確搜尋語法
     const searchQuery = title && artist 
-      ? `track:${title} artist:${artist}`
+      ? `track:"${title}" artist:"${artist}"`
       : q
     
     console.log('Spotify search query:', searchQuery)
     
     const searchResponse = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=10`,
       {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
       }
@@ -88,15 +150,28 @@ export default async function handler(req, res) {
       })
     }
     
-    const tracks = searchData.tracks?.items || []
+    let tracks = searchData.tracks?.items || []
     
-    if (tracks.length === 0) {
-      // 嘗試更寬鬆的搜尋
-      const looseQuery = q || `${title} ${artist}`
-      console.log('Trying loose search:', looseQuery)
+    // 過濾結果：只保留匹配的
+    if (tracks.length > 0 && title) {
+      const filteredTracks = tracks.filter(track => isMatch(track, title, artist))
+      
+      // 如果過濾後還有結果，使用過濾後的
+      if (filteredTracks.length > 0) {
+        tracks = filteredTracks
+      } else {
+        // 完全沒有匹配的，返回空數組（讓前端去 YouTube 搜尋）
+        console.log('No matching tracks after filtering')
+        tracks = []
+      }
+    }
+    
+    // 如果精確搜尋沒有結果，嘗試更寬鬆的搜尋
+    if (tracks.length === 0 && q) {
+      console.log('Trying loose search:', q)
       
       const looseSearchResponse = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(looseQuery)}&type=track&limit=5`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=10`,
         {
           headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
         }
@@ -105,13 +180,24 @@ export default async function handler(req, res) {
       const looseData = await looseSearchResponse.json()
       const looseTracks = looseData.tracks?.items || []
       
-      if (looseTracks.length === 0) {
-        return res.status(404).json({ error: 'Track not found' })
+      // 同樣過濾寬鬆搜尋的結果
+      if (looseTracks.length > 0 && title) {
+        const filteredLoose = looseTracks.filter(track => isMatch(track, title, artist))
+        
+        if (filteredLoose.length > 0) {
+          tracks = filteredLoose
+        } else {
+          // 寬鬆搜尋也沒有匹配的，返回空數組
+          console.log('No matching tracks in loose search either')
+          tracks = []
+        }
+      } else {
+        tracks = looseTracks
       }
-      
-      // 轉換格式並返回
-      const results = looseTracks.map(track => formatTrackData(track))
-      return res.status(200).json({ results })
+    }
+    
+    if (tracks.length === 0) {
+      return res.status(404).json({ error: 'Track not found' })
     }
     
     // 轉換格式並返回
@@ -126,16 +212,13 @@ export default async function handler(req, res) {
 
 // 將 Spotify track 數據轉換為前端期望的格式
 function formatTrackData(track) {
-  // 從專輯圖片中選擇合適的尺寸
   const images = track.album?.images || []
-  const albumImage = images[0]?.url || '' // 最大圖
-  const thumbnail = images[images.length - 1]?.url || '' // 最小圖
+  const albumImage = images[0]?.url || ''
+  const thumbnail = images[images.length - 1]?.url || ''
   
-  // 從專輯發行日期提取年份
   const releaseDate = track.album?.release_date || ''
   const releaseYear = releaseDate ? releaseDate.split('-')[0] : ''
   
-  // 獲取第一個歌手的 ID
   const firstArtist = track.artists?.[0]
   
   return {
