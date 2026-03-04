@@ -1582,7 +1582,7 @@ const TabContent = ({
             const isPrecededByChord = isLyricLine && checkIsChordLine(prevLine);
             
             // 設定行距：和弦行同歌詞行之間完全緊貼，lineHeight 設為 1 消除額外空隙
-            const lineHeight = (isFollowedByLyric || isPrecededByChord) ? '1.1' : '1';
+            const lineHeight = (isFollowedByLyric || isPrecededByChord) ? '1.3' : '1';
             const marginBottom = isFollowedByLyric ? '0em' : '0.3em';
             const marginTop = isPrecededByChord ? '0em' : '0';
             
@@ -1590,8 +1590,8 @@ const TabContent = ({
             const lineColor = isLyricLine ? colors.lyricInside : colors.chord;
             
             return (
-              <div key={idx} style={{ 
-                fontSize: `${fontSize}px`, 
+              <div key={idx} style={{
+                fontSize: `${fontSize}px`,
                 marginTop,
                 marginBottom,
                 lineHeight,
