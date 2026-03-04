@@ -1,4 +1,4 @@
-// Spotify API - 搜尋歌曲（嚴格匹配版本）
+// Spotify API - 搜尋歌曲（嚴格匹配版本，優先返回最早年份）
 
 export const config = {
   api: {
@@ -75,6 +75,54 @@ function isMatch(track, targetTitle, targetArtist) {
   return (titleSim >= 0.8 && artistSim) || titleSim >= 0.95
 }
 
+// 從MusicBrainz獲取歌曲資訊（用於對比年份）
+async function getMusicBrainzYear(artist, title) {
+  try {
+    // 嘗試用歌手+歌名搜尋
+    const query = encodeURIComponent(`artist:"${artist}" AND recording:"${title}"`)
+    const response = await fetch(
+      `https://musicbrainz.org/ws/2/recording?query=${query}&fmt=json&limit=5`,
+      { 
+        headers: { 
+          'User-Agent': 'PolygonGuitar/1.0 (kermit.tam@gmail.com)'
+        } 
+      }
+    )
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    if (!data.recordings || data.recordings.length === 0) return null
+    
+    // 找到最早年份
+    let earliestYear = null
+    let earliestRelease = null
+    
+    for (const recording of data.recordings.slice(0, 3)) {
+      if (recording.releases && recording.releases.length > 0) {
+        for (const release of recording.releases) {
+          if (release.date) {
+            const year = parseInt(release.date.split('-')[0])
+            if (year && (!earliestYear || year < earliestYear)) {
+              earliestYear = year
+              earliestRelease = {
+                title: release.title,
+                date: release.date,
+                id: release.id
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return earliestYear ? { year: earliestYear, release: earliestRelease } : null
+  } catch (error) {
+    console.error('MusicBrainz fetch error:', error)
+    return null
+  }
+}
+
 export default async function handler(req, res) {
   console.log('=== Spotify Track Search API called ===')
   console.log('Method:', req.method)
@@ -136,7 +184,7 @@ export default async function handler(req, res) {
     console.log('Spotify search query:', searchQuery)
     
     const searchResponse = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=10`,
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20`,
       {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
       }
@@ -172,7 +220,7 @@ export default async function handler(req, res) {
       console.log('Trying loose search:', q)
       
       const looseSearchResponse = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=10`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=20`,
         {
           headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
         }
@@ -201,9 +249,46 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Track not found' })
     }
     
-    // 轉換格式並返回
-    const results = tracks.map(track => formatTrackData(track))
-    return res.status(200).json({ results })
+    // 獲取MusicBrainz年份（對比用）
+    let musicbrainzData = null
+    if (artist && title) {
+      musicbrainzData = await getMusicBrainzYear(artist, title)
+    }
+    
+    // 轉換格式並加入年份資訊
+    let results = tracks.map(track => formatTrackData(track))
+    
+    // 如果MusicBrainz有更早的年份，更新所有結果
+    if (musicbrainzData && musicbrainzData.year) {
+      const mbYear = musicbrainzData.year
+      const spotifyEarliestYear = Math.min(...results.map(r => parseInt(r.releaseYear) || 9999))
+      
+      // 如果MusicBrainz年份更早，標記這個資訊
+      if (mbYear < spotifyEarliestYear) {
+        results.forEach(r => {
+          r.musicbrainzYear = mbYear
+          r.musicbrainzRelease = musicbrainzData.release
+          r.yearSource = 'musicbrainz'
+          r.yearNote = `MusicBrainz顯示最早年份為 ${mbYear}`
+        })
+      }
+    }
+    
+    // 按年份排序（最早的優先）
+    results.sort((a, b) => {
+      const yearA = parseInt(a.musicbrainzYear || a.releaseYear) || 9999
+      const yearB = parseInt(b.musicbrainzYear || b.releaseYear) || 9999
+      return yearA - yearB
+    })
+    
+    return res.status(200).json({ 
+      results,
+      musicbrainzData,
+      apiQuota: {
+        spotify: '無明確每日限制，建議每秒1-2個請求',
+        musicbrainz: '每秒1個請求，每天約3000-5000個請求'
+      }
+    })
     
   } catch (error) {
     console.error('Error:', error)
@@ -234,8 +319,14 @@ function formatTrackData(track) {
     thumbnail: thumbnail || albumImage,
     duration: track.duration_ms || 0,
     releaseYear: releaseYear,
+    releaseDate: releaseDate,
     popularity: track.popularity || 0,
     previewUrl: track.preview_url || null,
-    spotifyUrl: track.external_urls?.spotify || `https://open.spotify.com/track/${track.id}`
+    spotifyUrl: track.external_urls?.spotify || `https://open.spotify.com/track/${track.id}`,
+    // MusicBrainz對比資訊（如有）
+    musicbrainzYear: null,
+    musicbrainzRelease: null,
+    yearSource: 'spotify',
+    yearNote: null
   }
 }
