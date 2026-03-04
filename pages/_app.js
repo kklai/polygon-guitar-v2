@@ -80,7 +80,7 @@ export default function App({ Component, pageProps }) {
         {/* Google Fonts - Source Code Pro */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;700&family=Source+Code+Pro:wght@300;400;700&display=swap" rel="stylesheet" />
         
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" />
