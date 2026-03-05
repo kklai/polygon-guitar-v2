@@ -277,6 +277,19 @@ export default function TabShareTool() {
 
   const onHandlePointerUp = () => { dragTarget.current = null }
 
+  const onPickerScroll = () => {
+    if (!pickerRef.current || dragTarget.current) return
+    const scrollTop = pickerRef.current.scrollTop
+    const lyricsLen = selectedTab?.parsedContent?.lyrics?.length ?? 0
+    const selCount = Math.abs((selEndRef.current ?? 0) - (selStartRef.current ?? 0))
+    const firstVisible = Math.round(scrollTop / ITEM_H)
+    const newStart = Math.max(0, Math.min(lyricsLen - 1 - selCount, firstVisible))
+    if (newStart !== selStartRef.current) {
+      setSelectionStart(newStart)
+      setSelectionEnd(newStart + selCount)
+    }
+  }
+
   const parseLyricSegments = (lyric) => {
     if (!lyric || !/\([^)]*\)/.test(lyric)) return [{ text: lyric || '', hasStar: false }]
     const segments = []
@@ -566,7 +579,10 @@ export default function TabShareTool() {
           {/* Preview */}
           <div>
             <div ref={containerRef} className="w-full">
-              <div style={{ width: `${PREVIEW_W * previewScale}px`, height: `${PREVIEW_H * previewScale}px`, overflow: 'hidden', margin: '0 auto', border: '1px solid rgb(255, 215, 0)' }}>
+              <div
+                onClick={() => { if (selectedTab && hasSelection && !isGenerating) generateImage() }}
+                style={{ width: `${PREVIEW_W * previewScale}px`, height: `${PREVIEW_H * previewScale}px`, overflow: 'hidden', margin: '0 auto', border: '1px solid rgb(255, 215, 0)', cursor: selectedTab && hasSelection ? 'pointer' : 'default', userSelect: 'none', WebkitUserSelect: 'none' }}
+              >
                 {selectedTab && hasSelection ? (
                   <div style={{ width: `${PREVIEW_W}px`, height: `${PREVIEW_H}px`, transform: `scale(${previewScale})`, transformOrigin: 'top left', background: dominantColor ? `linear-gradient(to bottom, rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}), #000000)` : '#121212', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif" }}>
                     {renderImageContent()}
@@ -588,6 +604,7 @@ export default function TabShareTool() {
                   <h3 className="text-white font-bold">選擇段落</h3>
                   <div
                     ref={pickerRef}
+                    onScroll={onPickerScroll}
                     style={{ position: 'relative', maxHeight: 320, overflowY: 'auto', paddingTop: PICKER_PAD, paddingBottom: PICKER_PAD }}
                   >
                     <div style={{ position: 'relative', height: totalH }}>
@@ -683,20 +700,22 @@ export default function TabShareTool() {
 
       {savedImageUrl && (
         <div
-          className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 flex flex-col items-center p-4"
           style={{ zIndex: 9999 }}
           onClick={() => setSavedImageUrl(null)}
         >
-          <p className="text-white text-center mb-4 text-sm">長按圖片 → 加入相片</p>
-          <img
-            src={savedImageUrl}
-            alt="Generated"
-            className="max-w-full max-h-[80vh] rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <p className="text-white text-center text-sm py-3 flex-shrink-0">長按圖片 → 加入相片</p>
+          <div className="flex-1 min-h-0 flex items-center justify-center w-full">
+            <img
+              src={savedImageUrl}
+              alt="Generated"
+              className="max-w-full max-h-full rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           <button
             onClick={() => setSavedImageUrl(null)}
-            className="mt-4 px-6 py-2 bg-[#FFD700] text-black rounded-full font-bold"
+            className="py-3 px-6 bg-[#FFD700] text-black rounded-full font-bold flex-shrink-0 mt-3"
           >
             關閉
           </button>
