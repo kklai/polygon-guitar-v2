@@ -176,18 +176,18 @@ export default async function handler(req, res) {
       })
     }
     
-    // 使用精確搜尋語法
+    // 使用簡單搜尋語法（引號可能導致 400 錯誤）
     const searchQuery = title && artist 
-      ? `track:"${title}" artist:"${artist}"`
+      ? `${title} ${artist}`
       : q
     
     console.log('Spotify search query:', searchQuery)
     
-    // Build search URL without limit first to test
+    // Build search URL
     const searchUrl = new URL('https://api.spotify.com/v1/search')
     searchUrl.searchParams.append('q', searchQuery)
     searchUrl.searchParams.append('type', 'track')
-    searchUrl.searchParams.append('limit', '20')
+    searchUrl.searchParams.append('limit', '10')
     
     console.log('Full search URL:', searchUrl.toString())
     
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
       const looseSearchUrl = new URL('https://api.spotify.com/v1/search')
       looseSearchUrl.searchParams.append('q', q)
       looseSearchUrl.searchParams.append('type', 'track')
-      looseSearchUrl.searchParams.append('limit', '20')
+      looseSearchUrl.searchParams.append('limit', '10')
       
       const looseSearchResponse = await fetch(looseSearchUrl.toString(), {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
