@@ -105,6 +105,22 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
+      href: '/admin/daily-uploads',
+      title: '📊 每日上傳監控',
+      description: '查看每日邊個用戶上傳咗乜譜，Google 帳戶、筆名、歌曲一覽',
+      icon: '📊',
+      color: 'bg-green-600 text-white',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/artist-report',
+      title: '📈 歌手報表',
+      description: 'Excel 式報表：每個歌手有幾多首歌、年份分佈、冇年份嘅歌',
+      icon: '📈',
+      color: 'bg-blue-600 text-white',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
       href: '/admin/import-tabs',
       title: '批量導入譜',
       description: '從 Blogger 導入結他譜',
