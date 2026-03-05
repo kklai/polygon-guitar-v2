@@ -1,9 +1,29 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
-import { getAllArtists } from '@/lib/tabs'
 import Layout from '@/components/Layout'
 import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
+
+const ARTISTS_CACHE_KEY = 'pg_artists_list'
+const ARTISTS_CACHE_TTL = 10 * 60 * 1000 // 10 min
+const ARTISTS_CACHE_FRESH = 2 * 60 * 1000 // 2 min = skip fetch
+
+function saveArtistsCache(data) {
+  try {
+    localStorage.setItem(ARTISTS_CACHE_KEY, JSON.stringify({ _ts: Date.now(), artists: data }))
+  } catch (e) { /* quota exceeded */ }
+}
+
+function loadArtistsCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(ARTISTS_CACHE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (Date.now() - data._ts > ARTISTS_CACHE_TTL) return null
+    return { artists: data.artists, fresh: (Date.now() - data._ts) < ARTISTS_CACHE_FRESH }
+  } catch (e) { return null }
+}
 
 const CATEGORY_LABELS = {
   male: { label: '男歌手', color: '#1fc3df' },
@@ -141,13 +161,27 @@ export default function Artists() {
   }, [category])
 
   useEffect(() => {
+    const cached = loadArtistsCache()
+    if (cached) {
+      setArtists(cached.artists)
+      setIsLoading(false)
+      if (cached.fresh) {
+        console.log('[Artists] Using fresh localStorage cache, skipping fetch')
+        return
+      }
+      console.log('[Artists] Cache stale, refreshing in background')
+    }
     loadArtists()
   }, [])
 
   const loadArtists = async () => {
+    const t0 = performance.now()
     try {
-      const data = await getAllArtists()
+      const res = await fetch('/api/artists')
+      const data = await res.json()
+      console.log('[Artists] API fetch took', Math.round(performance.now() - t0), 'ms, got', data.length, 'artists')
       setArtists(data)
+      saveArtistsCache(data)
     } catch (error) {
       console.error('Error loading artists:', error)
     } finally {

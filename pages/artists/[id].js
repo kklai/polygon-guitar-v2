@@ -26,6 +26,31 @@ if (typeof window !== 'undefined') {
   }
 }
 
+const ARTIST_CACHE_TTL = 10 * 60 * 1000; // 10 min max age
+const ARTIST_CACHE_FRESH = 2 * 60 * 1000; // 2 min = skip fetch entirely
+
+function saveArtistCache(artistId, data) {
+  try {
+    const payload = JSON.stringify({ _ts: Date.now(), ...data }, (key, value) => {
+      if (value && typeof value === 'object' && typeof value.toDate === 'function') return value.toDate().getTime();
+      return value;
+    });
+    localStorage.setItem(`pg_artist_${artistId}`, payload);
+  } catch (e) { /* quota exceeded - ignore */ }
+}
+
+function loadArtistCache(artistId) {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`pg_artist_${artistId}`);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (Date.now() - data._ts > ARTIST_CACHE_TTL) return null;
+    data._fresh = (Date.now() - data._ts) < ARTIST_CACHE_FRESH;
+    return data;
+  } catch (e) { return null; }
+}
+
 export default function ArtistPage() {
   const router = useRouter();
   const { id } = router.query;
@@ -55,7 +80,26 @@ export default function ArtistPage() {
   }, [id]);
 
   const loadArtistData = async () => {
-    setLoading(true);
+    const cached = loadArtistCache(id);
+    if (cached) {
+      setArtist(cached.artist);
+      setHotTabs(cached.hotTabs || []);
+      setAllTabs(cached.allTabs || []);
+      setLoading(false);
+
+      // Analytics (fire-and-forget, doesn't block)
+      recordArtistView(user?.uid || null, cached.artist);
+      recordPageView('artist', id, cached.artist.name, {
+        pageName: cached.artist.name,
+        photoURL: cached.artist.photoURL || cached.artist.wikiPhotoURL
+      }, user?.uid || null);
+
+      // If cache is fresh (<2min), skip Firestore entirely
+      if (cached._fresh) return;
+    } else {
+      setLoading(true);
+    }
+
     try {
       const artistDoc = (_prefetchId === id && _prefetchPromise)
         ? await _prefetchPromise
@@ -70,17 +114,24 @@ export default function ArtistPage() {
       setArtist(artistData);
       setLoading(false);
 
-      // Fire-and-forget analytics
-      recordArtistView(user?.uid || null, artistData);
-      recordPageView('artist', artistDoc.id, artistData.name, {
-        pageName: artistData.name,
-        photoURL: artistData.photoURL || artistData.wikiPhotoURL
-      }, user?.uid || null);
+      if (!cached) {
+        recordArtistView(user?.uid || null, artistData);
+        recordPageView('artist', artistDoc.id, artistData.name, {
+          pageName: artistData.name,
+          photoURL: artistData.photoURL || artistData.wikiPhotoURL
+        }, user?.uid || null);
+      }
 
       const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
       tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
       setHotTabs(tabs.slice(0, 5));
       setAllTabs(tabs);
+
+      saveArtistCache(id, {
+        artist: artistData,
+        hotTabs: tabs.slice(0, 5),
+        allTabs: tabs
+      });
     } catch (error) {
       console.error('載入歌手資料失敗:', error);
       setLoading(false);
