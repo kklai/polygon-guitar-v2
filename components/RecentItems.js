@@ -27,9 +27,9 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
   if (displayItems.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 25 }}>
-      <div className="flex justify-between items-center mb-2 px-6">
-        <h2 className="text-white text-xl font-bold">{title}</h2>
+    <div style={{ marginBottom: 25, marginTop: 10 }}>
+      <div className="flex justify-between items-end mb-2 px-6">
+        <h2 className="text-white font-bold" style={{ fontSize: 22 }}>{title}</h2>
         <button 
           onClick={() => router.push('/history')}
           className="text-[#B3B3B3] text-sm hover:text-white"
@@ -93,12 +93,12 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
               
               {/* 文字資訊 */}
               <div className="text-left">
-                <p className="text-white text-sm font-medium truncate leading-tight">
+                <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
                   {item.title}
-                </p>
-                <p className="text-[#B3B3B3] text-xs truncate mt-0.5">
+                </div>
+                <div className="text-[#B3B3B3] truncate" style={{ fontSize: 13, lineHeight: '16px' }}>
                   {item.subtitle || item.artistName || ''}
-                </p>
+                </div>
               </div>
             </div>
           ))}

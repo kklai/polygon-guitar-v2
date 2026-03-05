@@ -90,7 +90,7 @@ export function SongCard({ song, artistPhoto, onClick }) {
       className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       {/* 封面區域 */}
-      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-110 active:z-20">
+      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
         {coverImage ? (
           <>
             {/* 骨架屏 */}
@@ -123,10 +123,10 @@ export function SongCard({ song, artistPhoto, onClick }) {
         )}
       </div>
       
-      <h3 className="text-white font-medium truncate" style={{ fontSize: 15 }}>
+      <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
         {song.title}
-      </h3>
-      <p className="text-gray-500 truncate" style={{ fontSize: 13 }}>{song.artist}</p>
+      </div>
+      <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>{song.artist}</div>
     </button>
   )
 }
@@ -148,10 +148,10 @@ export function PlaylistCard({ playlist, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex-shrink-0 flex flex-col text-left w-40 group"
+      className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       {/* 封面區域 */}
-      <div className="w-40 aspect-square rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-110 active:z-20">
+      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
         {coverImage ? (
           <>
             {/* 骨架屏 */}
@@ -178,11 +178,11 @@ export function PlaylistCard({ playlist, onClick }) {
         )}
       </div>
       
-      <h3 className="text-white font-medium truncate" style={{ fontSize: 15 }}>
+      <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
         {playlist.title}
-      </h3>
+      </div>
       {playlist.description && (
-        <p className="text-gray-500 line-clamp-2" style={{ fontSize: 13 }}>{playlist.description}</p>
+        <div className="text-gray-500 line-clamp-2" style={{ fontSize: 13, lineHeight: '16px' }}>{playlist.description}</div>
       )}
     </button>
   )
@@ -199,16 +199,14 @@ export function ArtistAvatar({ artist, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center group"
+      className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
-      {/* 頭像區域 */}
-      <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-110 active:z-20">
+      <div className="w-36 h-36 rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
         {photoUrl ? (
           <>
-            {/* 骨架屏 */}
             {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[#282828] z-10">
-                <span className="text-2xl">🎤</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828] z-10">
+                <span className="text-3xl mb-1">🎤</span>
               </div>
             )}
             <img
@@ -223,15 +221,15 @@ export function ArtistAvatar({ artist, onClick }) {
             />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-            <span className="text-3xl">🎤</span>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+            <span className="text-4xl mb-1">🎤</span>
           </div>
         )}
       </div>
       
-      <span className="text-white font-medium text-center line-clamp-1 max-w-[100px]" style={{ fontSize: 15 }}>
+      <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
         {artist.name}
-      </span>
+      </div>
     </button>
   )
 }

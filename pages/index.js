@@ -369,7 +369,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="w-36 mt-2 px-1">
-                    <p className="text-xs text-gray-400 truncate text-left leading-relaxed">
+                    <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
                       {loadingPhase !== 'static' && hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
                     </p>
                   </div>
@@ -387,8 +387,8 @@ export default function Home() {
         if (hotTabs.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -402,8 +402,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
               {hotTabs.map((song) => (
                 <SongCard
                   key={song.id}
@@ -420,43 +420,11 @@ export default function Home() {
         if (!hotArtists.all?.length) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 flex flex-col items-center">
-                    <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-800 rounded-full animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-20 animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )
-        }
-        return (
-          <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-              {hotArtists.all.map((artist) => (
-                <div key={artist.id} className="flex-shrink-0">
-                  <ArtistAvatar
-                    artist={artist}
-                    onClick={() => handleArtistClick(artist)}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )
-
-      case 'autoPlaylists':
-        if (autoPlaylists.length === 0) {
-          return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-40">
-                    <div className="w-40 h-40 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-36">
+                    <div className="w-36 h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
@@ -466,8 +434,39 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
+              {hotArtists.all.map((artist) => (
+                <ArtistAvatar
+                    key={artist.id}
+                    artist={artist}
+                    onClick={() => handleArtistClick(artist)}
+                  />
+              ))}
+            </div>
+          </section>
+        )
+
+      case 'autoPlaylists':
+        if (autoPlaylists.length === 0) {
+          return (
+            <section key={section.id} style={{ marginBottom: 25 }}>
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-36">
+                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
+        return (
+          <section key={section.id} style={{ marginBottom: 25 }}>
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
               {autoPlaylists.map((playlist) => (
                 <PlaylistCard
                   key={playlist.id}
@@ -483,8 +482,8 @@ export default function Home() {
         if (latestSongs.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -498,8 +497,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
               {latestSongs.map((song) => (
                 <SongCard
                   key={song.id}
@@ -516,11 +515,11 @@ export default function Home() {
         if (manualPlaylists.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-40">
-                    <div className="w-40 h-40 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-36">
+                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
@@ -530,8 +529,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
               {manualPlaylists.map((playlist) => (
                 <PlaylistCard
                   key={playlist.id}
@@ -548,8 +547,8 @@ export default function Home() {
         if (loadingPhase === 'static') {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || '載入中...'}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{section.title || '載入中...'}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -590,8 +589,8 @@ export default function Home() {
           
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{section.title || customSection.title}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {sectionSongs.map((song) => (
                   <SongCard
                     key={song.id}
@@ -617,8 +616,8 @@ export default function Home() {
           
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{section.title || customSection.title}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+              <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>{section.title || customSection.title}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
                 {playlists.map((playlist) => (
                   <PlaylistCard
                     key={playlist.id}
@@ -872,11 +871,17 @@ export default function Home() {
         }
       }
       
+      const artistPageSort = (artists) => [...artists].sort((a, b) => {
+        const scoreA = a.adminScore || a.totalViewCount || a.viewCount || a.tabCount || 0
+        const scoreB = b.adminScore || b.totalViewCount || b.viewCount || b.tabCount || 0
+        return scoreB - scoreA
+      })
+      
       const hotArtistsData = {
         all: getHotArtists(),
-        male: sortedArtists.filter(a => (a.artistType || a.gender) === 'male').slice(0, 5),
-        female: sortedArtists.filter(a => (a.artistType || a.gender) === 'female').slice(0, 5),
-        group: sortedArtists.filter(a => (a.artistType || a.gender) === 'group').slice(0, 5)
+        male: artistPageSort(popularArtists.filter(a => (a.artistType || a.gender) === 'male')).slice(0, 5),
+        female: artistPageSort(popularArtists.filter(a => (a.artistType || a.gender) === 'female')).slice(0, 5),
+        group: artistPageSort(popularArtists.filter(a => (a.artistType || a.gender) === 'group')).slice(0, 5)
       };
       const artistsSlice = sortedArtists.slice(0, 10);
       
@@ -1041,8 +1046,8 @@ export default function Home() {
           
           {/* 熱門譜骨架屏 */}
           <section style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門結他譜</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>熱門結他譜</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex-shrink-0 w-36">
                   <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -1055,12 +1060,12 @@ export default function Home() {
           
           {/* 熱門歌手骨架屏 */}
           <section style={{ marginBottom: 25 }}>
-            <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">熱門歌手</h2>
-            <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
+            <h2 className="font-bold text-white px-6 pb-2 pt-0" style={{ fontSize: 22 }}>熱門歌手</h2>
+            <div className="flex overflow-x-auto scrollbar-hide px-6 py-2 -my-2" style={{ gap: 14 }}>
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 flex flex-col items-center">
-                  <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-800 rounded-full animate-pulse mb-2" />
-                  <div className="h-4 bg-gray-800 rounded w-20 animate-pulse" />
+                <div key={i} className="flex-shrink-0 w-36">
+                  <div className="w-36 h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
+                  <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                 </div>
               ))}
             </div>
