@@ -178,7 +178,7 @@ export default function TabShareTool() {
 
     const classified = []
     lines.forEach(line => {
-      const trimmed = line.trim()
+      const trimmed = line.replace(/[\u200B\u200C\u200D\uFEFF]/g, '').trim()
       if (!trimmed) return
       if (isChord(trimmed)) classified.push({ type: 'chord', text: trimmed })
       else if (isHeader(trimmed)) classified.push({ type: 'header', text: trimmed, isChorus: isChorus(trimmed) })
@@ -204,15 +204,17 @@ export default function TabShareTool() {
         const next = classified[i + 1]
         if (next && next.type === 'lyric') {
           if (inChorus && chorusStart === -1) chorusStart = lyrics.length
-          const chunks = splitLyricLine(next.text)
-          chords.push(classified[i].text.replace(/[\s\u3000]+/g, ' ').trim())
-          lyrics.push(chunks[0])
-          for (let j = 1; j < chunks.length; j++) { chords.push(null); lyrics.push(chunks[j]) }
+          const chunks = splitLyricLine(next.text).filter(c => c.replace(/[()\s\u3000\u200B\u200C\u200D\uFEFF]/g, ''))
+          if (chunks.length > 0) {
+            chords.push(classified[i].text.replace(/[\s\u3000]+/g, ' ').trim())
+            lyrics.push(chunks[0])
+            for (let j = 1; j < chunks.length; j++) { chords.push(null); lyrics.push(chunks[j]) }
+          }
           i++
         }
       } else {
         if (inChorus && chorusStart === -1) chorusStart = lyrics.length
-        splitLyricLine(classified[i].text).forEach(chunk => { lyrics.push(chunk); chords.push(null) })
+        splitLyricLine(classified[i].text).filter(c => c.replace(/[()\s\u3000\u200B\u200C\u200D\uFEFF]/g, '')).forEach(chunk => { lyrics.push(chunk); chords.push(null) })
       }
     }
     if (inChorus && chorusEnd === -1) chorusEnd = lyrics.length - 1
@@ -324,7 +326,7 @@ export default function TabShareTool() {
     try {
       await document.fonts.ready
       await Promise.allSettled([
-        document.fonts.load(`500 60px "Roboto Condensed"`),
+        document.fonts.load(`500 60px "Barlow Condensed"`),
         document.fonts.load(`300 60px "Noto Sans TC"`),
       ])
       const loadImg = (src) => new Promise((resolve) => {
@@ -362,32 +364,25 @@ export default function TabShareTool() {
       const titleH = 50 * 1.2
       const artistH = 40 * 1.2
 
-      const MAX_LYRIC_FONT = 58
-      const lyricAvailable = OUT_W - 80
-      const starSize = 20
-      ctx.font = `${MAX_LYRIC_FONT}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
-      const lyricFontSize = effectiveSection.lyrics.reduce((minSize, lyric) => {
-        const w = ctx.measureText(lyric).width
-        if (w <= 0) return minSize
-        return w > lyricAvailable ? Math.min(minSize, (lyricAvailable / w) * MAX_LYRIC_FONT) : minSize
-      }, MAX_LYRIC_FONT)
+      const starW = 20
+      const starH = 20 * (35 / 30)
+      const baseFontPx = p(58)
+      const availPx = PREVIEW_W - p(80)
+      const lyricFontSize = effectiveSection.lyrics.reduce((min, lyric) => {
+        const estW = [...lyric].reduce((w, ch) => w + (/[\u4e00-\u9fff\u3400-\u4dbf]/.test(ch) ? 1 : 0.55), 0) * min
+        return estW > availPx ? min * (availPx / estW) : min
+      }, baseFontPx) * S
       const lyricLineHeight = lyricFontSize * (100 / 58)
 
-      const available = OUT_W - 80
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px'
-      if ('wordSpacing' in ctx) ctx.wordSpacing = '0px'
-      const displayChords = combineChords(effectiveSection.chords, 2)
-      const REF = 60
-      ctx.font = `500 ${REF}px "Roboto Condensed", sans-serif`
-      const chordFontSize = displayChords.reduce((min, chord) => {
-        const w = ctx.measureText(chord).width
-        return Math.min(min, w > 0 ? (available / w) * REF : min)
-      }, REF)
+      const displayChords = combineChords(effectiveSection.chords, 3)
+      const chordFontSize = displayChords.reduce((min, chord) =>
+        Math.min(min, availPx / (chord.length * 0.6)), 60 / S) * S
 
       const bottomW = 532
       const bottomH = bottomImg ? (bottomImg.naturalHeight / bottomImg.naturalWidth) * bottomW : 0
 
-      const totalContentH = logoH + 40 + (artImg ? artSize : 0) + 40 + titleH + 10 + artistH + 50
+      const totalContentH = logoH + 40 + (artImg ? artSize : 0) + 30 + titleH + 10 + artistH + 60
         + lyricLineHeight * effectiveSection.lyrics.length + 20
         + chordFontSize * 1.3 * displayChords.length + 50 + bottomH
 
@@ -407,7 +402,7 @@ export default function TabShareTool() {
         y += artSize
       }
 
-      y += 40
+      y += 30
       ctx.font = `600 50px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
       ctx.textAlign = 'center'
       ctx.fillStyle = '#ffffff'
@@ -420,9 +415,10 @@ export default function TabShareTool() {
       ctx.fillText(selectedTab.artist, OUT_W / 2, y)
       y += artistH
 
-      y += 50
-      ctx.font = `bold ${lyricFontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
+      y += 60
+      ctx.font = `500 ${lyricFontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
       ctx.fillStyle = '#ffffff'; ctx.lineWidth = 0
+      if ('letterSpacing' in ctx) ctx.letterSpacing = `${lyricFontSize * 0.07}px`
 
       for (const lyric of effectiveSection.lyrics) {
         const segments = parseLyricSegments(lyric)
@@ -437,7 +433,7 @@ export default function TabShareTool() {
           for (const seg of segments) {
             const segW = ctx.measureText(seg.text).width
             if (seg.hasStar && starImg) {
-              ctx.drawImage(starImg, x + segW / 2 - starSize / 2, y - starSize * 1.3 - 6, starSize, starSize)
+              ctx.drawImage(starImg, x + segW / 2 - starW / 2, y - starH - 2, starW, starH)
             }
             ctx.fillText(seg.text, x, y)
             x += segW
@@ -449,7 +445,8 @@ export default function TabShareTool() {
 
       y += 20
       ctx.fillStyle = '#d5b26e'; ctx.lineWidth = 0
-      ctx.font = `500 ${chordFontSize}px "Roboto Condensed", sans-serif`
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px'
+      ctx.font = `500 ${chordFontSize}px "Barlow Condensed", sans-serif`
       for (const chord of displayChords) {
         ctx.fillText(chord, OUT_W / 2, y)
         y += chordFontSize * 1.3
@@ -489,7 +486,7 @@ export default function TabShareTool() {
     return segments.map((seg, i) =>
       seg.hasStar ? (
         <span key={i} style={{ position: 'relative', display: 'inline-block' }}>
-          <img src="/star.png" alt="" style={{ position: 'absolute', bottom: 'calc(90% + 2px)', left: '50%', transform: 'translateX(-50%)', width: `${fontSize}px`, height: `${fontSize}px`, objectFit: 'contain' }} />
+          <img src="/star.png" alt="" style={{ position: 'absolute', top: '-5px', left: '50%', transform: 'translateX(-50%)', width: `${fontSize}px`, height: `${fontSize * (35 / 30)}px` }} />
           {seg.text}
         </span>
       ) : seg.text
@@ -503,13 +500,13 @@ export default function TabShareTool() {
       <>
         <img src="/polygon-logo-white.png" alt="Polygon" style={{ width: `${p(360)}px`, objectFit: 'contain' }} />
         <img src={getArtistImage() || ''} alt={selectedTab.title} style={{ width: `${p(712)}px`, height: `${p(712)}px`, objectFit: 'cover', marginTop: `${p(40)}px`, flexShrink: 0 }} />
-        <p style={{ marginTop: `${p(40)}px`, fontSize: `${p(50)}px`, fontWeight: 600, color: '#ffffff', textAlign: 'center', lineHeight: 1.2, paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
+        <p style={{ marginTop: `${p(30)}px`, fontSize: `${p(50)}px`, fontWeight: 600, color: '#ffffff', textAlign: 'center', lineHeight: 1.2, paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
           {selectedTab.title}
         </p>
         <p style={{ marginTop: `${p(10)}px`, fontSize: `${p(40)}px`, fontWeight: 400, color: '#cccccc', textAlign: 'center', lineHeight: 1.2 }}>
           {selectedTab.artist}
         </p>
-        <div style={{ marginTop: `${p(40)}px`, textAlign: 'center', paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
+        <div style={{ marginTop: `${p(60)}px`, textAlign: 'center', paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
           {(() => {
             const baseFontPx = p(58)
             const availPx = PREVIEW_W - p(80)
@@ -519,7 +516,7 @@ export default function TabShareTool() {
             }, baseFontPx)
             const lyricLH = lyricSize * (100 / 58)
             return effectiveSection.lyrics.map((lyric, idx) => (
-              <p key={idx} style={{ fontSize: `${lyricSize}px`, fontWeight: 'bold', color: '#ffffff', lineHeight: `${lyricLH}px`, whiteSpace: 'nowrap' }}>
+              <p key={idx} style={{ fontSize: `${lyricSize}px`, fontWeight: 500, color: '#ffffff', lineHeight: `${lyricLH}px`, letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>
                 {renderLyric(lyric, lyricSize * 0.35)}
               </p>
             ))
@@ -528,10 +525,10 @@ export default function TabShareTool() {
         <div style={{ marginTop: `${p(20)}px`, textAlign: 'center' }}>
           {(() => {
             const availPx = PREVIEW_W - p(80)
-            const previewChords = combineChords(effectiveSection.chords, 2)
-            const sharedSize = previewChords.reduce((min, chord) => Math.min(min, availPx / (chord.length * 0.6)), p(60))
+            const previewChords = combineChords(effectiveSection.chords, 3)
+            const sharedSize = previewChords.reduce((min, chord) => Math.min(min, availPx / (chord.length * 0.6)), 60 / S)
             return previewChords.map((chord, idx) => (
-              <p key={idx} style={{ fontSize: `${sharedSize}px`, color: '#d5b26e', fontFamily: "'Roboto Condensed', sans-serif", fontWeight: 500, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
+              <p key={idx} style={{ fontSize: `${sharedSize}px`, color: '#d5b26e', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 500, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
                 {chord}
               </p>
             ))
@@ -683,7 +680,8 @@ export default function TabShareTool() {
 
       {savedImageUrl && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-4"
+          style={{ zIndex: 9999 }}
           onClick={() => setSavedImageUrl(null)}
         >
           <p className="text-white text-center mb-4 text-sm">長按圖片 → 加入相片</p>

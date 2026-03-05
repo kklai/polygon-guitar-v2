@@ -77,10 +77,12 @@ export default function App({ Component, pageProps }) {
         <meta name="twitter:handle" content={siteConfig.twitter} />
         <meta name="twitter:site" content={siteConfig.twitter} />
         
-        {/* Google Fonts - Source Code Pro */}
+        {/* Preconnect to Firestore + Google Fonts */}
+        <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;700&family=Source+Code+Pro:wght@300;400;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700&family=Source+Code+Pro:wght@300;400;700&display=swap" rel="stylesheet" />
         
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" />

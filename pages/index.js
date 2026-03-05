@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages, getTabsByIds, getAllTabs } from '@/lib/tabs'
-import { getAutoPlaylists, getManualPlaylists } from '@/lib/playlists'
+import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages, getTabsByIds } from '@/lib/tabs'
+import { getAllActivePlaylists } from '@/lib/playlists'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
@@ -11,6 +11,61 @@ import Head from 'next/head'
 import { siteConfig, generateBreadcrumbSchema } from '@/lib/seo'
 import RecentItems from '@/components/RecentItems'
 import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
+
+// Prefetch: fire Firestore queries at module-load time (before component mount/render)
+let _prefetchPromise = null
+let _prefetchTime = 0
+
+function prefetchHomeData() {
+  if (typeof window === 'undefined') return null
+  const now = Date.now()
+  if (_prefetchPromise && now - _prefetchTime < 30000) return _prefetchPromise
+  _prefetchTime = now
+  _prefetchPromise = Promise.all([
+    getDoc(doc(db, 'settings', 'home')),
+    getPopularArtists(30),
+    getAllActivePlaylists(),
+    getRecentTabs(10),
+    getHotTabs(22)
+  ])
+  return _prefetchPromise
+}
+
+prefetchHomeData()
+
+// Stale-while-revalidate: cache processed homepage state
+const HOMEPAGE_CACHE_KEY = 'pg_home_v1'
+const HOMEPAGE_CACHE_TTL = 10 * 60 * 1000
+
+function stripContentForCache(items) {
+  if (!Array.isArray(items)) return items
+  return items.map(({ content, ...rest }) => rest)
+}
+
+function saveHomepageCache(data) {
+  try {
+    const payload = JSON.stringify(data, (key, value) => {
+      if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+        return value.toDate().getTime()
+      }
+      return value
+    })
+    sessionStorage.setItem(HOMEPAGE_CACHE_KEY, payload)
+  } catch (e) {}
+}
+
+function loadHomepageCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(HOMEPAGE_CACHE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (Date.now() - data._ts > HOMEPAGE_CACHE_TTL) return null
+    return data
+  } catch (e) { return null }
+}
+
+const _homepageCache = loadHomepageCache()
 
 // 歌手分類預設資料
 const DEFAULT_CATEGORIES = [
@@ -179,8 +234,8 @@ export default function Home() {
   const { user, isAdmin } = useAuth()
   const [artists, setArtists] = useState([])
   const [latestSongs, setLatestSongs] = useState([])
-  const [hotTabs, setHotTabs] = useState([]) // 最近一個月熱門譜
-  const [allSongs, setAllSongs] = useState([]) // 用於歌單歌曲查找
+  const [hotTabs, setHotTabs] = useState([])
+  const [allSongs, setAllSongs] = useState([])
   const [hotArtists, setHotArtists] = useState({
     male: [],
     female: [],
@@ -192,7 +247,7 @@ export default function Home() {
   const [manualPlaylists, setManualPlaylists] = useState([])
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
   const [isLoading, setIsLoading] = useState(true)
-  const [loadingPhase, setLoadingPhase] = useState('static') // 'static' | 'public' | 'user' | 'complete'
+  const [loadingPhase, setLoadingPhase] = useState('static')
   const [totalViewCount, setTotalViewCount] = useState(0)
   
   // 首頁設置
@@ -282,14 +337,11 @@ export default function Home() {
         )
 
       case 'recent':
-        // recent 區域在用戶資料載入後才顯示
-        if (loadingPhase === 'static' || loadingPhase === 'public') {
-          return null; // 不顯示骨架屏，直接隱藏
-        }
+        if (recentItems.length === 0) return null
         return <RecentItems key={section.id} items={recentItems} title={getSectionLabel(section)} />
 
       case 'hotTabs':
-        if (loadingPhase === 'static') {
+        if (hotTabs.length === 0) {
           return (
             <section key={section.id} className="mb-10">
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -305,7 +357,7 @@ export default function Home() {
             </section>
           )
         }
-        return hotTabs.length > 0 && (
+        return (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
@@ -322,7 +374,7 @@ export default function Home() {
         )
 
       case 'hotArtists':
-        if (loadingPhase === 'static') {
+        if (!hotArtists.all?.length) {
           return (
             <section key={section.id} className="mb-10">
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -337,7 +389,7 @@ export default function Home() {
             </section>
           )
         }
-        return hotArtists.all?.length > 0 && (
+        return (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
@@ -354,7 +406,7 @@ export default function Home() {
         )
 
       case 'autoPlaylists':
-        if (loadingPhase === 'static') {
+        if (autoPlaylists.length === 0) {
           return (
             <section key={section.id} className="mb-10">
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -369,7 +421,7 @@ export default function Home() {
             </section>
           )
         }
-        return autoPlaylists.length > 0 && (
+        return (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
@@ -385,7 +437,7 @@ export default function Home() {
         )
 
       case 'latest':
-        if (loadingPhase === 'static') {
+        if (latestSongs.length === 0) {
           return (
             <section key={section.id} className="mb-10">
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -401,7 +453,7 @@ export default function Home() {
             </section>
           )
         }
-        return latestSongs.length > 0 && (
+        return (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
@@ -418,7 +470,7 @@ export default function Home() {
         )
 
       case 'manualPlaylists':
-        if (loadingPhase === 'static') {
+        if (manualPlaylists.length === 0) {
           return (
             <section key={section.id} className="mb-10">
               <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
@@ -433,7 +485,7 @@ export default function Home() {
             </section>
           )
         }
-        return manualPlaylists.length > 0 && (
+        return (
           <section key={section.id} className="mb-10">
             <h2 className="text-xl font-bold text-white px-6 pb-2 pt-0">{getSectionLabel(section)}</h2>
             <div className="flex overflow-x-auto scrollbar-hide px-6 gap-4">
@@ -542,134 +594,167 @@ export default function Home() {
 
   // 分階段載入
   useEffect(() => {
-    // Phase 1: 立即顯示靜態內容
-    setLoadingPhase('static')
+    // Load recent views from localStorage immediately (no Firestore needed)
+    try {
+      const saved = localStorage.getItem('recentViews')
+      if (saved) setRecentItems(JSON.parse(saved).slice(0, 10))
+    } catch (e) {}
+
+    // Apply cached data instantly (before Firestore queries return)
+    if (_homepageCache) {
+      const c = _homepageCache
+      if (c.homeSettings) setHomeSettings(prev => ({ ...prev, ...c.homeSettings }))
+      setArtists(c.artists || [])
+      setLatestSongs(c.latestSongs || [])
+      setHotTabs(c.hotTabs || [])
+      setAllSongs(c.allSongs || [])
+      setHotArtists(c.hotArtists || { male: [], female: [], group: [], all: [] })
+      setArtistPhotoMap(c.artistPhotoMap || {})
+      setAutoPlaylists(c.autoPlaylists || [])
+      setManualPlaylists(c.manualPlaylists || [])
+      if (c.categories) setCategories(c.categories)
+      setTotalViewCount(c.totalViewCount || 0)
+      setLoadingPhase('public')
+    }
     
-    // Phase 2: 載入公開資料（不需要登入）
+    // Fetch fresh data in background
     loadPublicData().then(() => {
       setLoadingPhase('public')
-      
-      // Phase 3: 載入需要登入的資料
       loadUserData().then(() => {
         setLoadingPhase('complete')
       })
     })
   }, [])
 
-  // 緩存設定（避免重複獲取）
-  const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘緩存
-  
   // Phase 2: 載入公開資料（不需要登入）
   const loadPublicData = async () => {
     const startTime = performance.now();
+    if (_homepageCache) console.log('[Performance] Cache hit — showing cached data instantly');
     
     try {
-      // 並行載入：設置、熱門歌手、歌單、最新歌曲
+      // Phase A: Reuse module-level prefetch (queries started before component mounted)
       const [
         settingsDoc,
         popularArtistsData,
-        autoPlaylistsData,
-        manualPlaylistsData,
-        recentTabsData
-      ] = await Promise.all([
-        getDoc(doc(db, 'settings', 'home')),
-        getPopularArtists(30),
-        getAutoPlaylists(),
-        getManualPlaylists(),
-        getRecentTabs(10)
-      ]);
+        playlistsData,
+        recentTabsData,
+        defaultHotTabsData
+      ] = await prefetchHomeData();
       
       const settings = settingsDoc.exists() ? settingsDoc.data() : {};
       setHomeSettings(prev => ({ ...prev, ...settings }));
       
-      console.log('[Performance] Core public data loaded:', Math.round(performance.now() - startTime), 'ms');
-
-      // 處理熱門樂譜
-      let hotTabsData = [];
-      const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 100);
+      const autoPlaylistsData = playlistsData.auto || [];
+      const manualPlaylistsData = playlistsData.manual || [];
       
-      if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
-        const manualIds = settings.hotTabs.manualSelection
-          .map(t => typeof t === 'object' && t !== null ? t.id : t)
-          .filter(id => typeof id === 'string' && id.trim() !== '')
-          .slice(0, 30);
-        
-        const manualTabs = manualIds.length > 0 ? await getTabsByIds(manualIds) : [];
-        
-        if (manualTabs.length < targetCount) {
-          const manualIdsSet = new Set(manualIds);
-          const [hotTabs] = await Promise.all([getHotTabs(targetCount + 10)]);
-          const autoFill = hotTabs.filter(t => !manualIdsSet.has(t.id)).slice(0, targetCount - manualTabs.length);
-          hotTabsData = [...manualTabs, ...autoFill];
-        } else {
-          hotTabsData = manualTabs.slice(0, targetCount);
-        }
-      } else {
-        hotTabsData = await getHotTabs(targetCount);
-      }
-      
-      setHotTabs(hotTabsData);
+      // Progressive render: set non-dependent state immediately
       setLatestSongs(recentTabsData || []);
-      setAutoPlaylists(autoPlaylistsData?.length > 0 ? autoPlaylistsData : FALLBACK_AUTO_PLAYLISTS);
-      setManualPlaylists(manualPlaylistsData?.length > 0 ? manualPlaylistsData : FALLBACK_MANUAL_PLAYLISTS);
+      setAutoPlaylists(autoPlaylistsData.length > 0 ? autoPlaylistsData : FALLBACK_AUTO_PLAYLISTS);
+      setManualPlaylists(manualPlaylistsData.length > 0 ? manualPlaylistsData : FALLBACK_MANUAL_PLAYLISTS);
       
-      // 加載自定義歌單區域的歌曲
-      const customSections = settings.customPlaylistSections || [];
-      const customSongIds = new Set();
-      customSections.forEach(section => {
-        if (section.type === 'customPlaylist' && section.playlistId) {
-          const playlist = autoPlaylistsData.find(p => p.id === section.playlistId) ||
-                          manualPlaylistsData.find(p => p.id === section.playlistId);
-          if (playlist?.songIds) {
-            playlist.songIds.forEach(id => customSongIds.add(id));
+      console.log('[Performance] Phase A (parallel):', Math.round(performance.now() - startTime), 'ms');
+
+      // Phase B: Process settings-dependent data in parallel
+      const hotTabsPromise = (async () => {
+        const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 100);
+        
+        if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
+          const manualIds = settings.hotTabs.manualSelection
+            .map(t => typeof t === 'object' && t !== null ? t.id : t)
+            .filter(id => typeof id === 'string' && id.trim() !== '')
+            .slice(0, 30);
+          
+          const manualTabs = manualIds.length > 0 ? await getTabsByIds(manualIds) : [];
+          
+          if (manualTabs.length < targetCount) {
+            const manualIdsSet = new Set(manualIds);
+            const autoFill = defaultHotTabsData
+              .filter(t => !manualIdsSet.has(t.id))
+              .slice(0, targetCount - manualTabs.length);
+            return [...manualTabs, ...autoFill];
+          }
+          return manualTabs.slice(0, targetCount);
+        }
+        return defaultHotTabsData.slice(0, targetCount);
+      })();
+
+      const customSongsPromise = (async () => {
+        const customSections = settings.customPlaylistSections || [];
+        const customSongIds = new Set();
+        customSections.forEach(section => {
+          if (section.type === 'customPlaylist' && section.playlistId) {
+            const playlist = autoPlaylistsData.find(p => p.id === section.playlistId) ||
+                            manualPlaylistsData.find(p => p.id === section.playlistId);
+            if (playlist?.songIds) {
+              playlist.songIds.forEach(id => customSongIds.add(id));
+            }
+          }
+        });
+        
+        const knownIds = new Set([
+          ...defaultHotTabsData.map(t => t.id),
+          ...recentTabsData.map(t => t.id)
+        ]);
+        const missingSongIds = Array.from(customSongIds).filter(id => !knownIds.has(id));
+        
+        if (missingSongIds.length > 0) {
+          return await getTabsByIds(missingSongIds.slice(0, 50));
+        }
+        return [];
+      })();
+
+      const artistsPromise = (async () => {
+        let popularArtists = popularArtistsData || [];
+        
+        const rawManualSelection = Array.isArray(settings.manualSelection) 
+          ? settings.manualSelection 
+          : [
+              ...(settings.manualSelection?.male || []),
+              ...(settings.manualSelection?.female || []),
+              ...(settings.manualSelection?.group || [])
+            ];
+        
+        const manualArtistIds = rawManualSelection
+          .map(item => typeof item === 'object' && item !== null ? item.id : item)
+          .filter(id => typeof id === 'string' && id.trim() !== '');
+        
+        if (manualArtistIds.length > 0) {
+          const existingArtistIds = new Set(popularArtists.map(a => a.id));
+          const missingIds = manualArtistIds.filter(id => !existingArtistIds.has(id));
+          
+          if (missingIds.length > 0) {
+            const batchSize = 10;
+            const allMissing = [];
+            for (let i = 0; i < missingIds.length; i += batchSize) {
+              const batch = missingIds.slice(i, i + batchSize);
+              const q = query(
+                collection(db, 'artists'),
+                where('__name__', 'in', batch)
+              );
+              const snapshot = await getDocs(q);
+              snapshot.docs.forEach(d => {
+                const data = d.data();
+                allMissing.push({
+                  id: d.id, ...data,
+                  photo: data.photoURL || data.wikiPhotoURL || data.photo || null,
+                  tabCount: data.songCount || data.tabCount || 0
+                });
+              });
+            }
+            popularArtists = [...popularArtists, ...allMissing];
           }
         }
-      });
-      
-      const existingIds = new Set([
-        ...hotTabsData.map(t => t.id),
-        ...recentTabsData.map(t => t.id)
+        return popularArtists;
+      })();
+
+      const [hotTabsData, customSongs, popularArtists] = await Promise.all([
+        hotTabsPromise, customSongsPromise, artistsPromise
       ]);
-      const missingSongIds = Array.from(customSongIds).filter(id => !existingIds.has(id));
       
-      let customSongs = [];
-      if (missingSongIds.length > 0) {
-        customSongs = await getTabsByIds(missingSongIds.slice(0, 50));
-      }
+      setHotTabs(hotTabsData);
       setAllSongs(customSongs);
       
-      // 處理歌手數據
-      let popularArtists = popularArtistsData || [];
-      
-      const rawManualSelection = Array.isArray(settings.manualSelection) 
-        ? settings.manualSelection 
-        : [
-            ...(settings.manualSelection?.male || []),
-            ...(settings.manualSelection?.female || []),
-            ...(settings.manualSelection?.group || [])
-          ];
-      
-      const manualIds = rawManualSelection
-        .map(item => typeof item === 'object' && item !== null ? item.id : item)
-        .filter(id => typeof id === 'string' && id.trim() !== '');
-      
-      if (manualIds.length > 0) {
-        const existingIds = new Set(popularArtists.map(a => a.id));
-        const missingIds = manualIds.filter(id => !existingIds.has(id));
-        
-        if (missingIds.length > 0) {
-          const missingArtists = await Promise.all(
-            missingIds.map(id => 
-              getDoc(doc(db, 'artists', id)).then(doc => {
-                if (!doc.exists()) return null;
-                const data = doc.data();
-                return { id: doc.id, ...data, photo: data.photoURL || data.wikiPhotoURL || data.photo || null, tabCount: data.songCount || data.tabCount || 0 };
-              }).catch(() => null)
-            )
-          );
-          popularArtists = [...popularArtists, ...missingArtists.filter(Boolean)];
-        }
-      }
+      console.log('[Performance] Phase B (parallel):', Math.round(performance.now() - startTime), 'ms');
       
       // 建立照片 lookup
       const photoMap = {};
@@ -744,14 +829,31 @@ export default function Home() {
         }
       }
       
-      setHotArtists({
+      const hotArtistsData = {
         all: getHotArtists(),
         male: sortedArtists.filter(a => (a.artistType || a.gender) === 'male').slice(0, 5),
         female: sortedArtists.filter(a => (a.artistType || a.gender) === 'female').slice(0, 5),
         group: sortedArtists.filter(a => (a.artistType || a.gender) === 'group').slice(0, 5)
-      });
+      };
+      const artistsSlice = sortedArtists.slice(0, 10);
       
-      setArtists(sortedArtists.slice(0, 10));
+      setHotArtists(hotArtistsData);
+      setArtists(artistsSlice);
+      
+      // Save to sessionStorage for instant load on next visit
+      saveHomepageCache({
+        _ts: Date.now(),
+        homeSettings: settings,
+        hotTabs: stripContentForCache(hotTabsData),
+        latestSongs: stripContentForCache(recentTabsData),
+        autoPlaylists: autoPlaylistsData,
+        manualPlaylists: manualPlaylistsData,
+        allSongs: stripContentForCache(customSongs),
+        hotArtists: hotArtistsData,
+        artists: artistsSlice,
+        artistPhotoMap: photoMap,
+        totalViewCount: popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0)
+      });
       
       // 延遲載入分類圖片（非關鍵數據）
       setTimeout(async () => {
