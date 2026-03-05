@@ -129,9 +129,10 @@ export default function QuickImport() {
   const parseRawText = (text) => {
     if (!text.trim()) return null
 
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l)
+    // 保留原始空格，但分割成行
+    const lines = text.split('\n').map(l => l.trimEnd()).filter(l => l.trim())
     
-    // 提取標題和歌手（通常在第一行或前幾行）
+    // 提取標題和歌手
     let title = ''
     let artists = []
     let composer = ''
@@ -141,26 +142,50 @@ export default function QuickImport() {
     let bpm = ''
     let contentLines = []
     let foundContentStart = false
+    
+    // UI 關鍵詞過濾列表
+    const uiKeywords = [
+      'CHORD LOG', '跟隨', '收藏列印', '列印Chord表', 'Chord表',
+      'Beats字體', '雙頁並排', '回報問題', '標籤', '跟隨中',
+      'Key', 'CAPO', 'Apple Music', '在 Apple Music', '聆聽'
+    ]
+    
+    // 檢查是否為 UI 行
+    const isUILine = (line) => {
+      return uiKeywords.some(kw => line.includes(kw)) ||
+             line.match(/^\d{3,}$/) || // 3位以上純數字（瀏覽數）
+             (line.length < 20 && (line === 'Intro' || line === 'Verse' || line === 'Chorus' || line === 'Bridge'))
+    }
 
-    // 先掃描整個文本提取元數據
+    // 第一遍：提取元數據（作曲、填詞、BPM）
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
       const lowerLine = line.toLowerCase()
-
-      // 提取作曲
+      
+      // 只處理包含曲/詞的行，並且要精確提取
       if (lowerLine.includes('曲：') || lowerLine.includes('作曲：')) {
-        composer = line.replace(/.*曲[：:]/, '').trim()
+        // 只取曲：後面的內容，遇到詞：或行尾停止
+        const match = line.match(/曲[：:]\s*([^詞]+)/)
+        if (match) {
+          composer = match[1].trim()
+        } else {
+          composer = line.replace(/.*曲[：:]/, '').trim()
+        }
         continue
       }
 
-      // 提取填詞
       if (lowerLine.includes('詞：') || lowerLine.includes('填詞：') || lowerLine.includes('作詞：')) {
-        lyricist = line.replace(/.*詞[：:]/, '').trim()
+        const match = line.match(/詞[：:]\s*([^曲]+)/)
+        if (match) {
+          lyricist = match[1].trim()
+        } else {
+          lyricist = line.replace(/.*詞[：:]/, '').trim()
+        }
         continue
       }
 
-      // 提取 BPM（格式：Bpm 59 或 59 Bpm）
-      const bpmMatch = line.match(/Bpm\s*(\d+)/i) || line.match(/(\d+)\s*Bpm/i)
+      // 提取 BPM
+      const bpmMatch = line.match(/Bpm\s*(\d+)/i)
       if (bpmMatch && !bpm) {
         bpm = bpmMatch[1]
         continue
@@ -170,15 +195,14 @@ export default function QuickImport() {
     // 從 Key 行提取預設調性
     for (const line of lines) {
       if (line.includes('Key') && line.includes('預設')) {
-        // 格式：Key CDb(預設)DEbEFF#GAbABbB
-        const keyMatch = line.match(/Key\s+([A-G][#b]?)/i)
-        if (keyMatch) {
-          originalKey = keyMatch[1]
-        }
-        // 也可能有 (預設) 標記
         const defaultKeyMatch = line.match(/([A-G][#b]?)\(預設\)/)
         if (defaultKeyMatch) {
           originalKey = defaultKeyMatch[1]
+        } else {
+          const keyMatch = line.match(/Key\s+([A-G][#b]?)/i)
+          if (keyMatch) {
+            originalKey = keyMatch[1]
+          }
         }
       }
     }
@@ -186,8 +210,6 @@ export default function QuickImport() {
     // 從 CAPO 行提取 Capo
     for (const line of lines) {
       if (line.includes('CAPO') && line.includes('(')) {
-        // 格式：CAPO 0 (Db)1 (C)2 (B)...
-        // 找到第一個數字
         const capoMatch = line.match(/CAPO\s*(\d+)/i)
         if (capoMatch) {
           capo = capoMatch[1]
@@ -195,93 +217,96 @@ export default function QuickImport() {
       }
     }
 
+    // 第二遍：提取標題和譜內容
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
+      const trimmedLine = line.trim()
 
-      // 跳過 CHORD LOG 等標題行
-      if (line.includes('CHORD LOG')) continue
-      if (line.includes('跟隨')) continue
-      if (line.includes('收藏列印')) continue
-      if (line.includes('Key') && line.includes('CAPO')) continue
-      if (line.includes('Key') && line.includes('預設')) continue
-      if (line.includes('CAPO') && line.includes('(')) continue
-      if (line.includes('Apple Music')) continue
-      if (line.includes('在 Apple Music')) continue
-      if (line.match(/^\d{4,}$/)) continue // 4位以上純數字（通常是瀏覽數）
+      // 跳過 UI 行和已處理的字段
+      if (isUILine(trimmedLine)) continue
+      if (trimmedLine.includes('曲：') || trimmedLine.includes('詞：')) continue
+      if (trimmedLine.match(/Bpm\s*\d+/i)) continue
+      if (trimmedLine.includes('標籤')) continue
       
-      // 已經處理過的字段跳過
-      if (line.includes('曲：') || line.includes('詞：')) continue
-      if (line.match(/Bpm\s*\d+/i)) continue
-
-      // 譜內容開始（包含 | 或純和弦行）
-      if (line.includes('|') || line.match(/^[A-G][#b]?(m|maj7|7|add9|sus4|6|9)?$/)) {
+      // 檢測譜內容開始（包含 | 符號）
+      if (trimmedLine.includes('|')) {
         foundContentStart = true
       }
-
-      // 收集譜內容
-      if (foundContentStart || line.includes('|') || 
-          (line.length < 50 && (line.includes('Verse') || line.includes('Chorus') || line.includes('Intro') || line.includes('Bridge')))) {
-        contentLines.push(line)
-      } else if (!title && !foundContentStart && line.length < 50 && !line.includes('標籤')) {
-        // 可能是標題行，檢查是否包含歌手名
-        // 嘗試解析第一行（可能沒有分隔符）
-        // 格式如：租購薛之謙曲：董嘉鸿詞：张鹏鹏、董嘉鸿
+      
+      // 收集譜內容（保留原始空格）
+      if (foundContentStart) {
+        contentLines.push(line) // 使用原始行保留空格
+      } else if (!title && trimmedLine.length < 60) {
+        // 嘗試提取標題和歌手
+        // 格式 1: "歌名 - 歌手" 或 "歌手 - 歌名"
+        const separatorMatch = trimmedLine.match(/^(.+?)\s*[-–—]\s*(.+)$/) ||
+                               trimmedLine.match(/^(.+?)\s*by\s*(.+)$/i) ||
+                               trimmedLine.match(/^(.+?)\s*[|｜]\s*(.+)$/)
         
-        // 移除曲詞信息後嘗試解析
-        const cleanLine = line.replace(/[曲詞][:：].*$/, '').trim()
-        
-        if (cleanLine.includes(' - ') || cleanLine.includes('–') || cleanLine.includes('—')) {
-          const titleMatch = cleanLine.match(/^(.+?)\s*[-–—]\s*(.+)$/)
-          if (titleMatch) {
-            const part1 = titleMatch[1].trim()
-            const part2 = titleMatch[2].trim()
-            // 檢查哪個是歌手（較長或包含常見歌手詞）
-            if (part1.length > part2.length || /薛之謙|陳奕迅|周杰倫|五月天/.test(part1)) {
-              title = part2
-              artists = [part1]
-            } else {
+        if (separatorMatch) {
+          const part1 = separatorMatch[1].trim()
+          const part2 = separatorMatch[2].trim()
+          
+          // 判斷哪個是歌手（通常包含 &、+，或者已知歌手名）
+          const knownArtists = ['薛之謙', '陳奕迅', '周杰倫', '五月天', '林俊傑', '鄧紫棋', '張學友', 'Gareth.T', 'MC 張天賦', '張天賦']
+          const isPart1Artist = knownArtists.some(a => part1.includes(a)) || part1.includes('&') || part1.includes('、')
+          const isPart2Artist = knownArtists.some(a => part2.includes(a)) || part2.includes('&') || part2.includes('、')
+          
+          if (isPart1Artist && !isPart2Artist) {
+            artists = part1.split(/[&+、,]/).map(a => a.trim()).filter(a => a)
+            title = part2
+          } else if (isPart2Artist && !isPart1Artist) {
+            artists = part2.split(/[&+、,]/).map(a => a.trim()).filter(a => a)
+            title = part1
+          } else {
+            // 都像是或都不像，取較短的是歌名
+            if (part1.length <= part2.length) {
               title = part1
               artists = [part2]
+            } else {
+              title = part2
+              artists = [part1]
             }
           }
         } else {
-          // 沒有分隔符，嘗試從內容推斷
-          // 通常歌名較短，歌手名在後
-          // 查找可能的歌手名位置
-          const possibleArtists = ['薛之謙', '陳奕迅', '周杰倫', '五月天', '林俊傑', '鄧紫棋', '張學友', 'Gareth.T', 'MC 張天賦']
+          // 格式 2: 沒有分隔符，如 "租購薛之謙曲：董嘉鸿"
+          // 先移除曲詞部分
+          const cleanLine = trimmedLine.replace(/[曲詞][:：].*$/, '').trim()
           
-          for (const artistName of possibleArtists) {
-            if (cleanLine.includes(artistName)) {
+          if (cleanLine.length >= 2) {
+            // 嘗試識別已知歌手
+            const knownArtists = ['薛之謙', '陳奕迅', '周杰倫', '五月天', '林俊傑', '鄧紫棋', '張學友', 'Gareth.T', 'MC 張天賦', '張天賦', '楊千嬅', '容祖兒']
+            let foundArtist = null
+            let artistIndex = -1
+            
+            for (const artistName of knownArtists) {
               const idx = cleanLine.indexOf(artistName)
-              if (idx === 0) {
-                // 歌手在前
-                title = cleanLine.replace(artistName, '').trim()
-                artists = [artistName]
-              } else {
-                // 歌名在前
-                title = cleanLine.substring(0, idx).trim()
-                artists = [artistName]
+              if (idx !== -1) {
+                foundArtist = artistName
+                artistIndex = idx
+                break
               }
-              break
             }
-          }
-          
-          // 如果還沒找到，嘗試簡單分割（歌名通常2-4個字）
-          if (!title && cleanLine.length >= 2) {
-            // 假設歌名在前，歌手在後
-            // 常見模式：2-4字歌名 + 歌手名
-            if (cleanLine.length <= 6) {
-              // 可能是單獨歌名，歌手在別處
+            
+            if (foundArtist) {
+              if (artistIndex === 0) {
+                // 歌手在前
+                title = cleanLine.substring(foundArtist.length).trim()
+                artists = [foundArtist]
+              } else {
+                // 歌手在後
+                title = cleanLine.substring(0, artistIndex).trim()
+                artists = [foundArtist]
+              }
+            } else if (cleanLine.length <= 6) {
+              // 短文字，可能是純歌名
               title = cleanLine
             } else {
-              // 嘗試提取2-4字作為歌名
-              const shortTitle = cleanLine.substring(0, Math.min(4, cleanLine.length))
+              // 未知格式，嘗試前 2-4 字為歌名
+              title = cleanLine.substring(0, Math.min(4, cleanLine.length))
               const possibleArtist = cleanLine.substring(Math.min(4, cleanLine.length)).trim()
               if (possibleArtist.length >= 2) {
-                title = shortTitle
                 artists = [possibleArtist]
-              } else {
-                title = cleanLine
               }
             }
           }
@@ -289,18 +314,22 @@ export default function QuickImport() {
       }
     }
 
-    // 從 "聆聽" 行提取歌手
+    // 第三遍：從 "聆聽" 行驗證
     for (const line of lines) {
       if (line.includes('聆聽') && line.includes('-')) {
-        // 格式：聆聽 "租購" 或 薛之謙 - 租購
-        const listenMatch = line.match(/(.+?)\s*-\s*(.+)/)
-        if (listenMatch) {
-          const possibleArtist = listenMatch[1].replace(/聆聽.*"/, '').replace(/"/g, '').trim()
-          const possibleTitle = listenMatch[2].replace(/"/g, '').trim()
+        const match = line.match(/(.+?)\s*-\s*(.+)/)
+        if (match) {
+          const left = match[1].replace(/聆聽/, '').replace(/"/g, '').trim()
+          const right = match[2].replace(/"/g, '').trim()
           
-          if (possibleTitle === title || possibleTitle.includes(title)) {
+          // 如果一邊匹配當前標題，另一邊就是歌手
+          if (right === title || right.includes(title)) {
             if (!artists.length || artists[0] === '未知歌手') {
-              artists = [possibleArtist]
+              artists = [left]
+            }
+          } else if (left === title || left.includes(title)) {
+            if (!artists.length || artists[0] === '未知歌手') {
+              artists = [right]
             }
           }
         }
@@ -472,7 +501,8 @@ export default function QuickImport() {
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
                 placeholder="貼上從網站複製的譜文字..."
-                className="w-full h-96 bg-[#1a1a1a] text-white rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+                className="w-full h-96 bg-[#1a1a1a] text-white rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#FFD700] whitespace-pre"
+                style={{ whiteSpace: 'pre' }}
               />
               
               {/* 字體選擇 */}
