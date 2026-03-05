@@ -13,6 +13,7 @@ import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
@@ -526,6 +527,42 @@ export default function EditTab() {
   const handleSelectCover = (url) => {
     setFormData(prev => ({ ...prev, coverImage: url }))
   }
+  
+  // 上傳自訂封面
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
+  
+  const handleUploadCover = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // 驗證檔案
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      setUploadError(validation.error)
+      return
+    }
+    
+    setIsUploadingCover(true)
+    setUploadError(null)
+    
+    try {
+      const artistName = formData.artist || 'unknown'
+      const songTitle = formData.title || 'song'
+      const folder = 'tab_covers'
+      const name = `${artistName}_${songTitle}_cover`
+      
+      const url = await uploadToCloudinary(file, name, folder)
+      setFormData(prev => ({ ...prev, coverImage: url }))
+    } catch (error) {
+      console.error('Upload error:', error)
+      setUploadError(error.message || '上傳失敗，請重試')
+    } finally {
+      setIsUploadingCover(false)
+      // 清空 input 以便可以再次選擇同一個檔案
+      e.target.value = ''
+    }
+  }
 
   if (isLoading) {
     return (
@@ -884,59 +921,100 @@ export default function EditTab() {
               {(() => {
                 const options = getCoverImageOptions()
                 
-                if (options.length === 0) {
-                  return (
-                    <div className="text-center py-6 bg-[#1a1a1a] rounded-lg border border-gray-800">
-                      <p className="text-gray-500 text-sm">請先添加 YouTube 影片或從 Spotify 搜尋歌曲</p>
-                      <p className="text-gray-600 text-xs mt-1">系統會自動獲取封面圖片選項</p>
-                    </div>
-                  )
-                }
-                
                 return (
                   <div className="space-y-4">
-                    {/* 圖片選擇 - 100x100 小圖 */}
-                    <div className="flex flex-wrap gap-3">
-                      {options.map((option, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => handleSelectCover(option.url)}
-                          className={`relative w-[100px] h-[100px] rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${
-                            formData.coverImage === option.url 
-                              ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
-                              : 'border-gray-700 hover:border-gray-500'
-                          }`}
-                        >
-                          <img 
-                            src={option.url} 
-                            alt={option.label}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none'
-                              e.target.nextSibling.style.display = 'flex'
-                            }}
-                          />
-                          <div className="hidden w-full h-full items-center justify-center bg-gray-800 text-gray-500 text-xs">
-                            載入失敗
+                    {/* 上傳自訂封面按鈕 */}
+                    <div className="flex items-center gap-4">
+                      <label className={`relative flex items-center justify-center w-[100px] h-[100px] rounded-lg border-2 border-dashed cursor-pointer transition flex-shrink-0 ${
+                        isUploadingCover 
+                          ? 'border-gray-600 bg-gray-800/50' 
+                          : 'border-gray-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
+                      }`}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadCover}
+                          disabled={isUploadingCover}
+                          className="hidden"
+                        />
+                        {isUploadingCover ? (
+                          <div className="flex flex-col items-center">
+                            <svg className="w-6 h-6 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-[10px] text-gray-400 mt-1">上傳中...</span>
                           </div>
-                          
-                          {/* 類型標籤 - 更小字體 */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm py-0.5 px-1">
-                            <p className="text-white text-[10px] truncate">{option.label}</p>
+                        ) : (
+                          <div className="flex flex-col items-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span className="text-[10px] text-gray-400 mt-1">上傳封面</span>
                           </div>
-                          
-                          {/* 選中標記 - 更小 */}
-                          {formData.coverImage === option.url && (
-                            <div className="absolute top-1 right-1 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center">
-                              <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                          )}
-                        </button>
-                      ))}
+                        )}
+                      </label>
+                      
+                      <div className="flex-1">
+                        <p className="text-sm text-white font-medium">上傳自訂封面</p>
+                        <p className="text-xs text-gray-500">支援 JPG、PNG、GIF、WebP，最大 10MB</p>
+                        {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
+                      </div>
                     </div>
+                    
+                    {/* 分隔線 */}
+                    {options.length > 0 && (
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-px bg-gray-800"></div>
+                        <span className="text-xs text-gray-500">或選擇現有圖片</span>
+                        <div className="flex-1 h-px bg-gray-800"></div>
+                      </div>
+                    )}
+                    
+                    {/* 現有圖片選擇 - 100x100 小圖 */}
+                    {options.length > 0 && (
+                      <div className="flex flex-wrap gap-3">
+                        {options.map((option, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectCover(option.url)}
+                            className={`relative w-[100px] h-[100px] rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${
+                              formData.coverImage === option.url 
+                                ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
+                                : 'border-gray-700 hover:border-gray-500'
+                            }`}
+                          >
+                            <img 
+                              src={option.url} 
+                              alt={option.label}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                                e.target.nextSibling.style.display = 'flex'
+                              }}
+                            />
+                            <div className="hidden w-full h-full items-center justify-center bg-gray-800 text-gray-500 text-xs">
+                              載入失敗
+                            </div>
+                            
+                            {/* 類型標籤 - 更小字體 */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm py-0.5 px-1">
+                              <p className="text-white text-[10px] truncate">{option.label}</p>
+                            </div>
+                            
+                            {/* 選中標記 - 更小 */}
+                            {formData.coverImage === option.url && (
+                              <div className="absolute top-1 right-1 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center">
+                                <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     
                     {/* 當前選擇預覽 */}
                     {formData.coverImage && (
@@ -950,7 +1028,7 @@ export default function EditTab() {
                           />
                           <div className="flex-1">
                             <p className="text-white text-sm truncate">
-                              {options.find(o => o.url === formData.coverImage)?.label || '自訂圖片'}
+                              {options.find(o => o.url === formData.coverImage)?.label || '自訂封面'}
                             </p>
                             <button
                               type="button"
@@ -961,6 +1039,14 @@ export default function EditTab() {
                             </button>
                           </div>
                         </div>
+                      </div>
+                    )}
+                    
+                    {/* 沒有選項時的提示 */}
+                    {options.length === 0 && !formData.coverImage && (
+                      <div className="text-center py-4 bg-[#1a1a1a] rounded-lg border border-gray-800">
+                        <p className="text-gray-500 text-sm">還沒有其他封面選項</p>
+                        <p className="text-gray-600 text-xs mt-1">添加 YouTube 影片或從 Spotify 搜尋可獲取更多封面</p>
                       </div>
                     )}
                   </div>
