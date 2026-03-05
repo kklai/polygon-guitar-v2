@@ -297,17 +297,35 @@ export default function NewTab() {
     loadUserPenName()
   }, [user])
 
-  // 從 URL query 參數預填數據（來自求譜區）
+  // 從 URL query 參數預填數據（來自求譜區或後台快速導入）
   useEffect(() => {
     if (router.isReady) {
-      const { title, artist, youtube } = router.query
-      if (title || artist || youtube) {
+      const { 
+        title, artist, youtube, 
+        originalKey, capo, playKey, content,
+        composer, lyricist, arranger, bpm, songYear,
+        uploaderPenName, albumImage, album
+      } = router.query
+      
+      if (title || artist || youtube || content) {
         setFormData(prev => ({
           ...prev,
           title: title || prev.title,
           artist: artist || prev.artist,
           artists: artist ? [{ name: artist, id: null, relation: null }] : prev.artists,
-          youtubeUrl: youtube || prev.youtubeUrl
+          youtubeUrl: youtube || prev.youtubeUrl,
+          originalKey: originalKey || prev.originalKey,
+          capo: capo || prev.capo,
+          playKey: playKey || prev.playKey,
+          content: content ? decodeURIComponent(content) : prev.content,
+          composer: composer || prev.composer,
+          lyricist: lyricist || prev.lyricist,
+          arranger: arranger || prev.arranger,
+          bpm: bpm || prev.bpm,
+          songYear: songYear || prev.songYear,
+          uploaderPenName: uploaderPenName || prev.uploaderPenName,
+          albumImage: albumImage || prev.albumImage,
+          album: album || prev.album
         }))
       }
     }

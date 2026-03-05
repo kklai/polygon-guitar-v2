@@ -97,6 +97,14 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
+      href: '/admin/quick-import',
+      title: '⚡ 快速導入譜',
+      description: '貼上 Chord Log 文字，自動解析並搜尋 YouTube/Spotify，一鍵跳轉上傳',
+      icon: '⚡',
+      color: 'bg-[#FFD700] text-black',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
       href: '/admin/import-tabs',
       title: '批量導入譜',
       description: '從 Blogger 導入結他譜',
