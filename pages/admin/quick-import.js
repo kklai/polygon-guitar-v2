@@ -147,20 +147,26 @@ export default function QuickImport() {
     const uiKeywords = [
       'CHORD LOG', '跟隨', '收藏列印', '列印Chord表', 'Chord表',
       'Beats字體', '雙頁並排', '回報問題', '標籤', '跟隨中',
-      'Apple Music', '在 Apple Music', '聆聽'
+      'Apple Music', '在 Apple Music', '聆聽', 'Key', 'CAPO'
     ]
     
     // 檢查是否為 UI 行
     const isUILine = (line) => {
-      // 檢查關鍵詞
-      if (uiKeywords.some(kw => line.includes(kw))) return true
+      // 檢查關鍵詞（但排除可能是歌名的情況）
+      for (const kw of uiKeywords) {
+        if (line.includes(kw)) {
+          // 對於 Key，如果它是行首且後面跟著音符，則是 UI
+          if (kw === 'Key' && line.match(/^Key/i)) return true
+          if (kw !== 'Key') return true
+        }
+      }
       
       // 檢查 Key 行（包含音符字母序列）
       if (line.match(/^Key\s+[A-G#b]+/i)) return true
       if (line.match(/\(預設\)/)) return true
       
       // 檢查 CAPO 行
-      if (line.match(/^CAPO\s+\d+/i)) return true
+      if (line.match(/^CAPO\s*\d*/i)) return true
       
       // 檢查純數字（瀏覽數）
       if (line.match(/^\d{3,}$/)) return true
@@ -241,9 +247,11 @@ export default function QuickImport() {
       if (trimmedLine.includes('曲：') || trimmedLine.includes('詞：') || trimmedLine.includes('词：')) continue
       if (trimmedLine.match(/Bpm\s*\d+/i)) continue
       if (trimmedLine.includes('標籤')) continue
-      if (trimmedLine.match(/^Key\s+[A-G]/i)) continue // Key 行
+      if (trimmedLine.match(/^Key/i)) continue // 任何以 Key 開頭的行
+      if (trimmedLine.match(/^CAPO/i)) continue // 任何以 CAPO 開頭的行
       if (trimmedLine.match(/\(預設\)/)) continue // 包含預設標記的行
       if (trimmedLine.match(/^[A-G][#b]?\(預設\)/)) continue // 例如 "Db(預設)"
+      if (trimmedLine.match(/^[A-G][#b]?[A-G#b]+$/)) continue // 純音符序列如 "CDbDEbEFF#GAbABbB"
       
       // 檢測譜內容開始（包含 | 符號）
       if (trimmedLine.includes('|')) {
@@ -316,8 +324,11 @@ export default function QuickImport() {
                 artists = [foundArtist]
               }
             } else if (cleanLine.length <= 6) {
-              // 短文字，可能是純歌名
-              title = cleanLine
+              // 短文字，可能是純歌名，但要排除 UI 關鍵詞
+              const uiWords = ['Key', 'CAPO', 'Intro', 'Verse', 'Chorus', 'Bridge', 'Outro', '標籤']
+              if (!uiWords.includes(cleanLine)) {
+                title = cleanLine
+              }
             } else {
               // 未知格式，嘗試前 2-4 字為歌名
               title = cleanLine.substring(0, Math.min(4, cleanLine.length))
