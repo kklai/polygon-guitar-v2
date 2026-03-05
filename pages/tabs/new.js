@@ -203,6 +203,8 @@ export default function NewTab() {
 
   // 所有 hooks 必須在任何 return 之前定義 - authChecked 用於等待初始化
   const [authChecked, setAuthChecked] = useState(false)
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
   
   // 解析多歌手（使用 useMemo 確保正確更新）
   const { collaborators, collaborationType } = useMemo(() => 
@@ -564,9 +566,6 @@ E|----------------------------------------------------------------|
   }
   
   // 上傳自訂封面
-  const [isUploadingCover, setIsUploadingCover] = useState(false)
-  const [uploadError, setUploadError] = useState(null)
-  
   const handleUploadCover = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return

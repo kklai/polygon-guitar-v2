@@ -10,7 +10,7 @@ const splitLyricLine = (lyric, maxLen) => {
   if (maxLen === undefined) {
     const stripped = lyric.replace(/[\s()]/g, '')
     const allChinese = stripped.length > 0 && /^[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\u3000-\u303f\uff00-\uffef，。、！？；：「」『』（）《》…—]+$/.test(stripped)
-    maxLen = allChinese ? 20 : 50
+    maxLen = allChinese ? 16 : 50
   }
   // Tokenize into chars and (X) groups, each with display length (spaces = 0)
   const tokens = []
@@ -105,7 +105,9 @@ export default function TabShareTool() {
       if (containerRef.current) {
         const width = containerRef.current.offsetWidth
         const maxHeight = 280
-        setPreviewScale(Math.min(1, width / PREVIEW_W, maxHeight / PREVIEW_H))
+        const isDesktop = window.innerWidth >= 768
+        const minScale = isDesktop ? 375 / PREVIEW_W : 0
+        setPreviewScale(Math.max(minScale, Math.min(1, width / PREVIEW_W, maxHeight / PREVIEW_H)))
       }
     }
     updateScale()
@@ -583,7 +585,7 @@ export default function TabShareTool() {
                   </div>
                 ) : (
                   <div style={{ width: `${PREVIEW_W * previewScale}px`, height: `${PREVIEW_H * previewScale}px` }} className="bg-[#121212] rounded-xl border border-gray-800 flex items-center justify-center">
-                    <p className="text-gray-500">{selectedTab ? '選擇段落' : '載入中...'}</p>
+                    <p className="text-gray-500">{selectedTab ? '㨂選你喜歡的歌詞' : '載入中...'}</p>
                   </div>
                 )}
               </div>
@@ -595,7 +597,7 @@ export default function TabShareTool() {
             {selectedTab && (
               <>
                 <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
-                  <h3 className="text-white font-bold">選擇段落</h3>
+                  <h3 className="text-white font-bold mb-[10px]">㨂選你喜歡的歌詞</h3>
                   <div
                     ref={pickerRef}
                     onScroll={onPickerScroll}
