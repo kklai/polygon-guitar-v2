@@ -183,12 +183,17 @@ export default async function handler(req, res) {
     
     console.log('Spotify search query:', searchQuery)
     
-    const searchResponse = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20`,
-      {
-        headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-      }
-    )
+    // Build search URL without limit first to test
+    const searchUrl = new URL('https://api.spotify.com/v1/search')
+    searchUrl.searchParams.append('q', searchQuery)
+    searchUrl.searchParams.append('type', 'track')
+    searchUrl.searchParams.append('limit', '20')
+    
+    console.log('Full search URL:', searchUrl.toString())
+    
+    const searchResponse = await fetch(searchUrl.toString(), {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+    })
     
     const searchData = await searchResponse.json()
     
@@ -219,12 +224,14 @@ export default async function handler(req, res) {
     if (tracks.length === 0 && q) {
       console.log('Trying loose search:', q)
       
-      const looseSearchResponse = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=20`,
-        {
-          headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-        }
-      )
+      const looseSearchUrl = new URL('https://api.spotify.com/v1/search')
+      looseSearchUrl.searchParams.append('q', q)
+      looseSearchUrl.searchParams.append('type', 'track')
+      looseSearchUrl.searchParams.append('limit', '20')
+      
+      const looseSearchResponse = await fetch(looseSearchUrl.toString(), {
+        headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+      })
       
       const looseData = await looseSearchResponse.json()
       const looseTracks = looseData.tracks?.items || []
