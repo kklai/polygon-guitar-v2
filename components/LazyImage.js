@@ -90,7 +90,7 @@ export function SongCard({ song, artistPhoto, onClick }) {
       className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       {/* 封面區域 */}
-      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-3 shadow-lg relative">
+      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-110 active:z-20">
         {coverImage ? (
           <>
             {/* 骨架屏 */}
@@ -105,11 +105,12 @@ export function SongCard({ song, artistPhoto, onClick }) {
             <img
               src={coverImage}
               alt={song.title}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none select-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
+              draggable="false"
               onLoad={() => setImageLoaded(true)}
-              onError={() => setImageLoaded(true)} // 錯誤時也隱藏骨架屏
+              onError={() => setImageLoaded(true)}
             />
           </>
         ) : (
@@ -122,11 +123,10 @@ export function SongCard({ song, artistPhoto, onClick }) {
         )}
       </div>
       
-      {/* 歌名 - 即使圖片未載入也顯示 */}
-      <h3 className="text-sm text-white font-medium truncate group-hover:text-[#FFD700] transition">
+      <h3 className="text-white font-medium truncate" style={{ fontSize: 15 }}>
         {song.title}
       </h3>
-      <p className="text-xs text-gray-500 truncate">{song.artist}</p>
+      <p className="text-gray-500 truncate" style={{ fontSize: 13 }}>{song.artist}</p>
     </button>
   )
 }
@@ -151,7 +151,7 @@ export function PlaylistCard({ playlist, onClick }) {
       className="flex-shrink-0 flex flex-col text-left w-40 group"
     >
       {/* 封面區域 */}
-      <div className="w-40 aspect-square rounded-lg overflow-hidden bg-[#282828] mb-3 shadow-lg relative">
+      <div className="w-40 aspect-square rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-110 active:z-20">
         {coverImage ? (
           <>
             {/* 骨架屏 */}
@@ -163,9 +163,10 @@ export function PlaylistCard({ playlist, onClick }) {
             <img
               src={coverImage}
               alt={playlist.title}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none select-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
+              draggable="false"
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
             />
@@ -177,12 +178,11 @@ export function PlaylistCard({ playlist, onClick }) {
         )}
       </div>
       
-      {/* 歌單名 */}
-      <h3 className="text-base text-white font-medium truncate group-hover:text-[#FFD700] transition">
+      <h3 className="text-white font-medium truncate" style={{ fontSize: 15 }}>
         {playlist.title}
       </h3>
       {playlist.description && (
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{playlist.description}</p>
+        <p className="text-gray-500 line-clamp-2" style={{ fontSize: 13 }}>{playlist.description}</p>
       )}
     </button>
   )
@@ -202,7 +202,7 @@ export function ArtistAvatar({ artist, onClick }) {
       className="flex flex-col items-center group"
     >
       {/* 頭像區域 */}
-      <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-[#282828] mb-3 shadow-lg relative">
+      <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-110 active:z-20">
         {photoUrl ? (
           <>
             {/* 骨架屏 */}
@@ -214,9 +214,10 @@ export function ArtistAvatar({ artist, onClick }) {
             <img
               src={photoUrl}
               alt={artist.name}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none select-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
+              draggable="false"
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
             />
@@ -228,8 +229,7 @@ export function ArtistAvatar({ artist, onClick }) {
         )}
       </div>
       
-      {/* 歌手名 */}
-      <span className="text-white text-sm font-medium text-center line-clamp-1 max-w-[100px] group-hover:text-[#FFD700] transition">
+      <span className="text-white font-medium text-center line-clamp-1 max-w-[100px]" style={{ fontSize: 15 }}>
         {artist.name}
       </span>
     </button>
