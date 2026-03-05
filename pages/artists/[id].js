@@ -202,7 +202,35 @@ export default function ArtistPage() {
       groups['未知年份'] = noYearTabs;
     }
     
-    return groups;
+    // 返回排序後的結果，確保「未知年份」在最後
+    const sortedGroups = {};
+    const yearRanges = Object.keys(groups).filter(k => k !== '未知年份');
+    // 按年份範圍排序（新到舊）
+    yearRanges.sort((a, b) => {
+      // 提取年份範圍的第一個年份進行比較
+      const getFirstYear = (range) => {
+        if (range.includes('-')) {
+          return parseInt(range.split('-')[0]);
+        }
+        if (range.includes('或更早')) {
+          return 0; // 最舊的排最後
+        }
+        return 0;
+      };
+      return getFirstYear(b) - getFirstYear(a);
+    });
+    
+    // 先加入所有有年份的組別
+    yearRanges.forEach(range => {
+      sortedGroups[range] = groups[range];
+    });
+    
+    // 最後加入「未知年份」
+    if (groups['未知年份']) {
+      sortedGroups['未知年份'] = groups['未知年份'];
+    }
+    
+    return sortedGroups;
   };
 
   const getYearRange = (year) => {

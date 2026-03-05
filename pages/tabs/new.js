@@ -122,7 +122,7 @@ function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandl
 
 export default function NewTab() {
   const router = useRouter()
-  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const { user, isAuthenticated, loading: authLoading, isAdmin } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -297,17 +297,48 @@ export default function NewTab() {
     loadUserPenName()
   }, [user])
 
-  // 從 URL query 參數預填數據（來自求譜區）
+  // 從 URL query 參數預填數據（來自求譜區或後台快速導入）
   useEffect(() => {
     if (router.isReady) {
-      const { title, artist, youtube } = router.query
-      if (title || artist || youtube) {
+      const { 
+        title, artist, youtube, 
+        originalKey, capo, playKey, content,
+        composer, lyricist, arranger, bpm, songYear,
+        uploaderPenName, albumImage, album, displayFont,
+        fromQuickImport
+      } = router.query
+      
+      // 如果是從快速導入來的，從 sessionStorage 讀取 content
+      let importedContent = content
+      if (fromQuickImport === 'true' && typeof window !== 'undefined') {
+        const storedContent = sessionStorage.getItem('quickImportContent')
+        if (storedContent) {
+          importedContent = storedContent
+          // 讀取後清除，避免影響下次
+          sessionStorage.removeItem('quickImportContent')
+        }
+      }
+      
+      if (title || artist || youtube || importedContent) {
         setFormData(prev => ({
           ...prev,
           title: title || prev.title,
-          artist: artist || prev.artist,
-          artists: artist ? [{ name: artist, id: null, relation: null }] : prev.artists,
-          youtubeUrl: youtube || prev.youtubeUrl
+          artist: artist !== undefined ? artist : prev.artist,
+          artists: artist ? [{ name: artist, id: null, relation: null }] : (prev.artists || [{ name: '', id: null, relation: null }]),
+          youtubeUrl: youtube || prev.youtubeUrl,
+          originalKey: originalKey || prev.originalKey,
+          capo: capo || prev.capo,
+          playKey: playKey || prev.playKey,
+          content: importedContent || prev.content,
+          composer: composer || prev.composer,
+          lyricist: lyricist || prev.lyricist,
+          arranger: arranger || prev.arranger,
+          bpm: bpm || prev.bpm,
+          songYear: songYear || prev.songYear,
+          uploaderPenName: uploaderPenName || prev.uploaderPenName,
+          albumImage: albumImage || prev.albumImage,
+          album: album || prev.album,
+          displayFont: displayFont || prev.displayFont || 'mono'
         }))
       }
     }
@@ -356,10 +387,50 @@ export default function NewTab() {
 
     setIsSubmitting(true)
     try {
+      // 過濾 undefined 值，避免 Firestore 錯誤
+      const cleanValue = (val, key = '') => {
+        if (val === undefined) {
+          console.log(`[cleanValue] ${key} is undefined, converting to empty string`)
+          return ''
+        }
+        if (val === null) return null
+        if (Array.isArray(val)) {
+          return val.map((item, idx) => {
+            if (typeof item === 'object' && item !== null) {
+              const cleanItem = {}
+              for (const [k, v] of Object.entries(item)) {
+                if (v === undefined) {
+                  console.log(`[cleanValue] ${key}[${idx}].${k} is undefined, converting to null`)
+                }
+                cleanItem[k] = v === undefined ? null : v
+              }
+              return cleanItem
+            }
+            return item === undefined ? '' : item
+          })
+        }
+        return val
+      }
+      
+      const cleanFormData = {}
+      for (const [key, value] of Object.entries(formData)) {
+        cleanFormData[key] = cleanValue(value, key)
+      }
+      
+      // Debug: 檢查仲有冇 undefined
+      const undefinedFields = []
+      for (const [key, value] of Object.entries(cleanFormData)) {
+        if (value === undefined) {
+          undefinedFields.push(key)
+        }
+      }
+      if (undefinedFields.length > 0) {
+        console.error('[handleSubmit] Still has undefined fields:', undefinedFields)
+      }
+      
       const submitData = {
-        ...formData,
-        artists: formData.artists, // 保存多歌手陣列
-        uploaderPenName: formData.uploaderPenName.trim() || '結他友'
+        ...cleanFormData,
+        uploaderPenName: (formData.uploaderPenName || '').trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
       
@@ -899,6 +970,7 @@ E|----------------------------------------------------------------|
           </div>
         </div>
         <textarea name="content" value={formData.content} onChange={handleChange}
+          onMouseDown={(e) => e.stopPropagation()}
           onPaste={(e) => {
             e.preventDefault();
             const pastedText = e.clipboardData.getData('text');
@@ -936,12 +1008,17 @@ E|----------------------------------------------------------------|
             type="text" 
             name="uploaderPenName" 
             value={formData.uploaderPenName} 
-            readOnly
-            className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white cursor-not-allowed" 
+            onChange={isAdmin ? handleChange : undefined}
+            readOnly={!isAdmin}
+            className={`w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white ${isAdmin ? '' : 'cursor-not-allowed'}`} 
           />
           <p className="mt-2 text-xs text-gray-400">
-            筆名來自你的<Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>。
-            如需修改請到個人資料設定。
+            {isAdmin ? (
+              <>Admin 可以修改上傳者筆名。</>
+            ) : (
+              <>筆名來自你的<Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>。
+              如需修改請到個人資料設定。</>
+            )}
           </p>
         </div>
       </div>
