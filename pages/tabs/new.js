@@ -304,7 +304,7 @@ export default function NewTab() {
         title, artist, youtube, 
         originalKey, capo, playKey, content,
         composer, lyricist, arranger, bpm, songYear,
-        uploaderPenName, albumImage, album
+        uploaderPenName, albumImage, album, displayFont
       } = router.query
       
       if (title || artist || youtube || content) {
@@ -325,7 +325,8 @@ export default function NewTab() {
           songYear: songYear || prev.songYear,
           uploaderPenName: uploaderPenName || prev.uploaderPenName,
           albumImage: albumImage || prev.albumImage,
-          album: album || prev.album
+          album: album || prev.album,
+          displayFont: displayFont || prev.displayFont || 'mono'
         }))
       }
     }
