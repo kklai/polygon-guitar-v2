@@ -464,17 +464,21 @@ export default function QuickImport() {
     if (!parsedData) return
     
     const artistString = parsedData.artists.join(' & ')
+    
+    // 先儲存 content 到 sessionStorage，避免 URL 太長
+    sessionStorage.setItem('quickImportContent', parsedData.content)
+    
     const params = new URLSearchParams({
       title: parsedData.title,
       artist: artistString,
       originalKey: parsedData.originalKey,
       capo: parsedData.capo,
-      content: encodeURIComponent(parsedData.content),
       composer: parsedData.composer,
       lyricist: parsedData.lyricist,
       bpm: parsedData.bpm,
       uploaderPenName: parsedData.uploaderPenName,
       displayFont: displayFont, // 字體選擇
+      fromQuickImport: 'true',
       ...(selectedYoutube && { youtube: `https://youtube.com/watch?v=${selectedYoutube.id}` }),
       ...(spotifyResult && { albumImage: spotifyResult.albumImage })
     })
@@ -487,17 +491,21 @@ export default function QuickImport() {
     if (!parsedData) return
     
     const artistString = parsedData.artists.join(' & ')
+    
+    // 儲存 content 到 sessionStorage
+    sessionStorage.setItem('quickImportContent', parsedData.content)
+    
     const params = new URLSearchParams({
       title: parsedData.title,
       artist: artistString,
       originalKey: parsedData.originalKey,
       capo: parsedData.capo,
-      content: encodeURIComponent(parsedData.content),
       composer: parsedData.composer,
       lyricist: parsedData.lyricist,
       bpm: parsedData.bpm,
       uploaderPenName: parsedData.uploaderPenName,
       displayFont: displayFont, // 字體選擇
+      fromQuickImport: 'true',
       ...(selectedYoutube && { youtube: `https://youtube.com/watch?v=${selectedYoutube.id}` }),
       ...(spotifyResult && { albumImage: spotifyResult.albumImage })
     })

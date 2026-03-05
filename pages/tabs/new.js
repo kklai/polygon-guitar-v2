@@ -304,10 +304,22 @@ export default function NewTab() {
         title, artist, youtube, 
         originalKey, capo, playKey, content,
         composer, lyricist, arranger, bpm, songYear,
-        uploaderPenName, albumImage, album, displayFont
+        uploaderPenName, albumImage, album, displayFont,
+        fromQuickImport
       } = router.query
       
-      if (title || artist || youtube || content) {
+      // 如果是從快速導入來的，從 sessionStorage 讀取 content
+      let importedContent = content
+      if (fromQuickImport === 'true' && typeof window !== 'undefined') {
+        const storedContent = sessionStorage.getItem('quickImportContent')
+        if (storedContent) {
+          importedContent = storedContent
+          // 讀取後清除，避免影響下次
+          sessionStorage.removeItem('quickImportContent')
+        }
+      }
+      
+      if (title || artist || youtube || importedContent) {
         setFormData(prev => ({
           ...prev,
           title: title || prev.title,
@@ -317,7 +329,7 @@ export default function NewTab() {
           originalKey: originalKey || prev.originalKey,
           capo: capo || prev.capo,
           playKey: playKey || prev.playKey,
-          content: content ? decodeURIComponent(content) : prev.content,
+          content: importedContent || prev.content,
           composer: composer || prev.composer,
           lyricist: lyricist || prev.lyricist,
           arranger: arranger || prev.arranger,
