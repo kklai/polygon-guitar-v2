@@ -122,7 +122,7 @@ function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandl
 
 export default function NewTab() {
   const router = useRouter()
-  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const { user, isAuthenticated, loading: authLoading, isAdmin } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     artist: '',
@@ -970,6 +970,7 @@ E|----------------------------------------------------------------|
           </div>
         </div>
         <textarea name="content" value={formData.content} onChange={handleChange}
+          onMouseDown={(e) => e.stopPropagation()}
           onPaste={(e) => {
             e.preventDefault();
             const pastedText = e.clipboardData.getData('text');
@@ -1007,12 +1008,17 @@ E|----------------------------------------------------------------|
             type="text" 
             name="uploaderPenName" 
             value={formData.uploaderPenName} 
-            readOnly
-            className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white cursor-not-allowed" 
+            onChange={isAdmin ? handleChange : undefined}
+            readOnly={!isAdmin}
+            className={`w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white ${isAdmin ? '' : 'cursor-not-allowed'}`} 
           />
           <p className="mt-2 text-xs text-gray-400">
-            筆名來自你的<Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>。
-            如需修改請到個人資料設定。
+            {isAdmin ? (
+              <>Admin 可以修改上傳者筆名。</>
+            ) : (
+              <>筆名來自你的<Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>。
+              如需修改請到個人資料設定。</>
+            )}
           </p>
         </div>
       </div>
