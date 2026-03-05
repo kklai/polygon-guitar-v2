@@ -182,54 +182,63 @@ export default function QuickImport() {
       const line = lines[i]
       const lowerLine = line.toLowerCase()
       
-      // 只處理包含曲/詞的行，並且要精確提取
+      // 提取作曲（支持同一行有作曲和填詞）
       if (lowerLine.includes('曲：') || lowerLine.includes('作曲：')) {
-        // 只取曲：後面的內容，遇到詞/词：或行尾停止
-        const match = line.match(/曲[：:]\s*([^詞词]+)/)
+        // 提取曲：後面的內容，直到遇到詞/词：或行尾
+        const match = line.match(/曲[：:]\s*([^詞词]*?)(?:[詞词][：:]|$)/)
         if (match) {
           composer = match[1].trim()
         } else {
           composer = line.replace(/.*曲[：:]/, '').trim()
         }
-        continue
       }
 
+      // 提取填詞（支持同一行有作曲和填詞）
       if (lowerLine.includes('詞：') || lowerLine.includes('词：') || lowerLine.includes('填詞：') || lowerLine.includes('作詞：')) {
-        const match = line.match(/[詞词][：:]\s*([^曲]+)/)
+        // 提取詞：後面的內容，直到遇到曲：或行尾
+        const match = line.match(/[詞词][：:]\s*([^曲]*?)(?:曲[：:]|$)/)
         if (match) {
           lyricist = match[1].trim()
         } else {
           lyricist = line.replace(/.*[詞词][：:]/, '').trim()
         }
-        continue
       }
 
       // 提取 BPM
       const bpmMatch = line.match(/Bpm\s*(\d+)/i)
       if (bpmMatch && !bpm) {
         bpm = bpmMatch[1]
-        continue
       }
     }
 
     // 從 Key 行提取預設調性
-    for (const line of lines) {
-      if (line.includes('Key') && line.includes('預設')) {
-        const defaultKeyMatch = line.match(/([A-G][#b]?)\(預設\)/)
+    // 格式可能是 "Key\nCDb(預設)DEbEFF#GAbABbB" 或者 "Key CDb(預設)DEbEFF#GAbABbB"
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.match(/^Key$/i) || line.match(/^Key\s/)) {
+        // 檢查本行或下一行是否有 (預設)
+        const checkLine = line.includes('(預設)') ? line : (lines[i + 1] || '')
+        const defaultKeyMatch = checkLine.match(/([A-G][#b]?)\(預設\)/)
         if (defaultKeyMatch) {
           originalKey = defaultKeyMatch[1]
-        } else {
-          const keyMatch = line.match(/Key\s+([A-G][#b]?)/i)
-          if (keyMatch) {
-            originalKey = keyMatch[1]
-          }
+        }
+      }
+    }
+    // 後備：直接搵任何包含 (預設) 嘅行
+    if (originalKey === 'C') {
+      for (const line of lines) {
+        const match = line.match(/([A-G][#b]?)\(預設\)/)
+        if (match) {
+          originalKey = match[1]
+          break
         }
       }
     }
 
     // 從 CAPO 行提取 Capo
     for (const line of lines) {
-      if (line.includes('CAPO') && line.includes('(')) {
+      if (line.match(/^CAPO/i)) {
+        // 格式可能是 "CAPO 0 (Db)1 (C)..." 或者 "CAPO\n0 (Db)..."
         const capoMatch = line.match(/CAPO\s*(\d+)/i)
         if (capoMatch) {
           capo = capoMatch[1]
