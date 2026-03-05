@@ -1360,7 +1360,7 @@ export default function EditTab() {
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm ${
                   errors.content ? 'border-red-500' : 'border-gray-800'
                 } ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
-                style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}}
+                style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }}
               />
               {errors.content && (
                 <p className="mt-1 text-sm text-red-400">{errors.content}</p>

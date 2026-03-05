@@ -915,7 +915,7 @@ E|----------------------------------------------------------------|
           }}
           placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕" rows={15}
           className={`w-full px-4 py-2 bg-black border rounded-lg text-white text-sm ${errors.content ? 'border-red-500' : 'border-gray-700'} ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`} 
-          style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : {}} />
+          style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }} />
         {errors.content && <p className="text-sm text-red-400">{errors.content}</p>}
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

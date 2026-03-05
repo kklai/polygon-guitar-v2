@@ -137,8 +137,9 @@ export default function TabShareTool() {
           skipScroll.current = true
           setTimeout(() => {
             if (pickerRef.current) {
-              const selStart = start * ITEM_H
-              pickerRef.current.scrollTop = Math.max(0, selStart - HANDLE_H - ITEM_H + Math.round(ITEM_H / 2))
+              const padTop = parseFloat(getComputedStyle(pickerRef.current).paddingTop) || PICKER_PAD
+              const boxContentTop = PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2)
+              pickerRef.current.scrollTop = Math.max(0, padTop + start * ITEM_H - boxContentTop)
             }
             setTimeout(() => { skipScroll.current = false }, 150)
           }, 50)
@@ -241,7 +242,8 @@ export default function TabShareTool() {
     if (!pickerRef.current) return 0
     const lyrics = selectedTab?.parsedContent?.lyrics || []
     const rect = pickerRef.current.getBoundingClientRect()
-    const rel = clientY - rect.top + pickerRef.current.scrollTop - PICKER_PAD
+    const padTop = parseFloat(getComputedStyle(pickerRef.current).paddingTop) || PICKER_PAD
+    const rel = clientY - rect.top + pickerRef.current.scrollTop - padTop
     return Math.max(0, Math.min(lyrics.length - 1, Math.floor(rel / ITEM_H)))
   }
 
@@ -257,16 +259,10 @@ export default function TabShareTool() {
   const MAX_SELECTION = 3 // max 4 lines (0-indexed span)
 
   const onHandlePointerMove = (e) => {
-    if (!dragTarget.current) return
+    if (!dragTarget.current || dragTarget.current !== 'end') return
     const idx = getIdxFromClientY(e.clientY)
-    const lyricsLen = selectedTab?.parsedContent?.lyrics?.length ?? 0
-    if (dragTarget.current === 'start') {
-      const end = selEndRef.current ?? 0
-      setSelectionStart(Math.max(end - MAX_SELECTION, Math.min(end, idx)))
-    } else if (dragTarget.current === 'end') {
-      const start = selStartRef.current ?? 0
-      setSelectionEnd(Math.min(start + MAX_SELECTION, Math.max(start, idx)))
-    }
+    const start = selStartRef.current ?? 0
+    setSelectionEnd(Math.min(start + MAX_SELECTION, Math.max(start, idx)))
   }
 
   const onHandlePointerUp = () => { dragTarget.current = null }
@@ -276,8 +272,9 @@ export default function TabShareTool() {
     const scrollTop = pickerRef.current.scrollTop
     const lyricsLen = selectedTab?.parsedContent?.lyrics?.length ?? 0
     const selCount = Math.abs((selEndRef.current ?? 0) - (selStartRef.current ?? 0))
-    const firstVisible = Math.round(scrollTop / ITEM_H)
-    const newStart = Math.max(0, Math.min(lyricsLen - 1 - selCount, firstVisible))
+    const padTop = parseFloat(getComputedStyle(pickerRef.current).paddingTop) || PICKER_PAD
+    const boxContentTop = PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2)
+    const newStart = Math.max(0, Math.min(lyricsLen - 1 - selCount, Math.round((scrollTop + boxContentTop - padTop) / ITEM_H)))
     if (newStart !== selStartRef.current) {
       setSelectionStart(newStart)
       setSelectionEnd(newStart + selCount)
@@ -589,6 +586,7 @@ export default function TabShareTool() {
                   </div>
                 )}
               </div>
+              {selectedTab && hasSelection && <p className="text-center text-xs text-gray-500 mt-2">點擊圖片下載</p>}
             </div>
           </div>
 
@@ -598,81 +596,63 @@ export default function TabShareTool() {
               <>
                 <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
                   <h3 className="text-white font-bold mb-[10px]">㨂選你喜歡的歌詞</h3>
-                  <div
-                    ref={pickerRef}
-                    onScroll={onPickerScroll}
-                    style={{ position: 'relative', maxHeight: '30vh', overflowY: 'auto', paddingTop: PICKER_PAD, paddingBottom: PICKER_PAD }}
-                  >
-                    <div style={{ position: 'relative', height: totalH }}>
-                      {lyrics.map((lyric, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            position: 'absolute', top: idx * ITEM_H, left: 0, right: 0,
-                            height: ITEM_H, display: 'flex', alignItems: 'center',
-                            paddingLeft: 12, paddingRight: 12, fontSize: 15,
-                            color: idx >= normStart && idx <= normEnd ? '#ffffff' : '#6b7280',
-                          }}
-                        >
-                          {lyric.replace(/[()]/g, '')}
-                        </div>
-                      ))}
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      ref={pickerRef}
+                      onScroll={onPickerScroll}
+                      style={{ position: 'relative', zIndex: 0, maxHeight: '30vh', overflowY: 'auto', paddingTop: PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2) + 3, paddingBottom: `calc(30vh - ${PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2) + overlayH}px)` }}
+                    >
+                      <div style={{ position: 'relative', height: totalH }}>
+                        {lyrics.map((lyric, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              position: 'absolute', top: idx * ITEM_H, left: 0, right: 0,
+                              height: ITEM_H, display: 'flex', alignItems: 'center',
+                              paddingLeft: 12, paddingRight: 12, fontSize: 15,
+                              color: idx >= normStart && idx <= normEnd ? '#ffffff' : '#6b7280',
+                            }}
+                          >
+                            {lyric.replace(/[()]/g, '')}
+                          </div>
+                        ))}
 
-                      {/* Selection highlight */}
-                      {hasSelection && (
-                        <div style={{
-                          position: 'absolute', top: selTop - HANDLE_H, height: selBottom - selTop + HANDLE_H * 2,
-                          left: 0, right: 0, pointerEvents: 'none',
-                          background: 'rgba(255, 215, 0, 0.08)',
-                          borderLeft: '3px solid #FFD700',
-                          borderRight: '3px solid #FFD700',
-                        }} />
-                      )}
-
-                      {/* Top handle */}
-                      {hasSelection && (
-                        <div
-                          {...handleAttrs('start')}
-                          style={{
-                            position: 'absolute', top: selTop - HANDLE_H, left: 0, right: 0,
-                            height: HANDLE_H, background: '#FFD700',
-                            borderRadius: 4,
-                            cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 10,
-                          }}
-                        >
-                          <div style={{ width: 32, height: 3, background: 'rgba(0,0,0,0.3)', borderRadius: 2 }} />
-                        </div>
-                      )}
-
-                      {/* Bottom handle */}
-                      {hasSelection && (
-                        <div
-                          {...handleAttrs('end')}
-                          style={{
-                            position: 'absolute', top: selBottom, left: 0, right: 0,
-                            height: HANDLE_H, background: '#FFD700',
-                            borderRadius: 4,
-                            cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 10,
-                          }}
-                        >
-                          <div style={{ width: 32, height: 3, background: 'rgba(0,0,0,0.3)', borderRadius: 2 }} />
-                        </div>
-                      )}
+                      </div>
                     </div>
+
+                    {/* Fixed highlight overlay + bottom handle */}
+                    {hasSelection && (() => {
+                      const fixedTop = PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2)
+                      return (
+                        <>
+                          <div style={{
+                            position: 'absolute', top: fixedTop, left: 0, right: 0,
+                            height: overlayH + HANDLE_H, pointerEvents: 'none',
+                            background: 'rgba(255, 215, 0, 0.08)',
+                            borderTop: '3px solid #FFD700',
+                            borderLeft: '3px solid #FFD700',
+                            borderRight: '3px solid #FFD700',
+                            zIndex: 5,
+                          }} />
+                          <div
+                            {...handleAttrs('end')}
+                            style={{
+                              position: 'absolute', top: fixedTop + overlayH, left: 0, right: 0,
+                              height: HANDLE_H, background: '#FFD700',
+                              borderRadius: 4,
+                              cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              zIndex: 10,
+                            }}
+                          >
+                            <div style={{ width: 32, height: 3, background: 'rgba(0,0,0,0.3)', borderRadius: 2 }} />
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
 
-                <button
-                  onClick={generateImage}
-                  disabled={isGenerating || !hasSelection}
-                  className="w-full py-4 bg-[#FFD700] text-black rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isGenerating ? <><RefreshCw className="animate-spin" size={18} /> 生成中...</> : <><Download size={18} /> 下載圖片</>}
-                </button>
               </>
             )}
           </div>

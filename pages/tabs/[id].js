@@ -312,7 +312,7 @@ export default function TabDetail() {
       <Layout>
         <div className="w-full">
         {/* Header - 全寬 */}
-        <div className="bg-[#121212] px-4 sm:px-5 md:px-8 pt-4 sm:pt-5 md:pt-6 pb-0">
+        <div className="px-4 sm:px-5 md:px-8 pt-4 sm:pt-5 md:pt-6 pb-0">
           {/* 頂部：封面 + 歌名 + 歌手 + 操作 */}
           <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
