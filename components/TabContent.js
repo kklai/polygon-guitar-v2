@@ -1576,7 +1576,8 @@ const TabContent = ({
                   fontSize: `${fontSize}px`, 
                   marginBottom: '0.3em',
                   whiteSpace: 'pre-wrap',
-                  color: colors.numericNotation
+                  color: colors.numericNotation,
+                  fontWeight: 300
                 }}>
                   {line}
                 </div>
@@ -1861,7 +1862,7 @@ const TabContent = ({
               return (
                 <span key={idx} style={{
                   color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
-                  fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                  fontWeight: 300
                 }}>
                   {content}
                 </span>
@@ -1995,7 +1996,7 @@ const TabContent = ({
                                   justifyContent: 'center',
                                   minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
                                   color: colors.numericNotation,
-                                  fontWeight: 'bold'
+                                  fontWeight: 300
                                 }}>
                                   {item.notation}
                                 </span>
@@ -2032,7 +2033,7 @@ const TabContent = ({
                           return (
                             <span key={idx} style={{
                               color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
-                              fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                              fontWeight: 300
                             }}>
                               {content}
                             </span>
