@@ -288,11 +288,20 @@ export default function Search() {
               </section>
             )}
 
-            {/* No Results */}
+            {/* No Results / Loading */}
             {filteredSongs.length === 0 && filteredArtists.length === 0 && (
               <div className="text-center py-12">
-                <span className="text-4xl mb-4 block">🔍</span>
-                <p className="text-gray-500">找不到「{searchQuery}」的結果</p>
+                {isLoading ? (
+                  <>
+                    <div className="w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-500">搜尋中...</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-4xl mb-4 block">🔍</span>
+                    <p className="text-gray-500">找不到「{searchQuery}」的結果</p>
+                  </>
+                )}
               </div>
             )}
           </div>
