@@ -132,9 +132,10 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
       {!hideHeader && <Navbar />}
       <main 
         className={fullWidth 
-          ? (hideHeader ? 'pb-16 md:pb-0' : 'pt-20 pb-16 md:pb-0')
-          : (hideHeader ? 'pb-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24')
+          ? (hideHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
+          : (hideHeader ? 'pb-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24')
         }
+        style={hideHeader ? {} : { paddingTop: '4.4rem' }}
       >
         {children}
       </main>

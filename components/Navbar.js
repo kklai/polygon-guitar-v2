@@ -7,11 +7,24 @@ import { useRouter } from 'next/router'
 export default function Navbar() {
   const { user, logout, isAuthenticated, isAdmin } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [logoUrl, setLogoUrl] = useState(null)
-  const [siteName, setSiteName] = useState('Polygon Guitar')
+  const DEFAULT_LOGO = 'https://res.cloudinary.com/drld2cjpo/image/upload/v1771502138/artists/site_logo_1771502138235.png'
+  const [logoUrl, setLogoUrl] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('pg_logo_url') || DEFAULT_LOGO
+    return DEFAULT_LOGO
+  })
+  const [siteName, setSiteName] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('pg_site_name') || 'Polygon Guitar'
+    return 'Polygon Guitar'
+  })
+  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
 
-  // 載入 Logo 設定
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 30)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   useEffect(() => {
     loadSettings()
   }, [])
@@ -21,9 +34,11 @@ export default function Navbar() {
       const settings = await getGlobalSettings()
       if (settings.logoUrl) {
         setLogoUrl(settings.logoUrl)
+        localStorage.setItem('pg_logo_url', settings.logoUrl)
       }
       if (settings.siteName) {
         setSiteName(settings.siteName)
+        localStorage.setItem('pg_site_name', settings.siteName)
       }
     } catch (error) {
       console.error('Error loading logo settings:', error)
@@ -40,10 +55,10 @@ export default function Navbar() {
 
   return (
     <nav className="bg-[#FFD700] border-b border-yellow-600 fixed top-0 left-0 right-0 z-[100] will-change-transform">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20">
+      <div className="max-w-7xl mx-auto pr-4 sm:pr-6 lg:pr-8" style={{ paddingLeft: 18 }}>
+        <div className="flex justify-between" style={{ height: scrolled ? '2.5rem' : '4.4rem' }}>
           {/* Logo + 副標題 */}
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col justify-end">
             <Link href="/" className="flex flex-col">
               {logoUrl ? (
                 <>
@@ -52,22 +67,24 @@ export default function Navbar() {
                     alt={siteName}
                     loading="eager"
                     decoding="async"
-                    className="h-10 max-w-[160px] object-contain"
+                    style={scrolled ? { width: 140, paddingBottom: 1 } : { height: 40, maxWidth: 160 }}
                   />
-                  {/* 副標題 */}
-                  <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
-                    香港廣東歌結他譜網
-                  </span>
+                  {!scrolled && (
+                    <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
+                      香港廣東歌結他譜網
+                    </span>
+                  )}
                 </>
               ) : (
-                /* 未撈到 Logo 前顯示文字 */
                 <>
-                  <span className="font-bold text-xl text-black">
+                  <span className={`font-bold text-black ${scrolled ? 'text-base' : 'text-xl'}`}>
                     Polygon Guitar
                   </span>
-                  <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
-                    香港廣東歌結他譜網
-                  </span>
+                  {!scrolled && (
+                    <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
+                      香港廣東歌結他譜網
+                    </span>
+                  )}
                 </>
               )}
             </Link>

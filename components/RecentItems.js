@@ -28,7 +28,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
 
   return (
     <div style={{ marginBottom: 25, marginTop: 10 }}>
-      <div className="flex justify-between items-end mb-2 px-6">
+      <div className="flex justify-between items-end mb-2 pr-6" style={{ paddingLeft: 18 }}>
         <h2 className="text-white font-bold" style={{ fontSize: 22 }}>{title}</h2>
         <button 
           onClick={() => router.push('/history')}
@@ -39,7 +39,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
       </div>
       
       <div className="overflow-x-auto scrollbar-hide">
-        <div className="flex space-x-4 px-6">
+        <div className="flex space-x-4 pr-6" style={{ paddingLeft: 18 }}>
           {displayItems.map((item, index) => (
             <div 
               key={index}

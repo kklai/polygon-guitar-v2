@@ -99,8 +99,11 @@ body {
 }
 
 .navbar-tagline {
-  font-size: 0.9rem;
+  font-size: 16px;
+  letter-spacing: 3.4px;
+  margin-left: 3px;
   line-height: 0.7rem;
+  padding-bottom: 11px;
 }
 
 .text-xl {
