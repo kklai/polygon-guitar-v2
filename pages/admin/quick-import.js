@@ -147,14 +147,28 @@ export default function QuickImport() {
     const uiKeywords = [
       'CHORD LOG', '跟隨', '收藏列印', '列印Chord表', 'Chord表',
       'Beats字體', '雙頁並排', '回報問題', '標籤', '跟隨中',
-      'Key', 'CAPO', 'Apple Music', '在 Apple Music', '聆聽'
+      'Apple Music', '在 Apple Music', '聆聽'
     ]
     
     // 檢查是否為 UI 行
     const isUILine = (line) => {
-      return uiKeywords.some(kw => line.includes(kw)) ||
-             line.match(/^\d{3,}$/) || // 3位以上純數字（瀏覽數）
-             (line.length < 20 && (line === 'Intro' || line === 'Verse' || line === 'Chorus' || line === 'Bridge'))
+      // 檢查關鍵詞
+      if (uiKeywords.some(kw => line.includes(kw))) return true
+      
+      // 檢查 Key 行（包含音符字母序列）
+      if (line.match(/^Key\s+[A-G#b]+/i)) return true
+      if (line.match(/\(預設\)/)) return true
+      
+      // 檢查 CAPO 行
+      if (line.match(/^CAPO\s+\d+/i)) return true
+      
+      // 檢查純數字（瀏覽數）
+      if (line.match(/^\d{3,}$/)) return true
+      
+      // 檢查純標記行
+      if (line.length < 20 && ['Intro', 'Verse', 'Chorus', 'Bridge', 'Outro'].includes(line)) return true
+      
+      return false
     }
 
     // 第一遍：提取元數據（作曲、填詞、BPM）
@@ -164,8 +178,8 @@ export default function QuickImport() {
       
       // 只處理包含曲/詞的行，並且要精確提取
       if (lowerLine.includes('曲：') || lowerLine.includes('作曲：')) {
-        // 只取曲：後面的內容，遇到詞：或行尾停止
-        const match = line.match(/曲[：:]\s*([^詞]+)/)
+        // 只取曲：後面的內容，遇到詞/词：或行尾停止
+        const match = line.match(/曲[：:]\s*([^詞词]+)/)
         if (match) {
           composer = match[1].trim()
         } else {
@@ -174,12 +188,12 @@ export default function QuickImport() {
         continue
       }
 
-      if (lowerLine.includes('詞：') || lowerLine.includes('填詞：') || lowerLine.includes('作詞：')) {
-        const match = line.match(/詞[：:]\s*([^曲]+)/)
+      if (lowerLine.includes('詞：') || lowerLine.includes('词：') || lowerLine.includes('填詞：') || lowerLine.includes('作詞：')) {
+        const match = line.match(/[詞词][：:]\s*([^曲]+)/)
         if (match) {
           lyricist = match[1].trim()
         } else {
-          lyricist = line.replace(/.*詞[：:]/, '').trim()
+          lyricist = line.replace(/.*[詞词][：:]/, '').trim()
         }
         continue
       }
@@ -224,9 +238,12 @@ export default function QuickImport() {
 
       // 跳過 UI 行和已處理的字段
       if (isUILine(trimmedLine)) continue
-      if (trimmedLine.includes('曲：') || trimmedLine.includes('詞：')) continue
+      if (trimmedLine.includes('曲：') || trimmedLine.includes('詞：') || trimmedLine.includes('词：')) continue
       if (trimmedLine.match(/Bpm\s*\d+/i)) continue
       if (trimmedLine.includes('標籤')) continue
+      if (trimmedLine.match(/^Key\s+[A-G]/i)) continue // Key 行
+      if (trimmedLine.match(/\(預設\)/)) continue // 包含預設標記的行
+      if (trimmedLine.match(/^[A-G][#b]?\(預設\)/)) continue // 例如 "Db(預設)"
       
       // 檢測譜內容開始（包含 | 符號）
       if (trimmedLine.includes('|')) {
@@ -236,7 +253,7 @@ export default function QuickImport() {
       // 收集譜內容（保留原始空格）
       if (foundContentStart) {
         contentLines.push(line) // 使用原始行保留空格
-      } else if (!title && trimmedLine.length < 60) {
+      } else if (!title && trimmedLine.length < 60 && !trimmedLine.match(/^[A-G][#b]?[A-G#b]+$/)) {
         // 嘗試提取標題和歌手
         // 格式 1: "歌名 - 歌手" 或 "歌手 - 歌名"
         const separatorMatch = trimmedLine.match(/^(.+?)\s*[-–—]\s*(.+)$/) ||
@@ -270,8 +287,8 @@ export default function QuickImport() {
           }
         } else {
           // 格式 2: 沒有分隔符，如 "租購薛之謙曲：董嘉鸿"
-          // 先移除曲詞部分
-          const cleanLine = trimmedLine.replace(/[曲詞][:：].*$/, '').trim()
+          // 先移除曲詞部分（支持簡繁）
+          const cleanLine = trimmedLine.replace(/[曲詞词][:：].*$/, '').trim()
           
           if (cleanLine.length >= 2) {
             // 嘗試識別已知歌手
