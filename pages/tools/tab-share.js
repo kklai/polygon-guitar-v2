@@ -175,11 +175,14 @@ export default function TabShareTool() {
       /^\[chorus\]/i.test(t) ||
       /^\(副歌\)\s*$/i.test(t) ||
       /^\/c\s*$/i.test(t)
+    const isMetadata = (t) =>
+      /^(曲|詞|曲\/詞|詞\/曲|原調|調|編曲|監製|Arranged\s*by|Key)\s*[：:]/i.test(t)
 
     const classified = []
     lines.forEach(line => {
       const trimmed = line.replace(/[\u200B\u200C\u200D\uFEFF]/g, '').trim()
       if (!trimmed) return
+      if (isMetadata(trimmed)) return
       if (isChord(trimmed)) classified.push({ type: 'chord', text: trimmed })
       else if (isHeader(trimmed)) classified.push({ type: 'header', text: trimmed, isChorus: isChorus(trimmed) })
       else if (!isNumericNotation(trimmed)) classified.push({ type: 'lyric', text: trimmed.replace(/\s*\/(v|p|c|i|o|b)\s*$/i, '').trim() })

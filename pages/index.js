@@ -37,9 +37,33 @@ prefetchHomeData()
 const HOMEPAGE_CACHE_KEY = 'pg_home_v1'
 const HOMEPAGE_CACHE_TTL = 10 * 60 * 1000
 
-function stripContentForCache(items) {
-  if (!Array.isArray(items)) return items
-  return items.map(({ content, ...rest }) => rest)
+function slimTabForCache(tab) {
+  if (!tab) return tab
+  return {
+    id: tab.id, title: tab.title, artistName: tab.artistName,
+    artistId: tab.artistId, artist: tab.artist,
+    thumbnail: tab.thumbnail, albumImage: tab.albumImage,
+    youtubeUrl: tab.youtubeUrl, youtubeVideoId: tab.youtubeVideoId,
+    viewCount: tab.viewCount, createdAt: tab.createdAt
+  }
+}
+
+function slimArtistForCache(a) {
+  if (!a) return a
+  return {
+    id: a.id, name: a.name, normalizedName: a.normalizedName,
+    photoURL: a.photoURL, wikiPhotoURL: a.wikiPhotoURL, photo: a.photo,
+    viewCount: a.viewCount, songCount: a.songCount, tabCount: a.tabCount,
+    artistType: a.artistType, gender: a.gender, adminScore: a.adminScore
+  }
+}
+
+function slimTabs(items) {
+  return Array.isArray(items) ? items.map(slimTabForCache) : []
+}
+
+function slimArtists(items) {
+  return Array.isArray(items) ? items.map(slimArtistForCache) : []
 }
 
 function saveHomepageCache(data) {
@@ -50,19 +74,38 @@ function saveHomepageCache(data) {
       }
       return value
     })
-    sessionStorage.setItem(HOMEPAGE_CACHE_KEY, payload)
-  } catch (e) {}
+    try {
+      localStorage.setItem(HOMEPAGE_CACHE_KEY, payload)
+    } catch (quotaErr) {
+      localStorage.removeItem(HOMEPAGE_CACHE_KEY)
+      localStorage.setItem(HOMEPAGE_CACHE_KEY, payload)
+    }
+    console.log('[Cache] Saved homepage cache:', Math.round(payload.length / 1024), 'KB')
+  } catch (e) {
+    console.error('[Cache] Failed to save:', e.name, e.message)
+  }
 }
 
 function loadHomepageCache() {
   if (typeof window === 'undefined') return null
   try {
-    const raw = sessionStorage.getItem(HOMEPAGE_CACHE_KEY)
-    if (!raw) return null
+    const raw = localStorage.getItem(HOMEPAGE_CACHE_KEY)
+    if (!raw) {
+      console.log('[Cache] No cache found')
+      return null
+    }
     const data = JSON.parse(raw)
-    if (Date.now() - data._ts > HOMEPAGE_CACHE_TTL) return null
+    if (Date.now() - data._ts > HOMEPAGE_CACHE_TTL) {
+      console.log('[Cache] Cache expired, age:', Math.round((Date.now() - data._ts) / 1000), 's')
+      localStorage.removeItem(HOMEPAGE_CACHE_KEY)
+      return null
+    }
+    console.log('[Cache] Cache hit, age:', Math.round((Date.now() - data._ts) / 1000), 's')
     return data
-  } catch (e) { return null }
+  } catch (e) {
+    console.error('[Cache] Failed to load:', e.name, e.message)
+    return null
+  }
 }
 
 const _homepageCache = loadHomepageCache()
@@ -843,14 +886,19 @@ export default function Home() {
       // Save to sessionStorage for instant load on next visit
       saveHomepageCache({
         _ts: Date.now(),
-        homeSettings: settings,
-        hotTabs: stripContentForCache(hotTabsData),
-        latestSongs: stripContentForCache(recentTabsData),
-        autoPlaylists: autoPlaylistsData,
-        manualPlaylists: manualPlaylistsData,
-        allSongs: stripContentForCache(customSongs),
-        hotArtists: hotArtistsData,
-        artists: artistsSlice,
+        homeSettings: { sectionOrder: settings.sectionOrder, hotArtistSortBy: settings.hotArtistSortBy, displayCount: settings.displayCount, manualSelection: settings.manualSelection, useManualSelection: settings.useManualSelection },
+        hotTabs: slimTabs(hotTabsData),
+        latestSongs: slimTabs(recentTabsData),
+        autoPlaylists: (autoPlaylistsData || []).map(p => ({ id: p.id, title: p.title, description: p.description, coverImage: p.coverImage, songIds: p.songIds, source: p.source, displayOrder: p.displayOrder })),
+        manualPlaylists: (manualPlaylistsData || []).map(p => ({ id: p.id, title: p.title, description: p.description, coverImage: p.coverImage, songIds: p.songIds, source: p.source, displayOrder: p.displayOrder, manualType: p.manualType })),
+        allSongs: slimTabs(customSongs),
+        hotArtists: {
+          all: slimArtists(hotArtistsData.all),
+          male: slimArtists(hotArtistsData.male),
+          female: slimArtists(hotArtistsData.female),
+          group: slimArtists(hotArtistsData.group)
+        },
+        artists: slimArtists(artistsSlice),
         artistPhotoMap: photoMap,
         totalViewCount: popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0)
       });
