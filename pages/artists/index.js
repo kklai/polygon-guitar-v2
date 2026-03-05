@@ -65,9 +65,9 @@ function ArtistCircle({ artist, onClick }) {
   return (
     <div 
       onClick={onClick}
-      className="flex-shrink-0 w-[100px] cursor-pointer"
+      className="flex-shrink-0 w-[100px] cursor-pointer select-none touch-manipulation"
     >
-      <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2">
+      <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-200 active:scale-105 active:z-20">
         {photoUrl ? (
           <img 
             src={photoUrl} 
@@ -124,7 +124,7 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
       </div>
       
       {/* 3行一齊橫向滾動 */}
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 touch-pan-x">
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
         <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
           {columns.map((column, colIndex) => (
             <div key={colIndex} className="flex flex-col gap-4">
