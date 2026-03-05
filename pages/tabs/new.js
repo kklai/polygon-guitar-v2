@@ -387,10 +387,21 @@ export default function NewTab() {
 
     setIsSubmitting(true)
     try {
+      // 過濾 undefined 值，避免 Firestore 錯誤
+      const cleanFormData = {}
+      for (const [key, value] of Object.entries(formData)) {
+        if (value !== undefined) {
+          cleanFormData[key] = value
+        } else if (Array.isArray(value)) {
+          cleanFormData[key] = value
+        } else {
+          cleanFormData[key] = ''
+        }
+      }
+      
       const submitData = {
-        ...formData,
-        artists: formData.artists, // 保存多歌手陣列
-        uploaderPenName: formData.uploaderPenName.trim() || '結他友'
+        ...cleanFormData,
+        uploaderPenName: (formData.uploaderPenName || '').trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
       
