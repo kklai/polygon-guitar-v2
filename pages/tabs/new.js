@@ -323,8 +323,8 @@ export default function NewTab() {
         setFormData(prev => ({
           ...prev,
           title: title || prev.title,
-          artist: artist || prev.artist,
-          artists: artist ? [{ name: artist, id: null, relation: null }] : prev.artists,
+          artist: artist !== undefined ? artist : prev.artist,
+          artists: artist ? [{ name: artist, id: null, relation: null }] : (prev.artists || [{ name: '', id: null, relation: null }]),
           youtubeUrl: youtube || prev.youtubeUrl,
           originalKey: originalKey || prev.originalKey,
           capo: capo || prev.capo,
@@ -388,14 +388,20 @@ export default function NewTab() {
     setIsSubmitting(true)
     try {
       // 過濾 undefined 值，避免 Firestore 錯誤
-      const cleanValue = (val) => {
-        if (val === undefined) return ''
+      const cleanValue = (val, key = '') => {
+        if (val === undefined) {
+          console.log(`[cleanValue] ${key} is undefined, converting to empty string`)
+          return ''
+        }
         if (val === null) return null
         if (Array.isArray(val)) {
-          return val.map(item => {
+          return val.map((item, idx) => {
             if (typeof item === 'object' && item !== null) {
               const cleanItem = {}
               for (const [k, v] of Object.entries(item)) {
+                if (v === undefined) {
+                  console.log(`[cleanValue] ${key}[${idx}].${k} is undefined, converting to null`)
+                }
                 cleanItem[k] = v === undefined ? null : v
               }
               return cleanItem
@@ -408,7 +414,18 @@ export default function NewTab() {
       
       const cleanFormData = {}
       for (const [key, value] of Object.entries(formData)) {
-        cleanFormData[key] = cleanValue(value)
+        cleanFormData[key] = cleanValue(value, key)
+      }
+      
+      // Debug: 檢查仲有冇 undefined
+      const undefinedFields = []
+      for (const [key, value] of Object.entries(cleanFormData)) {
+        if (value === undefined) {
+          undefinedFields.push(key)
+        }
+      }
+      if (undefinedFields.length > 0) {
+        console.error('[handleSubmit] Still has undefined fields:', undefinedFields)
       }
       
       const submitData = {
