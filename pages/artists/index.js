@@ -295,8 +295,8 @@ export default function Artists() {
       </Head>
       <Layout fullWidth>
         <div 
-          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6" 
-          style={{ paddingTop: '24px' }}  // 覆蓋 Layout 的 pt-20
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6" 
+          style={{ paddingTop: '24px' }}
         >
           {/* Search */}
           <div className="px-4 -mx-4">

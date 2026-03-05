@@ -163,7 +163,7 @@ export default function Search() {
     <Layout>
       <div className="min-h-screen bg-black pb-24">
         {/* Header */}
-        <div className="px-4 py-4">
+        <div className="py-4">
           <div className="flex items-center gap-3 mb-4">
             {/* 用戶頭像 placeholder */}
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-black font-bold text-sm">
@@ -205,7 +205,7 @@ export default function Search() {
 
         {/* Search Results */}
         {searchQuery.trim() !== '' ? (
-          <div className="px-4 space-y-6">
+          <div className="space-y-6">
             {/* Artists Results */}
             {filteredArtists.length > 0 && (
               <section>
@@ -307,7 +307,7 @@ export default function Search() {
           </div>
         ) : (
           /* Default View */
-          <div className="px-4 space-y-6">
+          <div className="space-y-6">
             {/* 分類卡片 2x2 */}
             <div className="grid grid-cols-2 gap-3">
               {categories.map((cat) => (
@@ -378,7 +378,7 @@ export default function Search() {
             {!isLoading && hotSongs.length > 0 && (
               <section>
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌曲</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-3 -mx-4 px-4">
+                <div className="flex overflow-x-auto scrollbar-hide gap-3">
                   {hotSongs.map((song) => (
                     <button
                       key={song.id}
@@ -417,7 +417,7 @@ export default function Search() {
             {!isLoading && hotArtists.length > 0 && (
               <section>
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌手</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-4 -mx-4 px-4">
+                <div className="flex overflow-x-auto scrollbar-hide gap-4">
                   {hotArtists.map((artist) => (
                     <button
                       key={artist.id}
