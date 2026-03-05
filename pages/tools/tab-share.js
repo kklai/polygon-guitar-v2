@@ -66,8 +66,8 @@ const S = 3
 const p = (n) => n / S
 const OUT_W = PREVIEW_W * S
 const OUT_H = PREVIEW_H * S
-const ITEM_H = 40
-const HANDLE_H = 15
+const ITEM_H = 25
+const HANDLE_H = 20
 const PICKER_PAD = 15
 
 export default function TabShareTool() {
@@ -82,9 +82,9 @@ export default function TabShareTool() {
   const containerRef = useRef(null)
   const pickerRef = useRef(null)
   const dragTarget = useRef(null)
-  const dragOffset = useRef(0)
   const selStartRef = useRef(null)
   const selEndRef = useRef(null)
+  const skipScroll = useRef(false)
 
   useEffect(() => {
     if (router.query.tabId) selectTab({ id: router.query.tabId })
@@ -104,7 +104,7 @@ export default function TabShareTool() {
     const updateScale = () => {
       if (containerRef.current) {
         const width = containerRef.current.offsetWidth
-        const maxHeight = window.innerHeight * 0.5
+        const maxHeight = 280
         setPreviewScale(Math.min(1, width / PREVIEW_W, maxHeight / PREVIEW_H))
       }
     }
@@ -132,12 +132,13 @@ export default function TabShareTool() {
           }
           setSelectionStart(start)
           setSelectionEnd(end)
+          skipScroll.current = true
           setTimeout(() => {
             if (pickerRef.current) {
-              const selMid = ((start + end) / 2) * ITEM_H + PICKER_PAD
-              const containerH = pickerRef.current.clientHeight
-              pickerRef.current.scrollTop = Math.max(0, selMid - containerH / 2)
+              const selStart = start * ITEM_H
+              pickerRef.current.scrollTop = Math.max(0, selStart - HANDLE_H - ITEM_H + Math.round(ITEM_H / 2))
             }
+            setTimeout(() => { skipScroll.current = false }, 150)
           }, 50)
         }
       }
@@ -172,8 +173,8 @@ export default function TabShareTool() {
 
     const isChorus = (t) =>
       /^(chor|chrou|副歌|\*)/i.test(t) ||
-      /^\[chorus\]/i.test(t) ||
-      /^\(副歌\)\s*$/i.test(t) ||
+      /^\[(chorus|副歌|cho)\]/i.test(t) ||
+      /^\((chorus|副歌|cho)\)\s*$/i.test(t) ||
       /^\/c\s*$/i.test(t)
     const isMetadata = (t) =>
       /^(曲|詞|曲\/詞|詞\/曲|原調|調|編曲|監製|Arranged\s*by|Key)\s*[：:]/i.test(t)
@@ -248,10 +249,6 @@ export default function TabShareTool() {
   const onHandlePointerDown = (e, target) => {
     e.preventDefault()
     dragTarget.current = target
-    if (target === 'middle') {
-      const normStart = Math.min(selStartRef.current ?? 0, selEndRef.current ?? 0)
-      dragOffset.current = getIdxFromClientY(e.clientY) - normStart
-    }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
@@ -267,18 +264,13 @@ export default function TabShareTool() {
     } else if (dragTarget.current === 'end') {
       const start = selStartRef.current ?? 0
       setSelectionEnd(Math.min(start + MAX_SELECTION, Math.max(start, idx)))
-    } else if (dragTarget.current === 'middle') {
-      const selLen = Math.min(Math.abs((selEndRef.current ?? 0) - (selStartRef.current ?? 0)), MAX_SELECTION)
-      const newStart = Math.max(0, Math.min(lyricsLen - 1 - selLen, idx - dragOffset.current))
-      setSelectionStart(newStart)
-      setSelectionEnd(newStart + selLen)
     }
   }
 
   const onHandlePointerUp = () => { dragTarget.current = null }
 
   const onPickerScroll = () => {
-    if (!pickerRef.current || dragTarget.current) return
+    if (!pickerRef.current || dragTarget.current || skipScroll.current) return
     const scrollTop = pickerRef.current.scrollTop
     const lyricsLen = selectedTab?.parsedContent?.lyrics?.length ?? 0
     const selCount = Math.abs((selEndRef.current ?? 0) - (selStartRef.current ?? 0))
@@ -562,8 +554,10 @@ export default function TabShareTool() {
   const normStart = hasSelection ? Math.min(selectionStart, selectionEnd) : 0
   const normEnd = hasSelection ? Math.max(selectionStart, selectionEnd) : 0
   const totalH = lyrics.length * ITEM_H
+  const selCount = normEnd - normStart
   const selTop = normStart * ITEM_H
   const selBottom = (normEnd + 1) * ITEM_H
+  const overlayH = (selCount + 1) * ITEM_H
 
   const handleAttrs = (target) => ({
     onPointerDown: (e) => onHandlePointerDown(e, target),
@@ -605,10 +599,9 @@ export default function TabShareTool() {
                   <div
                     ref={pickerRef}
                     onScroll={onPickerScroll}
-                    style={{ position: 'relative', maxHeight: 320, overflowY: 'auto', paddingTop: PICKER_PAD, paddingBottom: PICKER_PAD }}
+                    style={{ position: 'relative', maxHeight: '30vh', overflowY: 'auto', paddingTop: PICKER_PAD, paddingBottom: PICKER_PAD }}
                   >
                     <div style={{ position: 'relative', height: totalH }}>
-                      {/* Lyric rows */}
                       {lyrics.map((lyric, idx) => (
                         <div
                           key={idx}
@@ -623,10 +616,10 @@ export default function TabShareTool() {
                         </div>
                       ))}
 
-                      {/* Selected region */}
+                      {/* Selection highlight */}
                       {hasSelection && (
                         <div style={{
-                          position: 'absolute', top: selTop, height: selBottom - selTop,
+                          position: 'absolute', top: selTop - HANDLE_H, height: selBottom - selTop + HANDLE_H * 2,
                           left: 0, right: 0, pointerEvents: 'none',
                           background: 'rgba(255, 215, 0, 0.08)',
                           borderLeft: '3px solid #FFD700',
@@ -634,25 +627,12 @@ export default function TabShareTool() {
                         }} />
                       )}
 
-                      {/* Middle drag area */}
-                      {hasSelection && selBottom - selTop > HANDLE_H && (
-                        <div
-                          {...handleAttrs('middle')}
-                          style={{
-                            position: 'absolute', top: selTop + HANDLE_H / 2, left: 0, right: 0,
-                            height: selBottom - selTop - HANDLE_H,
-                            cursor: 'grab', userSelect: 'none', touchAction: 'none',
-                            zIndex: 5,
-                          }}
-                        />
-                      )}
-
-                      {/* Top handle — straddles the top boundary */}
+                      {/* Top handle */}
                       {hasSelection && (
                         <div
                           {...handleAttrs('start')}
                           style={{
-                            position: 'absolute', top: selTop - HANDLE_H / 2, left: 0, right: 0,
+                            position: 'absolute', top: selTop - HANDLE_H, left: 0, right: 0,
                             height: HANDLE_H, background: '#FFD700',
                             borderRadius: 4,
                             cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
@@ -664,12 +644,12 @@ export default function TabShareTool() {
                         </div>
                       )}
 
-                      {/* Bottom handle — straddles the bottom boundary */}
+                      {/* Bottom handle */}
                       {hasSelection && (
                         <div
                           {...handleAttrs('end')}
                           style={{
-                            position: 'absolute', top: selBottom - HANDLE_H / 2, left: 0, right: 0,
+                            position: 'absolute', top: selBottom, left: 0, right: 0,
                             height: HANDLE_H, background: '#FFD700',
                             borderRadius: 4,
                             cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
@@ -701,7 +681,7 @@ export default function TabShareTool() {
       {savedImageUrl && (
         <div
           className="fixed inset-0 bg-black/90 flex flex-col items-center p-4"
-          style={{ zIndex: 9999 }}
+          style={{ zIndex: 9999, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
           onClick={() => setSavedImageUrl(null)}
         >
           <p className="text-white text-center text-sm py-3 flex-shrink-0">長按圖片 → 加入相片</p>
@@ -710,6 +690,7 @@ export default function TabShareTool() {
               src={savedImageUrl}
               alt="Generated"
               className="max-w-full max-h-full rounded-lg"
+              style={{ WebkitTouchCallout: 'default', WebkitUserSelect: 'auto' }}
               onClick={(e) => e.stopPropagation()}
             />
           </div>
