@@ -413,22 +413,13 @@ export default function Artists() {
                   )}
                 </>
               ) : (
-                // 單一分類模式：傳統網格顯示
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-4">
-                    {CATEGORY_LABELS[activeCategory]?.label || '歌手'}
-                    <span className="text-sm text-gray-500 ml-2">({filteredArtists.length})</span>
-                  </h2>
-                  <div className="grid grid-cols-4 gap-4">
-                    {filteredArtists.map(artist => (
-                      <ArtistCircle 
-                        key={artist.id} 
-                        artist={artist}
-                        onClick={() => handleArtistClick(artist.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
+                // 單一分類模式：保持同樣嘅橫滾佈局
+                <HorizontalScrollSection 
+                  title={CATEGORY_LABELS[activeCategory]?.label || '歌手'}
+                  color={CATEGORY_LABELS[activeCategory]?.color || '#888888'}
+                  artists={filteredArtists}
+                  onArtistClick={handleArtistClick}
+                />
               )}
             </div>
           ) : (
