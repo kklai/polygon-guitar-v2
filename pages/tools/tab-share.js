@@ -120,8 +120,18 @@ export default function TabShareTool() {
       const tabDoc = await getDoc(doc(db, 'tabs', tab.id))
       if (tabDoc.exists()) {
         const data = tabDoc.data()
+        let artistPhoto = null
+        if (data.artistId) {
+          try {
+            const artistDoc = await getDoc(doc(db, 'artists', data.artistId))
+            if (artistDoc.exists()) {
+              const a = artistDoc.data()
+              artistPhoto = a.photoURL || a.wikiPhotoURL || null
+            }
+          } catch (e) {}
+        }
         const parsed = parseTabContent(data.content)
-        setSelectedTab({ ...data, id: tab.id, parsedContent: parsed })
+        setSelectedTab({ ...data, id: tab.id, artistPhoto, parsedContent: parsed })
         if (parsed.lyrics.length > 0) {
           let start, end
           if (parsed.chorusStart >= 0 && parsed.chorusEnd >= parsed.chorusStart) {
@@ -299,8 +309,10 @@ export default function TabShareTool() {
 
   const getArtistImage = () => {
     if (!selectedTab) return null
-    return selectedTab.thumbnail || selectedTab.albumImage ||
-      (selectedTab.youtubeUrl ? `https://img.youtube.com/vi/${extractYouTubeId(selectedTab.youtubeUrl)}/hqdefault.jpg` : null)
+    return selectedTab.coverImage || selectedTab.albumImage || selectedTab.thumbnail ||
+      (selectedTab.youtubeUrl ? `https://img.youtube.com/vi/${extractYouTubeId(selectedTab.youtubeUrl)}/hqdefault.jpg` : null) ||
+      (selectedTab.youtubeVideoId ? `https://img.youtube.com/vi/${selectedTab.youtubeVideoId}/hqdefault.jpg` : null) ||
+      selectedTab.artistPhoto
   }
 
   const getDominantColor = (img) => {
@@ -317,7 +329,16 @@ export default function TabShareTool() {
       const w = saturation * (max / 255) + 0.05
       rSum += r * w; gSum += g * w; bSum += b * w; wSum += w
     }
-    return { r: Math.round(rSum / wSum), g: Math.round(gSum / wSum), b: Math.round(bSum / wSum) }
+    let r = rSum / wSum, g = gSum / wSum, b = bSum / wSum
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    if (max > 0) {
+      const boost = 1.5
+      const mid = (max + min) / 2
+      r = Math.min(255, mid + (r - mid) * boost)
+      g = Math.min(255, mid + (g - mid) * boost)
+      b = Math.min(255, mid + (b - mid) * boost)
+    }
+    return { r: Math.round(Math.max(0, r)), g: Math.round(Math.max(0, g)), b: Math.round(Math.max(0, b)) }
   }
 
   const extractYouTubeId = (url) => {
@@ -359,7 +380,8 @@ export default function TabShareTool() {
       const dc = artImg ? getDominantColor(artImg) : { r: 30, g: 30, b: 30 }
       const gradient = ctx.createLinearGradient(0, 0, 0, OUT_H)
       gradient.addColorStop(0, `rgb(${dc.r}, ${dc.g}, ${dc.b})`)
-      gradient.addColorStop(1, '#000000')
+      gradient.addColorStop(0.7, `rgb(${Math.round(dc.r * 0.25)}, ${Math.round(dc.g * 0.25)}, ${Math.round(dc.b * 0.25)})`)
+      gradient.addColorStop(1, `rgb(${Math.round(dc.r * 0.25)}, ${Math.round(dc.g * 0.25)}, ${Math.round(dc.b * 0.25)})`)
       ctx.fillStyle = gradient
       ctx.fillRect(0, 0, OUT_W, OUT_H)
 
@@ -440,7 +462,8 @@ export default function TabShareTool() {
           for (const seg of segments) {
             const segW = ctx.measureText(seg.text).width
             if (seg.hasStar && starImg) {
-              ctx.drawImage(starImg, x + segW / 2 - starW / 2, y - starH - 2, starW, starH)
+              const starYOffset = window.innerWidth >= 768 ? 0 : 7
+              ctx.drawImage(starImg, x + segW / 2 - starW / 2, y - starH + starYOffset, starW, starH)
             }
             ctx.fillText(seg.text, x, y)
             x += segW
@@ -577,7 +600,7 @@ export default function TabShareTool() {
                 style={{ width: `${PREVIEW_W * previewScale}px`, height: `${PREVIEW_H * previewScale}px`, overflow: 'hidden', margin: '0 auto', border: '1px solid rgb(255, 215, 0)', cursor: selectedTab && hasSelection ? 'pointer' : 'default', userSelect: 'none', WebkitUserSelect: 'none' }}
               >
                 {selectedTab && hasSelection ? (
-                  <div style={{ width: `${PREVIEW_W}px`, height: `${PREVIEW_H}px`, transform: `scale(${previewScale})`, transformOrigin: 'top left', background: dominantColor ? `linear-gradient(to bottom, rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}), #000000)` : '#121212', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif" }}>
+                  <div style={{ width: `${PREVIEW_W}px`, height: `${PREVIEW_H}px`, transform: `scale(${previewScale})`, transformOrigin: 'top left', background: dominantColor ? `linear-gradient(to bottom, rgb(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}), rgb(${Math.round(dominantColor.r * 0.25)}, ${Math.round(dominantColor.g * 0.25)}, ${Math.round(dominantColor.b * 0.25)}) 70%)` : '#121212', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif" }}>
                     {renderImageContent()}
                   </div>
                 ) : (
@@ -586,7 +609,7 @@ export default function TabShareTool() {
                   </div>
                 )}
               </div>
-              {selectedTab && hasSelection && <p className="text-center text-xs text-gray-500 mt-2">點擊圖片下載</p>}
+              {selectedTab && hasSelection && <p className="text-center text-xs md:text-sm text-gray-500" style={{ marginTop: 5 }}>點擊圖片下載</p>}
             </div>
           </div>
 
@@ -594,12 +617,13 @@ export default function TabShareTool() {
           <div className="flex flex-col gap-4 flex-1">
             {selectedTab && (
               <>
-                <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
-                  <h3 className="text-white font-bold mb-[10px]">㨂選你喜歡的歌詞</h3>
+                <h3 className="text-[#FFD700] font-medium mb-[-8px] -mt-3 text-center" style={{ fontWeight: 500 }}>㨂選你喜歡的歌詞 ▼</h3>
+                <div className="bg-[#121212] rounded-xl border border-gray-800 px-4 pb-4 pt-0">
                   <div style={{ position: 'relative' }}>
                     <div
                       ref={pickerRef}
                       onScroll={onPickerScroll}
+                      className="scrollbar-hide"
                       style={{ position: 'relative', zIndex: 0, maxHeight: '30vh', overflowY: 'auto', paddingTop: PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2) + 3, paddingBottom: `calc(30vh - ${PICKER_PAD + ITEM_H - Math.round(ITEM_H / 2) + overlayH}px)` }}
                     >
                       <div style={{ position: 'relative', height: totalH }}>
@@ -627,19 +651,20 @@ export default function TabShareTool() {
                         <>
                           <div style={{
                             position: 'absolute', top: fixedTop, left: 0, right: 0,
-                            height: overlayH + HANDLE_H, pointerEvents: 'none',
+                            height: overlayH, pointerEvents: 'none',
                             background: 'rgba(255, 215, 0, 0.08)',
                             borderTop: '3px solid #FFD700',
                             borderLeft: '3px solid #FFD700',
                             borderRight: '3px solid #FFD700',
+                            borderRadius: '5px 5px 0 0',
                             zIndex: 5,
                           }} />
                           <div
                             {...handleAttrs('end')}
                             style={{
-                              position: 'absolute', top: fixedTop + overlayH, left: 0, right: 0,
+                              position: 'absolute', top: fixedTop + overlayH - 1, left: 0, right: 0,
                               height: HANDLE_H, background: '#FFD700',
-                              borderRadius: 4,
+                              borderRadius: '0 0 5px 5px',
                               cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               zIndex: 10,
@@ -666,13 +691,13 @@ export default function TabShareTool() {
           style={{ zIndex: 9999, userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
           onClick={() => setSavedImageUrl(null)}
         >
-          <p className="text-white text-center text-sm py-3 flex-shrink-0">長按圖片 → 加入相片</p>
-          <div className="flex-1 min-h-0 flex items-center justify-center w-full">
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center w-full">
+            <p className="text-white text-center text-sm flex-shrink-0" style={{ marginTop: 15, marginBottom: 5 }}>長按圖片 → 加入相片</p>
             <img
               src={savedImageUrl}
               alt="Generated"
-              className="max-w-full max-h-full rounded-lg"
-              style={{ WebkitTouchCallout: 'default', WebkitUserSelect: 'auto' }}
+              className="max-w-full rounded-lg"
+              style={{ maxHeight: 'calc(100% - 30px)', WebkitTouchCallout: 'default', WebkitUserSelect: 'auto' }}
               onClick={(e) => e.stopPropagation()}
             />
           </div>
