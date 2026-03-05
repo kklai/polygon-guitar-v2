@@ -331,14 +331,14 @@ export default function Home() {
       case 'categories':
         return (
           <section key={section.id} className="pt-2" style={{ marginBottom: 25 }}>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: 18 }}>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
               {(loadingPhase === 'static' ? DEFAULT_CATEGORIES : categories).map((category) => (
                 <div
                   key={category.id}
                   onClick={() => handleCategoryClick(category.id)}
                   className="flex-shrink-0 flex flex-col cursor-pointer"
                 >
-                  <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800">
+                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800">
                     {loadingPhase === 'static' ? (
                       // Phase 1: 骨架屏
                       <>
@@ -387,8 +387,8 @@ export default function Home() {
         if (hotTabs.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -402,8 +402,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {hotTabs.map((song) => (
                 <SongCard
                   key={song.id}
@@ -420,8 +420,8 @@ export default function Home() {
         if (!hotArtists.all?.length) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
@@ -434,8 +434,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {hotArtists.all.map((artist) => (
                 <ArtistAvatar
                     key={artist.id}
@@ -451,8 +451,8 @@ export default function Home() {
         if (autoPlaylists.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -465,8 +465,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {autoPlaylists.map((playlist) => (
                 <PlaylistCard
                   key={playlist.id}
@@ -482,8 +482,8 @@ export default function Home() {
         if (latestSongs.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -497,8 +497,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {latestSongs.map((song) => (
                 <SongCard
                   key={song.id}
@@ -515,8 +515,8 @@ export default function Home() {
         if (manualPlaylists.length === 0) {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -529,8 +529,8 @@ export default function Home() {
         }
         return (
           <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {manualPlaylists.map((playlist) => (
                 <PlaylistCard
                   key={playlist.id}
@@ -547,8 +547,8 @@ export default function Home() {
         if (loadingPhase === 'static') {
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{section.title || '載入中...'}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{section.title || '載入中...'}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
                     <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -589,8 +589,8 @@ export default function Home() {
           
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{section.title || customSection.title}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{section.title || customSection.title}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {sectionSongs.map((song) => (
                   <SongCard
                     key={song.id}
@@ -616,8 +616,8 @@ export default function Home() {
           
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>{section.title || customSection.title}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{section.title || customSection.title}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {playlists.map((playlist) => (
                   <PlaylistCard
                     key={playlist.id}
@@ -1019,13 +1019,13 @@ export default function Home() {
         <div className="min-h-screen bg-black pb-24">
           {/* 分類骨架屏 - 可點擊 */}
           <section className="pt-2" style={{ marginBottom: 25 }}>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: 18 }}>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
               {DEFAULT_CATEGORIES.map((category) => (
                 <div
                   key={category.id}
                   className="flex-shrink-0 flex flex-col cursor-pointer"
                 >
-                  <div className="relative w-36 h-36 rounded-[4px] overflow-hidden bg-gray-800 animate-pulse">
+                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800 animate-pulse">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-2xl opacity-50">🎵</span>
                     </div>
@@ -1046,8 +1046,8 @@ export default function Home() {
           
           {/* 熱門譜骨架屏 */}
           <section style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>熱門結他譜</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>熱門結他譜</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex-shrink-0 w-36">
                   <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
@@ -1060,8 +1060,8 @@ export default function Home() {
           
           {/* 熱門歌手骨架屏 */}
           <section style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: 22, paddingLeft: 18 }}>熱門歌手</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: 18 }}>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>熱門歌手</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex-shrink-0 w-36">
                   <div className="w-36 h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
@@ -1134,7 +1134,7 @@ export default function Home() {
         <div className="min-h-screen bg-black pb-24">
         {/* Admin 設置按鈕（右上角） */}
         {isAdmin && (
-          <div className="pr-6 pb-2 flex justify-end" style={{ paddingLeft: 18 }}>
+          <div className="pr-6 pb-2 flex justify-end" style={{ paddingLeft: '1rem' }}>
             <button
               onClick={() => router.push('/admin/home-settings')}
               className="px-3 py-2 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition text-sm"

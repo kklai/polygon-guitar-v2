@@ -1,9 +1,9 @@
 // pages/artists/[id].js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
-import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info, Edit } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info, Edit, Star, Eye } from 'lucide-react';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
@@ -13,6 +13,18 @@ import { recordPageView } from '../../lib/analytics';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Prefetch: start loading artist data at module parse time
+let _prefetchId = null
+let _prefetchPromise = null
+
+if (typeof window !== 'undefined') {
+  const match = window.location.pathname.match(/^\/artists\/(.+)$/)
+  if (match) {
+    _prefetchId = decodeURIComponent(match[1])
+    _prefetchPromise = getDoc(doc(db, 'artists', _prefetchId))
+  }
+}
 
 export default function ArtistPage() {
   const router = useRouter();
@@ -31,6 +43,7 @@ export default function ArtistPage() {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false); // 控制歌手資訊顯示
+  const [expandedTitles, setExpandedTitles] = useState({});
   
   // 使用 AuthContext
   const { user, isAdmin } = useAuth();
@@ -44,36 +57,32 @@ export default function ArtistPage() {
   const loadArtistData = async () => {
     setLoading(true);
     try {
-      // 獲取歌手資料
-      const artistDoc = await getDoc(doc(db, 'artists', id));
+      const artistDoc = (_prefetchId === id && _prefetchPromise)
+        ? await _prefetchPromise
+        : await getDoc(doc(db, 'artists', id));
+      _prefetchPromise = null;
+      _prefetchId = null;
       if (!artistDoc.exists()) {
         router.push('/artists');
         return;
       }
       const artistData = { id: artistDoc.id, ...artistDoc.data() };
       setArtist(artistData);
+      setLoading(false);
 
-      // 記錄瀏覽（支援未登入用戶）
+      // Fire-and-forget analytics
       recordArtistView(user?.uid || null, artistData);
-      // 記錄詳細頁面瀏覽
       recordPageView('artist', artistDoc.id, artistData.name, {
         pageName: artistData.name,
         photoURL: artistData.photoURL || artistData.wikiPhotoURL
       }, user?.uid || null);
 
-      // 使用 getTabsByArtist 獲取歌曲（支援多種 artistId 格式兼容）
       const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
-      
-      // 按瀏覽數排序
       tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-      
-      // 前5首為熱門
       setHotTabs(tabs.slice(0, 5));
-      // 所有歌曲區顯示全部歌曲（包括熱門）
       setAllTabs(tabs);
     } catch (error) {
       console.error('載入歌手資料失敗:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -250,10 +259,33 @@ export default function ArtistPage() {
     return tabs;
   };
 
+  const groupByTitle = (tabs) => {
+    const map = new Map();
+    tabs.forEach(tab => {
+      const key = tab.title?.trim() || tab.id;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(tab);
+    });
+    const result = [];
+    map.forEach((group, title) => {
+      if (group.length === 1) {
+        result.push({ type: 'single', tab: group[0] });
+      } else {
+        const sorted = [...group].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+        result.push({ type: 'group', title, representative: sorted[0], versions: sorted });
+      }
+    });
+    return result;
+  };
+
   // 按年份時分組，其他排序不分組
   const displayData = sortBy === 'year' 
     ? { grouped: true, data: groupByYear(sortedTabs()) }
     : { grouped: false, data: sortedTabs() };
+
+  const toggleTitle = (key) => {
+    setExpandedTitles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // 提取 YouTube Video ID
   const extractYouTubeId = (url) => {
@@ -404,13 +436,13 @@ export default function ArtistPage() {
 
       {/* 熱門歌曲（前5首 - 有相片） */}
       <section className="px-4 mt-2">
-        <h2 className="text-white text-lg font-bold mb-2">熱門</h2>
+        <h2 className="text-white font-bold mb-2" style={{ fontSize: '1.375rem' }}>熱門</h2>
         <div className="space-y-1">
           {hotTabs.map((tab, index) => (
             <div 
               key={tab.id}
               onClick={() => router.push(`/tabs/${tab.id}`)}
-              className="flex items-center py-1 hover:bg-[#1a1a1a] rounded-lg cursor-pointer group -mx-2 px-2"
+              className="flex items-center py-1 rounded-lg cursor-pointer group -mx-2 px-2"
             >
               <span className="text-[#B3B3B3] w-5 text-center text-sm font-medium mr-2">
                 {index + 1}
@@ -448,7 +480,7 @@ export default function ArtistPage() {
       <section className="px-4 mt-8">
         {/* 標題 + 排序 */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-white text-xl font-bold">所有歌曲</h2>
+          <h2 className="text-white font-bold" style={{ fontSize: '1.375rem' }}>所有歌曲</h2>
           
           <div className="relative">
             <button 
@@ -485,8 +517,8 @@ export default function ArtistPage() {
         {displayData.grouped ? (
           // 按年份分組顯示
           Object.entries(displayData.data).map(([yearRange, tabs]) => (
-            <div key={yearRange} className="mb-6">
-              <h3 className={`text-sm font-medium mb-3 sticky top-0 bg-black/95 py-2 z-10 ${
+            <div key={yearRange} style={{ marginBottom: '0.5rem' }}>
+              <h3 className={`text-sm font-mediumremo sticky top-0 bg-black/95 py-2 z-10 ${
                 yearRange === '未知年份' 
                   ? 'text-gray-500 italic' 
                   : 'text-[#FFD700]'
@@ -496,97 +528,155 @@ export default function ArtistPage() {
                   <span className="ml-2 text-xs">({tabs.length} 首)</span>
                 )}
               </h3>
-              <div className="space-y-1">
-                {tabs.map((tab) => (
-                  <div 
-                    key={tab.id}
-                    onClick={() => router.push(`/tabs/${tab.id}`)}
-                    className="flex items-center py-3 hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
-                  >
-                    {/* 歌曲名稱 + 合唱標籤 */}
-                    <div className="flex-1 min-w-0 pr-4">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-white font-medium truncate">{tab.title}</h4>
-                        {tab.isCollaboration && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
-                            tab.collaborationType === 'feat' 
-                              ? 'bg-purple-500/20 text-purple-400' 
-                              : 'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
+              <div>
+                {groupByTitle(tabs).map((item, idx, arr) => {
+                  if (item.type === 'single') {
+                    const tab = item.tab;
+                    return (
+                      <div 
+                        key={tab.id}
+                        onClick={() => router.push(`/tabs/${tab.id}`)}
+                        className="flex items-center cursor-pointer group py-3 px-2 -mx-2"
+                        style={idx < arr.length - 1 ? { borderBottom: '0.5px solid #333' } : {}}
+                      >
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
+                          <span className="text-gray-500 text-xs">{tab.viewCount?.toLocaleString() || 0}</span>
+                          <Eye className="w-3 h-3 text-gray-500 flex-shrink-0 ml-1" style={{ marginTop: -1 }} />
+                        </div>
+                        <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
+                          <span className="text-[#B3B3B3] text-sm truncate block">
+                            {tab.uploaderPenName || tab.arrangedBy || '匿名'}
                           </span>
-                        )}
+                        </div>
                       </div>
+                    );
+                  }
+                  const groupKey = `${yearRange}-${item.title}`;
+                  const isExpanded = expandedTitles[groupKey];
+                  const rep = item.representative;
+                  return (
+                    <div key={groupKey}>
+                      <div
+                        onClick={() => toggleTitle(groupKey)}
+                        className="flex items-center cursor-pointer py-3 px-2 -mx-2"
+                        style={(!isExpanded && idx < arr.length - 1) ? { borderBottom: '0.5px solid #333' } : {}}
+                      >
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{item.title}</h4>
+                            <span className="text-sm px-1.5 py-0.5 rounded flex-shrink-0 bg-yellow-500/20 text-[#FFD700]">{item.versions.length}份譜</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-gray-500 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </div>
+                        </div>
+                      </div>
+                      {isExpanded && item.versions.map((tab, vIdx) => (
+                        <div
+                          key={tab.id}
+                          onClick={() => router.push(`/tabs/${tab.id}`)}
+                          className="flex items-center cursor-pointer py-3 px-2 -mx-2 pl-6 bg-[#0a0a0a]"
+                          style={(vIdx < item.versions.length - 1 || idx < arr.length - 1) ? { borderBottom: '0.5px solid #333' } : {}}
+                        >
+                          <div className="flex-1 min-w-0 pr-4">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-white font-normal truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
+                            <span className="text-gray-500 text-xs">{tab.viewCount?.toLocaleString() || 0}</span>
+                            <Eye className="w-3 h-3 text-gray-500 flex-shrink-0 ml-1" style={{ marginTop: -1 }} />
+                          </div>
+                          <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
+                            <span className="text-[#B3B3B3] text-sm truncate block">
+                              {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    
-                    {/* 評分（中間） */}
-                    <div className="flex items-center px-2 md:px-4 flex-shrink-0">
-                      <RatingSystem 
-                        tabId={tab.id} 
-                        averageRating={tab.averageRating} 
-                        ratingCount={tab.ratingCount}
-                        size="sm"
-                        showCount={false}
-                      />
-                      <span className="text-gray-500 text-[10px] md:text-xs ml-1 md:ml-2 min-w-[24px] text-right">{tab.ratingCount || 0}</span>
-                    </div>
-                    
-                    {/* 出譜者（靠右） */}
-                    <div className="w-24 text-right flex-shrink-0">
-                      <span className="text-[#B3B3B3] text-sm truncate block">
-                        {tab.uploaderPenName || tab.arrangedBy || '匿名'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))
         ) : (
           // 平鋪顯示（按筆畫/瀏覽）
-          <div className="space-y-1">
-            {displayData.data.map((tab) => (
-              <div 
-                key={tab.id}
-                onClick={() => router.push(`/tabs/${tab.id}`)}
-                className="flex items-center py-3 hover:bg-[#1a1a1a] cursor-pointer group px-2 -mx-2 rounded-lg transition-colors"
-              >
-                {/* 歌曲名稱 + 合唱標籤 */}
-                <div className="flex-1 min-w-0 pr-4">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-white font-medium truncate">{tab.title}</h4>
-                    {tab.isCollaboration && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${
-                        tab.collaborationType === 'feat' 
-                          ? 'bg-purple-500/20 text-purple-400' 
-                          : 'bg-blue-500/20 text-blue-400'
-                      }`}>
-                        {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
+          <div>
+            {groupByTitle(displayData.data).map((item, idx, arr) => {
+              if (item.type === 'single') {
+                const tab = item.tab;
+                return (
+                  <div 
+                    key={tab.id}
+                    onClick={() => router.push(`/tabs/${tab.id}`)}
+                    className="flex items-center py-3 cursor-pointer group px-2 -mx-2"
+                    style={idx < arr.length - 1 ? { borderBottom: '0.5px solid #333' } : {}}
+                  >
+                    <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
+                      <span className="text-gray-500 text-xs">{tab.viewCount?.toLocaleString() || 0}</span>
+                      <Eye className="w-3 h-3 text-gray-500 flex-shrink-0 ml-1" style={{ marginTop: -1 }} />
+                    </div>
+                    <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
+                      <span className="text-[#B3B3B3] text-sm truncate block">
+                        {tab.uploaderPenName || tab.arrangedBy || '匿名'}
                       </span>
-                    )}
+                    </div>
                   </div>
+                );
+              }
+              const groupKey = `flat-${item.title}`;
+              const isExpanded = expandedTitles[groupKey];
+              const rep = item.representative;
+              return (
+                <div key={groupKey}>
+                  <div
+                    onClick={() => toggleTitle(groupKey)}
+                    className="flex items-center cursor-pointer py-3 px-2 -mx-2"
+                    style={(!isExpanded && idx < arr.length - 1) ? { borderBottom: '0.5px solid #333' } : {}}
+                  >
+                    <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{item.title}</h4>
+                        <span className="text-sm px-1.5 py-0.5 rounded flex-shrink-0 bg-yellow-500/20 text-[#FFD700]">{item.versions.length}份譜</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-gray-500 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </div>
+                  </div>
+                  {isExpanded && item.versions.map((tab, vIdx) => (
+                    <div
+                      key={tab.id}
+                      onClick={() => router.push(`/tabs/${tab.id}`)}
+                      className="flex items-center cursor-pointer py-3 px-2 -mx-2 pl-6 bg-[#0a0a0a]"
+                      style={(vIdx < item.versions.length - 1 || idx < arr.length - 1) ? { borderBottom: '0.5px solid #333' } : {}}
+                    >
+                      <div className="flex-1 min-w-0 pr-4">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-white font-normal truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
+                        <span className="text-gray-500 text-xs">{tab.viewCount?.toLocaleString() || 0}</span>
+                        <Eye className="w-3 h-3 text-gray-500 flex-shrink-0 ml-1" style={{ marginTop: -1 }} />
+                      </div>
+                      <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
+                        <span className="text-[#B3B3B3] text-sm truncate block">
+                          {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                
-                {/* 評分（中間） */}
-                <div className="flex items-center px-2 md:px-4 flex-shrink-0">
-                  <RatingSystem 
-                    tabId={tab.id} 
-                    averageRating={tab.averageRating} 
-                    ratingCount={tab.ratingCount}
-                    size="sm"
-                    showCount={false}
-                  />
-                  <span className="text-gray-500 text-[10px] md:text-xs ml-1 md:ml-2 min-w-[24px] text-right">{tab.ratingCount || 0}</span>
-                </div>
-                
-                {/* 出譜者（靠右） */}
-                <div className="w-24 text-right flex-shrink-0">
-                  <span className="text-[#B3B3B3] text-sm truncate block">
-                    {tab.uploaderPenName || tab.arrangedBy || '匿名'}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -614,17 +704,17 @@ export default function ArtistPage() {
             </div>
             
             <div className="space-y-1">
-              <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+              <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 rounded-lg">
                 <Share2 className="w-5 h-5 text-[#B3B3B3]" />
                 <span className="text-white">分享</span>
               </button>
               
-              <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+              <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 rounded-lg">
                 <Heart className="w-5 h-5 text-red-500" />
                 <span className="text-white">加到我最喜愛</span>
               </button>
               
-              <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+              <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 rounded-lg">
                 <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
                 <span className="text-white">加入歌單</span>
               </button>
