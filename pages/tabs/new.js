@@ -388,15 +388,27 @@ export default function NewTab() {
     setIsSubmitting(true)
     try {
       // 過濾 undefined 值，避免 Firestore 錯誤
+      const cleanValue = (val) => {
+        if (val === undefined) return ''
+        if (val === null) return null
+        if (Array.isArray(val)) {
+          return val.map(item => {
+            if (typeof item === 'object' && item !== null) {
+              const cleanItem = {}
+              for (const [k, v] of Object.entries(item)) {
+                cleanItem[k] = v === undefined ? null : v
+              }
+              return cleanItem
+            }
+            return item === undefined ? '' : item
+          })
+        }
+        return val
+      }
+      
       const cleanFormData = {}
       for (const [key, value] of Object.entries(formData)) {
-        if (value !== undefined) {
-          cleanFormData[key] = value
-        } else if (Array.isArray(value)) {
-          cleanFormData[key] = value
-        } else {
-          cleanFormData[key] = ''
-        }
+        cleanFormData[key] = cleanValue(value)
       }
       
       const submitData = {
