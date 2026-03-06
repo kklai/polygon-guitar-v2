@@ -17,7 +17,12 @@ import { uploadToCloudinary } from '@/lib/cloudinary'
 
 function PlaylistAdmin() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('manual')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('playlistTab') || 'auto'
+    }
+    return 'auto'
+  })
   const [autoPlaylists, setAutoPlaylists] = useState([])
   const [manualPlaylists, setManualPlaylists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -371,7 +376,7 @@ function PlaylistAdmin() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-3">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -400,7 +405,7 @@ function PlaylistAdmin() {
         {/* Tabs */}
         <div className="flex items-center border-b border-gray-800">
           <button
-            onClick={() => setActiveTab('auto')}
+            onClick={() => { setActiveTab('auto'); localStorage.setItem('playlistTab', 'auto') }}
             className={`px-6 py-3 font-medium transition ${
               activeTab === 'auto' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-500 hover:text-gray-300'
             }`}
@@ -418,7 +423,7 @@ function PlaylistAdmin() {
             </button>
           </button>
           <button
-            onClick={() => setActiveTab('manual')}
+            onClick={() => { setActiveTab('manual'); localStorage.setItem('playlistTab', 'manual') }}
             className={`px-6 py-3 font-medium transition ${
               activeTab === 'manual' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-500 hover:text-gray-300'
             }`}
@@ -691,16 +696,16 @@ function PlaylistAdmin() {
         )}
         {/* Cover Generator Modal */}
         {coverGenPlaylist && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setCoverGenPlaylist(null)}>
-            <div className="bg-[#121212] rounded-xl border border-gray-700 w-full max-w-lg max-h-[90vh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-lg">生成封面：{coverGenPlaylist.title}</h2>
-                <button onClick={() => setCoverGenPlaylist(null)} className="text-gray-500 hover:text-white transition">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-start md:items-center justify-center overflow-y-auto" onClick={() => setCoverGenPlaylist(null)}>
+            <div className="w-full max-w-lg mt-12 md:mt-4 mb-4 mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-end mb-1">
+                <button onClick={() => setCoverGenPlaylist(null)} className="text-gray-400 hover:text-white transition">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
+              <div className="bg-[#121212] rounded-xl border border-gray-700 p-4">
               {coverGenLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
@@ -713,6 +718,7 @@ function PlaylistAdmin() {
                   onGenerated={handleCoverGenerated}
                 />
               )}
+              </div>
             </div>
           </div>
         )}

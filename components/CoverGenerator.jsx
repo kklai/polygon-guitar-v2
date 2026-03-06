@@ -77,6 +77,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
     setSelectedSongs(prev => {
       const exists = prev.find(s => s.id === song.id)
       if (exists) return prev.filter(s => s.id !== song.id)
+      if (mode === 'single') return [song]
       if (prev.length >= maxSongs) return prev
       return [...prev, song]
     })
@@ -209,55 +210,61 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
   }
 
   return (
-    <div className="space-y-4">
-      {/* Preview at top */}
-      <div className="flex justify-center">
+    <div className="space-y-3">
+      {/* Preview + buttons side by side */}
+      <div className="flex items-start gap-3 pt-2">
         <div
           ref={previewRef}
           onClick={pickColorFromPreview}
-          className={`w-56 h-56 rounded-lg border overflow-hidden bg-[#0A0A0A] flex items-center justify-center ${
+          className={`w-[200px] h-[200px] rounded-lg border overflow-hidden bg-[#0A0A0A] flex items-center justify-center flex-shrink-0 ${
             eyedropperMode ? 'border-[#FFD700] cursor-crosshair' : 'border-gray-700'
           }`}
         >
           {previewUrl ? (
             <img src={previewUrl} alt="Cover preview" className="w-full h-full object-cover" />
           ) : (
-            <p className="text-gray-600 text-sm">揀歌後自動預覽</p>
+            <p className="text-gray-600 text-xs text-center px-2">揀歌後自動預覽</p>
           )}
         </div>
+        <div className="flex-1 flex flex-col gap-2 h-[200px]">
+          <button
+            onClick={() => switchMode('single')}
+            className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition ${
+              mode === 'single' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
+            }`}
+          >
+            單圖
+          </button>
+          <button
+            onClick={() => switchMode('collage')}
+            className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition ${
+              mode === 'collage' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
+            }`}
+          >
+            2x2
+          </button>
+          <div className="flex-1" />
+          {onGenerated && previewUrl && (
+            <button
+              onClick={handleConfirm}
+              className="w-full py-2 bg-green-700 text-white rounded-lg text-sm font-bold hover:bg-green-600 transition"
+            >
+              確認
+            </button>
+          )}
+          {eyedropperMode && <p className="text-xs text-[#FFD700]">點擊封面揀顏色</p>}
+          {generating && <p className="text-xs text-gray-500">生成中...</p>}
+        </div>
       </div>
-      {eyedropperMode && <p className="text-center text-xs text-[#FFD700]">點擊封面揀顏色</p>}
-      {generating && <p className="text-center text-xs text-gray-500">生成中...</p>}
 
-      {/* Mode selector */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => switchMode('single')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            mode === 'single' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
-          }`}
-        >
-          單圖
-        </button>
-        <button
-          onClick={() => switchMode('collage')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            mode === 'collage' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
-          }`}
-        >
-          2x2 拼貼
-        </button>
-      </div>
-
-      {/* Color picker */}
+      {/* Color picker - one row, no label */}
       <div>
-        <p className="text-sm text-gray-500 mb-2">邊框顏色</p>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5">
           {PRESET_COLORS.map(c => (
             <button
               key={c.value}
               onClick={() => { setFrameColor(c.value); setEyedropperMode(false) }}
-              className={`w-7 h-7 rounded-md border-2 transition ${
+              className={`w-7 h-7 rounded-md border-2 transition flex-shrink-0 ${
                 frameColor === c.value ? 'border-white scale-110' : 'border-gray-600 hover:border-gray-400'
               }`}
               style={{ backgroundColor: c.value }}
@@ -281,7 +288,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
       {/* Title text (single mode only) */}
       {mode === 'single' && (
         <div>
-          <p className="text-sm text-gray-500 mb-2">封面文字 <span className="text-gray-600">({titleText.length}/6)</span></p>
+          <p className="text-sm text-gray-500 mb-1">封面文字 <span className="text-gray-600">({titleText.length}/6)</span></p>
           <input
             type="text"
             value={titleText}
@@ -292,11 +299,6 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
           />
         </div>
       )}
-
-      <p className="text-sm text-gray-500">
-        {mode === 'single' ? '揀 1 首歌做封面' : '揀 4 首歌做 2x2 拼貼'}
-        （已選 {selectedSongs.length}/{maxSongs}）
-      </p>
 
       {/* Song picker */}
       <div className="max-h-60 overflow-y-auto space-y-1 bg-[#0A0A0A] rounded-lg p-2 border border-gray-800">
@@ -310,7 +312,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
               <button
                 key={song.id}
                 onClick={() => toggleSong(song)}
-                disabled={!isSelected && selectedSongs.length >= maxSongs}
+                disabled={mode !== 'single' && !isSelected && selectedSongs.length >= maxSongs}
                 className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition ${
                   isSelected
                     ? 'bg-[#FFD700]/20 border border-[#FFD700]/50'
@@ -341,16 +343,6 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
 
       {/* Hidden canvas */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-      {/* Confirm button */}
-      {onGenerated && previewUrl && (
-        <button
-          onClick={handleConfirm}
-          className="w-full py-3 bg-green-700 text-white rounded-lg font-bold hover:bg-green-600 transition"
-        >
-          確認使用此封面
-        </button>
-      )}
     </div>
   )
 }
