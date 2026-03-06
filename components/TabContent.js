@@ -546,9 +546,7 @@ function extractNotationNumbers(line) {
 // 從歌詞行提取字符（中文每個字算一個，英文每個單詞算一個，[~]算一個，空格和括號不計）
 function extractLyricChars(line) {
   const chars = [];
-  // 先移除括號（半形 + 全形），再匹配中文字、英文單詞或 [~]
   const lineWithoutBrackets = line.replace(/[()（）]/g, '');
-  // 支援 [~] 作為佔位符（一個字對應多個音時使用）
   const charRegex = /[\u4e00-\u9fff]|[a-zA-Z]+|\[~\]/g;
   let match;
   while ((match = charRegex.exec(lineWithoutBrackets)) !== null) {
@@ -632,49 +630,45 @@ function alignNotationWithLyrics(notationLine, lyricLine) {
   
   for (const unit of lyricUnits) {
     if (unit.type === 'bracket') {
-      // 括號單元 - 只計算中文、英文單詞和 [~]（括號本身不計）
-      const innerContent = unit.content.slice(1, -1); // 去掉首尾括號
+      const openBracket = unit.content[0];
+      const closeBracket = unit.content[unit.content.length - 1];
+      const innerContent = unit.content.slice(1, -1);
       const chineseCount = (innerContent.match(/[\u4e00-\u9fff]/g) || []).length;
       const englishWords = (innerContent.match(/[a-zA-Z]+/g) || []).length;
       const tildeCount = (innerContent.match(/\[~\]/g) || []).length;
       const unitCharCount = chineseCount + englishWords + tildeCount;
       
       if (unitCharCount === 0) {
-        // 空括號或無字符 - 白色
         result.push({
           type: 'bracket',
           content: unit.content,
           notation: null,
           isInside: true
         });
-      } else if (unitCharCount === 1) {
-        // 單個字符在括號內 - 只取括號內的字符（去掉括號）用於寬度計算
-        const innerContent = unit.content.slice(1, -1); // 去掉首尾括號
-        result.push({
-          type: 'pair',
-          notation: numbers[charIndex]?.value || '',
-          lyric: innerContent, // 存括號內的純文字，不包括括號
-          isInside: true
-        });
-        charIndex++;
       } else {
-        // 多個字符在括號內 - 為每個字符創建獨立的 pair
-        const innerContent = unit.content.slice(1, -1);
-        // 匹配中文字、英文單詞或 [~]
-        const charMatches = [...innerContent.matchAll(/[\u4e00-\u9fff]|[a-zA-Z]+|\[~\]/g)];
+        result.push({ type: 'text', content: openBracket, isInside: true });
         
+        const charMatches = [...innerContent.matchAll(/[\u4e00-\u9fff]|[a-zA-Z]+|\[~\]/g)];
+        let lastIndex = 0;
         for (let i = 0; i < charMatches.length; i++) {
-          const char = charMatches[i][0];
-          const isLast = i === charMatches.length - 1;
-          
+          const match = charMatches[i];
+          if (match.index > lastIndex) {
+            result.push({ type: 'text', content: innerContent.substring(lastIndex, match.index), isInside: true });
+          }
           result.push({
             type: 'pair',
             notation: numbers[charIndex]?.value || '',
-            lyric: char, // 每個字符獨立
+            lyric: match[0],
             isInside: true
           });
           charIndex++;
+          lastIndex = match.index + match[0].length;
         }
+        if (lastIndex < innerContent.length) {
+          result.push({ type: 'text', content: innerContent.substring(lastIndex), isInside: true });
+        }
+        
+        result.push({ type: 'text', content: closeBracket, isInside: true });
       }
     } else {
       // 純文字單元
@@ -1476,6 +1470,17 @@ const TabContent = ({
     return parts;
   };
 
+  const renderNotation = (text) => {
+    if (!text || !text.includes("'")) return text;
+    const parts = text.split("'");
+    return parts.map((part, i) => (
+      <span key={i}>
+        {part}
+        {i < parts.length - 1 && <span style={{ fontFamily: 'Consolas, monospace' }}>&#x2019;</span>}
+      </span>
+    ));
+  };
+
   const renderContent = () => {
     if (!content) return null;
 
@@ -1573,13 +1578,13 @@ const TabContent = ({
             if (isNumericNotation) {
               return (
                 <div key={idx} style={{ 
-                  fontSize: `${fontSize}px`, 
                   marginBottom: '0.3em',
+                  lineHeight: '1.25rem',
                   whiteSpace: 'pre-wrap',
                   color: colors.numericNotation,
-                  fontWeight: 300
+                  fontWeight: 'normal'
                 }}>
-                  {line}
+                  {renderNotation(line)}
                 </div>
               );
             }
@@ -1864,7 +1869,7 @@ const TabContent = ({
                   color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
                   fontWeight: 300
                 }}>
-                  {content}
+                  {part.type === 'inside' ? content : renderNotation(content)}
                 </span>
               );
             })}
@@ -1929,13 +1934,12 @@ const TabContent = ({
           pairs.forEach((pair, pairIndex) => {
             const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets, displayFont);
             
-            // 和弦-歌詞配對緊貼，多行拆分時先保持間距
             const isLastPair = pairIndex === pairs.length - 1;
             const pairMarginBottom = isLastPair ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.2}px`;
             
             elements.push(
               <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom, lineHeight: '1.1' }}>
-                {/* 和弦行 - 可 hover 的和弦 */}
+                {/* 和弦行 */}
                 <ChordLineWithHover 
                   chordLine={result.chordLine}
                   prefix={pairIndex === 0 ? prefix : null}
@@ -1945,120 +1949,37 @@ const TabContent = ({
                   displayFont={displayFont}
                 />
                 
-                {/* 只在第一個 pair 顯示簡譜行（如果有） */}
+                {/* 簡譜行 - 原樣顯示 */}
                 {pairIndex === 0 && !hideNotation && notationLines.map(({ index, line: notationLine }) => {
-                  const notationFontSize = getLineFontSize(notationLine);
-                  
-                  // 嘗試對齊簡譜與歌詞
-                  const aligned = alignNotationWithLyrics(notationLine, lyricLine);
-                  
-                  // 檢查是否有實際歌詞（非簡譜行）
                   const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
-                  // 沒有歌詞時，簡譜緊貼和弦；有歌詞時，簡譜和歌詞之間留 2px 間距
                   const notationMarginBottom = hasRealLyric ? '2px' : '0em';
-                  
-                  if (aligned) {
-                    // 對齊模式：簡譜數字對應歌詞括號
-                    return (
-                      <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1' }}>
-                        {/* 簡譜行 */}
-                        <div style={{ 
-                          fontSize: `${notationFontSize}px`, 
-                          whiteSpace: 'pre-wrap',
-                          overflowWrap: 'break-word',
-                          fontWeight: displayFont === 'arial' ? 'normal' : 300,
-                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
-                          color: colors.numericNotation,
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'flex-end'
-                        }}>
-                          {aligned.map((item, idx) => {
-                            if (item.type === 'text' || item.type === 'bracket') {
-                              // 無對應簡譜的文字 - 透明佔位
-                              return (
-                                <span key={idx} style={{ 
-                                  visibility: 'hidden',
-                                  whiteSpace: 'pre'
-                                }}>
-                                  {item.content}
-                                </span>
-                              );
-                            } else if (item.type === 'pair') {
-                              // 簡譜數字 - 置中對齊到對應歌詞字
-                              // 計算字寬時，如果隱藏括號，去掉括號後計算（半形或全形）
-                              const displayLyric = (hideBrackets && item.isInside) 
-                                ? item.lyric.replace(/^[\(（]|[\)）]$/g, '') 
-                                : item.lyric;
-                              return (
-                                <span key={idx} style={{
-                                  display: 'inline-flex',
-                                  justifyContent: 'center',
-                                  minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
-                                  color: colors.numericNotation,
-                                  fontWeight: 300
-                                }}>
-                                  {item.notation}
-                                </span>
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    // 普通模式：直接渲染簡譜
-                    const notationParts = processNumericNotationLine(notationLine);
-                    // 檢查是否有實際歌詞
-                    const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
-                    const notationMarginBottom = hasRealLyric ? '2px' : '0em';
-                    return (
-                      <div key={index} style={{ 
-                        fontSize: `${notationFontSize}px`, 
-                        marginBottom: notationMarginBottom,
-                        lineHeight: '1.1',
-                        whiteSpace: 'pre-wrap', 
-                        overflowWrap: 'break-word',
-                        fontWeight: displayFont === 'arial' ? 'normal' : 300,
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace"
-                      }}>
-                        {notationParts.map((part, idx) => {
-                          // 處理隱藏括號：將括號替換為空格占位
-                          let content = part.content;
-                          if (hideBrackets && part.type === 'inside') {
-                            // 將開頭和結尾的括號替換為空格
-                            content = content.replace(/^[\(（]/, ' ').replace(/[\)）]$/, ' ');
-                          }
-                          return (
-                            <span key={idx} style={{
-                              color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
-                              fontWeight: 300
-                            }}>
-                              {content}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    );
-                  }
+                  return (
+                    <div key={index} style={{ 
+                      marginBottom: notationMarginBottom,
+                      lineHeight: '1.25rem',
+                      whiteSpace: 'pre', 
+                      overflowWrap: 'break-word',
+                      color: colors.numericNotation,
+                      fontWeight: 'normal',
+                      fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace"
+                    }}>
+                      {renderNotation(notationLine)}
+                    </div>
+                  );
                 })}
                 
-                {/* 歌詞行 - 括號外灰色，括號內白色 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}>
+                {/* 歌詞行 */}
+                <div style={{ whiteSpace: 'pre', lineHeight: '1.25rem', marginTop: '0em', fontWeight: 'normal' }}>
                   {result.lyricParts.map((part, idx) => {
-                    // 隱藏括號時，將括號變成空格占位（保持寬度不變）
                     if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
                       return <span key={idx}>&nbsp;</span>;
                     }
-                    // 決定顏色
                     let partColor;
                     if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
                       partColor = colors.lyricInside;
                     } else {
                       partColor = colors.lyricNormal;
                     }
-                    // 移除換行符
                     const cleanText = (part.text || '').replace(/\r?\n/g, '');
                     return (
                       <span key={idx} style={{ 
