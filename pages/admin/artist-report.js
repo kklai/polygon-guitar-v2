@@ -72,8 +72,8 @@ export default function ArtistReport() {
         }
       })
       
-      // 統一使用 gender 欄位（兼容 artistType）
-      const artistGender = artist.gender || artist.artistType || 'other'
+      // 統一使用 gender 欄位（兼容 artistType 同 type）
+      const artistGender = artist.gender || artist.artistType || artist.type || 'other'
       
       return {
         ...artist,
@@ -254,8 +254,43 @@ export default function ArtistReport() {
             >
               刷新數據
             </button>
+            
+            {/* 除錯按鈕 - 顯示原始數據 */}
+            <button
+              onClick={() => {
+                console.log('=== Artist Report Debug ===')
+                console.log('Artists count:', artists.length)
+                console.log('First 5 artists:', artists.slice(0, 5).map(a => ({ 
+                  name: a.name, 
+                  gender: a.gender, 
+                  artistType: a.artistType,
+                  type: a.type 
+                })))
+                console.log('Sample stats:', filteredStats.slice(0, 3).map(s => ({
+                  name: s.name,
+                  gender: s.gender
+                })))
+                alert(`已輸出 ${artists.length} 個歌手數據到 Console，請按 F12 查看`)
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 text-xs"
+            >
+              🔍 檢查數據
+            </button>
           </div>
         </div>
+
+        {/* 快速跳轉按鈕（當過濾咗冇年份時顯示喺表格上面） */}
+        {filterNoYear && filteredStats.length > 0 && (
+          <div className="mb-4">
+            <button
+              onClick={scrollToNoYearDetail}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition"
+            >
+              <span>👇</span>
+              跳到冇年份歌曲詳情（{filteredStats.reduce((sum, a) => sum + a.noYearCount, 0)} 首）
+            </button>
+          </div>
+        )}
 
         {/* 報表表格 */}
         {loading ? (
@@ -381,19 +416,6 @@ export default function ArtistReport() {
                 沒有符合條件的歌手
               </div>
             )}
-          </div>
-        )}
-
-        {/* 快速跳轉按鈕（當過濾咗冇年份時顯示） */}
-        {filterNoYear && filteredStats.length > 0 && (
-          <div className="mb-4">
-            <button
-              onClick={scrollToNoYearDetail}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition"
-            >
-              <span>👇</span>
-              跳到冇年份歌曲詳情（{totalStats.noYearSongs} 首）
-            </button>
           </div>
         )}
 
