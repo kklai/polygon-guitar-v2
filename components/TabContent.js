@@ -2147,7 +2147,7 @@ const TabContent = ({
     const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.album || songInfo.strummingPattern || songInfo.fingeringTips);
     
     return (
-      <div className="px-2 sm:px-4 py-2 border-b border-gray-800">
+      <div className="py-2 border-b border-gray-800">
         <div className={`rounded-2xl p-2.5 sm:p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs md:text-base whitespace-nowrap">
@@ -2324,7 +2324,7 @@ const TabContent = ({
   return (
     <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
-      <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
+      <div ref={containerRef} className={fullWidth ? 'pt-3' : `pt-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
         <div className={`tab-content-wrapper ${displayFont !== 'arial' ? 'font-light' : ''}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>

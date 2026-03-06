@@ -126,7 +126,7 @@ export default function Library() {
     <Layout>
       <div className="min-h-screen bg-black pb-24">
         {/* Header */}
-        <div className="px-4 pt-6 pb-4 flex items-center space-x-3">
+        <div className="pt-6 pb-4 flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-[#282828] overflow-hidden flex items-center justify-center">
             {user?.photoURL ? (
               <img src={user.photoURL} alt="avatar" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -138,8 +138,8 @@ export default function Library() {
         </div>
 
         {/* 歌單網格 */}
-        <div className="px-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-3xl mx-auto">
+        <div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {/* 喜愛結他譜（系統預設） */}
             <div 
               onClick={handleLikedSongsClick}

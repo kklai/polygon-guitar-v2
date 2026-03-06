@@ -135,7 +135,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
           ? (hideHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
           : (hideHeader ? 'pb-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24')
         }
-        style={hideHeader ? {} : { paddingTop: 'calc(4.4rem + 10px)' }}
+        style={hideHeader ? {} : { paddingTop: fullWidth ? '4.4rem' : 'calc(4.4rem + 10px)' }}
       >
         {children}
       </main>

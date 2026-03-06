@@ -285,9 +285,9 @@ export default function PlaylistDetail() {
 
   return (
     <Layout fullWidth>
-      <div className="min-h-screen bg-black pb-24">
+      <div className="min-h-screen bg-black pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="px-4 py-4 flex items-center">
+        <div className="py-4 flex items-center">
           <Link
             href="/"
             className="inline-flex items-center text-white/80 hover:text-white transition"

@@ -54,7 +54,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-[#FFD700] border-b border-yellow-600 fixed top-0 left-0 right-0 z-[100] will-change-transform">
+    <nav className="bg-[#FFD700] fixed top-0 left-0 right-0 z-[100] will-change-transform">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between" style={{ height: scrolled ? '2.5rem' : '4.4rem' }}>
           {/* Logo + 副標題 */}

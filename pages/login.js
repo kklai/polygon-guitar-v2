@@ -23,7 +23,7 @@ export default function Login() {
     } catch (error) {
       console.error('Google sign in error:', error)
       if (error.code === 'auth/unauthorized-domain') {
-        alert('Firebase 未授權此域名，請聯繫管理員添加：polygon-guitar-v2.vercel.app')
+        alert(`Firebase 未授權此域名，請聯繫管理員添加：${window.location.hostname}`)
       } else {
         alert('Google 登入失敗：' + error.message)
       }
