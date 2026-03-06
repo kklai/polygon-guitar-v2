@@ -168,18 +168,22 @@ export default function DailyUploads() {
                         {tab.artist}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => router.push(`/tabs/${tab.id}`)}
+                        <a
+                          href={`/tabs/${tab.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-400 hover:text-blue-300 mr-3"
                         >
                           查看
-                        </button>
-                        <button
-                          onClick={() => router.push(`/tabs/${tab.id}/edit`)}
+                        </a>
+                        <a
+                          href={`/tabs/${tab.id}/edit`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-[#FFD700] hover:text-yellow-300"
                         >
                           編輯
-                        </button>
+                        </a>
                       </td>
                     </tr>
                   )

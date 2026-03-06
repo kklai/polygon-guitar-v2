@@ -72,8 +72,12 @@ export default function ArtistReport() {
         }
       })
       
+      // 統一使用 gender 欄位（兼容 artistType）
+      const artistGender = artist.gender || artist.artistType || 'other'
+      
       return {
         ...artist,
+        gender: artistGender,
         songCount: artistTabs.length,
         yearGroups,
         noYearCount,
@@ -349,18 +353,22 @@ export default function ArtistReport() {
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => router.push(`/artists/${artist.id}`)}
+                        <a
+                          href={`/artists/${artist.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-400 hover:text-blue-300 text-xs"
                         >
                           歌手頁
-                        </button>
-                        <button
-                          onClick={() => router.push(`/artists/${artist.id}/edit`)}
+                        </a>
+                        <a
+                          href={`/artists/${artist.id}/edit`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-[#FFD700] hover:text-yellow-300 text-xs"
                         >
                           編輯
-                        </button>
+                        </a>
                       </div>
                     </td>
                   </tr>
@@ -411,12 +419,14 @@ export default function ArtistReport() {
                           <td className="px-4 py-3 text-gray-400">{artist.name}</td>
                           <td className="px-4 py-3 text-white">{tab.title}</td>
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => router.push(`/tabs/${tab.id}/edit`)}
+                            <a
+                              href={`/tabs/${tab.id}/edit`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-[#FFD700] hover:text-yellow-300"
                             >
                               編輯加年份
-                            </button>
+                            </a>
                           </td>
                         </tr>
                       ))
