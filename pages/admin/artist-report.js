@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
 import { collection, query, getDocs, orderBy } from 'firebase/firestore'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 export default function ArtistReport() {
   const router = useRouter()
@@ -13,6 +14,13 @@ export default function ArtistReport() {
   const [loading, setLoading] = useState(true)
   const [filterGender, setFilterGender] = useState('all') // all, male, female, group, other
   const [filterNoYear, setFilterNoYear] = useState(false)
+  
+  // 排序狀態
+  const [sortBy, setSortBy] = useState('gender') // gender, songCount, noYearCount
+  const [sortOrder, setSortOrder] = useState('asc') // asc, desc
+  
+  // 冇年份詳情區域 ref
+  const noYearDetailRef = useRef(null)
 
   useEffect(() => {
     if (isAdmin) {
@@ -116,13 +124,29 @@ export default function ArtistReport() {
     return true
   })
 
-  // 排序：先按性別，再按歌曲數量
+  // 排序
   filteredStats.sort((a, b) => {
-    const genderOrder = { male: 0, female: 1, group: 2, other: 3, '': 4 }
-    if (genderOrder[a.gender] !== genderOrder[b.gender]) {
-      return genderOrder[a.gender] - genderOrder[b.gender]
+    let comparison = 0
+    
+    switch (sortBy) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name, 'zh-HK')
+        break
+      case 'gender':
+        const genderOrder = { male: 0, female: 1, group: 2, other: 3, '': 4 }
+        comparison = genderOrder[a.gender] - genderOrder[b.gender]
+        break
+      case 'songCount':
+        comparison = a.songCount - b.songCount
+        break
+      case 'noYearCount':
+        comparison = a.noYearCount - b.noYearCount
+        break
+      default:
+        comparison = 0
     }
-    return b.songCount - a.songCount
+    
+    return sortOrder === 'asc' ? comparison : -comparison
   })
 
   // 計算總數
@@ -130,6 +154,33 @@ export default function ArtistReport() {
     artists: stats.length,
     songs: stats.reduce((sum, a) => sum + a.songCount, 0),
     noYearSongs: stats.reduce((sum, a) => sum + a.noYearCount, 0)
+  }
+
+  // 處理排序點擊
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      // 如果已經係呢個欄位，切換排序方向
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      // 新欄位，默認降序（數量多到少）
+      setSortBy(column)
+      setSortOrder('desc')
+    }
+  }
+
+  // 獲取排序圖標
+  const getSortIcon = (column) => {
+    if (sortBy !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-600" />
+    }
+    return sortOrder === 'asc' ? 
+      <ArrowUp className="w-4 h-4 text-[#FFD700]" /> : 
+      <ArrowDown className="w-4 h-4 text-[#FFD700]" />
+  }
+
+  // 捲動到冇年份詳情
+  const scrollToNoYearDetail = () => {
+    noYearDetailRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   if (!isAdmin) {
@@ -212,10 +263,38 @@ export default function ArtistReport() {
             <table className="w-full text-sm">
               <thead className="bg-[#1a1a1a]">
                 <tr>
-                  <th className="px-3 py-3 text-left text-gray-400 font-medium">歌手</th>
-                  <th className="px-3 py-3 text-left text-gray-400 font-medium">性別</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">總數</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium text-red-400">冇年份</th>
+                  <th 
+                    className="px-3 py-3 text-left text-gray-400 font-medium cursor-pointer hover:text-white select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      歌手 {getSortIcon('name')}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-3 py-3 text-left text-gray-400 font-medium cursor-pointer hover:text-white select-none"
+                    onClick={() => handleSort('gender')}
+                  >
+                    <div className="flex items-center gap-1">
+                      性別 {getSortIcon('gender')}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-3 py-3 text-center text-gray-400 font-medium cursor-pointer hover:text-white select-none"
+                    onClick={() => handleSort('songCount')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      總數 {getSortIcon('songCount')}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-3 py-3 text-center text-red-400 font-medium cursor-pointer hover:text-red-300 select-none"
+                    onClick={() => handleSort('noYearCount')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      冇年份 {getSortIcon('noYearCount')}
+                    </div>
+                  </th>
                   <th className="px-3 py-3 text-center text-gray-400 font-medium">2021+</th>
                   <th className="px-3 py-3 text-center text-gray-400 font-medium">2016-20</th>
                   <th className="px-3 py-3 text-center text-gray-400 font-medium">2011-15</th>
@@ -297,9 +376,22 @@ export default function ArtistReport() {
           </div>
         )}
 
+        {/* 快速跳轉按鈕（當過濾咗冇年份時顯示） */}
+        {filterNoYear && filteredStats.length > 0 && (
+          <div className="mb-4">
+            <button
+              onClick={scrollToNoYearDetail}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition"
+            >
+              <span>👇</span>
+              跳到冇年份歌曲詳情（{totalStats.noYearSongs} 首）
+            </button>
+          </div>
+        )}
+
         {/* 冇年份歌曲詳情 */}
         {filterNoYear && filteredStats.length > 0 && (
-          <div className="mt-8">
+          <div ref={noYearDetailRef} className="mt-8">
             <h2 className="text-xl font-bold text-white mb-4">冇年份歌曲詳情</h2>
             <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
               <table className="w-full text-sm">
