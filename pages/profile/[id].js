@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
-import { getGlobalSettings } from '@/lib/tabs'
 import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
@@ -176,25 +175,12 @@ export default function PublicProfile() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [bioConfig, setBioConfig] = useState(DEFAULT_BIO_CONFIG)
-  const [logoUrl, setLogoUrl] = useState(null)
-  const [siteName, setSiteName] = useState('Polygon Guitar')
 
   useEffect(() => {
     if (id) {
       loadProfile()
-      loadLogo()
     }
   }, [id])
-  
-  const loadLogo = async () => {
-    try {
-      const settings = await getGlobalSettings()
-      if (settings.logoUrl) setLogoUrl(settings.logoUrl)
-      if (settings.siteName) setSiteName(settings.siteName)
-    } catch (e) {
-      console.error('Error loading logo:', e)
-    }
-  }
 
   const loadProfile = async () => {
     setIsLoading(true)
