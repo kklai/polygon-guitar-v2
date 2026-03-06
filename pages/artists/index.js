@@ -1,9 +1,29 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
-import { getAllArtists } from '@/lib/tabs'
 import Layout from '@/components/Layout'
 import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
+
+const ARTISTS_CACHE_KEY = 'pg_artists_list'
+const ARTISTS_CACHE_TTL = 10 * 60 * 1000 // 10 min
+const ARTISTS_CACHE_FRESH = 2 * 60 * 1000 // 2 min = skip fetch
+
+function saveArtistsCache(data) {
+  try {
+    localStorage.setItem(ARTISTS_CACHE_KEY, JSON.stringify({ _ts: Date.now(), artists: data }))
+  } catch (e) { /* quota exceeded */ }
+}
+
+function loadArtistsCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(ARTISTS_CACHE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (Date.now() - data._ts > ARTISTS_CACHE_TTL) return null
+    return { artists: data.artists, fresh: (Date.now() - data._ts) < ARTISTS_CACHE_FRESH }
+  } catch (e) { return null }
+}
 
 const CATEGORY_LABELS = {
   male: { label: '男歌手', color: '#1fc3df' },
@@ -45,9 +65,9 @@ function ArtistCircle({ artist, onClick }) {
   return (
     <div 
       onClick={onClick}
-      className="flex-shrink-0 w-[100px] cursor-pointer"
+      className="flex-shrink-0 w-[100px] cursor-pointer select-none touch-manipulation"
     >
-      <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2">
+      <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-200 active:scale-105 active:z-20">
         {photoUrl ? (
           <img 
             src={photoUrl} 
@@ -104,7 +124,7 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
       </div>
       
       {/* 3行一齊橫向滾動 */}
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 touch-pan-x">
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
         <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
           {columns.map((column, colIndex) => (
             <div key={colIndex} className="flex flex-col gap-4">
@@ -141,13 +161,27 @@ export default function Artists() {
   }, [category])
 
   useEffect(() => {
+    const cached = loadArtistsCache()
+    if (cached) {
+      setArtists(cached.artists)
+      setIsLoading(false)
+      if (cached.fresh) {
+        console.log('[Artists] Using fresh localStorage cache, skipping fetch')
+        return
+      }
+      console.log('[Artists] Cache stale, refreshing in background')
+    }
     loadArtists()
   }, [])
 
   const loadArtists = async () => {
+    const t0 = performance.now()
     try {
-      const data = await getAllArtists()
+      const res = await fetch('/api/artists')
+      const data = await res.json()
+      console.log('[Artists] API fetch took', Math.round(performance.now() - t0), 'ms, got', data.length, 'artists')
       setArtists(data)
+      saveArtistsCache(data)
     } catch (error) {
       console.error('Error loading artists:', error)
     } finally {
@@ -261,8 +295,8 @@ export default function Artists() {
       </Head>
       <Layout fullWidth>
         <div 
-          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6" 
-          style={{ paddingTop: '24px' }}  // 覆蓋 Layout 的 pt-20
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6" 
+          style={{ paddingTop: '24px' }}
         >
           {/* Search */}
           <div className="px-4 -mx-4">
@@ -379,22 +413,13 @@ export default function Artists() {
                   )}
                 </>
               ) : (
-                // 單一分類模式：傳統網格顯示
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-4">
-                    {CATEGORY_LABELS[activeCategory]?.label || '歌手'}
-                    <span className="text-sm text-gray-500 ml-2">({filteredArtists.length})</span>
-                  </h2>
-                  <div className="grid grid-cols-4 gap-4">
-                    {filteredArtists.map(artist => (
-                      <ArtistCircle 
-                        key={artist.id} 
-                        artist={artist}
-                        onClick={() => handleArtistClick(artist.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
+                // 單一分類模式：保持同樣嘅橫滾佈局
+                <HorizontalScrollSection 
+                  title={CATEGORY_LABELS[activeCategory]?.label || '歌手'}
+                  color={CATEGORY_LABELS[activeCategory]?.color || '#888888'}
+                  artists={filteredArtists}
+                  onArtistClick={handleArtistClick}
+                />
               )}
             </div>
           ) : (

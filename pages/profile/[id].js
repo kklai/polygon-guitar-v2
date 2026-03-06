@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
-import { getGlobalSettings } from '@/lib/tabs'
 import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
@@ -176,25 +175,12 @@ export default function PublicProfile() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [bioConfig, setBioConfig] = useState(DEFAULT_BIO_CONFIG)
-  const [logoUrl, setLogoUrl] = useState(null)
-  const [siteName, setSiteName] = useState('Polygon Guitar')
 
   useEffect(() => {
     if (id) {
       loadProfile()
-      loadLogo()
     }
   }, [id])
-  
-  const loadLogo = async () => {
-    try {
-      const settings = await getGlobalSettings()
-      if (settings.logoUrl) setLogoUrl(settings.logoUrl)
-      if (settings.siteName) setSiteName(settings.siteName)
-    } catch (e) {
-      console.error('Error loading logo:', e)
-    }
-  }
 
   const loadProfile = async () => {
     setIsLoading(true)
@@ -361,35 +347,11 @@ export default function PublicProfile() {
   if (!profile) return null
 
   return (
-    <Layout hideHeader>
+    <Layout>
       <div className="min-h-screen bg-black pb-24">
-        {/* Yellow Header - 與其他頁面一致 */}
-        <div className="bg-[#FFD700] px-4 py-3">
-          <Link href="/" className="flex flex-col">
-            {logoUrl ? (
-              <>
-                <img
-                  src={logoUrl}
-                  alt={siteName}
-                  className="h-8 max-w-[140px] object-contain"
-                />
-                <span className="text-black/80 text-xs tracking-wider mt-0.5">
-                  香港廣東歌結他譜網
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="text-black font-bold text-xl">Polygon Guitar</span>
-                <span className="text-black/80 text-xs tracking-wider mt-0.5">
-                  香港廣東歌結他譜網
-                </span>
-              </>
-            )}
-          </Link>
-        </div>
 
         {/* Profile Header - 參考設計布局 */}
-        <div className="px-4 py-6">
+        <div className="py-6">
           {/* 第一行：頭像 + 名稱/按鈕 + 統計 */}
           <div className="flex gap-4">
             {/* 左側：頭像 */}
@@ -493,7 +455,7 @@ export default function PublicProfile() {
 
         {/* Popular Tabs - 熱門（前5首有縮圖，參考設計風格）*/}
         {profile.showUploads !== false && uploads.length > 0 && (
-          <div className="px-4 mt-6">
+          <div className="mt-6">
             <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
             <div className="space-y-4">
               {uploads.slice(0, 5).map((tab, index) => {
@@ -537,7 +499,7 @@ export default function PublicProfile() {
 
         {/* All Songs - 所有歌曲（白色文字，無縮圖）*/}
         {profile.showUploads !== false && uploads.length > 5 && (
-          <div className="px-4 mt-6">
+          <div className="mt-6">
             <h2 className="text-white font-bold text-lg mb-4">所有歌曲</h2>
             <div className="space-y-2">
               {uploads.slice(5).map((tab, index) => (
@@ -560,7 +522,7 @@ export default function PublicProfile() {
 
         {/* Playlists */}
         {profile.showPlaylists !== false && playlists.length > 0 && (
-          <div className="px-4 mt-8">
+          <div className="mt-8">
             <h2 className="text-white font-bold text-lg mb-4">歌單</h2>
             <div className="space-y-3">
               {playlists.map(playlist => (

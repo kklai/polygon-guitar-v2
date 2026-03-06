@@ -312,7 +312,7 @@ export default function TabDetail() {
       <Layout>
         <div className="w-full">
         {/* Header - 全寬 */}
-        <div className="px-4 sm:px-5 md:px-8 pt-4 sm:pt-5 md:pt-6 pb-0">
+        <div className="pt-4 sm:pt-5 md:pt-6 pb-0">
           {/* 頂部：封面 + 歌名 + 歌手 + 操作 */}
           <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
@@ -473,7 +473,7 @@ export default function TabDetail() {
         />
 
         {/* 留言區 */}
-        <div className="max-w-4xl mx-auto px-4 mt-8">
+        <div className="mt-8">
           <TabComments tabId={id} />
         </div>
 

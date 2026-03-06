@@ -149,8 +149,7 @@ export function ArtistHeroImage({ artist, className = '' }) {
         alt={artist?.name || '歌手'}
         loading="lazy"
         decoding="async"
-        className={`w-full h-full object-cover ${className}`}
-        style={{ objectPosition: 'center top' }}
+        className={`w-full h-full object-cover object-top md:object-center ${className}`}
         onError={() => setError(true)}
       />
     </div>
