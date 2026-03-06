@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { getTab, deleteTab, incrementViewCount } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import LikeButton from '@/components/LikeButton'
@@ -119,6 +119,26 @@ export default function TabDetail() {
         if (!data.youtubeVideoId && data.youtubeUrl) {
           data.youtubeVideoId = extractYouTubeId(data.youtubeUrl)
         }
+        
+        // 如果冇封面，嘗試獲取歌手照片
+        if (!data.coverImage && !data.albumImage && !data.thumbnail && data.artist) {
+          try {
+            // 根據歌手名查詢 artists 集合
+            const artistsRef = collection(db, 'artists')
+            const q = query(artistsRef, where('name', '==', data.artist))
+            const querySnapshot = await getDocs(q)
+            
+            if (!querySnapshot.empty) {
+              const artistDoc = querySnapshot.docs[0]
+              const artistData = artistDoc.data()
+              // 使用歌手照片作為封面後備
+              data.artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || null
+            }
+          } catch (artistError) {
+            console.log('獲取歌手照片失敗:', artistError)
+          }
+        }
+        
         setTab(data)
         // 初始化 currentKey：URL參數 > PlayKey > OriginalKey
         const initialKey = queryKey || data.playKey || data.originalKey || 'C'
@@ -134,7 +154,7 @@ export default function TabDetail() {
           pageName: data.title,
           artistName: data.artist,
           originalKey: data.originalKey,
-          thumbnail: data.thumbnail || data.albumImage
+          thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
         }, user?.uid || null)
         if (data.createdBy) {
           const userDoc = await getDoc(doc(db, 'users', data.createdBy))
@@ -267,7 +287,7 @@ export default function TabDetail() {
   const seoUrl = `${siteConfig.url}/tabs/${tab.id}`
   
   // 結構化數據
-  const tabSchema = generateTabSchema(tab, { name: tab.artist, photoURL: tab.thumbnail })
+  const tabSchema = generateTabSchema(tab, { name: tab.artist, photoURL: tab.thumbnail || tab.artistPhoto })
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
     { name: tab.artist, url: `${siteConfig.url}/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}` },
@@ -287,7 +307,7 @@ export default function TabDetail() {
         <meta property="og:type" content="article" />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={tab.coverImage || tab.albumImage || tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
+        <meta property="og:image" content={tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || `${siteConfig.url}/og-image.jpg`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
@@ -298,7 +318,7 @@ export default function TabDetail() {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={tab.coverImage || tab.albumImage || tab.thumbnail || `${siteConfig.url}/og-image.jpg`} />
+        <meta name="twitter:image" content={tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || `${siteConfig.url}/og-image.jpg`} />
         
         {/* 結構化數據 JSON-LD */}
         <script
@@ -317,10 +337,10 @@ export default function TabDetail() {
           <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
-              {/* 優先顯示用戶自訂封面，其次 Spotify 專輯相，再其次 thumbnail/YouTube */}
-              {tab.coverImage || tab.albumImage || tab.thumbnail || tab.youtubeVideoId ? (
+              {/* 優先顯示用戶自訂封面，其次 Spotify 專輯相，再其次 thumbnail/YouTube，最後歌手照片 */}
+              {tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || tab.youtubeVideoId ? (
                 <img 
-                  src={tab.coverImage || tab.albumImage || tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
+                  src={tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
                   alt={tab.title}
                   className="w-full h-full object-cover"
                   loading="eager"
