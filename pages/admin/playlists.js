@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
+import CoverGenerator from '@/components/CoverGenerator'
 import { 
   getAllPlaylists, 
   getAutoPlaylists,
@@ -11,6 +12,7 @@ import {
   updatePlaylist,
   AUTO_PLAYLIST_TYPES
 } from '@/lib/playlists'
+import { getTabsByIds } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
 function PlaylistAdmin() {
@@ -28,6 +30,12 @@ function PlaylistAdmin() {
   
   // 拖拽排序狀態
   const [draggingIndex, setDraggingIndex] = useState(null)
+  const [draggingAutoIndex, setDraggingAutoIndex] = useState(null)
+
+  // 封面生成器狀態
+  const [coverGenPlaylist, setCoverGenPlaylist] = useState(null)
+  const [coverGenSongs, setCoverGenSongs] = useState([])
+  const [coverGenLoading, setCoverGenLoading] = useState(false)
 
   useEffect(() => {
     loadPlaylists()
@@ -124,37 +132,127 @@ function PlaylistAdmin() {
     }
   }
 
-  // 拖拽排序 - 精選歌單
+  // 通用拖拽排序（支援 touch + mouse）
+  const touchState = useRef({ startY: 0, currentIndex: null, type: null })
+
+  const saveSortOrder = useCallback(async (list) => {
+    const updates = list.map((p, i) => ({ ...p, displayOrder: i }))
+    try {
+      const { updatePlaylistsOrder } = await import('@/lib/playlists')
+      await updatePlaylistsOrder(updates)
+      showMessage('✅ 排序已保存')
+    } catch (error) {
+      showMessage('❌ 排序保存失敗：' + error.message, 'error')
+    }
+  }, [])
+
+  // Mouse drag - 自動歌單
+  const handleAutoDragStart = (e, index) => {
+    setDraggingAutoIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const handleAutoDragOver = (e, index) => {
+    e.preventDefault()
+    if (draggingAutoIndex === null || draggingAutoIndex === index) return
+    const newList = [...autoPlaylists]
+    const [movedItem] = newList.splice(draggingAutoIndex, 1)
+    newList.splice(index, 0, movedItem)
+    setAutoPlaylists(newList)
+    setDraggingAutoIndex(index)
+  }
+  const handleAutoDragEnd = async () => {
+    if (draggingAutoIndex !== null) await saveSortOrder(autoPlaylists)
+    setDraggingAutoIndex(null)
+  }
+
+  // Mouse drag - 精選歌單
   const handleDragStart = (e, index) => {
     setDraggingIndex(index)
     e.dataTransfer.effectAllowed = 'move'
   }
-
   const handleDragOver = (e, index) => {
     e.preventDefault()
     if (draggingIndex === null || draggingIndex === index) return
-    
     const newList = [...manualPlaylists]
     const [movedItem] = newList.splice(draggingIndex, 1)
     newList.splice(index, 0, movedItem)
-    
     setManualPlaylists(newList)
     setDraggingIndex(index)
   }
-
   const handleDragEnd = async () => {
-    if (draggingIndex !== null) {
-      // 保存新排序
-      const updates = manualPlaylists.map((p, i) => ({ ...p, displayOrder: i }))
-      try {
-        const { updatePlaylistsOrder } = await import('@/lib/playlists')
-        await updatePlaylistsOrder(updates)
-        showMessage('✅ 排序已保存')
-      } catch (error) {
-        showMessage('❌ 排序保存失敗：' + error.message, 'error')
+    if (draggingIndex !== null) await saveSortOrder(manualPlaylists)
+    setDraggingIndex(null)
+  }
+
+  // Touch drag - 用 ref 綁定 non-passive listener 防止頁面滾動
+  const autoListRef = useRef(null)
+  const manualListRef = useRef(null)
+  const listsRef = useRef({ auto: autoPlaylists, manual: manualPlaylists })
+  listsRef.current = { auto: autoPlaylists, manual: manualPlaylists }
+
+  useEffect(() => {
+    const onTouchMove = (e) => {
+      const { currentIndex, type } = touchState.current
+      if (currentIndex === null) return
+      e.preventDefault()
+      const touchY = e.touches[0].clientY
+      const container = type === 'auto' ? autoListRef.current : manualListRef.current
+      if (!container) return
+      const elements = container.querySelectorAll('[data-drag-item]')
+      for (let i = 0; i < elements.length; i++) {
+        const rect = elements[i].getBoundingClientRect()
+        if (touchY >= rect.top && touchY <= rect.bottom && i !== currentIndex) {
+          const list = [...listsRef.current[type]]
+          const [movedItem] = list.splice(currentIndex, 1)
+          list.splice(i, 0, movedItem)
+          if (type === 'auto') {
+            setAutoPlaylists(list)
+            setDraggingAutoIndex(i)
+          } else {
+            setManualPlaylists(list)
+            setDraggingIndex(i)
+          }
+          touchState.current.currentIndex = i
+          break
+        }
       }
     }
-    setDraggingIndex(null)
+
+    const onTouchEnd = async () => {
+      const { currentIndex, type } = touchState.current
+      if (currentIndex === null) return
+      if (type === 'auto') {
+        await saveSortOrder(listsRef.current.auto)
+        setDraggingAutoIndex(null)
+      } else {
+        await saveSortOrder(listsRef.current.manual)
+        setDraggingIndex(null)
+      }
+      touchState.current = { startY: 0, currentIndex: null, type: null }
+    }
+
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', onTouchEnd)
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [saveSortOrder])
+
+  const handleTouchStart = (index, type) => (e) => {
+    e.stopPropagation()
+    touchState.current = { startY: e.touches[0].clientY, currentIndex: index, type }
+    if (type === 'auto') setDraggingAutoIndex(index)
+    else setDraggingIndex(index)
+  }
+
+  const handleMouseDragStart = (index, type) => (e) => {
+    const card = e.target.closest('[data-drag-item]')
+    if (card) {
+      e.dataTransfer.effectAllowed = 'move'
+      if (type === 'auto') setDraggingAutoIndex(index)
+      else setDraggingIndex(index)
+    }
   }
 
   // 上傳封面圖片
@@ -208,6 +306,43 @@ function PlaylistAdmin() {
     setEditDescription('')
   }
 
+  // 打開封面生成器
+  const openCoverGenerator = async (playlist) => {
+    setCoverGenPlaylist(playlist)
+    setCoverGenSongs([])
+    if (playlist.songIds?.length) {
+      setCoverGenLoading(true)
+      try {
+        const songs = await getTabsByIds(playlist.songIds)
+        setCoverGenSongs(songs)
+      } catch (err) {
+        console.error('Load songs error:', err)
+      } finally {
+        setCoverGenLoading(false)
+      }
+    }
+  }
+
+  const handleCoverGenerated = async (file) => {
+    if (!coverGenPlaylist) return
+    setUploadingCover(coverGenPlaylist.id)
+    try {
+      const imageUrl = await uploadToCloudinary(file, coverGenPlaylist.title, 'playlist_covers')
+      await updatePlaylist(coverGenPlaylist.id, {
+        coverImage: imageUrl,
+        customCover: true,
+        updatedAt: new Date().toISOString()
+      })
+      showMessage('封面已生成並上傳')
+      setCoverGenPlaylist(null)
+      await loadPlaylists()
+    } catch (err) {
+      showMessage('上傳失敗：' + err.message, 'error')
+    } finally {
+      setUploadingCover(null)
+    }
+  }
+
   // 格式化時間
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '從未更新'
@@ -240,38 +375,47 @@ function PlaylistAdmin() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">歌單管理</h1>
-            <p className="text-gray-500">管理自動數據歌單同精選手動歌單</p>
+            <div className="flex items-center gap-3">
+              <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </button>
+              <h1 className="text-3xl font-bold text-white">歌單管理</h1>
+            </div>
           </div>
-          <Link href="/admin/artists" className="inline-flex items-center text-[#FFD700] hover:opacity-80 transition">
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            返回歌手管理
-          </Link>
         </div>
 
         {/* Message */}
         {message && (
-          <div className={`p-4 rounded-lg ${
+          <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg ${
             message.type === 'error' 
-              ? 'bg-red-900/30 border border-red-700 text-red-400' 
-              : 'bg-green-900/30 border border-green-700 text-green-400'
+              ? 'bg-red-900 border border-red-700 text-red-400' 
+              : 'bg-green-900 border border-green-700 text-green-400'
           }`}>
             {message.text}
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-800">
+        <div className="flex items-center border-b border-gray-800">
           <button
             onClick={() => setActiveTab('auto')}
             className={`px-6 py-3 font-medium transition ${
               activeTab === 'auto' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-500 hover:text-gray-300'
             }`}
           >
-            自動歌單（數據驅動）
-            <span className="ml-2 text-xs bg-gray-800 px-2 py-0.5 rounded-full">{autoPlaylists.length}</span>
+            自動生成歌單
+            <button
+              onClick={(e) => { e.stopPropagation(); handleRefreshAuto() }}
+              disabled={isRefreshing}
+              className="ml-2 text-gray-400 hover:text-white transition disabled:opacity-50 inline-flex"
+              title="立即刷新數據"
+            >
+              <svg className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </button>
           <button
             onClick={() => setActiveTab('manual')}
@@ -279,7 +423,7 @@ function PlaylistAdmin() {
               activeTab === 'manual' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-500 hover:text-gray-300'
             }`}
           >
-            精選手動（人工策劃）
+            自製歌單
             <span className="ml-2 text-xs bg-gray-800 px-2 py-0.5 rounded-full">{manualPlaylists.length}</span>
           </button>
         </div>
@@ -287,28 +431,6 @@ function PlaylistAdmin() {
         {/* Auto Playlists Tab */}
         {activeTab === 'auto' && (
           <div className="space-y-6">
-            {/* Refresh Button */}
-            <div className="flex items-center justify-between p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
-              <div>
-                <h3 className="text-blue-400 font-medium">自動歌單數據刷新</h3>
-                <p className="text-blue-200/70 text-sm mt-1">系統會根據最新數據重新統計並更新歌單內容</p>
-              </div>
-              <button
-                onClick={handleRefreshAuto}
-                disabled={isRefreshing}
-                className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-              >
-                {isRefreshing ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    刷新中...
-                  </span>
-                ) : '立即刷新數據'}
-              </button>
-            </div>
 
             {/* Auto Playlist List */}
             {isLoading ? (
@@ -318,99 +440,105 @@ function PlaylistAdmin() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1" ref={autoListRef}>
                 {autoPlaylists.map((playlist, index) => (
-                  <div key={playlist.id} className="p-3 bg-[#121212] rounded-lg border border-gray-800 hover:border-gray-700 transition">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {/* Cover - 手機 40x40，桌面 56x56 */}
-                        <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
-                          {playlist.coverImage ? (
-                            <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                  <div
+                    key={playlist.id}
+                    data-drag-item
+                    onDragOver={(e) => handleAutoDragOver(e, index)}
+                    className={`p-2 bg-[#121212] rounded-lg border transition select-none ${
+                      draggingAutoIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 w-full">
+                      {/* Drag handle */}
+                      <div
+                        draggable
+                        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDraggingAutoIndex(index) }}
+                        onDragEnd={handleAutoDragEnd}
+                        onTouchStart={handleTouchStart(index, 'auto')}
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 touch-none"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                      </div>
+                      {/* Cover */}
+                      <div className="relative w-[70px] h-[70px] rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                        {playlist.coverImage ? (
+                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl">📊</div>
+                        )}
+                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                          {uploadingCover === playlist.id ? (
+                            <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-base sm:text-xl">📊</div>
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
                           )}
-                          <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-                            {uploadingCover === playlist.id ? (
-                              <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                            <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
-                              onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
-                          </label>
-                        </div>
-                        
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          {editingAuto === playlist.id ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-white text-sm"
-                                placeholder="歌單名稱"
-                              />
-                              <input
-                                type="text"
-                                value={editDescription}
-                                onChange={(e) => setEditDescription(e.target.value)}
-                                className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-gray-400 text-xs"
-                                placeholder="描述"
-                              />
-                              <div className="flex gap-2">
-                                <button onClick={() => saveAutoEdit(playlist.id)} className="px-2 py-1 bg-green-700 text-white text-xs rounded">保存</button>
-                                <button onClick={cancelEditAuto} className="px-2 py-1 bg-gray-700 text-white text-xs rounded">取消</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-white font-medium truncate">{playlist.title}</h3>
-                                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded hidden sm:inline">自動</span>
-                              </div>
-                              <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description}</p>
-                              <p className="text-xs text-gray-600 hidden sm:block">
-                                {playlist.songIds?.length || 0} 首 • 更新於 {formatTimeAgo(playlist.lastUpdated)}
-                              </p>
-                            </>
-                          )}
-                        </div>
+                          <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
+                            onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
+                        </label>
                       </div>
                       
-                      {/* Actions - 手機版獨立一行 */}
-                      <div className="flex items-center gap-1">
-                        {editingAuto !== playlist.id && (
+                      {/* Info + Actions */}
+                      <div className="flex-1 min-w-0">
+                        {editingAuto === playlist.id ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-white text-sm"
+                              placeholder="歌單名稱"
+                            />
+                            <input
+                              type="text"
+                              value={editDescription}
+                              onChange={(e) => setEditDescription(e.target.value)}
+                              className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-gray-400 text-xs"
+                              placeholder="描述"
+                            />
+                            <div className="flex gap-2">
+                              <button onClick={() => saveAutoEdit(playlist.id)} className="px-2 py-1 bg-green-700 text-white text-xs rounded">保存</button>
+                              <button onClick={cancelEditAuto} className="px-2 py-1 bg-gray-700 text-white text-xs rounded">取消</button>
+                            </div>
+                          </div>
+                        ) : (
                           <>
-                            <button onClick={() => startEditAuto(playlist)}
-                              className="p-2 text-gray-500 hover:text-[#FFD700] transition" title="編輯名稱">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button onClick={() => moveUp(playlist, index, autoPlaylists)} disabled={index === 0}
-                              className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                              </svg>
-                            </button>
-                            <button onClick={() => moveDown(playlist, index, autoPlaylists)} disabled={index === autoPlaylists.length - 1}
-                              className="p-2 text-gray-500 hover:text-white disabled:opacity-30 transition">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            <button onClick={() => togglePlaylistActive(playlist)}
-                              className={`w-8 h-4 sm:w-10 sm:h-5 rounded-full transition relative ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
-                              <span className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition" 
-                                style={{ left: playlist.isActive ? '18px' : '2px' }} />
-                            </button>
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-white font-medium truncate">{playlist.title}</h3>
+                              <button onClick={() => togglePlaylistActive(playlist)}
+                                className={`w-10 h-5 rounded-full transition relative flex-shrink-0 ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
+                                <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition"
+                                  style={{ left: playlist.isActive ? '22px' : '2px' }} />
+                              </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">{playlist.description?.length > 8 ? playlist.description.slice(0, 8) + '…' : playlist.description}</p>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <p className="text-xs text-gray-600">
+                                {formatTimeAgo(playlist.lastUpdated)}更新
+                              </p>
+                              <div className="flex items-center gap-1">
+                                <button onClick={() => openCoverGenerator(playlist)}
+                                  className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="生成封面">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                                <button onClick={() => startEditAuto(playlist)}
+                                  className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="編輯名稱">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
                           </>
                         )}
                       </div>
@@ -459,111 +587,88 @@ function PlaylistAdmin() {
                 ))}
               </div>
             ) : manualPlaylists.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-1" ref={manualListRef}>
                 {manualPlaylists.map((playlist, index) => (
                   <div
                     key={playlist.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, index)}
+                    data-drag-item
                     onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`p-2 sm:p-3 bg-[#121212] rounded-lg border transition cursor-move select-none ${
+                    className={`p-2 bg-[#121212] rounded-lg border transition select-none ${
                       draggingIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 select-none">
-                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                        {/* Drag Handle */}
-                        <div className="flex items-center gap-1 sm:gap-2 text-gray-600 flex-shrink-0">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                          </svg>
-                          <span className="text-xs sm:text-sm text-gray-500 w-4 sm:w-6">{index + 1}</span>
-                        </div>
-                        
-                        {/* Cover - 手機 40x40，桌面 48x48 */}
-                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
-                          {playlist.coverImage ? (
-                            <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                    <div className="flex items-center gap-3 w-full">
+                      {/* Drag handle */}
+                      <div
+                        draggable
+                        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDraggingIndex(index) }}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={handleTouchStart(index, 'manual')}
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 touch-none"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                      </div>
+                      {/* Cover */}
+                      <div className="relative w-[70px] h-[70px] rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                        {playlist.coverImage ? (
+                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl">✨</div>
+                        )}
+                        <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                          {uploadingCover === playlist.id ? (
+                            <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-base sm:text-lg">✨</div>
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
                           )}
-                          <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition hidden sm:flex ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-                            {uploadingCover === playlist.id ? (
-                              <svg className="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                              </svg>
-                            ) : (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                            <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
-                              onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
-                          </label>
-                        </div>
-                        
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{playlist.title}</h3>
-                            <span className={`text-xs px-1.5 py-0.5 rounded hidden sm:inline ${
-                              playlist.isActive ? 'bg-green-900/50 text-green-400' : 'bg-gray-700 text-gray-400'
-                            }`}>
-                              {playlist.isActive ? '顯示' : '隱藏'}
-                            </span>
-                            <span className="text-xs bg-[#FFD700]/20 text-[#FFD700] px-1.5 py-0.5 rounded hidden sm:inline">
-                              {getTypeLabel(playlist.manualType)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500 truncate hidden sm:block">{playlist.description || '無描述'}</p>
-                          <p className="text-xs text-gray-600 hidden sm:block">
-                            {playlist.songIds?.length || 0} 首 • By {playlist.curatedBy || 'Polygon'} • {formatTimeAgo(playlist.updatedAt)}
-                          </p>
-                        </div>
+                          <input type="file" accept="image/*" className="hidden" disabled={uploadingCover === playlist.id}
+                            onChange={(e) => { const file = e.target.files[0]; if (file) handleCoverUpload(playlist, file) }} />
+                        </label>
                       </div>
                       
-                      {/* Actions - 手機版獨立一行 */}
-                      <div className="flex items-center gap-1 sm:gap-2 justify-end">
-                        {/* 上下移動按 */}
-                        <button onClick={() => moveUp(playlist, index, manualPlaylists)} disabled={index === 0}
-                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                          </svg>
-                        </button>
-                        <button onClick={() => moveDown(playlist, index, manualPlaylists)} disabled={index === manualPlaylists.length - 1}
-                          className="p-1.5 text-gray-500 hover:text-white disabled:opacity-30 transition">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        
-                        <div className="w-px h-6 bg-gray-800 mx-1" />
-                        
-                        {/* 編輯 */}
-                        <Link href={`/admin/playlists/edit/${playlist.id}`}
-                          className="p-1.5 text-gray-500 hover:text-[#FFD700] transition">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </Link>
-                        
-                        {/* 顯示/隱藏切換 */}
-                        <button onClick={() => togglePlaylistActive(playlist)}
-                          className={`w-8 h-4 rounded-full transition relative mx-1 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
-                          <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition ${playlist.isActive ? 'left-4.5' : 'left-0.5'}`} 
-                            style={{ left: playlist.isActive ? '18px' : '2px' }} />
-                        </button>
-                        
-                        {/* 刪除 */}
-                        <button onClick={() => handleDeleteManual(playlist)}
-                          className="p-1.5 text-gray-500 hover:text-red-500 transition">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                      {/* Info + Actions */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-white font-medium truncate">{playlist.title}</h3>
+                          <button onClick={() => togglePlaylistActive(playlist)}
+                            className={`w-10 h-5 rounded-full transition relative flex-shrink-0 ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
+                            <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition"
+                              style={{ left: playlist.isActive ? '22px' : '2px' }} />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">{(playlist.description || '無描述').length > 8 ? (playlist.description || '無描述').slice(0, 8) + '…' : (playlist.description || '無描述')}</p>
+                        <div className="flex items-center justify-between mt-1.5">
+                          <p className="text-xs text-gray-600">
+                            {playlist.songIds?.length || 0} 首 • {getTypeLabel(playlist.manualType)}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openCoverGenerator(playlist)}
+                              className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="生成封面">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                            <Link href={`/admin/playlists/edit/${playlist.id}`}
+                              className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="編輯">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </Link>
+                            <button onClick={() => handleDeleteManual(playlist)}
+                              className="p-1.5 text-gray-500 hover:text-red-500 transition" title="刪除">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -582,6 +687,33 @@ function PlaylistAdmin() {
                 </Link>
               </div>
             )}
+          </div>
+        )}
+        {/* Cover Generator Modal */}
+        {coverGenPlaylist && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setCoverGenPlaylist(null)}>
+            <div className="bg-[#121212] rounded-xl border border-gray-700 w-full max-w-lg max-h-[90vh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-white font-bold text-lg">生成封面：{coverGenPlaylist.title}</h2>
+                <button onClick={() => setCoverGenPlaylist(null)} className="text-gray-500 hover:text-white transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              {coverGenLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <CoverGenerator
+                  key={coverGenPlaylist.id}
+                  songs={coverGenSongs}
+                  playlistTitle={coverGenPlaylist.title}
+                  onGenerated={handleCoverGenerated}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

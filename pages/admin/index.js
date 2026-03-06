@@ -41,6 +41,14 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.PLAYLIST_MAKER]
     },
     {
+      href: '/admin/playlist-covers',
+      title: '歌單封面生成器',
+      description: '用歌單入面嘅歌生成封面（單圖或 2x2 拼貼）',
+      icon: '🖼️',
+      color: 'bg-purple-500',
+      roles: [ROLES.SUPER_ADMIN, ROLES.PLAYLIST_MAKER, ROLES.ART_DIRECTOR]
+    },
+    {
       href: '/admin/artists-v2',
       title: '歌手管理 V2',
       description: '統一管理歌手資料、分類和照片',
