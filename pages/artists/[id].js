@@ -379,7 +379,8 @@ export default function ArtistPage() {
   return (
     <Layout fullWidth>
     <div className="min-h-screen bg-black pb-20">
-      {/* Hero - 手機版 3:2 比例，桌面版維持 55vh，全寬 */}
+      <div className="max-w-7xl mx-auto">
+      {/* Hero */}
       <div className="relative w-full aspect-[3/2] md:h-[55vh] md:aspect-auto">
         <ArtistHeroImage artist={artist} />
         {/* 設計圖冇漸變圖層 */}
@@ -495,7 +496,6 @@ export default function ArtistPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto">
       {/* 熱門歌曲（前5首 - 有相片） */}
       <section className="px-4 mt-2">
         <h2 className="text-white font-bold mb-2" style={{ fontSize: '1.375rem' }}>熱門</h2>
