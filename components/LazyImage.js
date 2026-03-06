@@ -69,20 +69,20 @@ export default function LazyImage({
 export function SongCard({ song, artistPhoto, onClick }) {
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  // 獲取封面圖
+  // 獲取封面圖 — 同 tab 頁面統一優先順序
   const getCoverImage = () => {
+    if (song.coverImage) return song.coverImage
     if (song.albumImage) return song.albumImage
-    if (song.youtubeVideoId) return `https://img.youtube.com/vi/${song.youtubeVideoId}/mqdefault.jpg`
-    if (song.youtubeUrl) {
-      const match = song.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
-      if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
-    }
+    // YouTube 縮圖（優先即場生成，fallback 預存 URL）
+    const videoId = song.youtubeVideoId || song.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
+    if (videoId) return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
     if (song.thumbnail) return song.thumbnail
     if (artistPhoto) return artistPhoto
     return null
   }
 
   const coverImage = getCoverImage()
+
 
   return (
     <button

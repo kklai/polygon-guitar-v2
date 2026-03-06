@@ -337,10 +337,20 @@ export default function TabDetail() {
           <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
-              {/* 優先顯示用戶自訂封面，其次 Spotify 專輯相，再其次 thumbnail/YouTube，最後歌手照片 */}
-              {tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || tab.youtubeVideoId ? (
+              {/* 統一封面優先順序：coverImage > albumImage > youtubeVideoId > thumbnail > artistPhoto */}
+              {(() => {
+                const videoId = tab.youtubeVideoId || tab.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
+                return tab.coverImage || tab.albumImage || videoId || tab.thumbnail || tab.artistPhoto
+              })() ? (
                 <img 
-                  src={tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || `https://img.youtube.com/vi/${tab.youtubeVideoId}/mqdefault.jpg`} 
+                  src={(() => {
+                    if (tab.coverImage) return tab.coverImage
+                    if (tab.albumImage) return tab.albumImage
+                    const videoId = tab.youtubeVideoId || tab.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
+                    if (videoId) return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                    if (tab.thumbnail) return tab.thumbnail
+                    return tab.artistPhoto
+                  })()}
                   alt={tab.title}
                   className="w-full h-full object-cover"
                   loading="eager"

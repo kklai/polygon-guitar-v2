@@ -228,6 +228,35 @@ const FALLBACK_MANUAL_PLAYLISTS = [
   }
 ]
 
+// 自訂歌單區域 — 直接 fetch 歌單所有歌
+function CustomPlaylistSection({ title, songIds, artistPhotoMap, onSongClick }) {
+  const [songs, setSongs] = useState([])
+
+  useEffect(() => {
+    if (songIds?.length > 0) {
+      getTabsByIds(songIds).then(setSongs)
+    }
+  }, [songIds?.join(',')])
+
+  if (songs.length === 0) return null
+
+  return (
+    <section style={{ marginBottom: 25 }}>
+      <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{title}</h2>
+      <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+        {songs.map((song) => (
+          <SongCard
+            key={song.id}
+            song={song}
+            artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+            onClick={() => onSongClick(song.id)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 // 時間格式化
 const formatTimeAgo = (timestamp) => {
   if (!timestamp) return ''
@@ -577,30 +606,14 @@ export default function Home() {
             return null
           }
           
-          const sectionSongs = playlist.songIds
-            .map(id => latestSongs.find(s => s.id === id) || 
-                        hotTabs.find(s => s.id === id) ||
-                        allSongs.find(s => s.id === id))
-            .filter(Boolean)
-          
-          if (sectionSongs.length === 0) {
-            return null
-          }
-          
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{section.title || customSection.title}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-                {sectionSongs.map((song) => (
-                  <SongCard
-                    key={song.id}
-                    song={song}
-                    artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-                    onClick={() => handleSongClick(song.id)}
-                  />
-                ))}
-              </div>
-            </section>
+            <CustomPlaylistSection
+              key={section.id}
+              title={section.title || customSection.title}
+              songIds={playlist.songIds}
+              artistPhotoMap={artistPhotoMap}
+              onSongClick={handleSongClick}
+            />
           )
         }
         
