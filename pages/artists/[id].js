@@ -151,14 +151,14 @@ export default function ArtistPage() {
     };
     
     // 只使用手動設定的 songYear 或 uploadYear
-    // 唔再用 createdAt 作為後備，確保冇年份嘅歌會顯示喺「未有年份」組
+    // 唔再用 createdAt 作為後備，確保冇年份嘅歌會顯示喺「未知年份」組
     const songYear = parseYear(tab.songYear);
     if (songYear) return songYear;
     
     const uploadYear = parseYear(tab.uploadYear);
     if (uploadYear) return uploadYear;
     
-    // 冇手動設定年份，返回 null（會被分到「未有年份」組）
+    // 冇手動設定年份，返回 null（會被分到「未知年份」組）
     return null;
   };
 
@@ -178,15 +178,15 @@ export default function ArtistPage() {
       groups[range].push({ ...tab, year });
     });
     
-    // 把沒有年份的放在 '未有年份' 組，並按瀏覽數排序
+    // 把沒有年份的放在 '未知年份' 組，並按瀏覽數排序
     if (noYearTabs.length > 0) {
       noYearTabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-      groups['未有年份'] = noYearTabs;
+      groups['未知年份'] = noYearTabs;
     }
     
-    // 返回排序後的結果，確保「未有年份」在最後
+    // 返回排序後的結果，確保「未知年份」在最後
     const sortedGroups = {};
-    const yearRanges = Object.keys(groups).filter(k => k !== '未有年份');
+    const yearRanges = Object.keys(groups).filter(k => k !== '未知年份');
     // 按年份範圍排序（新到舊）
     yearRanges.sort((a, b) => {
       // 提取年份範圍的第一個年份進行比較
@@ -207,9 +207,9 @@ export default function ArtistPage() {
       sortedGroups[range] = groups[range];
     });
     
-    // 最後加入「未有年份」
-    if (groups['未有年份']) {
-      sortedGroups['未有年份'] = groups['未有年份'];
+    // 最後加入「未知年份」
+    if (groups['未知年份']) {
+      sortedGroups['未知年份'] = groups['未知年份'];
     }
     
     return sortedGroups;
@@ -581,12 +581,12 @@ export default function ArtistPage() {
           Object.entries(displayData.data).map(([yearRange, tabs]) => (
             <div key={yearRange} style={{ marginBottom: '0.5rem' }}>
               <h3 className={`text-sm font-mediumremo sticky top-0 bg-black/95 py-2 z-10 ${
-                yearRange === '未有年份' 
+                yearRange === '未知年份' 
                   ? 'text-gray-500 italic' 
                   : 'text-[#FFD700]'
               }`}>
                 {yearRange}
-                {yearRange === '未有年份' && tabs.length > 0 && (
+                {yearRange === '未知年份' && tabs.length > 0 && (
                   <span className="ml-2 text-xs">({tabs.length} 首)</span>
                 )}
               </h3>
