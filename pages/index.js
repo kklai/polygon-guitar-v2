@@ -1145,13 +1145,18 @@ export default function Home() {
       </Head>
       <Layout fullWidth>
         <div className="min-h-screen bg-black pb-24">
-        {/* Admin 設置按鈕（右上角） */}
+        {/* Admin 快捷按鈕（右上角） */}
         {isAdmin && (
-          <div className="pr-6 pb-2 flex justify-end" style={{ paddingLeft: '1rem' }}>
+          <div className="pr-6 pb-2 flex justify-end gap-2" style={{ paddingLeft: '1rem' }}>
+            <button
+              onClick={() => router.push('/admin/playlists')}
+              className="px-3 py-2 bg-[#282828] text-[#FFD700] border border-[#FFD700] rounded-full font-medium hover:bg-[#3E3E3E] transition text-sm"
+            >
+              管理歌單
+            </button>
             <button
               onClick={() => router.push('/admin/home-settings')}
-              className="px-3 py-2 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition text-sm"
-              title="首頁設置"
+              className="px-3 py-2 bg-[#282828] text-[#FFD700] border border-[#FFD700] rounded-full font-medium hover:bg-[#3E3E3E] transition text-sm"
             >
               首頁設置
             </button>
@@ -1174,27 +1179,6 @@ export default function Home() {
         {/* 底部 Spacer */}
         <div className="h-8" />
         
-        {/* Admin Notice - 如果係管理員，顯示歌單管理提示 */}
-        {isAdmin && (
-          <div className="px-6 pb-24">
-            <div className="p-4 bg-yellow-900/20 border border-yellow-800 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-yellow-400 font-medium">管理員提示</p>
-                  <p className="text-yellow-200/70 text-sm mt-1">
-                    如果歌單未有數據，請到管理後台創建
-                  </p>
-                </div>
-                <Link
-                  href="/admin/playlists"
-                  className="px-4 py-2 bg-yellow-700 text-white rounded-lg hover:bg-yellow-600 transition text-sm"
-                >
-                  管理歌單
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Custom Styles for scrollbar-hide */}
