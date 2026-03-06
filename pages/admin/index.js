@@ -247,6 +247,86 @@ export default function AdminIndex() {
       icon: '',
       color: 'bg-orange-600',
       roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/admins',
+      title: '管理員設定',
+      description: '設定用戶為管理員，管理權限',
+      icon: '👥',
+      color: 'bg-red-700 text-white',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/artists',
+      title: '歌手管理（舊版）',
+      description: '舊版歌手管理介面',
+      icon: '',
+      color: 'bg-gray-600',
+      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
+    },
+    {
+      href: '/admin/bulk-musicbrainz-year',
+      title: '批量更新年份（MusicBrainz）',
+      description: '從 MusicBrainz 數據庫批量獲取歌曲年份',
+      icon: '',
+      color: 'bg-indigo-500',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/bulk-update-year',
+      title: '批量更新年份',
+      description: '批量更新多首歌曲嘅年份資訊',
+      icon: '',
+      color: 'bg-indigo-600',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/logo-preview',
+      title: 'Logo 預覽',
+      description: '預覽 Logo 在不同背景下嘅效果',
+      icon: '',
+      color: 'bg-pink-500',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
+    },
+    {
+      href: '/admin/spotify-debug',
+      title: 'Spotify 除錯',
+      description: '檢查 Spotify API 連接狀態同環境變數',
+      icon: '',
+      color: 'bg-green-700',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/test-gp-display',
+      title: 'GP 顯示測試',
+      description: '測試 Guitar Pro 譜面顯示效果',
+      icon: '',
+      color: 'bg-purple-500',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/test-gp-player',
+      title: 'GP 播放器測試',
+      description: '測試 Guitar Pro 播放器功能',
+      icon: '',
+      color: 'bg-purple-600',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/test-gp-upload',
+      title: 'GP 上傳測試',
+      description: '測試 Guitar Pro 檔案上傳功能',
+      icon: '',
+      color: 'bg-purple-700',
+      roles: [ROLES.SUPER_ADMIN]
+    },
+    {
+      href: '/admin/update-spotify-photos',
+      title: '更新 Spotify 相片',
+      description: '批量更新歌手嘅 Spotify 專輯封面同相片',
+      icon: '',
+      color: 'bg-green-500',
+      roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     }
   ]
 
