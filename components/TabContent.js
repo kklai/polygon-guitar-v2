@@ -398,7 +398,7 @@ function extractSectionMarker(line) {
 
 function extractSectionMarkers(line) {
   const prefixMatch = line.match(/^(\s*[#*]\s*)/);
-  const suffixMatch = line.match(/(\s*[#*]\s*)$/);
+  const suffixMatch = line.match(/(?<![A-Ga-g])(\s*[#*]\s*)$/);
   const prefix = prefixMatch ? prefixMatch[1] : '';
   const suffix = suffixMatch ? suffixMatch[1] : '';
   let cleanLine = line;
