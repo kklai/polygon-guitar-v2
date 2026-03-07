@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import Layout from '@/components/Layout'
 import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
@@ -59,12 +60,12 @@ function PillButton({ isActive, onClick, label }) {
 }
 
 // 歌手卡片組件（圓形大頭）
-function ArtistCircle({ artist, onClick }) {
+function ArtistCircle({ artist, href }) {
   const photoUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo
   
   return (
-    <div 
-      onClick={onClick}
+    <Link 
+      href={href}
       className="flex-shrink-0 w-[100px] cursor-pointer select-none touch-manipulation"
     >
       <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-200 active:scale-105 active:z-20">
@@ -86,7 +87,7 @@ function ArtistCircle({ artist, onClick }) {
       <p className="text-white text-xs text-center truncate">
         {artist.name}
       </p>
-    </div>
+    </Link>
   )
 }
 
@@ -132,7 +133,7 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
                 <ArtistCircle 
                   key={artist.id} 
                   artist={artist} 
-                  onClick={() => onArtistClick(artist.id)}
+                  href={`/artists/${artist.id}`}
                 />
               ))}
             </div>

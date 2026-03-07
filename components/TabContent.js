@@ -221,6 +221,39 @@ function normalizeInput(text) {
   return text.replace(/｜/g, '|').replace(/　/g, ' ').replace(/\r?\n/g, '');
 }
 
+function splitLyricAtBrackets(lyricLine) {
+  const chars = [...lyricLine];
+  const bracketIndices = [];
+  for (let i = 0; i < chars.length; i++) {
+    if (chars[i] === '(' || chars[i] === '（') bracketIndices.push(i);
+  }
+  if (bracketIndices.length === 0) return null;
+
+  const preBracket = chars.slice(0, bracketIndices[0]).join('');
+  const segments = [];
+  for (let i = 0; i < bracketIndices.length; i++) {
+    const start = bracketIndices[i];
+    const end = i + 1 < bracketIndices.length ? bracketIndices[i + 1] : chars.length;
+    segments.push(chars.slice(start, end).join(''));
+  }
+  return { preBracket, segments };
+}
+
+function splitSegmentAtBracketClose(segment) {
+  for (let i = 0; i < segment.length; i++) {
+    if (segment[i] === ')' || segment[i] === '）') {
+      const raw = segment.substring(0, i + 1);
+      const openIdx = raw.search(/[\(（]/);
+      // Match lyric rendering: spaces inside brackets become full-width \u3000
+      const bracketPart = openIdx !== -1
+        ? raw.substring(0, openIdx + 1) + raw.substring(openIdx + 1, i).replace(/ /g, '\u3000') + raw[i]
+        : raw;
+      return { bracketPart, remainder: segment.substring(i + 1) };
+    }
+  }
+  return { bracketPart: segment, remainder: '' };
+}
+
 // Section marker 列表
 // Section Marker 縮寫映射（用戶可以用 /v 代替 Verse）
 const SECTION_SHORTCUTS = {
@@ -1031,7 +1064,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     }
     
     let tokenName = '';
-    while (i < chars.length && chars[i] !== ' ' && chars[i] !== '\u3000') {
+    while (i < chars.length && chars[i] !== ' ' && chars[i] !== '\u3000' && chars[i] !== '|') {
       tokenName += chars[i];
       i++;
     }
@@ -1055,6 +1088,18 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
         isDash: isDash,
         width: getTextWidth(hasBar ? '|' + displayName : displayName),
         nameWidth: getTextWidth(displayName)
+      });
+    } else if (hasBar) {
+      // Standalone trailing bar marker (e.g. the final | in "|C - Am|")
+      tokens.push({
+        name: '|',
+        fullToken: '|',
+        isBarStart: false,
+        isChord: false,
+        isDash: false,
+        isBarEnd: true,
+        width: getTextWidth('|'),
+        nameWidth: getTextWidth('|')
       });
     }
   }
@@ -1157,7 +1202,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     }
   }
 
-  // 重建和弦行 - 使用全形空格確保與中文字對齊
+  // 重建和弦行 - 使用半形空格對齊（避免全形空格字體 fallback 不一致）
   let newChordLine = '';
   let currentVisualWidth = 0;
   
@@ -1174,12 +1219,11 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     // 計算需要填充嘅視覺寬度
     const spacesNeeded = startCol - currentVisualWidth;
     if (spacesNeeded > 0) {
-      // 全形空格 　 寬度為 2，用嚟對齊中文字
-      const fullWidthSpaces = Math.floor(spacesNeeded / 2);
-      const halfWidthSpace = spacesNeeded % 2;
-      newChordLine += '\u3000'.repeat(fullWidthSpaces);
-      if (halfWidthSpace) newChordLine += ' ';
+      newChordLine += ' '.repeat(spacesNeeded);
       currentVisualWidth += spacesNeeded;
+    } else if (idx > 0) {
+      newChordLine += ' ';
+      currentVisualWidth += 1;
     }
     
     newChordLine += token.fullToken;
@@ -1222,7 +1266,42 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     parts.push({ text: normalizedBuffer, isInside: inBracket, type: inBracket ? 'inside' : 'text' });
   }
 
-  return { chordLine: newChordLine, lyricParts: parts, error: mismatch };
+  const lyricSplit = splitLyricAtBrackets(normalizedLyric);
+  const alignedChords = lyricSplit
+    ? (() => {
+        const groups = [];
+        for (let idx = 0; idx < tokens.length; idx++) {
+          const t = tokens[idx];
+          if (t.isChord) {
+            const trailing = [];
+            for (let j = idx + 1; j < tokens.length && !tokens[j].isChord; j++) {
+              trailing.push(tokens[j]);
+            }
+            // Attach trailing bar-end to the chord itself (e.g. Am| not Am ... |)
+            let barEnd = false;
+            if (trailing.length > 0 && trailing[trailing.length - 1].isBarEnd) {
+              trailing.pop();
+              barEnd = true;
+            }
+            groups.push({
+              displayName: t.name + (barEnd ? '|' : ''),
+              fullToken: t.fullToken + (barEnd ? '|' : ''),
+              isBarStart: t.isBarStart,
+              trailing,
+            });
+          }
+        }
+        return groups;
+      })()
+    : null;
+
+  // Build positioned chord data for absolute positioning
+  const positionedChords = tokens.map((t, idx) => ({
+    ...t,
+    position: tokenPositions[idx],
+  }));
+
+  return { chordLine: newChordLine, lyricParts: parts, error: mismatch, lyricSplit, alignedChords, positionedChords };
 }
 
 // ============ 自動拆分長歌詞行 ============
@@ -1876,14 +1955,15 @@ const TabContent = ({
           const targetChinese = (targetLine.match(/[\u4e00-\u9fff]/g) || []).length;
           const targetHasChord = /\|[\s]*[A-G]/.test(targetLine);
           const targetDigits = (targetLine.match(/\d/g) || []).length;
+          const targetHasBrackets = /[\(（]/.test(targetLine);
           
-          // 如果係歌詞行（有中文字或英文單詞，且冇和弦），停止搜索
+          // 如果係歌詞行（有中文字、英文單詞、或有括號），且冇和弦，停止搜索
           const targetEnglish = (targetLine.match(/[a-zA-Z]+/g) || []).length;
-          if ((targetChinese > 0 || targetEnglish > 0) && !targetHasChord) {
+          if ((targetChinese > 0 || targetEnglish > 0 || targetHasBrackets) && !targetHasChord) {
             break;
           }
-          // 如果係簡譜行，收集並繼續搵
-          if (targetDigits > 3 && targetChinese < 3 && !targetHasChord) {
+          // 如果係簡譜行（無括號），收集並繼續搵
+          if (targetDigits > 3 && targetChinese < 3 && !targetHasChord && !targetHasBrackets) {
             notationLines.push({ index: targetLyricIndex, line: targetLine });
             targetLyricIndex++;
             continue;
@@ -1901,7 +1981,8 @@ const TabContent = ({
         const lyricEnglishIsChords = lyricEnglish > 0 && lyricEnglishWords.every(word => 
           /^[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*$/i.test(word)
         );
-        const hasLyric = lyricLine && (lyricChinese > 0 || (lyricEnglish > 0 && !lyricEnglishIsChords));
+        const lyricHasBrackets = /[\(（]/.test(lyricLine);
+        const hasLyric = lyricLine && (lyricChinese > 0 || (lyricEnglish > 0 && !lyricEnglishIsChords) || lyricHasBrackets);
         
         if (hasLyric) {
           // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
@@ -1922,35 +2003,26 @@ const TabContent = ({
             const isLastPair = pairIndex === pairs.length - 1;
             const pairMarginBottom = isLastPair ? `${lineFontSize * 0.3}px` : `${lineFontSize * 0.2}px`;
             
+            const currentPrefix = pairIndex === 0 ? prefix : null;
+            const currentSuffix = pairIndex === pairs.length - 1 ? suffix : null;
+            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial';
+            const chordFontFamily = displayFont === 'arial'
+              ? "Arial, Helvetica, sans-serif"
+              : "'Source Code Pro', monospace";
+            const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
+
             elements.push(
               <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom, lineHeight: '1.1' }}>
-                {/* 和弦行 - 可 hover 的和弦 */}
-                <ChordLineWithHover 
-                  chordLine={result.chordLine}
-                  prefix={pairIndex === 0 ? prefix : null}
-                  suffix={pairIndex === pairs.length - 1 ? suffix : null}
-                  fontSize={lineFontSize}
-                  theme={theme}
-                  displayFont={displayFont}
-                />
-                
-                {/* 只在第一個 pair 顯示簡譜行（如果有） */}
+                {/* Notation lines (before combined chord+lyric) */}
                 {pairIndex === 0 && !hideNotation && notationLines.map(({ index, line: notationLine }) => {
                   const notationFontSize = getLineFontSize(notationLine);
-                  
-                  // 嘗試對齊簡譜與歌詞
                   const aligned = alignNotationWithLyrics(notationLine, lyricLine);
-                  
-                  // 檢查是否有實際歌詞（非簡譜行）
                   const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
-                  // 沒有歌詞時，簡譜緊貼和弦；有歌詞時，簡譜和歌詞之間留 2px 間距
                   const notationMarginBottom = hasRealLyric ? '2px' : '0em';
                   
                   if (aligned) {
-                    // 對齊模式：簡譜數字對應歌詞括號
                     return (
                       <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1' }}>
-                        {/* 簡譜行 */}
                         <div style={{ 
                           fontSize: `${notationFontSize}px`, 
                           whiteSpace: 'pre-wrap',
@@ -1964,18 +2036,12 @@ const TabContent = ({
                         }}>
                           {aligned.map((item, idx) => {
                             if (item.type === 'text' || item.type === 'bracket') {
-                              // 無對應簡譜的文字 - 透明佔位
                               return (
-                                <span key={idx} style={{ 
-                                  visibility: 'hidden',
-                                  whiteSpace: 'pre'
-                                }}>
+                                <span key={idx} style={{ visibility: 'hidden', whiteSpace: 'pre' }}>
                                   {item.content}
                                 </span>
                               );
                             } else if (item.type === 'pair') {
-                              // 簡譜數字 - 置中對齊到對應歌詞字
-                              // 計算字寬時，如果隱藏括號，去掉括號後計算（半形或全形）
                               const displayLyric = (hideBrackets && item.isInside) 
                                 ? item.lyric.replace(/^[\(（]|[\)）]$/g, '') 
                                 : item.lyric;
@@ -1997,15 +2063,13 @@ const TabContent = ({
                       </div>
                     );
                   } else {
-                    // 普通模式：直接渲染簡譜
                     const notationParts = processNumericNotationLine(notationLine);
-                    // 檢查是否有實際歌詞
-                    const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
-                    const notationMarginBottom = hasRealLyric ? '2px' : '0em';
+                    const hasRealLyric2 = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
+                    const notationMB = hasRealLyric2 ? '2px' : '0em';
                     return (
                       <div key={index} style={{ 
                         fontSize: `${notationFontSize}px`, 
-                        marginBottom: notationMarginBottom,
+                        marginBottom: notationMB,
                         lineHeight: '1.1',
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
@@ -2013,10 +2077,8 @@ const TabContent = ({
                         fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace"
                       }}>
                         {notationParts.map((part, idx) => {
-                          // 處理隱藏括號：將括號替換為空格占位
                           let content = part.content;
                           if (hideBrackets && part.type === 'inside') {
-                            // 將開頭和結尾的括號替換為空格
                             content = content.replace(/^[\(（]/, ' ').replace(/[\)）]$/, ' ');
                           }
                           return (
@@ -2032,32 +2094,211 @@ const TabContent = ({
                     );
                   }
                 })}
-                
-                {/* 歌詞行 - 括號外灰色，括號內白色 */}
-                <div style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}>
-                  {result.lyricParts.map((part, idx) => {
-                    // 隱藏括號時，將括號變成空格占位（保持寬度不變）
-                    if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
-                      return <span key={idx}>&nbsp;</span>;
+
+                {/* 和弦行 — grid: overflow when space allows, expand when overlap, debt absorption via trimmed text */}
+                {useGridAlignment ? (() => {
+                  const segs = result.lyricSplit.segments.map((segment, segIdx) => {
+                    const chord = result.alignedChords[segIdx];
+                    const { bracketPart, remainder } = splitSegmentAtBracketClose(segment);
+                    const bw = getTextWidth(bracketPart);
+                    const chordText = chord ? ((chord.isBarStart ? '|' : '') + chord.displayName) : '';
+                    const cw = chordText.length;
+                    const rw = remainder ? getTextWidth(remainder) : 0;
+                    const rightOverflow = Math.max(0, Math.ceil((cw - bw) / 2));
+                    return { chord, bracketPart, remainder, bw, cw, rw, rightOverflow };
+                  });
+
+                  const trimFromEnd = (text, units) => {
+                    if (!text || units <= 0) return text;
+                    let trimmed = 0;
+                    let i = text.length - 1;
+                    while (i >= 0 && trimmed < units) {
+                      trimmed += getCharWidth(text[i]);
+                      i--;
                     }
-                    // 決定顏色
-                    let partColor;
-                    if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
-                      partColor = colors.lyricInside;
+                    return text.substring(0, i + 1);
+                  };
+
+                  let debt = 0;
+                  const layout = segs.map((s, idx) => {
+                    if (s.cw <= s.bw) {
+                      const absorbed = Math.min(debt, s.rw);
+                      const trimmedRemainder = absorbed > 0 ? trimFromEnd(s.remainder, absorbed) : s.remainder;
+                      debt -= absorbed;
+                      return { ...s, useOverflow: false, trimmedRemainder };
+                    }
+                    const nextSeg = segs[idx + 1];
+                    const nextCw = nextSeg ? (nextSeg.chord ? ((nextSeg.chord.isBarStart ? '|' : '') + nextSeg.chord.displayName).length : 0) : 0;
+                    const nextLeftOverflow = nextSeg ? Math.max(0, Math.ceil((nextCw - nextSeg.bw) / 2)) : 0;
+                    const wouldOverlap = (s.rightOverflow + nextLeftOverflow) > s.rw;
+
+                    if (!wouldOverlap) {
+                      const absorbed = Math.min(debt, s.rw);
+                      const trimmedRemainder = absorbed > 0 ? trimFromEnd(s.remainder, absorbed) : s.remainder;
+                      debt -= absorbed;
+                      return { ...s, useOverflow: true, trimmedRemainder };
                     } else {
-                      partColor = colors.lyricNormal;
+                      const excess = Math.max(0, s.cw - s.bw);
+                      debt += excess;
+                      const absorbed = Math.min(debt, s.rw);
+                      const trimmedRemainder = absorbed > 0 ? trimFromEnd(s.remainder, absorbed) : s.remainder;
+                      debt -= absorbed;
+                      return { ...s, useOverflow: false, trimmedRemainder };
                     }
-                    // 移除換行符
-                    const cleanText = (part.text || '').replace(/\r?\n/g, '');
-                    return (
-                      <span key={idx} style={{ 
-                        color: partColor,
-                        fontWeight: (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') && theme === 'day' ? 'bold' : 'normal'
-                      }}>
-                        {cleanText}
+                  });
+
+                  return (
+                  <div
+                    className="font-light"
+                    data-clean-text={(currentPrefix || '') + result.chordLine + (currentSuffix || '')}
+                    style={{
+                      fontSize: `${lineFontSize}px`,
+                      whiteSpace: 'pre-wrap',
+                      marginBottom: '0.05em',
+                      lineHeight: '1.2',
+                      fontWeight: 300,
+                    }}
+                  >
+                    {currentPrefix && (
+                      <span style={{ color: prefixSuffixColor, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>
+                        {currentPrefix}
                       </span>
-                    );
-                  })}
+                    )}
+                    {result.lyricSplit.preBracket && (
+                      <span style={{ display: 'inline-block', verticalAlign: 'top' }}>
+                        <span style={{ visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none' }}>
+                          {result.lyricSplit.preBracket}
+                        </span>
+                      </span>
+                    )}
+                    {layout.map((seg, segIdx) => (
+                      <span key={segIdx} style={{ verticalAlign: 'top' }}>
+                        <span style={{ display: 'inline-grid', gridTemplateColumns: '1fr', verticalAlign: 'top' }}>
+                          <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none' }}>
+                            {seg.bracketPart}
+                          </span>
+                          {seg.chord && (
+                            <span style={{
+                              gridRow: 1, gridColumn: 1,
+                              justifySelf: 'center',
+                              fontFamily: chordFontFamily,
+                              color: '#FFD700',
+                              whiteSpace: 'nowrap',
+                              ...(seg.useOverflow ? { width: 0, overflow: 'visible', display: 'flex', justifyContent: 'flex-start', justifySelf: 'start' } : {}),
+                            }}>
+                              {seg.chord.isBarStart && <span>|</span>}
+                              <ChordWithHover chord={seg.chord.displayName} theme={theme} displayFont={displayFont} />
+                            </span>
+                          )}
+                        </span>
+                        {seg.remainder && (
+                          <span style={{ display: 'inline-grid', gridTemplateColumns: '1fr', verticalAlign: 'top' }}>
+                            <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none' }}>
+                              {seg.trimmedRemainder != null ? seg.trimmedRemainder : seg.remainder}
+                            </span>
+                            {seg.chord && seg.chord.trailing && seg.chord.trailing.length > 0 && (
+                              <span style={{ gridRow: 1, gridColumn: 1, justifySelf: 'stretch', display: 'flex', justifyContent: 'space-evenly' }}>
+                                {seg.chord.trailing.map((t, tIdx) => (
+                                  <span key={tIdx} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                                    {t.isBarStart && '|'}{t.name}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                    {result.alignedChords.length > result.lyricSplit.segments.length &&
+                      result.alignedChords.slice(result.lyricSplit.segments.length).map((chord, extraIdx) => (
+                        <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                          {chord.isBarStart && '|'}
+                          <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
+                          {' '}
+                        </span>
+                      ))
+                    }
+                    {currentSuffix && (
+                      <span style={{ color: prefixSuffixColor, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>
+                        {currentSuffix}
+                      </span>
+                    )}
+                  </div>
+                  );
+                })() : (
+                  <ChordLineWithHover
+                    chordLine={result.chordLine}
+                    prefix={currentPrefix}
+                    suffix={currentSuffix}
+                    fontSize={lineFontSize}
+                    theme={theme}
+                    displayFont={displayFont}
+                  />
+                )}
+
+                {/* 歌詞行 — natural flow, no extra spacing */}
+                <div
+                  data-clean-text={result.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
+                  style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}
+                >
+                  {useGridAlignment ? (
+                    <>
+                      {result.lyricSplit.preBracket && (
+                        <span style={{ whiteSpace: 'pre', color: colors.lyricNormal, fontWeight: 400 }}>
+                          {result.lyricSplit.preBracket}
+                        </span>
+                      )}
+                      {result.lyricSplit.segments.map((segment, segIdx) => {
+                        const { bracketPart, remainder } = splitSegmentAtBracketClose(segment);
+                        const insideWeight = theme === 'day' ? 'bold' : 400;
+                        const bracketOpen = bracketPart[0] || '';
+                        const bracketClose = bracketPart[bracketPart.length - 1] || '';
+                        const bracketInside = bracketPart.substring(1, bracketPart.length - 1);
+
+                        return (
+                          <span key={segIdx} style={{ whiteSpace: 'pre' }}>
+                            <span style={{ color: colors.lyricInside, fontWeight: 100, opacity: 0.7 }}>
+                              {hideBrackets ? '\u00A0' : bracketOpen}
+                            </span>
+                            <span style={{ color: colors.lyricInside, fontWeight: insideWeight }}>
+                              {bracketInside}
+                            </span>
+                            <span style={{ color: colors.lyricInside, fontWeight: 100, opacity: 0.7 }}>
+                              {hideBrackets ? '\u00A0' : bracketClose}
+                            </span>
+                            {remainder && (
+                              <span style={{ color: colors.lyricNormal, fontWeight: 400 }}>
+                                {remainder}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    result.lyricParts.map((part, idx) => {
+                      if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
+                        return <span key={idx}>&nbsp;</span>;
+                      }
+                      let partColor;
+                      if (part.isInside || part.type === 'inside' || part.type === 'bracket-open' || part.type === 'bracket-close') {
+                        partColor = colors.lyricInside;
+                      } else {
+                        partColor = colors.lyricNormal;
+                      }
+                      const cleanText = (part.text || '').replace(/\r?\n/g, '');
+                      const isBracketChar = part.type === 'bracket-open' || part.type === 'bracket-close';
+                      return (
+                        <span key={idx} style={{ 
+                          color: partColor,
+                          fontWeight: theme === 'day' ? ((part.isInside || part.type === 'inside' || isBracketChar) ? 'bold' : 'normal') : (isBracketChar ? 100 : 400),
+                          opacity: isBracketChar && theme !== 'day' ? 0.7 : 1
+                        }}>
+                          {cleanText}
+                        </span>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             );
@@ -2295,6 +2536,40 @@ const TabContent = ({
     );
   };
 
+  const handleContentCopy = useCallback((e) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    const range = selection.getRangeAt(0);
+    const wrapper = e.currentTarget;
+    const lines = [];
+    let hasGridLines = false;
+
+    const collectLines = (el) => {
+      for (const child of el.children) {
+        if (!range.intersectsNode(child)) continue;
+        if (child.dataset && child.dataset.cleanText !== undefined) {
+          lines.push(child.dataset.cleanText);
+          hasGridLines = true;
+        } else if (child.tagName === 'DIV') {
+          const nested = child.querySelector('[data-clean-text]');
+          if (nested) {
+            collectLines(child);
+          } else {
+            lines.push(child.textContent);
+          }
+        }
+      }
+    };
+
+    collectLines(wrapper);
+
+    if (hasGridLines && lines.length > 0) {
+      e.preventDefault();
+      e.clipboardData.setData('text/plain', lines.join('\n'));
+    }
+  }, []);
+
   if (isEditing && editable) {
     return (
       <div className={`${theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
@@ -2314,7 +2589,7 @@ const TabContent = ({
     <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-3' : `p-3 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
-        <div className={`tab-content-wrapper ${displayFont !== 'arial' ? 'font-light' : ''}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>
+        <div className={`tab-content-wrapper ${displayFont !== 'arial' ? 'font-light' : ''}`} onCopy={handleContentCopy} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>
           {renderContent()}
         </div>
       </div>

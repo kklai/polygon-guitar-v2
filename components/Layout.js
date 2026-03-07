@@ -11,16 +11,13 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
   const { isAdmin } = useAuth()
   const currentPath = router.pathname
   
-  // 自訂導航 icon — 先從 localStorage 即時載入，再從 Firestore 更新
-  const [navIcons, setNavIcons] = useState(() => {
-    if (typeof window === 'undefined') return {}
-    try {
-      const cached = localStorage.getItem('navIcons')
-      return cached ? JSON.parse(cached) : {}
-    } catch { return {} }
-  })
+  const [navIcons, setNavIcons] = useState({})
 
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem('navIcons')
+      if (cached) setNavIcons(JSON.parse(cached))
+    } catch {}
     const loadNavIcons = async () => {
       try {
         const docSnap = await getDoc(doc(db, 'settings', 'navIcons'))

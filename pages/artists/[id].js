@@ -1,6 +1,7 @@
 // pages/artists/[id].js
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
 import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info, Edit, Star, Eye } from 'lucide-react';
@@ -405,13 +406,13 @@ export default function ArtistPage() {
             </button>
             {/* Admin 編輯按鈕 */}
             {isAdmin && (
-              <button
-                onClick={() => router.push(`/artists/${artist.id}/edit`)}
+              <Link
+                href={`/artists/${artist.id}/edit`}
                 className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition ml-1"
                 title="編輯歌手"
               >
                 <Edit className="w-5 h-5" />
-              </button>
+              </Link>
             )}
           </div>
           
@@ -501,9 +502,9 @@ export default function ArtistPage() {
         <h2 className="text-white font-bold mb-2" style={{ fontSize: '1.375rem' }}>熱門</h2>
         <div className="space-y-1">
           {hotTabs.map((tab, index) => (
-            <div 
+            <Link 
               key={tab.id}
-              onClick={() => router.push(`/tabs/${tab.id}`)}
+              href={`/tabs/${tab.id}`}
               className="flex items-center py-1 rounded-lg cursor-pointer group -mx-2 px-2"
             >
               <span className="text-[#B3B3B3] w-5 text-center text-sm font-medium mr-2">
@@ -527,12 +528,12 @@ export default function ArtistPage() {
               
               {/* 三點按鈕 - 一直顯示 */}
               <button 
-                onClick={(e) => handleMoreClick(e, tab)}
+                onClick={(e) => { e.preventDefault(); handleMoreClick(e, tab); }}
                 className="p-2 text-[#B3B3B3] hover:text-white"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -595,9 +596,9 @@ export default function ArtistPage() {
                   if (item.type === 'single') {
                     const tab = item.tab;
                     return (
-                      <div 
+                      <Link 
                         key={tab.id}
-                        onClick={() => router.push(`/tabs/${tab.id}`)}
+                        href={`/tabs/${tab.id}`}
                         className="flex items-center cursor-pointer group py-3 px-2 -mx-2"
                         style={idx < arr.length - 1 ? { borderBottom: '0.5px solid #333' } : {}}
                       >
@@ -615,7 +616,7 @@ export default function ArtistPage() {
                             {tab.uploaderPenName || tab.arrangedBy || '匿名'}
                           </span>
                         </div>
-                      </div>
+                      </Link>
                     );
                   }
                   const groupKey = `${yearRange}-${item.title}`;
@@ -637,9 +638,9 @@ export default function ArtistPage() {
                         </div>
                       </div>
                       {isExpanded && item.versions.map((tab, vIdx) => (
-                        <div
+                        <Link
                           key={tab.id}
-                          onClick={() => router.push(`/tabs/${tab.id}`)}
+                          href={`/tabs/${tab.id}`}
                           className="flex items-center cursor-pointer py-3 px-2 -mx-2 pl-6 bg-[#0a0a0a]"
                           style={(vIdx < item.versions.length - 1 || idx < arr.length - 1) ? { borderBottom: '0.5px solid #333' } : {}}
                         >
@@ -657,7 +658,7 @@ export default function ArtistPage() {
                               {tab.uploaderPenName || tab.arrangedBy || '匿名'}
                             </span>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   );
@@ -672,9 +673,9 @@ export default function ArtistPage() {
               if (item.type === 'single') {
                 const tab = item.tab;
                 return (
-                  <div 
+                  <Link 
                     key={tab.id}
-                    onClick={() => router.push(`/tabs/${tab.id}`)}
+                    href={`/tabs/${tab.id}`}
                     className="flex items-center py-3 cursor-pointer group px-2 -mx-2"
                     style={idx < arr.length - 1 ? { borderBottom: '0.5px solid #333' } : {}}
                   >
@@ -692,7 +693,7 @@ export default function ArtistPage() {
                         {tab.uploaderPenName || tab.arrangedBy || '匿名'}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               }
               const groupKey = `flat-${item.title}`;
@@ -714,9 +715,9 @@ export default function ArtistPage() {
                     </div>
                   </div>
                   {isExpanded && item.versions.map((tab, vIdx) => (
-                    <div
+                    <Link
                       key={tab.id}
-                      onClick={() => router.push(`/tabs/${tab.id}`)}
+                      href={`/tabs/${tab.id}`}
                       className="flex items-center cursor-pointer py-3 px-2 -mx-2 pl-6 bg-[#0a0a0a]"
                       style={(vIdx < item.versions.length - 1 || idx < arr.length - 1) ? { borderBottom: '0.5px solid #333' } : {}}
                     >
@@ -734,7 +735,7 @@ export default function ArtistPage() {
                           {tab.uploaderPenName || tab.arrangedBy || '匿名'}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               );

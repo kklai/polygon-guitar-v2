@@ -249,7 +249,7 @@ function CustomPlaylistSection({ title, songIds, artistPhotoMap, onSongClick }) 
             key={song.id}
             song={song}
             artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-            onClick={() => onSongClick(song.id)}
+            href={`/tabs/${song.id}`}
           />
         ))}
       </div>
@@ -362,9 +362,9 @@ export default function Home() {
           <section key={section.id} className="pt-2" style={{ marginBottom: 25 }}>
             <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
               {(loadingPhase === 'static' ? DEFAULT_CATEGORIES : categories).map((category) => (
-                <div
+                <Link
                   key={category.id}
-                  onClick={() => handleCategoryClick(category.id)}
+                  href={`/artists?category=${category.id}`}
                   className="flex-shrink-0 flex flex-col cursor-pointer"
                 >
                   <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800">
@@ -402,7 +402,7 @@ export default function Home() {
                       {loadingPhase !== 'static' && hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </section>
@@ -438,7 +438,7 @@ export default function Home() {
                   key={song.id}
                   song={song}
                   artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-                  onClick={() => handleSongClick(song.id)}
+                  href={`/tabs/${song.id}`}
                 />
               ))}
             </div>
@@ -469,7 +469,7 @@ export default function Home() {
                 <ArtistAvatar
                     key={artist.id}
                     artist={artist}
-                    onClick={() => handleArtistClick(artist)}
+                    href={`/artists/${artist.id}`}
                   />
               ))}
             </div>
@@ -500,7 +500,7 @@ export default function Home() {
                 <PlaylistCard
                   key={playlist.id}
                   playlist={playlist}
-                  onClick={() => handlePlaylistClick(playlist.id)}
+                  href={`/playlist/${playlist.id}`}
                 />
               ))}
             </div>
@@ -533,7 +533,7 @@ export default function Home() {
                   key={song.id}
                   song={song}
                   artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-                  onClick={() => handleSongClick(song.id)}
+                  href={`/tabs/${song.id}`}
                 />
               ))}
             </div>
@@ -564,7 +564,7 @@ export default function Home() {
                 <PlaylistCard
                   key={playlist.id}
                   playlist={playlist}
-                  onClick={() => handlePlaylistClick(playlist.id)}
+                  href={`/playlist/${playlist.id}`}
                 />
               ))}
             </div>
@@ -635,7 +635,7 @@ export default function Home() {
                   <PlaylistCard
                     key={playlist.id}
                     playlist={playlist}
-                    onClick={() => handlePlaylistClick(playlist.id)}
+                    href={`/playlist/${playlist.id}`}
                   />
                 ))}
               </div>

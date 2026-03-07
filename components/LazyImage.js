@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Link from 'next/link'
 import Skeleton from './Skeleton'
 
 /**
@@ -66,14 +67,13 @@ export default function LazyImage({
 /**
  * SongCard - 帶骨架屏的歌曲卡片
  */
-export function SongCard({ song, artistPhoto, onClick }) {
+export function SongCard({ song, artistPhoto, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
 
   // 獲取封面圖 — 同 tab 頁面統一優先順序
   const getCoverImage = () => {
     if (song.coverImage) return song.coverImage
     if (song.albumImage) return song.albumImage
-    // YouTube 縮圖（優先即場生成，fallback 預存 URL）
     const videoId = song.youtubeVideoId || song.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
     if (videoId) return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
     if (song.thumbnail) return song.thumbnail
@@ -83,10 +83,12 @@ export function SongCard({ song, artistPhoto, onClick }) {
 
   const coverImage = getCoverImage()
 
+  const Wrapper = href ? Link : 'button'
+  const wrapperProps = href ? { href } : { onClick }
 
   return (
-    <button
-      onClick={onClick}
+    <Wrapper
+      {...wrapperProps}
       className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       {/* 封面區域 */}
@@ -127,27 +129,24 @@ export function SongCard({ song, artistPhoto, onClick }) {
         {song.title}
       </div>
       <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>{song.artist}</div>
-    </button>
+    </Wrapper>
   )
 }
 
 /**
  * PlaylistCard - 帶骨架屏的歌單卡片
  */
-export function PlaylistCard({ playlist, onClick }) {
+export function PlaylistCard({ playlist, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  // 獲取封面圖
-  const getCoverImage = () => {
-    if (playlist.coverImage) return playlist.coverImage
-    return null
-  }
+  const coverImage = playlist.coverImage || null
 
-  const coverImage = getCoverImage()
+  const Wrapper = href ? Link : 'button'
+  const wrapperProps = href ? { href } : { onClick }
 
   return (
-    <button
-      onClick={onClick}
+    <Wrapper
+      {...wrapperProps}
       className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       {/* 封面區域 */}
@@ -184,21 +183,24 @@ export function PlaylistCard({ playlist, onClick }) {
       {playlist.description && (
         <div className="text-gray-500 line-clamp-2" style={{ fontSize: 13, lineHeight: '16px' }}>{playlist.description}</div>
       )}
-    </button>
+    </Wrapper>
   )
 }
 
 /**
  * ArtistAvatar - 帶骨架屏的歌手頭像
  */
-export function ArtistAvatar({ artist, onClick }) {
+export function ArtistAvatar({ artist, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
 
   const photoUrl = artist.photoURL || artist.wikiPhotoURL
 
+  const Wrapper = href ? Link : 'button'
+  const wrapperProps = href ? { href } : { onClick }
+
   return (
-    <button
-      onClick={onClick}
+    <Wrapper
+      {...wrapperProps}
       className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       <div className="w-36 h-36 rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
@@ -230,6 +232,6 @@ export function ArtistAvatar({ artist, onClick }) {
       <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
         {artist.name}
       </div>
-    </button>
+    </Wrapper>
   )
 }

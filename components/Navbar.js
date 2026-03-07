@@ -8,14 +8,8 @@ export default function Navbar() {
   const { user, logout, isAuthenticated, isAdmin } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const DEFAULT_LOGO = 'https://res.cloudinary.com/drld2cjpo/image/upload/v1771502138/artists/site_logo_1771502138235.png'
-  const [logoUrl, setLogoUrl] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('pg_logo_url') || DEFAULT_LOGO
-    return DEFAULT_LOGO
-  })
-  const [siteName, setSiteName] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('pg_site_name') || 'Polygon Guitar'
-    return 'Polygon Guitar'
-  })
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO)
+  const [siteName, setSiteName] = useState('Polygon Guitar')
   const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
 
@@ -26,6 +20,10 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
+    const cachedLogo = localStorage.getItem('pg_logo_url')
+    if (cachedLogo) setLogoUrl(cachedLogo)
+    const cachedName = localStorage.getItem('pg_site_name')
+    if (cachedName) setSiteName(cachedName)
     loadSettings()
   }, [])
 

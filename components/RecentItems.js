@@ -1,23 +1,18 @@
 // components/RecentItems.js
-import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
-export default function RecentItems({ items = [], title = '最近瀏覽' }) {
-  const router = useRouter();
-  const { user } = useAuth();
+function getItemHref(item) {
+  if (item.type === 'tab') return `/tabs/${item.id}`;
+  if (item.type === 'artist') return `/artists/${item.slug || item.id}`;
+  if (item.type === 'playlist') return `/playlist/${item.id}`;
+  if (item.type === 'liked-songs') return '/library/liked';
+  return '#';
+}
 
-  const handleClick = (item) => {
-    if (item.type === 'tab') {
-      router.push(`/tabs/${item.id}`);
-    } else if (item.type === 'artist') {
-      router.push(`/artists/${item.slug || item.id}`);
-    } else if (item.type === 'playlist') {
-      router.push(`/playlist/${item.id}`);
-    } else if (item.type === 'liked-songs') {
-      router.push('/library/liked');
-    }
-  };
+export default function RecentItems({ items = [], title = '最近瀏覽' }) {
+  const { user } = useAuth();
 
   // 過濾：如果用戶未登入，過濾掉 liked-songs
   const displayItems = user 
@@ -30,20 +25,20 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
     <div style={{ marginBottom: 25, marginTop: 10 }}>
       <div className="flex justify-between items-end mb-2 pr-6" style={{ paddingLeft: '1rem' }}>
         <h2 className="text-white font-bold" style={{ fontSize: '1.375rem' }}>{title}</h2>
-        <button 
-          onClick={() => router.push('/history')}
+        <Link 
+          href="/history"
           className="text-[#B3B3B3] text-sm hover:text-white"
         >
           瀏覽全部
-        </button>
+        </Link>
       </div>
       
       <div className="overflow-x-auto scrollbar-hide">
         <div className="flex space-x-4 pr-6" style={{ paddingLeft: '1rem' }}>
           {displayItems.map((item, index) => (
-            <div 
+            <Link 
               key={index}
-              onClick={() => handleClick(item)}
+              href={getItemHref(item)}
               className="flex-shrink-0 cursor-pointer"
               style={{ width: '100px' }}
             >
@@ -100,7 +95,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                   {item.subtitle || item.artistName || ''}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
