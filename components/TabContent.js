@@ -2095,7 +2095,7 @@ const TabContent = ({
                   }
                 })}
 
-                {/* 和弦行 — grid: overflow when space allows, expand when overlap, debt absorption via trimmed text */}
+                {/* 和弦行 — grid alignment: overflow into remainder when space allows, expand cell when it doesn't */}
                 {useGridAlignment ? (() => {
                   const segs = result.lyricSplit.segments.map((segment, segIdx) => {
                     const chord = result.alignedChords[segIdx];
@@ -2104,47 +2104,18 @@ const TabContent = ({
                     const chordText = chord ? ((chord.isBarStart ? '|' : '') + chord.displayName) : '';
                     const cw = chordText.length;
                     const rw = remainder ? getTextWidth(remainder) : 0;
-                    const rightOverflow = Math.max(0, Math.ceil((cw - bw) / 2));
-                    return { chord, bracketPart, remainder, bw, cw, rw, rightOverflow };
+                    return { chord, bracketPart, remainder, bw, cw, rw };
                   });
 
-                  const trimFromEnd = (text, units) => {
-                    if (!text || units <= 0) return text;
-                    let trimmed = 0;
-                    let i = text.length - 1;
-                    while (i >= 0 && trimmed < units) {
-                      trimmed += getCharWidth(text[i]);
-                      i--;
+                  const layout = segs.map((s) => {
+                    if (!s.chord || s.cw <= s.bw) {
+                      return { ...s, mode: 'fit', trimmedRemainder: s.remainder };
                     }
-                    return text.substring(0, i + 1);
-                  };
-
-                  let debt = 0;
-                  const layout = segs.map((s, idx) => {
-                    if (s.cw <= s.bw) {
-                      const absorbed = Math.min(debt, s.rw);
-                      const trimmedRemainder = absorbed > 0 ? trimFromEnd(s.remainder, absorbed) : s.remainder;
-                      debt -= absorbed;
-                      return { ...s, useOverflow: false, trimmedRemainder };
+                    const excess = s.cw - s.bw;
+                    if (excess + 1 <= s.rw) {
+                      return { ...s, mode: 'overflow', trimmedRemainder: s.remainder };
                     }
-                    const nextSeg = segs[idx + 1];
-                    const nextCw = nextSeg ? (nextSeg.chord ? ((nextSeg.chord.isBarStart ? '|' : '') + nextSeg.chord.displayName).length : 0) : 0;
-                    const nextLeftOverflow = nextSeg ? Math.max(0, Math.ceil((nextCw - nextSeg.bw) / 2)) : 0;
-                    const wouldOverlap = (s.rightOverflow + nextLeftOverflow) > s.rw;
-
-                    if (!wouldOverlap) {
-                      const absorbed = Math.min(debt, s.rw);
-                      const trimmedRemainder = absorbed > 0 ? trimFromEnd(s.remainder, absorbed) : s.remainder;
-                      debt -= absorbed;
-                      return { ...s, useOverflow: true, trimmedRemainder };
-                    } else {
-                      const excess = Math.max(0, s.cw - s.bw);
-                      debt += excess;
-                      const absorbed = Math.min(debt, s.rw);
-                      const trimmedRemainder = absorbed > 0 ? trimFromEnd(s.remainder, absorbed) : s.remainder;
-                      debt -= absorbed;
-                      return { ...s, useOverflow: false, trimmedRemainder };
-                    }
+                    return { ...s, mode: 'expand', trimmedRemainder: s.remainder };
                   });
 
                   return (
@@ -2177,21 +2148,26 @@ const TabContent = ({
                           <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none' }}>
                             {seg.bracketPart}
                           </span>
+                          {seg.mode === 'expand' && seg.chord && (
+                            <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none', fontFamily: chordFontFamily }}>
+                              {'\u00A0'.repeat(seg.cw - seg.rw + 1)}
+                            </span>
+                          )}
                           {seg.chord && (
                             <span style={{
                               gridRow: 1, gridColumn: 1,
-                              justifySelf: 'center',
+                              justifySelf: seg.mode === 'fit' ? 'center' : 'start',
                               fontFamily: chordFontFamily,
                               color: '#FFD700',
                               whiteSpace: 'nowrap',
-                              ...(seg.useOverflow ? { width: 0, overflow: 'visible', display: 'flex', justifyContent: 'flex-start', justifySelf: 'start' } : {}),
+                              ...(seg.mode === 'overflow' ? { width: 0, overflow: 'visible', display: 'flex', justifyContent: 'flex-start' } : {}),
                             }}>
                               {seg.chord.isBarStart && <span>|</span>}
                               <ChordWithHover chord={seg.chord.displayName} theme={theme} displayFont={displayFont} />
                             </span>
                           )}
                         </span>
-                        {seg.remainder && (
+                        {seg.remainder ? (
                           <span style={{ display: 'inline-grid', gridTemplateColumns: '1fr', verticalAlign: 'top' }}>
                             <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none' }}>
                               {seg.trimmedRemainder != null ? seg.trimmedRemainder : seg.remainder}
@@ -2206,7 +2182,15 @@ const TabContent = ({
                               </span>
                             )}
                           </span>
-                        )}
+                        ) : seg.chord && seg.chord.trailing && seg.chord.trailing.length > 0 ? (
+                          <span style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                            {seg.chord.trailing.map((t, tIdx) => (
+                              <span key={tIdx}>
+                                {t.isBarStart && '|'}{t.name}
+                              </span>
+                            ))}
+                          </span>
+                        ) : null}
                       </span>
                     ))}
                     {result.alignedChords.length > result.lyricSplit.segments.length &&
@@ -2214,6 +2198,9 @@ const TabContent = ({
                         <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
                           {chord.isBarStart && '|'}
                           <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
+                          {chord.trailing && chord.trailing.length > 0 && chord.trailing.map((t, tIdx) => (
+                            <span key={tIdx}>{' '}{t.isBarStart && '|'}{t.name}</span>
+                          ))}
                           {' '}
                         </span>
                       ))
