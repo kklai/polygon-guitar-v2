@@ -13,6 +13,8 @@ import { recordArtistView } from '../../lib/recentViews';
 import { recordPageView } from '../../lib/analytics';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
+import Head from 'next/head';
+import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig } from '../../lib/seo';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Prefetch: start loading artist data at module parse time
@@ -374,10 +376,48 @@ export default function ArtistPage() {
     return artist?.photoURL || artist?.wikiPhotoURL || null;
   };
 
-  if (loading || !artist) return <Layout fullWidth><div className="min-h-screen bg-black" /></Layout>;
+  if (loading || !artist) return (
+    <Layout fullWidth>
+      <Head>
+        <title>{id ? `${decodeURIComponent(id)} | Polygon Guitar` : 'Polygon Guitar'}</title>
+      </Head>
+      <div className="min-h-screen bg-black" />
+    </Layout>
+  );
+
+  const songCount = allTabs.length;
+  const seoTitle = generateArtistTitle(artist.name);
+  const seoDescription = generateArtistDescription(artist.name, songCount);
+  const seoUrl = `${siteConfig.url}/artists/${artist.id}`;
+  const artistSchema = generateArtistSchema(artist, allTabs);
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: '首頁', url: siteConfig.url },
+    { name: '歌手', url: `${siteConfig.url}/artists` },
+    { name: artist.name, url: seoUrl }
+  ]);
 
   return (
     <Layout fullWidth>
+    <Head>
+      <title>{seoTitle}</title>
+      <meta name="description" content={seoDescription} />
+      <link rel="canonical" href={seoUrl} />
+      <meta property="og:url" content={seoUrl} />
+      <meta property="og:type" content="profile" />
+      <meta property="og:title" content={seoTitle} />
+      <meta property="og:description" content={seoDescription} />
+      <meta property="og:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={seoTitle} />
+      <meta name="twitter:description" content={seoDescription} />
+      <meta name="twitter:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([artistSchema, breadcrumbSchema])
+        }}
+      />
+    </Head>
     <div className="min-h-screen bg-black pb-20">
       <div className="max-w-7xl mx-auto">
       {/* Hero */}
