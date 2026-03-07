@@ -94,8 +94,7 @@ export default function ArtistPage() {
         photoURL: cached.artist.photoURL || cached.artist.wikiPhotoURL
       }, user?.uid || null);
 
-      // If cache is fresh (<2min), skip Firestore entirely
-      if (cached._fresh) return;
+      // 唔再因為 cache 新鮮就跳過 refetch，確保編輯完年份等改動後會即時反映
     } else {
       setLoading(true);
     }

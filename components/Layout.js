@@ -84,14 +84,14 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
   const desktopNavItems = getDesktopNavItems()
 
   return (
-    <div className="bg-black text-white min-h-screen">
+    <div className={`${hideHeader ? 'bg-transparent' : 'bg-black'} text-white min-h-screen`}>
       {!hideHeader && <Navbar />}
       <main 
         className={fullWidth 
           ? (hideHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
           : (hideHeader ? 'pb-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24')
         }
-        style={hideHeader ? {} : { paddingTop: fullWidth ? '4.4rem' : 'calc(4.4rem + 10px)' }}
+        style={hideHeader ? {} : { paddingTop: fullWidth ? 'calc(4.4rem + env(safe-area-inset-top, 0px))' : 'calc(4.4rem + 10px + env(safe-area-inset-top, 0px))' }}
       >
         {children}
       </main>

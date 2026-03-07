@@ -377,6 +377,9 @@ BLOGGER_API_KEY=
 
 ## 開發偏好
 
+### 用戶指令
+- **「push」** = 推送到 GitHub（`git add -A && git commit -m "..." && git push`）
+
 ### ⚠️ 重要規則：每次更改必須部署
 > **任何代碼修改後，必須立即部署到 Vercel，確保網上版本同步更新**
 

@@ -189,17 +189,17 @@ function EditPlaylist() {
     }
   }
 
-  // 獲取歌曲縮圖
+  // 獲取歌曲縮圖（與首頁 TabCard 一致：Spotify > YouTube > thumbnail > 歌手相）
   const getThumbnail = (song) => {
+    if (song.albumImage) return song.albumImage
     if (song.youtubeVideoId) {
-      return `https://img.youtube.com/vi/${song.youtubeVideoId}/default.jpg`
+      return `https://img.youtube.com/vi/${song.youtubeVideoId}/mqdefault.jpg`
     }
     if (song.youtubeUrl) {
       const match = song.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
-      if (match) {
-        return `https://img.youtube.com/vi/${match[1]}/default.jpg`
-      }
+      if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
     }
+    if (song.thumbnail) return song.thumbnail
     return null
   }
 
