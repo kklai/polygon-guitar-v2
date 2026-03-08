@@ -7,6 +7,7 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
+import { ArrowLeft } from 'lucide-react'
 
 // Bio 配置（會從資料庫載入）
 const DEFAULT_BIO_CONFIG = {
@@ -310,8 +311,8 @@ export default function PublicProfile() {
         <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-400 mb-4">{error}</p>
-            <Link href="/" className="text-[#FFD700] hover:underline">
-              返回首頁
+            <Link href="/" className="inline-flex items-center text-[#FFD700] hover:underline" aria-label="返回首頁">
+              <ArrowLeft className="w-4 h-4" />
             </Link>
           </div>
         </div>

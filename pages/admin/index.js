@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, hasPermission } from '@/lib/roles'
 
@@ -377,9 +378,10 @@ export default function AdminIndex() {
           </div>
           <Link
             href="/"
-            className="text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center text-slate-400 hover:text-white transition-colors"
+            aria-label="返回首頁"
           >
-            ← 返回首頁
+            <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
 

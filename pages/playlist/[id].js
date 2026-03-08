@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { doc, getDoc } from 'firebase/firestore'
@@ -9,8 +10,8 @@ import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { recordPlaylistView } from '@/lib/recentViews'
 import { useAuth } from '@/contexts/AuthContext'
-import { MoreVertical, Share2, Heart, BookmarkPlus, Music, User } from 'lucide-react'
-import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved } from '@/lib/playlistApi'
+import { Share, Heart, Music, User, Plus, Copy, ArrowLeft } from 'lucide-react'
+import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved, removeSongFromPlaylist } from '@/lib/playlistApi'
 
 function serializePlaylistData(obj) {
   return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
@@ -28,9 +29,12 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
 
   // 操作選單狀態
   const [selectedSong, setSelectedSong] = useState(null)
+  const [selectedSongLiked, setSelectedSongLiked] = useState(false) // menu 內「加入喜愛」顯示用
   const [showActionModal, setShowActionModal] = useState(false)
   const [userPlaylists, setUserPlaylists] = useState([])
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
+  const [addToPlaylistSelectedIds, setAddToPlaylistSelectedIds] = useState([]) // 加入歌單 modal 多選
+  const [addToPlaylistInitialIds, setAddToPlaylistInitialIds] = useState([]) // 打開 modal 時首歌已在嘅歌單，用於確認時移除
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [otherPlaylists, setOtherPlaylists] = useState([]) // 推薦歌單（頁底）：2 自動 + 6 手動
@@ -38,6 +42,11 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const [recommendedItems, setRecommendedItems] = useState([]) // 歌手 + 歌單合併後隨機排序，用於渲染
   const [isSavedToLibrary, setIsSavedToLibrary] = useState(false) // 是否已加入「已收藏歌單」
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false)
+  const [actionModalDragY, setActionModalDragY] = useState(0)
+  const actionModalTouchStartY = useRef(0)
+  const [showPlaylistMoreModal, setShowPlaylistMoreModal] = useState(false)
+  const [playlistModalDragY, setPlaylistModalDragY] = useState(0)
+  const playlistModalTouchStartY = useRef(0)
 
   useEffect(() => {
     if (!id) return
@@ -50,6 +59,24 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
     }
     loadPlaylistData()
   }, [id, initialPlaylist, initialSongs])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (showActionModal) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [showActionModal])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (showPlaylistMoreModal) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [showPlaylistMoreModal])
 
   // 載入推薦歌單：最多 2 自動 + 6 手動，合併後隨機排序
   useEffect(() => {
@@ -260,15 +287,136 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
     return date.toLocaleDateString('zh-HK')
   }
 
+  const DRAG_CLOSE_THRESHOLD = 80
+  const getClientY = (e) => e.touches?.[0]?.clientY ?? e.clientY
+  const handleActionModalSheetDragStart = (e) => {
+    if (e.pointerType === 'mouse') return
+    actionModalTouchStartY.current = getClientY(e)
+    try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  const handleActionModalSheetDragMove = (e) => {
+    if (e.pointerType === 'mouse') return
+    const y = getClientY(e)
+    const delta = y - actionModalTouchStartY.current
+    if (delta > 0) setActionModalDragY(Math.min(delta, 200))
+  }
+  const handleActionModalSheetDragEnd = () => {
+    if (actionModalDragY >= DRAG_CLOSE_THRESHOLD) {
+      setShowActionModal(false)
+      setActionModalDragY(0)
+    } else {
+      setActionModalDragY(0)
+    }
+  }
+
+  const handlePlaylistModalDragStart = (e) => {
+    if (e.pointerType === 'mouse') return
+    playlistModalTouchStartY.current = getClientY(e)
+    try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  const handlePlaylistModalDragMove = (e) => {
+    if (e.pointerType === 'mouse') return
+    const y = getClientY(e)
+    const delta = y - playlistModalTouchStartY.current
+    if (delta > 0) setPlaylistModalDragY(Math.min(delta, 200))
+  }
+  const handlePlaylistModalDragEnd = () => {
+    if (playlistModalDragY >= DRAG_CLOSE_THRESHOLD) {
+      setShowPlaylistMoreModal(false)
+      setPlaylistModalDragY(0)
+    } else {
+      setPlaylistModalDragY(0)
+    }
+  }
+
+  const handlePlaylistCopyShare = () => {
+    setShowPlaylistMoreModal(false)
+    setPlaylistModalDragY(0)
+    if (navigator.share) {
+      navigator.share({
+        title: playlist.title,
+        text: playlist.description,
+        url: window.location.href
+      })
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert('連結已複製到剪貼簿')
+    }
+  }
+
+  const handlePlaylistAddToLibrary = async () => {
+    if (!user) {
+      setShowPlaylistMoreModal(false)
+      setShowLoginPrompt(true)
+      return
+    }
+    if (isSavingPlaylist) return
+    setIsSavingPlaylist(true)
+    try {
+      if (isSavedToLibrary) {
+        await removeSavedPlaylist(user.uid, id)
+        setIsSavedToLibrary(false)
+      } else {
+        await savePlaylistToLibrary(user.uid, id)
+        setIsSavedToLibrary(true)
+      }
+    } catch (err) {
+      console.error('加入收藏失敗:', err)
+      alert('加入收藏失敗，請重試')
+    } finally {
+      setIsSavingPlaylist(false)
+    }
+  }
+
+  const handleLoginPromptGoogleSignIn = async () => {
+    setIsSigningIn(true)
+    try {
+      await signInWithGoogle()
+      setShowLoginPrompt(false)
+    } catch (error) {
+      console.error('Google sign in error:', error)
+      if (error.code === 'auth/unauthorized-domain') {
+        alert(`Firebase 未授權此域名，請聯繫管理員添加：${typeof window !== 'undefined' ? window.location.hostname : ''}`)
+      } else {
+        alert('Google 登入失敗：' + (error.message || error))
+      }
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
   // 更多操作
   const handleMoreClick = async (e, song) => {
     e.stopPropagation()
     setSelectedSong(song)
     if (user) {
-      const playlists = await getUserPlaylists(user.uid)
+      const [liked, playlists] = await Promise.all([
+        checkIsLiked(user.uid, song.id),
+        getUserPlaylists(user.uid)
+      ])
+      setSelectedSongLiked(liked)
       setUserPlaylists(playlists)
+    } else {
+      setSelectedSongLiked(false)
     }
     setShowActionModal(true)
+  }
+
+  const handleCopyShareLink = async () => {
+    if (!selectedSong) return
+    const url = `${window.location.origin}/tabs/${selectedSong.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      alert('已複製連結')
+    } catch (err) {
+      alert('複製失敗')
+    }
+  }
+
+  const handleSelectLyricsShare = () => {
+    if (!selectedSong?.id) return
+    setShowActionModal(false)
+    router.push(`/tools/tab-share?tabId=${selectedSong.id}`)
   }
 
   const handleShare = async () => {
@@ -292,7 +440,8 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
     }
     try {
       const result = await toggleLikeSong(user.uid, selectedSong.id)
-      setShowActionModal(false)
+      setSelectedSongLiked(result.isLiked)
+      // 唔關 menu，留喺原位
     } catch (error) {
       alert('操作失敗：' + error.message)
     }
@@ -304,17 +453,50 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
       return
     }
     setShowActionModal(false)
+    // 預設剔選已包含此歌嘅歌單
+    const alreadyIn = (userPlaylists || [])
+      .filter((pl) => pl.songIds && pl.songIds.includes(selectedSong?.id))
+      .map((pl) => pl.id)
+    setAddToPlaylistSelectedIds(alreadyIn)
+    setAddToPlaylistInitialIds(alreadyIn)
     setShowAddToPlaylist(true)
   }
 
-  const addToPlaylist = async (playlistId) => {
+  const toggleAddToPlaylistSelection = (playlistId) => {
+    setAddToPlaylistSelectedIds((prev) =>
+      prev.includes(playlistId) ? prev.filter((id) => id !== playlistId) : [...prev, playlistId]
+    )
+  }
+
+  const confirmAddToPlaylist = async () => {
     if (!selectedSong) return
-    try {
-      await addSongToPlaylist(playlistId, selectedSong.id)
+    const idsToAdd = addToPlaylistSelectedIds.filter((id) => !addToPlaylistInitialIds.includes(id))
+    const idsToRemove = addToPlaylistInitialIds.filter((id) => !addToPlaylistSelectedIds.includes(id))
+    if (idsToAdd.length === 0 && idsToRemove.length === 0) {
       setShowAddToPlaylist(false)
-      alert('已加入歌單')
+      setAddToPlaylistSelectedIds([])
+      setAddToPlaylistInitialIds([])
+      return
+    }
+    try {
+      for (const playlistId of idsToAdd) {
+        await addSongToPlaylist(playlistId, selectedSong.id)
+      }
+      for (const playlistId of idsToRemove) {
+        await removeSongFromPlaylist(playlistId, selectedSong.id)
+      }
+      setShowAddToPlaylist(false)
+      setAddToPlaylistSelectedIds([])
+      setAddToPlaylistInitialIds([])
+      if (idsToAdd.length && idsToRemove.length) {
+        alert(`已加入 ${idsToAdd.length} 個歌單，已從 ${idsToRemove.length} 個歌單移除`)
+      } else if (idsToRemove.length) {
+        alert(idsToRemove.length > 1 ? `已從 ${idsToRemove.length} 個歌單移除` : '已從歌單移除')
+      } else {
+        alert(idsToAdd.length > 1 ? `已加入 ${idsToAdd.length} 個歌單` : '已加入歌單')
+      }
     } catch (error) {
-      alert('加入失敗：' + error.message)
+      alert('操作失敗：' + error.message)
     }
   }
 
@@ -368,33 +550,22 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
             style={{ left: '1rem' }}
             aria-label="返回"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeft className="w-5 h-5" />
           </Link>
-          {/* 複製連結分享 - 頁面右上方 */}
+          {/* 更多 - 頁面右上方，同歌曲行一樣水平三點，撳開底部 Menu */}
           {songs.length > 0 && (
             <button
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({
-                    title: playlist.title,
-                    text: playlist.description,
-                    url: window.location.href
-                  })
-                } else {
-                  navigator.clipboard.writeText(window.location.href)
-                  alert('連結已複製到剪貼簿')
-                }
-              }}
-              className="absolute top-4 z-10 inline-flex items-center gap-1.5 text-white hover:text-white/90 transition p-1.5"
+              type="button"
+              onClick={() => setShowPlaylistMoreModal(true)}
+              className="absolute top-4 z-10 inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 text-white hover:text-white/90 transition"
               style={{ right: '1rem' }}
-              aria-label="複製連結分享"
+              aria-label="更多"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              <svg className="w-5 h-5" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
+                <circle cx="1.27" cy="1.27" r="1.27" />
+                <circle cx="7.48" cy="1.27" r="1.27" />
+                <circle cx="13.69" cy="1.27" r="1.27" />
               </svg>
-              <span className="text-sm hidden sm:inline">複製連結分享</span>
             </button>
           )}
           <div className="flex justify-center">
@@ -520,7 +691,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
               type="button"
               onClick={async () => {
                 if (!user) {
-                  alert('請先登入後即可將歌單加入收藏')
+                  setShowLoginPrompt(true)
                   return
                 }
                 if (isSavingPlaylist) return
@@ -599,7 +770,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
                   )}
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
-                    className="pl-1 pr-0 py-1 flex items-center justify-end flex-shrink-0 text-[#999] hover:text-white transition"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 text-[#999] hover:text-white transition -my-1"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
                       <circle cx="1.27" cy="1.27" r="1.27" />
@@ -687,50 +858,258 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
         )}
 
         </div>
-        {/* Action Modal */}
-        {showActionModal && (
+        {/* 更多 - 底部彈出 Menu（同 library/playlist 排序 style） */}
+        {showActionModal && typeof document !== 'undefined' && createPortal(
           <>
-            <div 
-              className="fixed inset-0 bg-black/60 z-50" 
-              onClick={() => setShowActionModal(false)} 
+            <div
+              className="fixed inset-0 bg-black/60 z-[9999]"
+              onClick={() => { setShowActionModal(false); setActionModalDragY(0); }}
+              aria-hidden
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
-              
-              {selectedSong && (
-                <div className="mb-4 pb-4 border-b border-gray-800">
-                  <p className="text-white font-medium truncate">{selectedSong.title}</p>
-                  <p className="text-gray-400 text-sm truncate">{selectedSong.artist}</p>
+            <div
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              style={{
+                paddingBottom: 'env(safe-area-inset-bottom, 0)',
+                transform: `translateY(${actionModalDragY}px)`,
+                transition: actionModalDragY === 0 ? 'transform 0.2s ease-out' : 'none'
+              }}
+            >
+              <div
+                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                onTouchStart={handleActionModalSheetDragStart}
+                onTouchMove={handleActionModalSheetDragMove}
+                onTouchEnd={handleActionModalSheetDragEnd}
+                onTouchCancel={handleActionModalSheetDragEnd}
+                onPointerDown={handleActionModalSheetDragStart}
+                onPointerMove={handleActionModalSheetDragMove}
+                onPointerUp={handleActionModalSheetDragEnd}
+                onPointerCancel={handleActionModalSheetDragEnd}
+                role="button"
+                tabIndex={0}
+                aria-label="向下拖曳關閉"
+                onKeyDown={(e) => e.key === 'Enter' && (setShowActionModal(false), setActionModalDragY(0))}
+              >
+                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
                 </div>
-              )}
-              
-              <div className="space-y-1">
-                <button 
-                  onClick={handleShare}
-                  className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg"
+              </div>
+              <div className="pb-4 px-4 text-left">
+                {selectedSong && (
+                  <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
+                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                      {getSongThumbnail(selectedSong) ? (
+                        <img
+                          src={getSongThumbnail(selectedSong)}
+                          alt={selectedSong.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-medium truncate">{selectedSong.title}</p>
+                      <p className="text-gray-400 text-sm truncate">{selectedSong.artist}</p>
+                    </div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCopyShareLink}
+                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
                 >
-                  <Share2 className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">分享</span>
+                  <span className="flex items-center gap-3">
+                    <Copy className="w-5 h-5 text-[#B3B3B3]" />
+                    複製分享連結
+                  </span>
                 </button>
-                
-                <button 
+                <button
+                  type="button"
+                  onClick={handleSelectLyricsShare}
+                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
+                >
+                  <span className="flex items-center gap-3">
+                    <Share className="w-5 h-5 text-[#B3B3B3]" />
+                    選取歌詞分享
+                  </span>
+                </button>
+                <button
+                  type="button"
                   onClick={handleAddToLiked}
-                  className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg"
+                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
                 >
-                  <Heart className="w-5 h-5 text-red-500" />
-                  <span className="text-white">加到我最喜愛</span>
+                  <span className="flex items-center gap-3">
+                    <Heart className={`w-5 h-5 text-[#FFD700] ${selectedSongLiked ? 'fill-[#FFD700]' : 'fill-none'}`} strokeWidth={1.5} />
+                    {selectedSongLiked ? '取消喜愛' : '加入喜愛結他譜'}
+                  </span>
                 </button>
-                
-                <button 
+                <button
+                  type="button"
                   onClick={handleAddToPlaylistClick}
-                  className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg"
+                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
                 >
-                  <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">加入歌單</span>
+                  <span className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
+                      <circle cx="4.4" cy="4.4" r="4" />
+                      <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
+                      <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
+                    </svg>
+                    加入歌單
+                  </span>
+                </button>
+                {selectedSong && (selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug) && (
+                  <Link
+                    href={`/artists/${selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug}`}
+                    onClick={() => { setShowActionModal(false); setActionModalDragY(0); }}
+                    className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
+                  >
+                    <span className="flex items-center gap-3">
+                      <User className="w-5 h-5 text-[#B3B3B3]" />
+                      瀏覽歌手
+                    </span>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+
+        {/* 歌單「更多」- 底部彈出 Menu（同歌曲「更多」一樣 style） */}
+        {showPlaylistMoreModal && typeof document !== 'undefined' && createPortal(
+          <>
+            <div
+              className="fixed inset-0 bg-black/60 z-[9999]"
+              onClick={() => { setShowPlaylistMoreModal(false); setPlaylistModalDragY(0); }}
+              aria-hidden
+            />
+            <div
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              style={{
+                paddingBottom: 'env(safe-area-inset-bottom, 0)',
+                transform: `translateY(${playlistModalDragY}px)`,
+                transition: playlistModalDragY === 0 ? 'transform 0.2s ease-out' : 'none'
+              }}
+            >
+              <div
+                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                onTouchStart={handlePlaylistModalDragStart}
+                onTouchMove={handlePlaylistModalDragMove}
+                onTouchEnd={handlePlaylistModalDragEnd}
+                onTouchCancel={handlePlaylistModalDragEnd}
+                onPointerDown={handlePlaylistModalDragStart}
+                onPointerMove={handlePlaylistModalDragMove}
+                onPointerUp={handlePlaylistModalDragEnd}
+                onPointerCancel={handlePlaylistModalDragEnd}
+                role="button"
+                tabIndex={0}
+                aria-label="向下拖曳關閉"
+                onKeyDown={(e) => e.key === 'Enter' && (setShowPlaylistMoreModal(false), setPlaylistModalDragY(0))}
+              >
+                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+                </div>
+              </div>
+              <div className="pb-4 px-4 text-left">
+                {playlist && (
+                  <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
+                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                      {playlist.coverImage ? (
+                        <img
+                          src={playlist.coverImage}
+                          alt={playlist.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="w-full h-full flex items-center justify-center text-2xl">🎵</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-medium truncate">{playlist.title}</p>
+                      <p className="text-gray-400 text-sm truncate">
+                        {playlist.source === 'manual' && playlist.curatedBy ? `By ${playlist.curatedBy}` : playlist.source === 'auto' ? '自動歌單' : ''}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handlePlaylistCopyShare}
+                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
+                >
+                  <span className="flex items-center gap-3">
+                    <Share className="w-5 h-5 text-[#B3B3B3]" />
+                    複製連結分享
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePlaylistAddToLibrary}
+                  disabled={isSavingPlaylist}
+                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white disabled:opacity-50"
+                >
+                  <span className="flex items-center gap-3">
+                    {isSavedToLibrary ? (
+                      <svg className="w-5 h-5 flex-shrink-0 text-[#FFD700]" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10" aria-hidden>
+                        <circle cx="4.36" cy="4.36" r="3.99" />
+                        <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 flex-shrink-0 text-[#B3B3B3]" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10" aria-hidden>
+                        <circle cx="4.36" cy="4.36" r="3.99" />
+                        <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
+                        <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
+                      </svg>
+                    )}
+                    {isSavedToLibrary ? '取消收藏' : '加入收藏'}
+                  </span>
                 </button>
               </div>
             </div>
-          </>
+          </>,
+          document.body
+        )}
+
+        {/* 未登入提示：加入收藏需先登入，可撳掣用 Google 登入 */}
+        {showLoginPrompt && typeof document !== 'undefined' && createPortal(
+          <>
+            <div
+              className="fixed inset-0 bg-black/60 z-[10000]"
+              onClick={() => setShowLoginPrompt(false)}
+              aria-hidden
+            />
+            <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10001] w-full max-w-sm mx-4">
+              <div className="bg-[#121212] rounded-2xl border border-gray-800 shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+                <p className="text-white text-center mb-6">
+                  請先登入後即可將歌單加入收藏
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={handleLoginPromptGoogleSignIn}
+                    disabled={isSigningIn}
+                    className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-gray-700 text-white py-3 px-4 rounded-xl font-medium hover:border-[#FFD700] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    <span>{isSigningIn ? '登入中...' : '使用 Google 登入'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPrompt(false)}
+                    className="w-full py-3 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>,
+          document.body
         )}
 
         {/* 加入歌單 Modal */}
@@ -742,44 +1121,69 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
                 setShowAddToPlaylist(false)
                 setShowCreatePlaylistInput(false)
                 setNewPlaylistName('')
+                setAddToPlaylistSelectedIds([])
+                setAddToPlaylistInitialIds([])
               }} 
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 max-h-[70vh] overflow-y-auto">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 max-h-[70vh] overflow-y-auto">
+              <div className="flex flex-col items-center justify-center py-2 min-h-[36px]">
+                <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+              </div>
+              <div className="text-left" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
               <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
               
               <div className="space-y-2">
-                {userPlaylists.map((pl) => (
-                  <button
-                    key={pl.id}
-                    onClick={() => addToPlaylist(pl.id)}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left"
-                  >
-                    <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center">
-                      <Music className="w-6 h-6 text-[#3E3E3E]" />
-                    </div>
-                    <span className="text-white font-medium">{pl.title}</span>
-                  </button>
-                ))}
-                
-                {/* 創建新歌單按鈕（加掣跟上面「加入我的收藏」一樣：圓形 outline +） */}
+                {userPlaylists.map((pl) => {
+                  const isSelected = addToPlaylistSelectedIds.includes(pl.id)
+                  return (
+                    <button
+                      key={pl.id}
+                      type="button"
+                      onClick={() => toggleAddToPlaylistSelection(pl.id)}
+                      className="w-full flex items-center gap-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
+                    >
+                      <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                        <Music className="w-6 h-6 text-[#3E3E3E]" />
+                      </div>
+                      <span className="text-white font-medium flex-1 min-w-0 truncate">{pl.title}</span>
+                      <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 ${isSelected ? 'bg-[#FFD700] border-[#FFD700]' : 'border-[#525252]'}`}>
+                        {isSelected && (
+                          <svg className="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+
+                {/* 分隔線（space-y-2 統一 0.5rem） */}
+                <div className="h-px bg-[#3E3E3E] w-full shrink-0" />
+
+                {/* 創建新歌單按鈕（虛線方框 + 黃 Plus，無 hover） */}
                 <button
+                  type="button"
                   onClick={() => setShowCreatePlaylistInput(true)}
-                  className="w-full flex items-center space-x-3 p-3 md:hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+                  className="w-full flex items-center space-x-3 pl-0 pr-3 py-1.5 md:hover:bg-[#1a1a1a] rounded-2xl text-left"
                 >
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-[#FFD700]">
-                    <svg className="w-6 h-6" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
-                      <circle cx="4.36" cy="4.36" r="3.99" />
-                      <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
-                      <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
-                    </svg>
+                  <div className="w-12 h-12 rounded-[4px] bg-[#121212] border-2 border-dashed border-[#FFD700] flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-6 h-6 text-[#FFD700]" />
                   </div>
                   <span className="text-[#FFD700] font-medium">創建新歌單</span>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={confirmAddToPlaylist}
+                  disabled={!addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) && !addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id))}
+                  className={`w-full py-3 rounded-full font-medium transition ${addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) || addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id)) ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-[#3E3E3E] text-[#737373] cursor-not-allowed'}`}
+                >
+                  確認
+                </button>
+
                 {/* 創建輸入框 */}
                 {showCreatePlaylistInput && (
-                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg text-left">
                     <input
                       type="text"
                       value={newPlaylistName}
@@ -808,6 +1212,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
                     </div>
                   </div>
                 )}
+              </div>
               </div>
             </div>
           </>

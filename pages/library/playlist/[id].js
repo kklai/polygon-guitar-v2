@@ -6,10 +6,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { db } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { Music, Share2, Heart, BookmarkPlus, Plus, ListMusic, ArrowUpDown, Pencil, X, Search } from 'lucide-react';
+import { Music, Share, Heart, Plus, ListMusic, ArrowUpDown, Pencil, X, Search, User, Copy, ArrowLeft } from 'lucide-react';
 import Layout from '../../../components/Layout';
 import { getSongThumbnail } from '../../../lib/getSongThumbnail';
-import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist } from '../../../lib/playlistApi';
+import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist } from '../../../lib/playlistApi';
 import { useAuth } from '../../../contexts/AuthContext';
 
 function computeShuffleOrder(length) {
@@ -32,9 +32,14 @@ export default function UserPlaylistDetail() {
   const [shuffleOrder, setShuffleOrder] = useState([]);
 
   const [selectedSong, setSelectedSong] = useState(null);
+  const [selectedSongLiked, setSelectedSongLiked] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
+  const [actionModalDragY, setActionModalDragY] = useState(0);
+  const actionModalTouchStartY = useRef(0);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [addToPlaylistSelectedIds, setAddToPlaylistSelectedIds] = useState([]);
+  const [addToPlaylistInitialIds, setAddToPlaylistInitialIds] = useState([]);
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
@@ -83,15 +88,16 @@ export default function UserPlaylistDetail() {
     }
   }, [sortMode, songs.length]);
 
-  // 打開「加入歌曲」或「編輯歌單」Modal 時鎖住背景 scroll
+  // 打開任何底部 Modal 時鎖住背景 scroll（含歌曲「更多」Action Modal）
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    if (showAddSongModal || showEditPlaylistModal || showSortModal || showPlaylistMenu) {
+    if (showActionModal || showAddSongModal || showEditPlaylistModal || showSortModal || showPlaylistMenu) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = prev; };
     }
-  }, [showAddSongModal, showEditPlaylistModal, showSortModal, showPlaylistMenu]);
+  }, [showActionModal, showAddSongModal, showEditPlaylistModal, showSortModal, showPlaylistMenu]);
+
 
   // 打開「加入歌曲」Modal 時載入歌曲目錄
   useEffect(() => {
@@ -181,18 +187,44 @@ export default function UserPlaylistDetail() {
       return title.includes(q) || artist.includes(q);
     })
     .sort((a, b) => (b.uploadYear || 0) - (a.uploadYear || 0))
-    .slice(0, 50);
+    .slice(0, 20);
 
   const DRAG_CLOSE_THRESHOLD = 80;
 
   const getClientY = (e) => e.touches?.[0]?.clientY ?? e.clientY;
 
+  const handleActionModalSheetDragStart = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable) e.preventDefault();
+    actionModalTouchStartY.current = getClientY(e);
+    try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
+  };
+  const handleActionModalSheetDragMove = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable) e.preventDefault();
+    const y = getClientY(e);
+    const delta = y - actionModalTouchStartY.current;
+    if (delta > 0) setActionModalDragY(Math.min(delta, 200));
+  };
+  const handleActionModalSheetDragEnd = () => {
+    if (actionModalDragY >= DRAG_CLOSE_THRESHOLD) {
+      setShowActionModal(false);
+      setActionModalDragY(0);
+    } else {
+      setActionModalDragY(0);
+    }
+  };
+
   const handleAddSongSheetDragStart = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
     addSongTouchStartY.current = getClientY(e);
     try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
   };
 
   const handleAddSongSheetDragMove = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
     const y = getClientY(e);
     const delta = y - addSongTouchStartY.current;
     if (delta > 0) setAddSongDragY(Math.min(delta, 200));
@@ -209,10 +241,14 @@ export default function UserPlaylistDetail() {
   };
 
   const handleEditPlaylistSheetDragStart = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
     editPlaylistTouchStartY.current = getClientY(e);
     try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
   };
   const handleEditPlaylistSheetDragMove = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
     const y = getClientY(e);
     const delta = y - editPlaylistTouchStartY.current;
     if (delta > 0) setEditPlaylistDragY(Math.min(delta, 200));
@@ -227,10 +263,14 @@ export default function UserPlaylistDetail() {
   };
 
   const handleSortModalSheetDragStart = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
     sortModalTouchStartY.current = getClientY(e);
     try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
   };
   const handleSortModalSheetDragMove = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
     const y = getClientY(e);
     const delta = y - sortModalTouchStartY.current;
     if (delta > 0) setSortModalDragY(Math.min(delta, 200));
@@ -336,10 +376,33 @@ export default function UserPlaylistDetail() {
     e.stopPropagation();
     setSelectedSong(song);
     if (user) {
-      const list = await getUserPlaylists(user.uid);
+      const [liked, list] = await Promise.all([
+        checkIsLiked(user.uid, song.id),
+        getUserPlaylists(user.uid)
+      ]);
+      setSelectedSongLiked(liked);
       setUserPlaylists(list);
+    } else {
+      setSelectedSongLiked(false);
     }
     setShowActionModal(true);
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!selectedSong) return;
+    const url = `${window.location.origin}/tabs/${selectedSong.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('已複製連結');
+    } catch (err) {
+      alert('複製失敗');
+    }
+  };
+
+  const handleSelectLyricsShare = () => {
+    if (!selectedSong?.id) return;
+    setShowActionModal(false);
+    router.push(`/tools/tab-share?tabId=${selectedSong.id}`);
   };
 
   const handleShare = async () => {
@@ -363,8 +426,8 @@ export default function UserPlaylistDetail() {
       return;
     }
     try {
-      await toggleLikeSong(user.uid, selectedSong.id);
-      setShowActionModal(false);
+      const result = await toggleLikeSong(user.uid, selectedSong.id);
+      setSelectedSongLiked(result.isLiked);
     } catch (error) {
       alert('操作失敗：' + error.message);
     }
@@ -372,16 +435,50 @@ export default function UserPlaylistDetail() {
 
   const handleAddToPlaylistClick = () => {
     setShowActionModal(false);
+    // 預設剔選已包含此歌嘅歌單（排除當前歌單）
+    const alreadyIn = (userPlaylists || [])
+      .filter((pl) => pl.id !== id && pl.songIds && pl.songIds.includes(selectedSong?.id))
+      .map((pl) => pl.id);
+    setAddToPlaylistSelectedIds(alreadyIn);
+    setAddToPlaylistInitialIds(alreadyIn);
     setShowAddToPlaylist(true);
   };
 
-  const addToPlaylist = async (playlistId) => {
+  const toggleAddToPlaylistSelection = (playlistId) => {
+    setAddToPlaylistSelectedIds((prev) =>
+      prev.includes(playlistId) ? prev.filter((pid) => pid !== playlistId) : [...prev, playlistId]
+    );
+  };
+
+  const confirmAddToPlaylist = async () => {
     if (!selectedSong) return;
-    try {
-      await addSongToPlaylist(playlistId, selectedSong.id);
+    const idsToAdd = addToPlaylistSelectedIds.filter((id) => !addToPlaylistInitialIds.includes(id));
+    const idsToRemove = addToPlaylistInitialIds.filter((id) => !addToPlaylistSelectedIds.includes(id));
+    if (idsToAdd.length === 0 && idsToRemove.length === 0) {
       setShowAddToPlaylist(false);
+      setAddToPlaylistSelectedIds([]);
+      setAddToPlaylistInitialIds([]);
+      return;
+    }
+    try {
+      for (const playlistId of idsToAdd) {
+        await addSongToPlaylist(playlistId, selectedSong.id);
+      }
+      for (const playlistId of idsToRemove) {
+        await removeSongFromPlaylist(playlistId, selectedSong.id);
+      }
+      setShowAddToPlaylist(false);
+      setAddToPlaylistSelectedIds([]);
+      setAddToPlaylistInitialIds([]);
+      if (idsToAdd.length && idsToRemove.length) {
+        alert(`已加入 ${idsToAdd.length} 個歌單，已從 ${idsToRemove.length} 個歌單移除`);
+      } else if (idsToRemove.length) {
+        alert(idsToRemove.length > 1 ? `已從 ${idsToRemove.length} 個歌單移除` : '已從歌單移除');
+      } else {
+        alert(idsToAdd.length > 1 ? `已加入 ${idsToAdd.length} 個歌單` : '已加入歌單');
+      }
     } catch (error) {
-      alert('加入失敗：' + (error.message || '請重試'));
+      alert('操作失敗：' + (error.message || '請重試'));
     }
   };
 
@@ -399,10 +496,14 @@ export default function UserPlaylistDetail() {
   };
 
   const handlePlaylistMenuSheetDragStart = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable) e.preventDefault();
     playlistMenuTouchStartY.current = getClientY(e);
     try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
   };
   const handlePlaylistMenuSheetDragMove = (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (e.cancelable) e.preventDefault();
     const y = getClientY(e);
     const delta = y - playlistMenuTouchStartY.current;
     if (delta > 0) setPlaylistMenuDragY(Math.min(delta, 200));
@@ -495,9 +596,7 @@ export default function UserPlaylistDetail() {
             style={{ left: '1rem' }}
             aria-label="返回"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex justify-center">
             <div className="w-[60vw] max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded bg-[#282828] shadow-xl grid grid-cols-2 grid-rows-2">
@@ -623,7 +722,7 @@ export default function UserPlaylistDetail() {
                   </div>
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
-                    className="pl-1 pr-0 py-1 flex items-center justify-end flex-shrink-0 text-[#999] hover:text-white transition"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 text-[#999] hover:text-white transition -my-1"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
                       <circle cx="1.27" cy="1.27" r="1.27" />
@@ -649,34 +748,97 @@ export default function UserPlaylistDetail() {
           </div>
         )}
 
-        {/* Action Modal */}
-        {showActionModal && (
-          <>
-            <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionModal(false)} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-3xl z-[60] p-4 pb-24">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
-              {selectedSong && (
-                <div className="mb-4 pb-4 border-b border-gray-800">
-                  <p className="text-white font-medium truncate">{selectedSong.title}</p>
-                  <p className="text-gray-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
+        {/* Action Modal：高度跟內容、唔左右滑；Portal + touch-action:none 防背景一齊滾 */}
+        {showActionModal && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[9999] overflow-x-hidden" style={{ touchAction: 'none' }}>
+            <div
+              className="fixed inset-0 bg-black/60"
+              onClick={() => { setShowActionModal(false); setActionModalDragY(0); }}
+              aria-hidden
+            />
+            <div
+              className="fixed bottom-0 left-0 right-0 w-full bg-[#121212] rounded-t-3xl flex flex-col overflow-x-hidden overflow-y-auto max-h-[90vh]"
+              style={{
+                paddingBottom: 'env(safe-area-inset-bottom, 0)',
+                transform: `translateY(${actionModalDragY}px)`,
+                transition: actionModalDragY === 0 ? 'transform 0.2s ease-out' : 'none'
+              }}
+            >
+              <div
+                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                onTouchStart={handleActionModalSheetDragStart}
+                onTouchMove={handleActionModalSheetDragMove}
+                onTouchEnd={handleActionModalSheetDragEnd}
+                onTouchCancel={handleActionModalSheetDragEnd}
+                onPointerDown={handleActionModalSheetDragStart}
+                onPointerMove={handleActionModalSheetDragMove}
+                onPointerUp={handleActionModalSheetDragEnd}
+                onPointerCancel={handleActionModalSheetDragEnd}
+                role="button"
+                tabIndex={0}
+                aria-label="向下拖曳關閉"
+                onKeyDown={(e) => e.key === 'Enter' && (setShowActionModal(false), setActionModalDragY(0))}
+              >
+                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
                 </div>
-              )}
-              <div className="space-y-1">
-                <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Share2 className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">分享</span>
-                </button>
-                <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Heart className="w-5 h-5 text-red-500" />
-                  <span className="text-white">加到我最喜愛</span>
-                </button>
-                <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">加入歌單</span>
-                </button>
+              </div>
+              <div className="pb-24 px-4 pt-0 text-left overflow-x-hidden min-w-0">
+                {selectedSong && (
+                  <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
+                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                      {getSongThumbnail(selectedSong) ? (
+                        <img
+                          src={getSongThumbnail(selectedSong)}
+                          alt={selectedSong.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-medium truncate">{selectedSong.title}</p>
+                      <p className="text-gray-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">
+                    <Copy className="w-5 h-5 text-[#B3B3B3]" />
+                    <span className="text-white">複製分享連結</span>
+                  </button>
+                  <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">
+                    <Share className="w-5 h-5 text-[#B3B3B3]" />
+                    <span className="text-white">選取歌詞分享</span>
+                  </button>
+                  <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">
+                    <Heart className={`w-5 h-5 text-[#FFD700] ${selectedSongLiked ? 'fill-[#FFD700]' : 'fill-none'}`} strokeWidth={1.5} />
+                    <span className="text-white">{selectedSongLiked ? '取消喜愛' : '加入喜愛結他譜'}</span>
+                  </button>
+                  <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">
+                    <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
+                      <circle cx="4.4" cy="4.4" r="4" />
+                      <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
+                      <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
+                    </svg>
+                    <span className="text-white">加入歌單</span>
+                  </button>
+                  {selectedSong && (selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug) && (
+                    <Link
+                      href={`/artists/${selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug}`}
+                      onClick={() => setShowActionModal(false)}
+                      className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg block text-left"
+                    >
+                      <User className="w-5 h-5 text-[#B3B3B3]" />
+                      <span className="text-white">瀏覽歌手</span>
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
-          </>
+          </div>,
+          document.body
         )}
 
         {/* 加入歌單 Modal */}
@@ -688,35 +850,65 @@ export default function UserPlaylistDetail() {
                 setShowAddToPlaylist(false);
                 setShowCreatePlaylistInput(false);
                 setNewPlaylistName('');
+                setAddToPlaylistSelectedIds([]);
+                setAddToPlaylistInitialIds([]);
               }}
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-3xl z-[60] p-4 pb-24 max-h-[70vh] overflow-y-auto">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-3xl z-[60] pb-24 max-h-[70vh] overflow-y-auto">
+              <div className="flex flex-col items-center justify-center py-2 min-h-[36px]">
+                <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+              </div>
+              <div className="text-left" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
               <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
               <div className="space-y-2">
-                {userPlaylists.filter((pl) => pl.id !== id).map((pl) => (
-                  <button
-                    key={pl.id}
-                    onClick={() => addToPlaylist(pl.id)}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left"
-                  >
-                    <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center">
-                      <Music className="w-6 h-6 text-[#3E3E3E]" />
-                    </div>
-                    <span className="text-white font-medium">{pl.title}</span>
-                  </button>
-                ))}
+                {userPlaylists.filter((pl) => pl.id !== id).map((pl) => {
+                  const isSelected = addToPlaylistSelectedIds.includes(pl.id);
+                  return (
+                    <button
+                      key={pl.id}
+                      type="button"
+                      onClick={() => toggleAddToPlaylistSelection(pl.id)}
+                      className="w-full flex items-center gap-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
+                    >
+                      <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                        <Music className="w-6 h-6 text-[#3E3E3E]" />
+                      </div>
+                      <span className="text-white font-medium flex-1 min-w-0 truncate">{pl.title}</span>
+                      <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 ${isSelected ? 'bg-[#FFD700] border-[#FFD700]' : 'border-[#525252]'}`}>
+                        {isSelected && (
+                          <svg className="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* 分隔線（space-y-2 統一 0.5rem） */}
+                <div className="h-px bg-[#3E3E3E] w-full shrink-0" />
                 <button
+                  type="button"
                   onClick={() => setShowCreatePlaylistInput(true)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+                  className="w-full flex items-center space-x-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
                 >
-                  <div className="w-12 h-12 rounded-[4px] bg-[#FFD700] flex items-center justify-center">
-                    <span className="text-black text-2xl font-light">+</span>
+                  <div className="w-12 h-12 rounded-[4px] bg-[#121212] border-2 border-dashed border-[#FFD700] flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-6 h-6 text-[#FFD700]" />
                   </div>
                   <span className="text-[#FFD700] font-medium">創建新歌單</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={confirmAddToPlaylist}
+                  disabled={!addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) && !addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id))}
+                  className={`w-full py-3 rounded-full font-medium transition ${addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) || addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id)) ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-[#3E3E3E] text-[#737373] cursor-not-allowed'}`}
+                >
+                  確認
+                </button>
+
                 {showCreatePlaylistInput && (
-                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg text-left">
                     <input
                       type="text"
                       value={newPlaylistName}
@@ -746,6 +938,7 @@ export default function UserPlaylistDetail() {
                   </div>
                 )}
               </div>
+              </div>
             </div>
           </>
         )}
@@ -762,7 +955,7 @@ export default function UserPlaylistDetail() {
               aria-hidden
             />
             <div
-              className="fixed bottom-0 left-0 right-0 h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0)',
                 transform: `translateY(${addSongDragY}px)`,
@@ -887,7 +1080,7 @@ export default function UserPlaylistDetail() {
               aria-hidden
             />
             <div
-              className="fixed bottom-0 left-0 right-0 h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0)',
                 transform: `translateY(${editPlaylistDragY}px)`,
@@ -1024,7 +1217,7 @@ export default function UserPlaylistDetail() {
               aria-hidden
             />
             <div
-              className="fixed bottom-0 left-0 right-0 h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0)',
                 transform: `translateY(${sortModalDragY}px)`,
@@ -1100,7 +1293,7 @@ export default function UserPlaylistDetail() {
               aria-hidden
             />
             <div
-              className="fixed bottom-0 left-0 right-0 h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0)',
                 transform: `translateY(${playlistMenuDragY}px)`,

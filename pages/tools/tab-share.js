@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
-import { Download, RefreshCw } from 'lucide-react'
+import { Download, RefreshCw, ArrowLeft } from 'lucide-react'
 
 const splitLyricLine = (lyric, maxLen) => {
   if (!lyric) return [lyric]
@@ -590,6 +590,14 @@ export default function TabShareTool() {
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-4 py-6 pb-24">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center text-[#B3B3B3] hover:text-white mb-4 transition"
+          aria-label="返回"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
         <div className="flex flex-col lg:flex-row gap-6">
 
           {/* Preview */}

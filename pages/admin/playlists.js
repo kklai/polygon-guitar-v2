@@ -14,6 +14,7 @@ import {
 } from '@/lib/playlists'
 import { getTabsByIds } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { ArrowLeft } from 'lucide-react'
 
 function PlaylistAdmin() {
   const router = useRouter()
@@ -381,10 +382,8 @@ function PlaylistAdmin() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+              <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition" aria-label="返回">
+                <ArrowLeft className="w-6 h-6" />
               </button>
               <h1 className="text-3xl font-bold text-white">歌單管理</h1>
             </div>

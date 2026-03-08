@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { GuitarTabEditor } from '../../components/TabEditor/GuitarTabEditor';
 import Layout from '../../components/Layout';
 
@@ -21,8 +22,9 @@ export default function SixLineEditorPage() {
                 <p className="text-sm text-gray-400">點擊弦上位置輸入音符，數字鍵 0-9 輸入品數</p>
               </div>
               <button onClick={() => window.history.back()}
-                className="px-4 py-2 bg-[#282828] hover:bg-[#3E3E3E] text-white text-sm rounded">
-                返回
+                className="p-2 bg-[#282828] hover:bg-[#3E3E3E] text-white rounded"
+                aria-label="返回">
+                <ArrowLeft className="w-4 h-4" />
               </button>
             </div>
           </div>

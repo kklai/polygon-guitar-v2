@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { searchTabs } from '@/lib/tabs'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/router'
 
 export default function CurrentlyPracticing() {
@@ -115,9 +116,10 @@ export default function CurrentlyPracticing() {
           </div>
           <Link
             href={`/profile/${user.uid}`}
-            className="text-[#FFD700] hover:opacity-80 text-sm"
+            className="inline-flex items-center text-[#FFD700] hover:opacity-80"
+            aria-label="返回個人頁面"
           >
-            ← 返回個人頁面
+            <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
 

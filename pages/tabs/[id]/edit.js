@@ -14,6 +14,7 @@ import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
+import { ArrowLeft } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
@@ -595,14 +596,12 @@ export default function EditTab() {
         {/* Header - Sticky */}
         <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-2 flex items-center justify-between">
           <div className="flex items-center">
-            <Link 
+            <Link
               href={`/tabs/${id}`}
               className="inline-flex items-center text-[#B3B3B3] hover:text-white mr-4 transition"
+              aria-label="返回"
             >
-              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              返回
+              <ArrowLeft className="w-5 h-5" />
             </Link>
             <h1 className="text-2xl font-bold text-white">編輯譜</h1>
           </div>

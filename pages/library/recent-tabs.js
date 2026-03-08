@@ -8,7 +8,7 @@ import { getRecentTabIds } from '../../lib/libraryRecentViews';
 import { getSongThumbnail } from '../../lib/getSongThumbnail';
 import Layout from '../../components/Layout';
 import Head from 'next/head';
-import { Clock } from 'lucide-react';
+import { Clock, ArrowLeft } from 'lucide-react';
 
 export default function RecentTabs() {
   const router = useRouter();
@@ -81,9 +81,7 @@ export default function RecentTabs() {
             className="inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
             aria-label="返回"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeft className="w-5 h-5" />
           </Link>
         </div>
 

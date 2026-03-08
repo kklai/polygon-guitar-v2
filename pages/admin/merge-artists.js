@@ -13,6 +13,7 @@ import {
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
+import { ArrowLeft } from 'lucide-react'
 import { isArtistMatch, generateMergeSuggestions, parseBilingualNameImproved } from '@/lib/artistNameMatcher'
 
 export default function MergeArtistsPage() {
@@ -169,9 +170,10 @@ export default function MergeArtistsPage() {
             </div>
             <Link
               href="/admin"
-              className="text-[#B3B3B3] hover:text-white transition-colors"
+              className="inline-flex items-center text-[#B3B3B3] hover:text-white transition-colors"
+              aria-label="返回管理員中心"
             >
-              ← 返回管理員中心
+              <ArrowLeft className="w-4 h-4" />
             </Link>
           </div>
 

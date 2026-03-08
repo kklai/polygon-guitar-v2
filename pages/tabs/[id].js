@@ -14,8 +14,8 @@ import GpSegmentPlayer from '@/components/GpSegmentPlayer'
 import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
 import { recordTabView } from '@/lib/libraryRecentViews'
-import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
-import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist } from '@/lib/playlistApi'
+import { MoreVertical, Share, Heart, Music, Plus, Copy } from 'lucide-react'
+import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '@/lib/playlistApi'
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema, getAbsoluteOgImage } from '@/lib/seo'
 import { siteConfig } from '@/lib/seo'
@@ -70,8 +70,11 @@ export default function TabDetail({ initialTab }) {
   const colors = themeColors[theme];
   
   const [showActionMenu, setShowActionMenu] = useState(false)
+  const [menuTabLiked, setMenuTabLiked] = useState(false) // menu 內喜愛狀態，開 menu 時更新
   const [userPlaylists, setUserPlaylists] = useState([])
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
+  const [addToPlaylistSelectedIds, setAddToPlaylistSelectedIds] = useState([])
+  const [addToPlaylistInitialIds, setAddToPlaylistInitialIds] = useState([])
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
 
@@ -233,11 +236,33 @@ export default function TabDetail({ initialTab }) {
 
   // 處理更多選單
   const handleMoreClick = async () => {
-    if (user) {
-      const playlists = await getUserPlaylists(user.uid);
+    if (user && tab) {
+      const [liked, playlists] = await Promise.all([
+        checkIsLiked(user.uid, tab.id),
+        getUserPlaylists(user.uid)
+      ]);
+      setMenuTabLiked(liked);
       setUserPlaylists(playlists);
+    } else {
+      setMenuTabLiked(false);
     }
     setShowActionMenu(true);
+  };
+
+  const handleCopyShareLink = async () => {
+    const url = `${window.location.origin}/tabs/${tab.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('已複製連結');
+    } catch (err) {
+      alert('複製失敗');
+    }
+  };
+
+  const handleSelectLyricsShare = () => {
+    if (!tab?.id) return;
+    setShowActionMenu(false);
+    router.push(`/tools/tab-share?tabId=${tab.id}`);
   };
 
   const handleShare = async () => {
@@ -260,8 +285,8 @@ export default function TabDetail({ initialTab }) {
       return;
     }
     try {
-      await toggleLikeSong(user.uid, tab.id);
-      setShowActionMenu(false);
+      const result = await toggleLikeSong(user.uid, tab.id);
+      setMenuTabLiked(result.isLiked);
     } catch (error) {
       alert('操作失敗：' + error.message);
     }
@@ -269,18 +294,52 @@ export default function TabDetail({ initialTab }) {
 
   const handleAddToPlaylistClick = () => {
     setShowActionMenu(false);
+    // 預設剔選已包含此歌嘅歌單
+    const alreadyIn = (userPlaylists || [])
+      .filter((pl) => pl.songIds && pl.songIds.includes(tab?.id))
+      .map((pl) => pl.id);
+    setAddToPlaylistSelectedIds(alreadyIn);
+    setAddToPlaylistInitialIds(alreadyIn);
     setShowAddToPlaylist(true);
   };
 
-  const addToPlaylist = async (playlistId) => {
-    try {
-      await addSongToPlaylist(playlistId, tab.id);
-      setShowAddToPlaylist(false);
-      alert('已加入歌單');
-    } catch (error) {
-      alert('加入失敗：' + error.message);
+  const toggleAddToPlaylistSelection = (playlistId) => {
+    setAddToPlaylistSelectedIds((prev) =>
+      prev.includes(playlistId) ? prev.filter((pid) => pid !== playlistId) : [...prev, playlistId]
+    )
+  }
+
+  const confirmAddToPlaylist = async () => {
+    if (!tab) return
+    const idsToAdd = addToPlaylistSelectedIds.filter((id) => !addToPlaylistInitialIds.includes(id))
+    const idsToRemove = addToPlaylistInitialIds.filter((id) => !addToPlaylistSelectedIds.includes(id))
+    if (idsToAdd.length === 0 && idsToRemove.length === 0) {
+      setShowAddToPlaylist(false)
+      setAddToPlaylistSelectedIds([])
+      setAddToPlaylistInitialIds([])
+      return
     }
-  };
+    try {
+      for (const playlistId of idsToAdd) {
+        await addSongToPlaylist(playlistId, tab.id)
+      }
+      for (const playlistId of idsToRemove) {
+        await removeSongFromPlaylist(playlistId, tab.id)
+      }
+      setShowAddToPlaylist(false)
+      setAddToPlaylistSelectedIds([])
+      setAddToPlaylistInitialIds([])
+      if (idsToAdd.length && idsToRemove.length) {
+        alert(`已加入 ${idsToAdd.length} 個歌單，已從 ${idsToRemove.length} 個歌單移除`)
+      } else if (idsToRemove.length) {
+        alert(idsToRemove.length > 1 ? `已從 ${idsToRemove.length} 個歌單移除` : '已從歌單移除')
+      } else {
+        alert(idsToAdd.length > 1 ? `已加入 ${idsToAdd.length} 個歌單` : '已加入歌單')
+      }
+    } catch (error) {
+      alert('操作失敗：' + error.message)
+    }
+  }
 
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim() || !user) return;
@@ -480,13 +539,13 @@ export default function TabDetail({ initialTab }) {
                     className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
                     title="生成分享圖片"
                   >
-                    <Share2 className="w-4 h-4 md:w-5 md:h-5" />
+                    <Share className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
 
                   {/* 更多選項 */}
                   <button
                     onClick={handleMoreClick}
-                    className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-400 hover:text-white transition"
                     title="更多"
                   >
                     <MoreVertical className="w-4 h-4 md:w-5 md:h-5" />
@@ -551,9 +610,9 @@ export default function TabDetail({ initialTab }) {
         {showActionMenu && (
           <>
             <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionMenu(false)} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 animate-slide-up">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 animate-slide-up">
               <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
-              
+              <div className="px-4 text-left">
               <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
                 <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-[#282828]">
                   {tab.thumbnail || tab.albumImage ? (
@@ -569,21 +628,30 @@ export default function TabDetail({ initialTab }) {
               </div>
               
               <div className="space-y-1">
-                <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Share2 className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">分享</span>
+                <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                  <Copy className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">複製分享連結</span>
+                </button>
+                <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                  <Share className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">選取歌詞分享</span>
                 </button>
 
                 
                 <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Heart className="w-5 h-5 text-red-500" />
-                  <span className="text-white">加到我最喜愛</span>
+                  <Heart className={`w-5 h-5 text-[#FFD700] ${menuTabLiked ? 'fill-[#FFD700]' : 'fill-none'}`} strokeWidth={1.5} />
+                  <span className="text-white">{menuTabLiked ? '取消喜愛' : '加到我最喜愛'}</span>
                 </button>
                 
                 <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
+                  <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
+                    <circle cx="4.4" cy="4.4" r="4" />
+                    <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
+                    <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
+                  </svg>
                   <span className="text-white">加入歌單</span>
                 </button>
+              </div>
               </div>
             </div>
           </>
@@ -596,39 +664,68 @@ export default function TabDetail({ initialTab }) {
                 setShowAddToPlaylist(false);
                 setShowCreatePlaylistInput(false);
                 setNewPlaylistName('');
+                setAddToPlaylistSelectedIds([]);
+                setAddToPlaylistInitialIds([]);
               }} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 max-h-[70vh] overflow-y-auto">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 max-h-[70vh] overflow-y-auto">
+              <div className="flex flex-col items-center justify-center py-2 min-h-[36px]">
+                <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+              </div>
+              <div className="text-left" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
               <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
               
               <div className="space-y-2">
-                {userPlaylists.map((pl) => (
-                  <button
-                    key={pl.id}
-                    onClick={() => addToPlaylist(pl.id)}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left"
-                  >
-                    <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center">
-                      <Music className="w-6 h-6 text-[#3E3E3E]" />
-                    </div>
-                    <span className="text-white font-medium">{pl.title}</span>
-                  </button>
-                ))}
-                
-                {/* 創建新歌單按鈕 */}
+                {userPlaylists.map((pl) => {
+                  const isSelected = addToPlaylistSelectedIds.includes(pl.id)
+                  return (
+                    <button
+                      key={pl.id}
+                      type="button"
+                      onClick={() => toggleAddToPlaylistSelection(pl.id)}
+                      className="w-full flex items-center gap-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
+                    >
+                      <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                        <Music className="w-6 h-6 text-[#3E3E3E]" />
+                      </div>
+                      <span className="text-white font-medium flex-1 min-w-0 truncate">{pl.title}</span>
+                      <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 ${isSelected ? 'bg-[#FFD700] border-[#FFD700]' : 'border-[#525252]'}`}>
+                        {isSelected && (
+                          <svg className="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+
+                {/* 分隔線（space-y-2 統一 0.5rem） */}
+                <div className="h-px bg-[#3E3E3E] w-full shrink-0" />
+
+                {/* 創建新歌單按鈕（黃線框 + 黃 Plus，無 hover） */}
                 <button
+                  type="button"
                   onClick={() => setShowCreatePlaylistInput(true)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+                  className="w-full flex items-center space-x-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
                 >
-                  <div className="w-12 h-12 rounded-[4px] bg-[#FFD700] flex items-center justify-center">
-                    <span className="text-black text-2xl font-light">+</span>
+                  <div className="w-12 h-12 rounded-[4px] bg-[#121212] border-2 border-dashed border-[#FFD700] flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-6 h-6 text-[#FFD700]" />
                   </div>
                   <span className="text-[#FFD700] font-medium">創建新歌單</span>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={confirmAddToPlaylist}
+                  disabled={!addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) && !addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id))}
+                  className={`w-full py-3 rounded-full font-medium transition ${addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) || addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id)) ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-[#3E3E3E] text-[#737373] cursor-not-allowed'}`}
+                >
+                  確認
+                </button>
+
                 {/* 創建輸入框 */}
                 {showCreatePlaylistInput && (
-                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg text-left">
                     <input
                       type="text"
                       value={newPlaylistName}
@@ -657,6 +754,7 @@ export default function TabDetail({ initialTab }) {
                     </div>
                   </div>
                 )}
+              </div>
               </div>
             </div>
           </>

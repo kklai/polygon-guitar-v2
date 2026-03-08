@@ -5,9 +5,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { auth, db } from '../../lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
-import { Heart, Share2, BookmarkPlus, Music } from 'lucide-react';
+import { Heart, Share, Music, Plus, Copy, ArrowLeft } from 'lucide-react';
 import { getSongThumbnail } from '../../lib/getSongThumbnail';
-import { getUserPlaylists, addSongToPlaylist, createPlaylist } from '../../lib/playlistApi';
+import { getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '../../lib/playlistApi';
 import Layout from '../../components/Layout';
 
 function computeShuffleOrder(length) {
@@ -31,6 +31,8 @@ export default function LikedSongs() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [addToPlaylistSelectedIds, setAddToPlaylistSelectedIds] = useState([]);
+  const [addToPlaylistInitialIds, setAddToPlaylistInitialIds] = useState([]);
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
 
@@ -139,6 +141,23 @@ export default function LikedSongs() {
     setShowActionModal(true);
   };
 
+  const handleCopyShareLink = async () => {
+    if (!selectedSong) return;
+    const url = `${window.location.origin}/tabs/${selectedSong.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('已複製連結');
+    } catch (err) {
+      alert('複製失敗');
+    }
+  };
+
+  const handleSelectLyricsShare = () => {
+    if (!selectedSong?.id) return;
+    setShowActionModal(false);
+    router.push(`/tools/tab-share?tabId=${selectedSong.id}`);
+  };
+
   const handleShare = async () => {
     if (!selectedSong) return;
     const url = `${window.location.origin}/tabs/${selectedSong.id}`;
@@ -166,7 +185,51 @@ export default function LikedSongs() {
       return;
     }
     setShowActionModal(false);
+    // 預設剔選已包含此歌嘅歌單
+    const alreadyIn = (userPlaylists || [])
+      .filter((pl) => pl.songIds && pl.songIds.includes(selectedSong?.id))
+      .map((pl) => pl.id);
+    setAddToPlaylistSelectedIds(alreadyIn);
+    setAddToPlaylistInitialIds(alreadyIn);
     setShowAddToPlaylist(true);
+  };
+
+  const toggleAddToPlaylistSelection = (playlistId) => {
+    setAddToPlaylistSelectedIds((prev) =>
+      prev.includes(playlistId) ? prev.filter((pid) => pid !== playlistId) : [...prev, playlistId]
+    );
+  };
+
+  const confirmAddToPlaylist = async () => {
+    if (!selectedSong) return;
+    const idsToAdd = addToPlaylistSelectedIds.filter((id) => !addToPlaylistInitialIds.includes(id));
+    const idsToRemove = addToPlaylistInitialIds.filter((id) => !addToPlaylistSelectedIds.includes(id));
+    if (idsToAdd.length === 0 && idsToRemove.length === 0) {
+      setShowAddToPlaylist(false);
+      setAddToPlaylistSelectedIds([]);
+      setAddToPlaylistInitialIds([]);
+      return;
+    }
+    try {
+      for (const playlistId of idsToAdd) {
+        await addSongToPlaylist(playlistId, selectedSong.id);
+      }
+      for (const playlistId of idsToRemove) {
+        await removeSongFromPlaylist(playlistId, selectedSong.id);
+      }
+      setShowAddToPlaylist(false);
+      setAddToPlaylistSelectedIds([]);
+      setAddToPlaylistInitialIds([]);
+      if (idsToAdd.length && idsToRemove.length) {
+        alert(`已加入 ${idsToAdd.length} 個歌單，已從 ${idsToRemove.length} 個歌單移除`);
+      } else if (idsToRemove.length) {
+        alert(idsToRemove.length > 1 ? `已從 ${idsToRemove.length} 個歌單移除` : '已從歌單移除');
+      } else {
+        alert(idsToAdd.length > 1 ? `已加入 ${idsToAdd.length} 個歌單` : '已加入歌單');
+      }
+    } catch (error) {
+      alert('操作失敗：' + (error.message || '請重試'));
+    }
   };
 
   const addToPlaylist = async (playlistId) => {
@@ -216,9 +279,7 @@ export default function LikedSongs() {
             className="inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
             aria-label="返回"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeft className="w-5 h-5" />
           </Link>
         </div>
 
@@ -329,7 +390,7 @@ export default function LikedSongs() {
                   </div>
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
-                    className="pl-1 pr-0 py-1 flex items-center justify-end flex-shrink-0 text-[#999] hover:text-white transition"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 text-[#999] hover:text-white transition -my-1"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
                       <circle cx="1.27" cy="1.27" r="1.27" />
@@ -359,27 +420,37 @@ export default function LikedSongs() {
         {showActionModal && (
           <>
             <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionModal(false)} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24">
               <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+              <div className="px-4 text-left">
               {selectedSong && (
-                <div className="mb-4 pb-4 border-b border-gray-800">
+                <div className="mb-4 pb-4 border-b border-[#3E3E3E]">
                   <p className="text-white font-medium truncate">{selectedSong.title}</p>
                   <p className="text-gray-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
                 </div>
               )}
               <div className="space-y-1">
-                <button onClick={handleShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Share2 className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">分享</span>
+                <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                  <Copy className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">複製分享連結</span>
+                </button>
+                <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                  <Share className="w-5 h-5 text-[#B3B3B3]" />
+                  <span className="text-white">選取歌詞分享</span>
                 </button>
                 <button onClick={handleRemoveFromLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
                   <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                   <span className="text-white">取消喜愛</span>
                 </button>
                 <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <BookmarkPlus className="w-5 h-5 text-[#B3B3B3]" />
+                  <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
+                    <circle cx="4.4" cy="4.4" r="4" />
+                    <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
+                    <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
+                  </svg>
                   <span className="text-white">加入歌單</span>
                 </button>
+              </div>
               </div>
             </div>
           </>
@@ -394,35 +465,65 @@ export default function LikedSongs() {
                 setShowAddToPlaylist(false);
                 setShowCreatePlaylistInput(false);
                 setNewPlaylistName('');
+                setAddToPlaylistSelectedIds([]);
+                setAddToPlaylistInitialIds([]);
               }}
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] p-4 pb-24 max-h-[70vh] overflow-y-auto">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 max-h-[70vh] overflow-y-auto">
+              <div className="flex flex-col items-center justify-center py-2 min-h-[36px]">
+                <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+              </div>
+              <div className="text-left" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
               <h3 className="text-white text-lg font-bold mb-4">加入歌單</h3>
               <div className="space-y-2">
-                {userPlaylists.map((pl) => (
-                  <button
-                    key={pl.id}
-                    onClick={() => addToPlaylist(pl.id)}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left"
-                  >
-                    <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center">
-                      <Music className="w-6 h-6 text-[#3E3E3E]" />
-                    </div>
-                    <span className="text-white font-medium">{pl.title}</span>
-                  </button>
-                ))}
+                {userPlaylists.map((pl) => {
+                  const isSelected = addToPlaylistSelectedIds.includes(pl.id);
+                  return (
+                    <button
+                      key={pl.id}
+                      type="button"
+                      onClick={() => toggleAddToPlaylistSelection(pl.id)}
+                      className="w-full flex items-center gap-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
+                    >
+                      <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                        <Music className="w-6 h-6 text-[#3E3E3E]" />
+                      </div>
+                      <span className="text-white font-medium flex-1 min-w-0 truncate">{pl.title}</span>
+                      <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 ${isSelected ? 'bg-[#FFD700] border-[#FFD700]' : 'border-[#525252]'}`}>
+                        {isSelected && (
+                          <svg className="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* 分隔線（space-y-2 統一 0.5rem） */}
+                <div className="h-px bg-[#3E3E3E] w-full shrink-0" />
                 <button
+                  type="button"
                   onClick={() => setShowCreatePlaylistInput(true)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+                  className="w-full flex items-center space-x-3 pl-0 pr-3 py-1.5 hover:bg-[#1a1a1a] rounded-2xl text-left"
                 >
-                  <div className="w-12 h-12 rounded-[4px] bg-[#FFD700] flex items-center justify-center">
-                    <span className="text-black text-2xl font-light">+</span>
+                  <div className="w-12 h-12 rounded-[4px] bg-[#121212] border-2 border-dashed border-[#FFD700] flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-6 h-6 text-[#FFD700]" />
                   </div>
                   <span className="text-[#FFD700] font-medium">創建新歌單</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={confirmAddToPlaylist}
+                  disabled={!addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) && !addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id))}
+                  className={`w-full py-3 rounded-full font-medium transition ${addToPlaylistSelectedIds.some((id) => !addToPlaylistInitialIds.includes(id)) || addToPlaylistInitialIds.some((id) => !addToPlaylistSelectedIds.includes(id)) ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-[#3E3E3E] text-[#737373] cursor-not-allowed'}`}
+                >
+                  確認
+                </button>
+
                 {showCreatePlaylistInput && (
-                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                  <div className="mt-3 p-3 bg-[#1a1a1a] rounded-lg text-left">
                     <input
                       type="text"
                       value={newPlaylistName}
@@ -451,6 +552,7 @@ export default function LikedSongs() {
                     </div>
                   </div>
                 )}
+              </div>
               </div>
             </div>
           </>

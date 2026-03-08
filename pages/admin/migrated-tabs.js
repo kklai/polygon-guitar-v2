@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
+import { ArrowLeft } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 
@@ -477,9 +478,10 @@ export default function MigratedTabsPage() {
             </div>
             <Link
               href="/admin"
-              className="text-[#B3B3B3] hover:text-white transition-colors"
+              className="inline-flex items-center text-[#B3B3B3] hover:text-white transition-colors"
+              aria-label="返回管理員中心"
             >
-              ← 返回管理員中心
+              <ArrowLeft className="w-4 h-4" />
             </Link>
           </div>
 

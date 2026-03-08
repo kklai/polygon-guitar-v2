@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { doc, getDoc, setDoc, collection, query, where, limit, getDocs } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { uploadToCloudinary } from '../../lib/cloudinary'
@@ -340,7 +341,9 @@ function CategoryImagesAdmin() {
             <h1 className="text-3xl font-bold text-white mb-2">分類封面管理</h1>
             <p className="text-gray-400">手動更新首頁歌手分類顯示的封面圖片</p>
           </div>
-          <Link href="/admin" className="text-gray-400 hover:text-white">← 返回管理員</Link>
+          <Link href="/admin" className="inline-flex items-center text-gray-400 hover:text-white" aria-label="返回管理員">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
         </div>
 
         <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-8">
