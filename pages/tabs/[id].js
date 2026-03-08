@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { getTab, deleteTab, incrementViewCount } from '@/lib/tabs'
+import { getTab, getTabCached, setTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import LikeButton from '@/components/LikeButton'
@@ -56,26 +56,46 @@ export default function TabDetail() {
   const [uploaderName, setUploaderName] = useState('')
   const [uploaderId, setUploaderId] = useState('')
   const [currentKey, setCurrentKey] = useState(null)
-  // showInfo 提升去父組件，確保轉調嗰陣 YouTube 唔會閂
-  const [showInfo, setShowInfo] = useState(() => {
-    // 預設展開如果有 YouTube
-    return !!tab?.youtubeVideoId
-  })
+  const [showInfo, setShowInfo] = useState(false)
   const [chordStats, setChordStats] = useState(null)
-  const [theme, setTheme] = useState('night'); // 'night' | 'day'
+  const [theme, setTheme] = useState('night');
   const [ratingData, setRatingData] = useState({ averageRating: 0, ratingCount: 0 })
   const [playingSegmentId, setPlayingSegmentId] = useState(null)
   const colors = themeColors[theme];
   
-  // 更多操作選單
   const [showActionMenu, setShowActionMenu] = useState(false)
   const [userPlaylists, setUserPlaylists] = useState([])
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
 
+  const [prevId, setPrevId] = useState(null)
+
+  // Render-phase cache check — runs before paint so no skeleton flash on cache hit
+  if (id && id !== prevId) {
+    const t0 = performance.now()
+    setPrevId(id)
+    const cached = getTabCached(id)
+    console.log(`[TabDetail] render-phase id=${id} cacheHit=${!!cached} (${(performance.now() - t0).toFixed(1)}ms)`)
+    if (cached) {
+      setTab(cached)
+      setCurrentKey(queryKey || cached.playKey || cached.originalKey || 'C')
+      setRatingData({ averageRating: cached.averageRating || 0, ratingCount: cached.ratingCount || 0 })
+      setShowInfo(false)
+      setIsLoading(false)
+    } else {
+      setTab(null)
+      setIsLoading(true)
+    }
+  }
+
   useEffect(() => {
-    if (id) {
+    if (!id) return
+    const cached = getTabCached(id)
+    console.log(`[TabDetail] useEffect id=${id} cacheHit=${!!cached}`)
+    if (cached) {
+      fireSideEffects(cached)
+    } else {
       loadTab()
     }
   }, [id])
@@ -111,65 +131,70 @@ export default function TabDetail() {
     return match ? match[1] : null
   }
 
+  const fireSideEffects = (data) => {
+    const effects = []
+    effects.push(incrementViewCount(id))
+    if (user) effects.push(recordSongView(user.uid, data))
+    effects.push(
+      recordPageView('tab', id, data.title, {
+        pageName: data.title,
+        artistName: data.artist,
+        originalKey: data.originalKey,
+        thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
+      }, user?.uid || null)
+    )
+    if (data.createdBy) {
+      effects.push(
+        getDoc(doc(db, 'users', data.createdBy)).then(userDoc => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            setUploaderName(userData.displayName || userData.name || '未知用戶')
+            setUploaderId(data.createdBy || '')
+          }
+        })
+      )
+    }
+    Promise.all(effects).catch(err => console.error('Side-effect error:', err))
+  }
+
   const loadTab = async () => {
+    const t0 = performance.now()
     try {
       const data = await getTab(id)
+      const t1 = performance.now()
+      console.log(`[loadTab] getTab: ${(t1 - t0).toFixed(0)}ms`)
       if (data) {
-        // 如果冇 youtubeVideoId 但有 youtubeUrl，提取 videoId
         if (!data.youtubeVideoId && data.youtubeUrl) {
           data.youtubeVideoId = extractYouTubeId(data.youtubeUrl)
         }
-        
-        // 如果冇封面，嘗試獲取歌手照片
+
         if (!data.coverImage && !data.albumImage && !data.thumbnail && data.artist) {
           try {
-            // 根據歌手名查詢 artists 集合
-            const artistsRef = collection(db, 'artists')
-            const q = query(artistsRef, where('name', '==', data.artist))
-            const querySnapshot = await getDocs(q)
-            
-            if (!querySnapshot.empty) {
-              const artistDoc = querySnapshot.docs[0]
-              const artistData = artistDoc.data()
-              // 使用歌手照片作為封面後備
+            const artistId = data.artistId || data.artist.toLowerCase().replace(/\s+/g, '-')
+            const artistSnap = await getDoc(doc(db, 'artists', artistId))
+            if (artistSnap.exists()) {
+              const artistData = artistSnap.data()
               data.artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || null
             }
           } catch (artistError) {
             console.log('獲取歌手照片失敗:', artistError)
           }
         }
-        
+        const t2 = performance.now()
+        console.log(`[loadTab] artistFallback: ${(t2 - t1).toFixed(0)}ms`)
+
+        setTabCache(id, data)
+
         setTab(data)
-        // 初始化 currentKey：URL參數 > PlayKey > OriginalKey
-        const initialKey = queryKey || data.playKey || data.originalKey || 'C'
-        setCurrentKey(initialKey)
-        // 記錄瀏覽數（每次頁面載入都計，包括刷新）
-        if (id) incrementViewCount(id)
-        // 記錄到最近瀏覽
-        if (user) {
-          recordSongView(user.uid, data)
-        }
-        // 記錄詳細頁面瀏覽（帶歌曲名和歌手名）
-        recordPageView('tab', id, data.title, {
-          pageName: data.title,
-          artistName: data.artist,
-          originalKey: data.originalKey,
-          thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
-        }, user?.uid || null)
-        if (data.createdBy) {
-          const userDoc = await getDoc(doc(db, 'users', data.createdBy))
-          if (userDoc.exists()) {
-            const userData = userDoc.data()
-            setUploaderName(userData.displayName || userData.name || '未知用戶')
-            setUploaderId(data.createdBy || '')
-          }
-        }
-        
-        // 載入評分數據
+        setCurrentKey(queryKey || data.playKey || data.originalKey || 'C')
+        setShowInfo(false)
         setRatingData({
           averageRating: data.averageRating || 0,
           ratingCount: data.ratingCount || 0
         })
+        console.log(`[loadTab] total until render: ${(performance.now() - t0).toFixed(0)}ms`)
+
+        fireSideEffects(data)
       } else {
         router.push('/')
       }
@@ -262,6 +287,8 @@ export default function TabDetail() {
 
   const isOwner = tab && user && tab.createdBy === user.uid
   const canEdit = isOwner || isAdmin
+
+  console.log(`[TabDetail] render: id=${id} isLoading=${isLoading} hasTab=${!!tab}`)
 
   if (isLoading) {
     return (

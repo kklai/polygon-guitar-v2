@@ -1,7 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import { getAllTabs, getAllArtists, getHotTabs, getPopularArtists, getRecentTabs } from '@/lib/tabs'
 import Layout from '@/components/Layout'
+
+const STORAGE_KEY = 'searchPageData'
+const CACHE_TTL = 10 * 60 * 1000    // 10 min full cache
+const FRESH_TTL = 2 * 60 * 1000     // 2 min = skip fetch entirely
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (Date.now() - parsed.ts > CACHE_TTL) return null
+    return parsed
+  } catch { return null }
+}
+
+function writeCache(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, ts: Date.now() }))
+  } catch {}
+}
 
 export default function Search() {
   const router = useRouter()
@@ -12,19 +31,53 @@ export default function Search() {
   const [filteredArtists, setFilteredArtists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   
-  // 熱門數據
   const [hotSongs, setHotSongs] = useState([])
   const [hotArtists, setHotArtists] = useState([])
   const [categoryCovers, setCategoryCovers] = useState({
-    male: null,
-    female: null,
-    group: null,
-    recent: null
+    male: null, female: null, group: null, recent: null
   })
+  const fetchedRef = useRef(false)
+
+  const applyData = useCallback((data) => {
+    setSongs(data.tabs || [])
+    setArtists(data.artists || [])
+    setHotSongs(data.hotTabs || [])
+    setHotArtists(data.hotArtists || [])
+    
+    const byType = (type) => (data.artists || [])
+      .filter(a => a.artistType === type || a.gender === type)
+      .sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
+    const male = byType('male')
+    const female = byType('female')
+    const group = [...byType('group'), ...byType('band')]
+    setCategoryCovers({
+      male: male[0] || null,
+      female: female[0] || null,
+      group: group[0] || null,
+      recent: male[1] || male[0] || null
+    })
+  }, [])
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (fetchedRef.current) return
+    fetchedRef.current = true
+
+    const cached = readCache()
+    if (cached) {
+      applyData(cached)
+      setIsLoading(false)
+      if (Date.now() - cached.ts < FRESH_TTL) return
+    }
+
+    fetch('/api/search-data')
+      .then(r => r.json())
+      .then(data => {
+        applyData(data)
+        writeCache(data)
+      })
+      .catch(err => console.error('Error loading search data:', err))
+      .finally(() => setIsLoading(false))
+  }, [applyData])
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -33,78 +86,25 @@ export default function Search() {
       return
     }
 
-    const query = searchQuery.toLowerCase()
+    const q = searchQuery.toLowerCase()
     
     setFilteredSongs(
       songs.filter(song => 
-        song.title.toLowerCase().includes(query) ||
-        song.artist.toLowerCase().includes(query) ||
-        (song.composer && song.composer.toLowerCase().includes(query)) ||
-        (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
-        (song.arranger && song.arranger.toLowerCase().includes(query)) ||
-        (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
+        song.title?.toLowerCase().includes(q) ||
+        song.artist?.toLowerCase().includes(q) ||
+        (song.composer && song.composer.toLowerCase().includes(q)) ||
+        (song.lyricist && song.lyricist.toLowerCase().includes(q)) ||
+        (song.arranger && song.arranger.toLowerCase().includes(q)) ||
+        (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(q))
       )
-      // 完全冇限制，顯示所有結果
     )
     
     setFilteredArtists(
       artists.filter(artist => 
-        artist.name.toLowerCase().includes(query)
+        artist.name?.toLowerCase().includes(q)
       )
-      // 完全冇限制，顯示所有結果
     )
   }, [searchQuery, songs, artists])
-
-  const loadData = async () => {
-    try {
-      // 載入所有數據
-      const [songsData, artistsData] = await Promise.all([
-        getAllTabs(),
-        getAllArtists()
-      ])
-      setSongs(songsData)
-      setArtists(artistsData)
-      
-      // 載入熱門數據
-      const [hotSongsData, hotArtistsData, recentSongsData] = await Promise.all([
-        getHotTabs(12),
-        getPopularArtists(12),
-        getRecentTabs(4)
-      ])
-      
-      setHotSongs(hotSongsData)
-      setHotArtists(hotArtistsData)
-      
-      // 找分類封面圖（按 adminScore 評分排序）
-      const maleArtists = artistsData.filter(a => 
-        a.artistType === 'male' || a.gender === 'male'
-      ).sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-      
-      const femaleArtists = artistsData.filter(a => 
-        a.artistType === 'female' || a.gender === 'female'
-      ).sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-      
-      const groupArtists = artistsData.filter(a => 
-        a.artistType === 'group' || a.gender === 'group' ||
-        a.artistType === 'band' || a.gender === 'band'
-      ).sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-      
-      // 最新上架用男歌手評分第二高的
-      const secondMaleArtist = maleArtists[1] || maleArtists[0] || null
-      
-      setCategoryCovers({
-        male: maleArtists[0] || null,
-        female: femaleArtists[0] || null,
-        group: groupArtists[0] || null,
-        recent: secondMaleArtist
-      })
-      
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleSongClick = (songId) => {
     router.push(`/tabs/${songId}`)
