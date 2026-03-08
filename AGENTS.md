@@ -480,6 +480,7 @@ text-white / text-[#B3B3B3] / text-[#FFD700]
 | `scripts/import-100-tabs.js` | 導入第 31-130 篇（已執行） |
 | `scripts/fix-migrated-tabs.js` | 修復已導入但缺少 artistId 的 tabs |
 | `scripts/fix-all-artist-names.js` | 修復雙語歌手名 + 合併重複歌手（命令列工具） |
+| `scripts/fill-playlist-by-lyricist.js` | 按填詞人（如林夕）將符合嘅歌寫入指定 playlist：`node scripts/fill-playlist-by-lyricist.js 林夕 <playlistId>` |
 | `pages/admin/import-tabs.js` | 後台手動導入頁面（單首/CSV 批量） |
 | `pages/admin/migrated-tabs.js` | **遷移樂譜管理後台**（查看/編輯/刪除/修復問題、維基搜尋） |
 | `pages/admin/artists-v2.js` | **歌手管理 V2**（統一管理、多選批量設置分類） |

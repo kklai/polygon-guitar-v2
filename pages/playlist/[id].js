@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES } from '@/lib/playlists'
+import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { recordPlaylistView } from '@/lib/recentViews'
@@ -16,7 +17,6 @@ export default function PlaylistDetail() {
   const [playlist, setPlaylist] = useState(null)
   const [songs, setSongs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [viewMode, setViewMode] = useState('list') // 'list' | 'grid'
   const [sortMode, setSortMode] = useState('default') // 'default' | 'artist' | 'year' | 'shuffle'
   const [shuffleOrder, setShuffleOrder] = useState([]) // shuffle 時用嘅固定次序（indices），避免每次 re-render 重排
 
@@ -27,11 +27,7 @@ export default function PlaylistDetail() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
-  const [dominantColor, setDominantColor] = useState(null) // 封面主色，用於背景漸變
-  const [gradientOpacity, setGradientOpacity] = useState(1) // 滾動到 25% 時漸變層變 0
-  const [gradientStopPx, setGradientStopPx] = useState(null) // 漸變過渡位置：cover 75% 嘅 viewport px
   const [otherPlaylists, setOtherPlaylists] = useState([]) // 其他歌單（頁底 section）
-  const coverRef = useRef(null)
 
   useEffect(() => {
     if (id) {
@@ -68,27 +64,6 @@ export default function PlaylistDetail() {
     }
     return indices
   }
-  // 漸變過渡位置 = 歌單 cover 嘅 75% 位置（viewport 從頂計嘅 px）
-  useLayoutEffect(() => {
-    if (!playlist || !coverRef.current) return
-    const measure = () => {
-      const el = coverRef.current
-      if (!el) return
-      const { top, height } = el.getBoundingClientRect()
-      if (height <= 0) return // cover 未顯示時唔更新，用 fallback 40%
-      const stopAt = top + height * 0.75
-      setGradientStopPx(Math.round(stopAt))
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(coverRef.current)
-    window.addEventListener('resize', measure)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [playlist])
-
   // 切換歌單時清空 shuffle 次序，等下次用新歌單再算
   useEffect(() => {
     setShuffleOrder([])
@@ -99,105 +74,6 @@ export default function PlaylistDetail() {
       setShuffleOrder(computeShuffleOrder(songs.length))
     }
   }, [sortMode, songs.length])
-
-  // 頁面滾動到 25% 時漸變層透明度變 0（0% → opacity 1，25% → opacity 0）
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const onScroll = () => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-      if (maxScroll <= 0) {
-        setGradientOpacity(1)
-        return
-      }
-      const progress = window.scrollY / maxScroll
-      const opacity = progress >= 0.25 ? 0 : Math.max(0, 1 - progress / 0.25)
-      setGradientOpacity(opacity)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [playlist])
-
-  // 從封面圖提取「最突出」嘅顏色（飽和度高、搶眼）用於背景漸變
-  useEffect(() => {
-    if (!playlist?.coverImage || typeof window === 'undefined') {
-      setDominantColor(null)
-      return
-    }
-    const img = new window.Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      try {
-        const size = 64
-        const canvas = document.createElement('canvas')
-        canvas.width = size
-        canvas.height = size
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-        ctx.drawImage(img, 0, 0, size, size)
-        const data = ctx.getImageData(0, 0, size, size).data
-        const step = 4
-        const bucket = {}
-        for (let i = 0; i < data.length; i += step) {
-          const r = data[i]
-          const g = data[i + 1]
-          const b = data[i + 2]
-          const a = data[i + 3]
-          if (a < 128) continue
-          const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-          if (lum < 0.08 || lum > 0.95) continue
-          const key = (r >> 3) + ',' + (g >> 3) + ',' + (b >> 3)
-          bucket[key] = (bucket[key] || 0) + 1
-        }
-        const total = Object.values(bucket).reduce((a, b) => a + b, 0)
-        const minCount = Math.max(1, total * 0.005)
-
-        function saturationFromKey(key) {
-          const [r, g, b] = key.split(',').map((n) => (parseInt(n, 10) << 3) + 4)
-          const max = Math.max(r, g, b) / 255
-          const min = Math.min(r, g, b) / 255
-          if (max === 0) return 0
-          return (max - min) / max
-        }
-
-        let bestKey = null
-        let bestScore = -1
-        for (const k in bucket) {
-          if (bucket[k] < minCount) continue
-          const sat = saturationFromKey(k)
-          const score = sat * (1 + Math.log(1 + bucket[k]))
-          if (score > bestScore) {
-            bestScore = score
-            bestKey = k
-          }
-        }
-        if (!bestKey) {
-          let maxCount = 0
-          for (const k in bucket) {
-            if (bucket[k] > maxCount) {
-              maxCount = bucket[k]
-              bestKey = k
-            }
-          }
-        }
-        if (bestKey) {
-          const parts = bestKey.split(',').map((n) => parseInt(n, 10))
-          const r = Math.max(0, Math.min(255, (parts[0] << 3) + 4))
-          const g = Math.max(0, Math.min(255, (parts[1] << 3) + 4))
-          const b = Math.max(0, Math.min(255, (parts[2] << 3) + 4))
-          const hex = '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')
-          setDominantColor(hex)
-        } else {
-          setDominantColor(null)
-        }
-      } catch (e) {
-        setDominantColor(null)
-      }
-    }
-    img.onerror = () => setDominantColor(null)
-    img.src = playlist.coverImage
-    return () => { img.src = '' }
-  }, [playlist?.coverImage])
 
   const loadPlaylistData = async () => {
     try {
@@ -232,11 +108,6 @@ export default function PlaylistDetail() {
       // 記錄瀏覽（支援未登入用戶）
       recordPlaylistView(user?.uid || null, playlistData);
       
-      // 如果歌單有設置默認視圖模式，使用它
-      if (playlistData.viewMode) {
-        setViewMode(playlistData.viewMode)
-      }
-      
       // 獲取歌曲詳情
       if (playlistData.songIds && playlistData.songIds.length > 0) {
         const songDetails = await getPlaylistSongs(playlistData.songIds)
@@ -247,32 +118,6 @@ export default function PlaylistDetail() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const getThumbnail = (song) => {
-    // 1. 優先使用用戶自訂封面
-    if (song.coverImage) {
-      return song.coverImage
-    }
-    // 2. 其次使用 Spotify 專輯封面
-    if (song.albumImage) {
-      return song.albumImage
-    }
-    // 3. 使用 YouTube 縮圖
-    if (song.youtubeVideoId) {
-      return `https://img.youtube.com/vi/${song.youtubeVideoId}/hqdefault.jpg`
-    }
-    if (song.youtubeUrl) {
-      const match = song.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
-      if (match) {
-        return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`
-      }
-    }
-    // 4. 最後使用歌手相片做 fallback
-    if (song.artistPhoto) {
-      return song.artistPhoto
-    }
-    return null
   }
 
   const handleSongClick = (songId) => {
@@ -331,31 +176,6 @@ export default function PlaylistDetail() {
     return date.toLocaleDateString('zh-HK')
   }
 
-  // 獲取歌單漸變色
-  const getGradient = (playlist) => {
-    if (!playlist) return 'from-gray-800 to-black'
-    
-    if (playlist.source === 'auto') {
-      // 自動歌單 - 冷色調
-      switch (playlist.autoType) {
-        case 'monthly': return 'from-blue-900/40 to-black'
-        case 'weekly': return 'from-cyan-900/40 to-black'
-        case 'trending': return 'from-purple-900/40 to-black'
-        case 'alltime': return 'from-indigo-900/40 to-black'
-        default: return 'from-blue-900/40 to-black'
-      }
-    } else {
-      // 手動歌單 - 暖色調
-      switch (playlist.manualType) {
-        case 'artist': return 'from-orange-900/40 to-black'
-        case 'theme': return 'from-amber-900/40 to-black'
-        case 'series': return 'from-yellow-900/40 to-black'
-        case 'mood': return 'from-rose-900/40 to-black'
-        default: return 'from-[#FFD700]/20 to-black'
-      }
-    }
-  }
-
   // 更多操作
   const handleMoreClick = async (e, song) => {
     e.stopPropagation()
@@ -383,7 +203,7 @@ export default function PlaylistDetail() {
 
   const handleAddToLiked = async () => {
     if (!selectedSong || !user) {
-      alert('請先登入')
+      alert('請先登入後即可收藏喜愛的結他譜')
       return
     }
     try {
@@ -397,7 +217,7 @@ export default function PlaylistDetail() {
 
   const handleAddToPlaylistClick = () => {
     if (!user) {
-      alert('請先登入')
+      alert('請先登入後即可收藏喜愛的結他譜')
       return
     }
     setShowActionModal(false)
@@ -430,16 +250,13 @@ export default function PlaylistDetail() {
   }
 
   if (isLoading) {
-    const loadColor = dominantColor || '#fbae17'
-    const loadGradient = `linear-gradient(to bottom, ${loadColor} -50%, black 40%, black 100%)`
     return (
       <Layout fullWidth hideHeader>
         <Head>
           <meta name="theme-color" content="transparent" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         </Head>
-        <div className="fixed inset-0 z-0 pointer-events-none" style={{ background: loadGradient }} aria-hidden />
-        <div className="relative z-10 min-h-screen pb-24 pt-[env(safe-area-inset-top)]">
+        <div className="relative z-10 min-h-screen pb-24 pt-[env(safe-area-inset-top)] bg-black">
           <div className="h-64 bg-gray-800/50 animate-pulse" />
           <div className="px-6 py-4 space-y-3">
             {[...Array(8)].map((_, i) => (
@@ -453,25 +270,13 @@ export default function PlaylistDetail() {
 
   if (!playlist) return null
 
-  const gradientColor = dominantColor || '#fbae17'
-
   return (
     <Layout fullWidth hideHeader>
       <Head>
         <meta name="theme-color" content="transparent" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </Head>
-      {/* 圖2風格：漸變過渡喺 cover 75% 位置，滾動到 25% 時透明度變 0 */}
-      <div
-        className="playlist-page-gradient fixed inset-0 z-0 pointer-events-none transition-opacity duration-300"
-        style={{
-          '--playlist-gradient-color': gradientColor,
-          '--playlist-gradient-stop': gradientStopPx != null ? `${gradientStopPx}px` : '40%',
-          opacity: gradientOpacity,
-        }}
-        aria-hidden
-      />
-      <div className="relative z-10 min-h-screen pb-24" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="relative z-10 min-h-screen pb-24 bg-black" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {/* 返回：絕對定位；封面：置中 */}
         <div className="relative px-4 sm:px-6 pt-4 pb-4">
           <Link
@@ -508,7 +313,7 @@ export default function PlaylistDetail() {
             </button>
           )}
           <div className="flex justify-center">
-          <div ref={coverRef} className="w-full max-w-[60vw] aspect-square overflow-hidden rounded bg-[#282828] shadow-xl">
+          <div className="w-full max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded bg-[#282828] shadow-xl">
             {playlist.coverImage ? (
               <img 
                 src={playlist.coverImage} 
@@ -518,9 +323,7 @@ export default function PlaylistDetail() {
                 decoding="async"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFD700] to-orange-500">
-                <span className="text-5xl">🎵</span>
-              </div>
+              <div className="w-full h-full flex items-center justify-center bg-[#282828]" />
             )}
           </div>
           </div>
@@ -557,22 +360,10 @@ export default function PlaylistDetail() {
           </div>
         </div>
 
-        {/* 簡介 - SVG 18px #ccc */}
+        {/* 簡介 - 與下面歌手名同 style：0.85rem #999 */}
         {playlist.description && (
           <div className="px-4 sm:px-6 pb-0">
-            <p className="text-[#ccc] text-[14px] leading-snug line-clamp-4 whitespace-pre-line">{playlist.description}</p>
-          </div>
-        )}
-
-        {/* Auto Playlist Notice */}
-        {playlist.source === 'auto' && (
-          <div className="mx-6 sm:mx-8 mb-3 p-3 bg-blue-900/20 border border-blue-800 rounded-lg">
-            <p className="text-sm text-blue-300 flex items-center gap-2">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              此歌單由系統根據瀏覽數據自動生成，內容會定期更新。
-            </p>
+            <p className="text-[0.85rem] text-[#999] leading-snug line-clamp-4 whitespace-pre-line">{playlist.description}</p>
           </div>
         )}
 
@@ -638,51 +429,22 @@ export default function PlaylistDetail() {
                 </svg>
               </button>
             </div>
-            {/* 右：列表/網格 Toggle Switch - 滑動動畫 */}
-            <button
-              type="button"
-              onClick={() => setViewMode((prev) => (prev === 'list' ? 'grid' : 'list'))}
-              className="relative flex rounded overflow-hidden flex-shrink-0 border border-[#1a1a1a] w-20 h-10 bg-[#1a1a1a]"
-              title={viewMode === 'list' ? '切換至網格' : '切換至列表'}
-              aria-pressed={viewMode === 'grid'}
-              aria-label={viewMode === 'list' ? '列表視圖' : '網格視圖'}
-            >
-              {/* 滑動黃底：獨立圖層 will-change 減少 reflow，rounded 用 overflow 裁切 */}
-              <span
-                className={`absolute top-0 bottom-0 left-0 w-10 h-full z-[1] bg-[#ffd702] transition-[transform] duration-200 ease-out will-change-transform ${viewMode === 'list' ? 'rounded-l' : 'rounded-r'}`}
-                style={{ transform: viewMode === 'list' ? 'translateX(0) translateZ(0)' : 'translateX(100%) translateZ(0)' }}
-                aria-hidden
-              />
-              {/* icon 固定高度、translateZ(0) 獨立圖層，避免滑動時上下閃 */}
-              <span className={`relative z-10 w-1/2 min-w-0 h-full flex items-center justify-center transition-colors duration-200 ${viewMode === 'list' ? 'text-black' : 'text-gray-400'}`} style={{ transform: 'translateZ(0)' }}>
-                <svg className="w-5 h-5 block shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </span>
-              <span className={`relative z-10 w-1/2 min-w-0 h-full flex items-center justify-center transition-colors duration-200 ${viewMode === 'grid' ? 'text-black' : 'text-gray-400'}`} style={{ transform: 'translateZ(0)' }}>
-                <svg className="w-5 h-5 block shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </span>
-            </button>
           </div>
         )}
 
-        {/* Songs List / Grid */}
-        {viewMode === 'list' ? (
-          /* 列表視圖 - 60×60 縮圖, 歌名 1.5rem 同歌單標題, 21px 歌手 #999 */
+        {/* Songs List */}
+        {songs.length > 0 && (
           <div className="px-4 sm:px-6">
-            {sortedSongs.map((song, index) => (
+            {sortedSongs.map((song) => (
               <div key={song.id} className="group">
                 <button
                   onClick={() => handleSongClick(song.id)}
                   className="w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded-[7px] md:hover:bg-white/5 md:transition"
                 >
-                  {/* Thumbnail 49×49（再縮細 10%） */}
                   <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
-                    {getThumbnail(song) ? (
+                    {getSongThumbnail(song) ? (
                       <img
-                        src={getThumbnail(song)}
+                        src={getSongThumbnail(song)}
                         alt={song.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
@@ -692,28 +454,17 @@ export default function PlaylistDetail() {
                       <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
                     )}
                   </div>
-
-                  {/* Info - 歌名 1rem、歌手 0.85rem */}
                   <div className="flex-1 text-left min-w-0">
                     <h3 className="text-[1rem] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
                       {song.title}
                     </h3>
                     <p className="text-[0.85rem] text-[#999] truncate">{song.artist}</p>
                   </div>
-
-                  {/* Key - 可選 */}
-                  <span className="text-xs text-[#FFD700] bg-[#FFD700]/10 px-2 py-1 rounded hidden sm:block">
-                    {song.originalKey || 'C'}
-                  </span>
-
-                  {/* Views - 只在自動歌單顯示 */}
                   {playlist.source === 'auto' && (
                     <span className="text-xs text-gray-600 hidden sm:block">
                       {(song.viewCount || 0).toLocaleString()} 瀏覽
                     </span>
                   )}
-
-                  {/* 三點 icon - 用你提供嘅 SVG */}
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
                     className="p-2 text-[#999] hover:text-white transition"
@@ -724,53 +475,6 @@ export default function PlaylistDetail() {
                       <circle cx="13.69" cy="1.27" r="1.27" />
                     </svg>
                   </button>
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* 網格視圖 - 似首頁熱門譜咁 */
-          <div className="flex overflow-x-auto scrollbar-hide px-4 sm:px-6 gap-4 pb-4">
-            {sortedSongs.map((song, index) => (
-              <div key={song.id} className="flex-shrink-0 flex flex-col group w-[146px] relative">
-                {/* Square Cover 146×146（放大 15%） */}
-                <button
-                  onClick={() => handleSongClick(song.id)}
-                  className="w-[146px] h-[146px] rounded-lg overflow-hidden bg-gray-800 mb-2 transition-transform duration-300 group-hover:scale-105 shadow-lg relative"
-                >
-                  {getThumbnail(song) ? (
-                    <img
-                      src={getThumbnail(song)}
-                      alt={song.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">
-                      🎸
-                    </div>
-                  )}
-                </button>
-
-                {/* 三點按鈕 - 網格視圖（用你提供嘅 SVG） */}
-                <button
-                  onClick={(e) => handleMoreClick(e, song)}
-                  className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
-                >
-                  <svg className="w-3 h-3" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
-                    <circle cx="1.27" cy="1.27" r="1.27" />
-                    <circle cx="7.48" cy="1.27" r="1.27" />
-                    <circle cx="13.69" cy="1.27" r="1.27" />
-                  </svg>
-                </button>
-                
-                {/* Song Info */}
-                <button onClick={() => handleSongClick(song.id)} className="text-left">
-                  <h3 className="text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition">
-                    {song.title}
-                  </h3>
-                  <p className="text-[0.85rem] text-gray-500 truncate">{song.artist}</p>
                 </button>
               </div>
             ))}
@@ -950,9 +654,6 @@ export default function PlaylistDetail() {
       {/* Custom Styles for scrollbar-hide */}
 
       <style jsx global>{`
-        .playlist-page-gradient {
-          background: linear-gradient(to bottom, var(--playlist-gradient-color) -50%, black var(--playlist-gradient-stop, 40%), black 100%);
-        }
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;

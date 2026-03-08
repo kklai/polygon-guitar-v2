@@ -28,6 +28,17 @@ export default function Library() {
     return () => unsubscribe();
   }, []);
 
+  // 頁面重新顯示時重新載入喜愛數量（例如從譜頁撳完喜愛返嚟）
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && user?.uid) {
+        loadData(user.uid);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [user?.uid]);
+
   const loadData = async (userId) => {
     setLoading(true);
     try {

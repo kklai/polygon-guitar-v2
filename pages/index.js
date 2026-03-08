@@ -973,38 +973,6 @@ export default function Home() {
     }
   };
 
-  // 獲取歌曲/歌單縮圖
-  const getThumbnail = (item, artistPhoto = null) => {
-    // 如果是歌單且有封面
-    if (item.coverImage) {
-      return item.coverImage
-    }
-    // 如果是歌曲：優先順序 自訂封面 > Spotify 專輯相 > YouTube > 歌手相
-    // 1. 用戶自訂封面（coverImage）
-    if (item.coverImage) {
-      return item.coverImage
-    }
-    // 2. Spotify 專輯封面
-    if (item.albumImage) {
-      return item.albumImage
-    }
-    // 3. YouTube 縮圖
-    if (item.youtubeVideoId) {
-      return `https://img.youtube.com/vi/${item.youtubeVideoId}/mqdefault.jpg`
-    }
-    if (item.youtubeUrl) {
-      const match = item.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
-      if (match) {
-        return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
-      }
-    }
-    // 4. 如果提供了歌手照片，用作 fallback
-    if (artistPhoto) {
-      return artistPhoto
-    }
-    return null
-  }
-
   // 處理分類點擊
   const handleCategoryClick = (categoryId) => {
     router.push(`/artists?category=${categoryId}`)

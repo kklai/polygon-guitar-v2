@@ -6,6 +6,7 @@ import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { getSongThumbnail } from '@/lib/getSongThumbnail'
 
 // Bio 配置（會從資料庫載入）
 const DEFAULT_BIO_CONFIG = {
@@ -293,32 +294,6 @@ export default function PublicProfile() {
   const socialMedia = profile?.socialMedia || {}
   const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
 
-  // 獲取縮圖 URL - 嘗試多個欄位
-  const getThumbnail = (tab) => {
-    // 優先順序：thumbnail > albumImage > youtube thumbnail > youtubeUrl 提取
-    if (tab.thumbnail) return tab.thumbnail
-    if (tab.albumImage) return tab.albumImage
-    if (tab.youtubeThumbnail) return tab.youtubeThumbnail
-    
-    // 從 youtubeUrl 提取視頻 ID 生成縮圖
-    if (tab.youtubeUrl) {
-      const videoId = extractYouTubeId(tab.youtubeUrl)
-      if (videoId) {
-        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
-      }
-    }
-    
-    return null
-  }
-  
-  // 提取 YouTube 視頻 ID
-  const extractYouTubeId = (url) => {
-    if (!url) return null
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
-    const match = url.match(regExp)
-    return (match && match[2].length === 11) ? match[2] : null
-  }
-
   if (isLoading) {
     return (
       <Layout hideHeader>
@@ -459,7 +434,7 @@ export default function PublicProfile() {
             <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
             <div className="space-y-4">
               {uploads.slice(0, 5).map((tab, index) => {
-                const thumbnail = getThumbnail(tab)
+                const thumbnail = getSongThumbnail(tab)
                 return (
                   <Link key={tab.id} href={`/tabs/${tab.id}`}>
                     <div className="flex items-center gap-3 p-2 hover:bg-gray-900/50 rounded-lg transition cursor-pointer group">

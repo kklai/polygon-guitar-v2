@@ -92,7 +92,10 @@ export default function UserPlaylistDetail() {
   };
 
   const handleAddToLiked = async () => {
-    if (!selectedSong || !user) return;
+    if (!selectedSong || !user) {
+      alert('請先登入後即可收藏喜愛的結他譜');
+      return;
+    }
     try {
       const result = await toggleLikeSong(user.uid, selectedSong.id);
       alert(result.isLiked ? '已加到最喜愛 ❤️' : '已取消最喜愛');

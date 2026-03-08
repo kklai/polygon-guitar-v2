@@ -243,7 +243,7 @@ export default function TabDetail() {
 
   const handleAddToLiked = async () => {
     if (!user) {
-      alert('請先登入');
+      alert('請先登入後即可收藏喜愛的結他譜');
       return;
     }
     try {

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { getAllTabs } from '@/lib/tabs'
 import { getPlaylist, updatePlaylist } from '@/lib/playlists'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { getSongThumbnail } from '@/lib/getSongThumbnail'
 
 function EditPlaylist() {
   const router = useRouter()
@@ -189,20 +190,6 @@ function EditPlaylist() {
     }
   }
 
-  // 獲取歌曲縮圖（與首頁 TabCard 一致：Spotify > YouTube > thumbnail > 歌手相）
-  const getThumbnail = (song) => {
-    if (song.albumImage) return song.albumImage
-    if (song.youtubeVideoId) {
-      return `https://img.youtube.com/vi/${song.youtubeVideoId}/mqdefault.jpg`
-    }
-    if (song.youtubeUrl) {
-      const match = song.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
-      if (match) return `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg`
-    }
-    if (song.thumbnail) return song.thumbnail
-    return null
-  }
-
   if (!isAdmin) {
     return (
       <Layout>
@@ -354,44 +341,6 @@ function EditPlaylist() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  顯示模式
-                </label>
-                <div className="flex bg-black border border-gray-800 rounded-lg p-1">
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, viewMode: 'list' }))}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded transition ${
-                      formData.viewMode === 'list'
-                        ? 'bg-[#FFD700] text-black'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    列表
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, viewMode: 'grid' }))}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded transition ${
-                      formData.viewMode === 'grid'
-                        ? 'bg-[#FFD700] text-black'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                    網格
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  網格模式會以卡片形式橫向滾動顯示歌曲
-                </p>
-              </div>
             </div>
 
             {/* Submit Button */}
@@ -448,9 +397,9 @@ function EditPlaylist() {
                     >
                       <span className="text-gray-600 w-6 text-center">{index + 1}</span>
                       <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
-                        {getThumbnail(song) ? (
+                        {getSongThumbnail(song) ? (
                           <img
-                            src={getThumbnail(song)}
+                            src={getSongThumbnail(song)}
                             alt={song.title}
                             className="w-full h-full object-cover"
                           />
@@ -543,9 +492,9 @@ function EditPlaylist() {
                         }`}
                       >
                         <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
-                          {getThumbnail(song) ? (
+                          {getSongThumbnail(song) ? (
                             <img
-                              src={getThumbnail(song)}
+                              src={getSongThumbnail(song)}
                               alt={song.title}
                               className="w-full h-full object-cover"
                             />

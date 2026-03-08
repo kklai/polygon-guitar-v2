@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { toggleLike, hasUserLiked } from '@/lib/tabs'
+import { checkIsLiked, toggleLikeSong } from '@/lib/playlistApi'
 
 // 解析譜內容中的 keys
 function parseKeys(content) {
@@ -51,36 +51,49 @@ function getSongThumbnail(tab) {
   return null
 }
 
-// 單首歌曲項目（包含收藏功能）
+const LOGIN_MESSAGE = '請先登入後即可收藏喜愛的結他譜'
+
+// 單首歌曲項目（包含收藏功能，會加入收藏頁「喜愛結他譜」）
 function SongItem({ song, index, artistPhoto }) {
   const { user, isAuthenticated } = useAuth()
-  const [isLiked, setIsLiked] = useState(hasUserLiked(song, user?.uid))
-  const [likeCount, setLikeCount] = useState(song.likes || 0)
+  const [isLiked, setIsLiked] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+  const likeCount = song.likes || 0
+
+  useEffect(() => {
+    if (!song?.id || !user?.uid) {
+      setIsLiked(false)
+      return
+    }
+    let cancelled = false
+    checkIsLiked(user.uid, song.id).then((liked) => {
+      if (!cancelled) setIsLiked(liked)
+    })
+    return () => { cancelled = true }
+  }, [song?.id, user?.uid])
+
   const keys = parseKeys(song.content)
   const thumbnail = getSongThumbnail(song) || artistPhoto
   const rank = index + 1
-  
+
   const handleLike = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    if (!isAuthenticated) {
-      alert('請先登入才能加到最愛')
+
+    if (!isAuthenticated || !user) {
+      alert(LOGIN_MESSAGE)
       return
     }
-    
+
     if (isLoading) return
-    
+
     setIsLoading(true)
     try {
-      const result = await toggleLike(song.id, user.uid)
-      setIsLiked(result.liked)
-      setLikeCount(result.likes)
+      const result = await toggleLikeSong(user.uid, song.id)
+      setIsLiked(result.isLiked)
     } catch (error) {
       console.error('Like error:', error)
-      alert('操作失敗，請重試')
+      alert('收藏失敗，請重試')
     } finally {
       setIsLoading(false)
     }
@@ -169,7 +182,7 @@ function SongItem({ song, index, artistPhoto }) {
             ? 'bg-red-500/20 text-red-500' 
             : 'bg-gray-800 text-gray-500 hover:bg-gray-700 hover:text-white'
         } ${isLoading ? 'opacity-50' : ''}`}
-        title={isLiked ? '已加到最愛' : '加到最愛'}
+        title={isLiked ? '已收藏至喜愛結他譜' : '收藏至喜愛結他譜'}
       >
         <svg 
           className={`w-5 h-5 ${isLiked ? 'fill-current' : 'stroke-current fill-none'}`}

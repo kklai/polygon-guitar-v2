@@ -24,6 +24,17 @@ export default function LikedSongs() {
     return () => unsubscribe();
   }, []);
 
+  // 頁面重新顯示時（例如從譜頁撳完喜愛返嚟）重新載入，確保顯示最新列表
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && user?.uid) {
+        loadLikedSongs(user.uid);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [user?.uid]);
+
   const loadLikedSongs = async (userId) => {
     setLoading(true);
     try {

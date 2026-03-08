@@ -6,6 +6,108 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { recordPageView, getPageType } from '@/lib/analytics'
 
+const SCROLL_STORAGE_KEY = 'pg_scroll'
+
+function getPath() {
+  if (typeof window === 'undefined') return ''
+  return window.location.pathname + window.location.search
+}
+
+// 返回上一頁時保留滾動位置 + 讓 swipe back 見到上一頁（bfcache）
+function useScrollRestoration() {
+  const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual'
+    }
+
+    const saveScroll = (path) => {
+      const p = path != null ? path : getPath()
+      if (!p) return
+      try {
+        const data = JSON.parse(sessionStorage.getItem(SCROLL_STORAGE_KEY) || '{}')
+        data[p] = window.scrollY
+        sessionStorage.setItem(SCROLL_STORAGE_KEY, JSON.stringify(data))
+      } catch (_) {}
+    }
+
+    const clearRestoreOverlay = () => {
+      try {
+        document.documentElement.classList.remove('pg-restoring')
+      } catch (_) {}
+    }
+
+    const restoreScroll = (url) => {
+      const path = url != null ? url : getPath()
+      let cancelled = false
+      const timeouts = []
+      try {
+        const data = JSON.parse(sessionStorage.getItem(SCROLL_STORAGE_KEY) || '{}')
+        const scrollY = data[path]
+        if (typeof scrollY !== 'number' || scrollY <= 0) return
+
+        const restore = () => {
+          if (!cancelled) window.scrollTo(0, scrollY)
+        }
+
+        // 多次還原，對抗 re-render / data fetch 後被拉回頁首（尤其樂譜頁）
+        requestAnimationFrame(() => requestAnimationFrame(restore))
+        ;[50, 200, 500, 1000, 1500].forEach((ms) => {
+          timeouts.push(setTimeout(restore, ms))
+        })
+
+        // 等內容有機會 render 先再淡出，避免突然閃一下（約 300ms 後移除 overlay）
+        timeouts.push(setTimeout(clearRestoreOverlay, 300))
+
+        // 還原期過後才清除，避免太早清除後被其他邏輯拉回頁首
+        timeouts.push(setTimeout(() => {
+          try {
+            const d = JSON.parse(sessionStorage.getItem(SCROLL_STORAGE_KEY) || '{}')
+            delete d[path]
+            sessionStorage.setItem(SCROLL_STORAGE_KEY, JSON.stringify(d))
+          } catch (_) {}
+        }, 2000))
+
+        return () => {
+          cancelled = true
+          timeouts.forEach(clearTimeout)
+        }
+      } catch (_) {}
+    }
+
+    const handleStart = () => saveScroll(router.asPath)
+    const handleComplete = (url) => restoreScroll(url)
+
+    router.events.on('routeChangeStart', handleStart)
+    router.events.on('routeChangeComplete', handleComplete)
+
+    const onPageHide = () => saveScroll(getPath())
+    const onPageShow = (e) => {
+      if (e.persisted) return // 從 bfcache 還原，唔使做嘢
+      restoreScroll(getPath())
+    }
+
+    window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('pageshow', onPageShow)
+
+    const initialPath = getPath()
+    const cancel = restoreScroll(initialPath)
+    // 無需還原時也移除 overlay（例如 path 唔 match）
+    if (typeof cancel !== 'function') clearRestoreOverlay()
+
+    return () => {
+      router.events.off('routeChangeStart', handleStart)
+      router.events.off('routeChangeComplete', handleComplete)
+      window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('pageshow', onPageShow)
+      if (typeof cancel === 'function') cancel()
+    }
+  }, [router])
+}
+
 // 頁面追蹤組件（在 AuthProvider 內部，可以獲取用戶ID）
 function PageTracker() {
   const router = useRouter()
@@ -46,9 +148,15 @@ function PageTracker() {
   return null
 }
 
+function ScrollRestoration() {
+  useScrollRestoration()
+  return null
+}
+
 export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
+      <ScrollRestoration />
       <PageTracker />
       <Head>
         {/* 預設 Meta Tags */}
@@ -58,9 +166,8 @@ export default function App({ Component, pageProps }) {
         <meta name="author" content="Polygon Guitar" />
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
+        {/* 唔用 no-store，等 iOS 可以用 bfcache：返回時見到上一頁畫面、保留滾動 */}
+        <meta httpEquiv="Cache-Control" content="max-age=0, must-revalidate" />
         
         {/* Open Graph 預設 */}
         <meta property="og:type" content="website" />

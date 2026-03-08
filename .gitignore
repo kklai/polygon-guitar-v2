@@ -26,6 +26,7 @@ npm-debug.log*
 .vercel
 .env*.local
 scripts/firebase-service-account.json
+scripts/.cache-tabs-lyricist.json
 
 # Firebase
 .firebase/
