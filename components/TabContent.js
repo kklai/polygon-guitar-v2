@@ -1313,14 +1313,19 @@ function splitLongPair(chordLine, lyricLine, maxChars = 28, isMobile = false) {
   return [{ chordLine, lyricLine }];
 }
 
-// Find index of space character closest to the middle of the lyric line (for post-render split)
+// Find index of space character closest to the middle of the lyric line (for post-render split).
+// Only considers spaces outside parentheses so we never split inside e.g. (　) and break bracket pairing.
 function findSpaceIndexNearestMiddle(lyricLine) {
   if (!lyricLine || typeof lyricLine !== 'string') return -1;
   const len = lyricLine.length;
   const mid = len / 2;
   const spaceIndices = [];
+  let depth = 0;
   for (let i = 0; i < len; i++) {
-    if (lyricLine[i] === ' ' || lyricLine[i] === '\u3000') spaceIndices.push(i);
+    const c = lyricLine[i];
+    if (c === '(' || c === '（') depth++;
+    else if (c === ')' || c === '）') depth--;
+    else if (depth === 0 && (c === ' ' || c === '\u3000')) spaceIndices.push(i);
   }
   if (spaceIndices.length === 0) return -1;
   let best = spaceIndices[0];
