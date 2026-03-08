@@ -2123,6 +2123,8 @@ const TabContent = ({
                     return { ...s, mode: 'expand', trimmedRemainder: s.remainder };
                   });
 
+                  const lastChordSegIdx = layout.reduce((last, s, i) => (s.chord ? i : last), -1);
+
                   return (
                   <div
                     className="font-light"
@@ -2147,10 +2149,16 @@ const TabContent = ({
                         </span>
                       </span>
                     )}
-                    {layout.map((seg, segIdx) => (
+                    {layout.map((seg, segIdx) => {
+                      const afterLastChord = segIdx > lastChordSegIdx;
+                      const remainderAfterLastChord = segIdx >= lastChordSegIdx;
+                      return (
                       <span key={segIdx} style={{ verticalAlign: 'top' }}>
                         <span style={{ display: 'inline-grid', gridTemplateColumns: '1fr', verticalAlign: 'top' }}>
-                          <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none' }}>
+                          <span style={{
+                            gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none',
+                            ...(afterLastChord ? { width: 0, minWidth: 0, overflow: 'hidden' } : {}),
+                          }}>
                             {seg.bracketPart}
                           </span>
                           {seg.mode === 'expand' && seg.chord && (
@@ -2174,7 +2182,10 @@ const TabContent = ({
                         </span>
                         {seg.remainder ? (
                           <span style={{ display: 'inline-grid', gridTemplateColumns: '1fr', verticalAlign: 'top' }}>
-                            <span style={{ gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none' }}>
+                            <span style={{
+                              gridRow: 1, gridColumn: 1, visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none', pointerEvents: 'none',
+                              ...(remainderAfterLastChord ? { width: 0, minWidth: 0, overflow: 'hidden' } : {}),
+                            }}>
                               {seg.trimmedRemainder != null ? seg.trimmedRemainder : seg.remainder}
                             </span>
                             {seg.chord && seg.chord.trailing && seg.chord.trailing.length > 0 && (
@@ -2197,7 +2208,8 @@ const TabContent = ({
                           </span>
                         ) : null}
                       </span>
-                    ))}
+                    );
+                    })}
                     {result.alignedChords.length > result.lyricSplit.segments.length &&
                       result.alignedChords.slice(result.lyricSplit.segments.length).map((chord, extraIdx) => (
                         <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
