@@ -115,6 +115,22 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
+    // ==================== Saved Artists (已收藏歌手) ====================
+    match /userSavedArtists/{docId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ==================== Saved Playlists (已收藏歌單) ====================
+    match /userSavedPlaylists/{docId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+    }
+
     // ==================== Liked Songs ====================
     match /userLikedSongs/{docId} {
       // 讀：文件唔存在時 getDoc 都要通過（resource == null）；存在時只准讀自己

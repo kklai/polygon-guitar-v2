@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { recordPlaylistView } from '@/lib/recentViews'
 import { useAuth } from '@/contexts/AuthContext'
 import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
-import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist } from '@/lib/playlistApi'
+import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved } from '@/lib/playlistApi'
 
 export default function PlaylistDetail() {
   const router = useRouter()
@@ -28,6 +28,8 @@ export default function PlaylistDetail() {
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [otherPlaylists, setOtherPlaylists] = useState([]) // 其他歌單（頁底 section）
+  const [isSavedToLibrary, setIsSavedToLibrary] = useState(false) // 是否已加入「已收藏歌單」
+  const [isSavingPlaylist, setIsSavingPlaylist] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -68,6 +70,19 @@ export default function PlaylistDetail() {
   useEffect(() => {
     setShuffleOrder([])
   }, [id])
+
+  // 載入「是否已加入已收藏歌單」
+  useEffect(() => {
+    if (!id || !user?.uid) {
+      setIsSavedToLibrary(false)
+      return
+    }
+    let cancelled = false
+    checkIsPlaylistSaved(user.uid, id).then((saved) => {
+      if (!cancelled) setIsSavedToLibrary(saved)
+    })
+    return () => { cancelled = true }
+  }, [id, user?.uid])
   useEffect(() => {
     if (sortMode !== 'shuffle' || !songs.length) return
     if (shuffleOrder.length !== songs.length) {
@@ -208,7 +223,6 @@ export default function PlaylistDetail() {
     }
     try {
       const result = await toggleLikeSong(user.uid, selectedSong.id)
-      alert(result.isLiked ? '已加到最喜愛 ❤️' : '已取消最喜愛')
       setShowActionModal(false)
     } catch (error) {
       alert('操作失敗：' + error.message)
@@ -313,7 +327,7 @@ export default function PlaylistDetail() {
             </button>
           )}
           <div className="flex justify-center">
-          <div className="w-full max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded bg-[#282828] shadow-xl">
+          <div className="w-[60vw] max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded bg-[#282828] shadow-xl">
             {playlist.coverImage ? (
               <img 
                 src={playlist.coverImage} 
@@ -367,9 +381,10 @@ export default function PlaylistDetail() {
           </div>
         )}
 
-        {/* Action Bar：左緣與簡介對齊 (px-4 sm:px-6)，四粒排序 icon 統一 padding 等距 */}
-        {songs.length > 0 && (
+        {/* Action Bar：排序 icon + 加入我的收藏（右邊） */}
+        {playlist && (
           <div className="px-4 sm:px-6 mb-1 pt-0 pb-1 flex items-center gap-3">
+            {songs.length > 0 && (
             <div className="flex flex-1 min-w-0 overflow-x-auto scrollbar-hide items-center gap-0">
               <button
                 type="button"
@@ -429,6 +444,52 @@ export default function PlaylistDetail() {
                 </svg>
               </button>
             </div>
+            )}
+            {/* 加入我的收藏（右邊，再撳可取消收藏） */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user) {
+                  alert('請先登入後即可將歌單加入收藏')
+                  return
+                }
+                if (isSavingPlaylist) return
+                setIsSavingPlaylist(true)
+                try {
+                  if (isSavedToLibrary) {
+                    await removeSavedPlaylist(user.uid, id)
+                    setIsSavedToLibrary(false)
+                  } else {
+                    await savePlaylistToLibrary(user.uid, id)
+                    setIsSavedToLibrary(true)
+                  }
+                } catch (err) {
+                  console.error('加入收藏失敗:', err)
+                  alert('加入收藏失敗，請重試')
+                } finally {
+                  setIsSavingPlaylist(false)
+                }
+              }}
+              disabled={isSavingPlaylist}
+              title={isSavedToLibrary ? '已收藏（撳一下取消）' : '加入我的收藏'}
+              className={`flex-shrink-0 flex items-center gap-2 p-1 rounded-full outline-none ${
+                isSavedToLibrary ? 'text-[#FFD700] py-2 px-2' : 'text-gray-400'
+              } ${isSavingPlaylist ? 'opacity-50' : ''}`}
+            >
+              {isSavedToLibrary ? (
+                <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
+                  <circle cx="4.36" cy="4.36" r="3.99" />
+                  <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
+                  <circle cx="4.36" cy="4.36" r="3.99" />
+                  <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
+                  <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
+                </svg>
+              )}
+              {isSavedToLibrary && <span className="text-sm whitespace-nowrap">已收藏</span>}
+            </button>
           </div>
         )}
 
@@ -439,7 +500,7 @@ export default function PlaylistDetail() {
               <div key={song.id} className="group">
                 <button
                   onClick={() => handleSongClick(song.id)}
-                  className="w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded-[7px] md:hover:bg-white/5 md:transition"
+                  className="w-full flex items-center gap-3 py-2 pl-2 pr-2 rounded-[7px] md:hover:bg-white/5 md:transition"
                 >
                   <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
@@ -467,7 +528,7 @@ export default function PlaylistDetail() {
                   )}
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
-                    className="p-2 text-[#999] hover:text-white transition"
+                    className="pl-1 pr-0 py-1 flex items-center justify-end flex-shrink-0 text-[#999] hover:text-white transition"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
                       <circle cx="1.27" cy="1.27" r="1.27" />

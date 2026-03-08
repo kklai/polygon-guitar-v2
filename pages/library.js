@@ -3,14 +3,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Heart, Share2, Music, X } from 'lucide-react';
-import { getUserPlaylists, getUserLikedSongs } from '../lib/playlistApi';
+import { Plus, Heart, Share2, Music, X, User } from 'lucide-react';
+import { getUserPlaylists, getUserLikedSongs, getUserSavedPlaylistIds, getUserSavedArtistIds } from '../lib/playlistApi';
+import { getPlaylist } from '../lib/playlists';
 import Layout from '../components/Layout';
 
 export default function Library() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [playlists, setPlaylists] = useState([]);
+  const [savedPlaylists, setSavedPlaylists] = useState([]); // 已收藏歌單（站內 playlists）
+  const [savedArtists, setSavedArtists] = useState([]); // 已收藏歌手
   const [likedCount, setLikedCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -63,6 +66,20 @@ export default function Library() {
       );
       
       setPlaylists(playlistsWithCovers);
+      
+      // 已收藏歌單（站內 playlists）
+      const savedIds = await getUserSavedPlaylistIds(userId);
+      const savedList = await Promise.all(
+        savedIds.map((pid) => getPlaylist(pid).then((p) => (p ? { ...p, id: p.id } : null)))
+      );
+      setSavedPlaylists(savedList.filter(Boolean));
+      
+      // 已收藏歌手
+      const savedArtistIds = await getUserSavedArtistIds(userId);
+      const artistsList = await Promise.all(
+        savedArtistIds.map((aid) => getDoc(doc(db, 'artists', aid)).then((snap) => (snap.exists() ? { id: snap.id, ...snap.data() } : null)))
+      );
+      setSavedArtists(artistsList.filter(Boolean));
       
       // 獲取喜愛歌曲數量
       const likedSongs = await getUserLikedSongs(userId);
@@ -148,35 +165,84 @@ export default function Library() {
           <h1 className="text-white text-2xl font-bold">收藏</h1>
         </div>
 
-        {/* 歌單網格 */}
+        {/* 歌單網格：固定 3 欄 */}
         <div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-[14px]">
             {/* 喜愛結他譜（系統預設） */}
             <div 
               onClick={handleLikedSongsClick}
-              className="cursor-pointer group max-w-[144px]"
+              className="cursor-pointer group"
             >
-              <div className="aspect-square rounded-[4px] bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center mb-2 relative overflow-hidden shadow-lg max-w-[144px] max-h-[144px]">
+              <div className="aspect-square rounded-[4px] bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center mb-2 relative overflow-hidden shadow-lg">
                 <Heart className="w-12 h-12 sm:w-14 sm:h-14 text-white fill-white" />
-                {likedCount > 0 && (
-                  <div className="absolute bottom-2 right-2 bg-black/20 px-2 py-1 rounded-full">
-                    <span className="text-white text-xs font-bold">{likedCount}</span>
-                  </div>
-                )}
               </div>
               <h3 className="text-white font-bold mb-1">喜愛結他譜</h3>
               <p className="text-[#B3B3B3] text-sm">歌單 • {likedCount}份譜</p>
             </div>
 
+            {/* 已收藏歌手（圓形頭像，同首頁熱門歌手） */}
+            {savedArtists.map((ar) => (
+              <div
+                key={ar.id}
+                onClick={() => router.push(`/artists/${ar.id}`)}
+                className="cursor-pointer group"
+              >
+                <div className="aspect-square rounded-full overflow-hidden mb-2 bg-[#282828] shadow-lg relative max-w-full">
+                  {ar.photoURL || ar.wikiPhotoURL ? (
+                    <img
+                      src={ar.photoURL || ar.wikiPhotoURL}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#282828]">
+                      <User className="w-12 h-12 text-[#3E3E3E]" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-white font-bold mb-1 truncate">{ar.name}</h3>
+                <p className="text-[#B3B3B3] text-sm">歌手</p>
+              </div>
+            ))}
+
+            {/* 已收藏歌單（站內歌單收藏） */}
+            {savedPlaylists.map((pl) => (
+              <div
+                key={pl.id}
+                onClick={() => router.push(`/playlist/${pl.id}`)}
+                className="cursor-pointer group"
+              >
+                <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative">
+                  {pl.coverImage ? (
+                    <img
+                      src={pl.coverImage}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#282828]">
+                      <Music className="w-12 h-12 text-[#3E3E3E]" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-white font-bold mb-1 truncate">{pl.title}</h3>
+                <p className="text-[#B3B3B3] text-sm">歌單 • {pl.curatedBy || 'Polygon'}</p>
+              </div>
+            ))}
+
             {/* 用戶自建歌單 */}
             {playlists.map((playlist) => (
-              <div key={playlist.id} className="relative group max-w-[144px]">
+              <div key={playlist.id} className="relative group">
                 <div 
                   onClick={() => router.push(`/library/playlist/${playlist.id}`)}
                   className="cursor-pointer"
                 >
                   {/* 封面 - 第一首歌 */}
-                  <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative max-w-[144px] max-h-[144px]">
+                  <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative">
                     {playlist.coverUrl ? (
                       <img 
                         src={playlist.coverUrl} 
@@ -211,7 +277,7 @@ export default function Library() {
             {/* 創建新歌單 */}
             <div 
               onClick={() => setShowCreateModal(true)}
-              className="aspect-square rounded-[4px] bg-[#121212] border-2 border-dashed border-[#3E3E3E] flex flex-col items-center justify-center cursor-pointer hover:border-[#FFD700] hover:bg-[#1a1a1a] transition-colors max-w-[144px] max-h-[144px]"
+              className="aspect-square rounded-[4px] bg-[#121212] border-2 border-dashed border-[#3E3E3E] flex flex-col items-center justify-center cursor-pointer hover:border-[#FFD700] hover:bg-[#1a1a1a] transition-colors"
             >
               <Plus className="w-10 h-10 text-[#3E3E3E] mb-2" />
               <span className="text-[#B3B3B3] text-sm">創新歌單</span>

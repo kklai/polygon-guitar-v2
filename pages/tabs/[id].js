@@ -247,8 +247,7 @@ export default function TabDetail() {
       return;
     }
     try {
-      const result = await toggleLikeSong(user.uid, tab.id);
-      alert(result.isLiked ? '已加到最喜愛 ❤️' : '已取消最喜愛');
+      await toggleLikeSong(user.uid, tab.id);
       setShowActionMenu(false);
     } catch (error) {
       alert('操作失敗：' + error.message);

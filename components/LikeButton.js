@@ -35,9 +35,6 @@ export default function LikeButton({ tab, onLikeToggle, compact = false }) {
     try {
       const result = await toggleLikeSong(user.uid, tab.id)
       setLiked(result.isLiked)
-      if (result.isLiked) {
-        alert('已加入喜愛結他譜，可在「收藏」頁查看')
-      }
       if (onLikeToggle) {
         onLikeToggle(result)
       }

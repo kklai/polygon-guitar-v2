@@ -8,7 +8,7 @@ import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Musi
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist } from '../../lib/tabs';
-import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist } from '../../lib/playlistApi';
+import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { recordPageView } from '../../lib/analytics';
 import { ArtistHeroImage } from '../../components/ArtistImage';
@@ -72,6 +72,8 @@ export default function ArtistPage() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showInfo, setShowInfo] = useState(false); // 控制歌手資訊顯示
   const [expandedTitles, setExpandedTitles] = useState({});
+  const [isArtistSaved, setIsArtistSaved] = useState(false);
+  const [isSavingArtist, setIsSavingArtist] = useState(false);
   
   // 使用 AuthContext
   const { user, isAdmin } = useAuth();
@@ -81,6 +83,19 @@ export default function ArtistPage() {
   useEffect(() => {
     if (id) loadArtistData();
   }, [id]);
+
+  // 載入「是否已收藏歌手」
+  useEffect(() => {
+    if (!id || !user?.uid) {
+      setIsArtistSaved(false);
+      return;
+    }
+    let cancelled = false;
+    checkIsArtistSaved(user.uid, id).then((saved) => {
+      if (!cancelled) setIsArtistSaved(saved);
+    });
+    return () => { cancelled = true };
+  }, [id, user?.uid]);
 
   const loadArtistData = async () => {
     const bust = typeof window !== 'undefined' && localStorage.getItem('pg_artists_bust')
@@ -264,8 +279,7 @@ export default function ArtistPage() {
       return;
     }
     try {
-      const result = await toggleLikeSong(user.uid, selectedTab.id);
-      alert(result.isLiked ? '已加到最喜愛 ❤️' : '已取消最喜愛');
+      await toggleLikeSong(user.uid, selectedTab.id);
       setShowActionModal(false);
     } catch (error) {
       alert('操作失敗：' + error.message);
@@ -427,7 +441,8 @@ export default function ArtistPage() {
       {/* Hero */}
       <div className="relative w-full aspect-[3/2] md:h-[55vh] md:aspect-auto">
         <ArtistHeroImage artist={artist} />
-        {/* 設計圖冇漸變圖層 */}
+        {/* 底部由下而上漸變層（黑 → 透明） */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent opacity-40 pointer-events-none z-[1]" aria-hidden />
         
         {/* 返回按鈕 */}
         <button 
@@ -437,26 +452,63 @@ export default function ArtistPage() {
           <ArrowLeft className="w-6 h-6" />
         </button>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-4xl font-bold text-white leading-tight">{artist.name}</h1>
-            {/* 歌手資訊按鈕 */}
-            <button
-              onClick={() => setShowInfo(!showInfo)}
-              className="p-1.5 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-            {/* Admin 編輯按鈕 */}
-            {isAdmin && (
-              <Link
-                href={`/artists/${artist.id}/edit`}
-                className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition ml-1"
-                title="編輯歌手"
+        <div className="absolute bottom-0 left-0 right-0 pt-10 pb-1 px-4 z-10">
+          <div className="flex items-center gap-2 mb-1">
+            {/* 歌手名 + 資訊、編輯 icon 一組，icon 貼住名右邊 */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h1 className="text-4xl font-bold text-white leading-tight truncate min-w-0">{artist.name}</h1>
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                className="p-1.5 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition flex-shrink-0"
+                title="歌手資訊"
               >
-                <Edit className="w-5 h-5" />
-              </Link>
-            )}
+                <Info className="w-5 h-5" />
+              </button>
+              {isAdmin && (
+                <Link
+                  href={`/artists/${artist.id}/edit`}
+                  className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition flex-shrink-0"
+                  title="編輯歌手"
+                >
+                  <Edit className="w-5 h-5" />
+                </Link>
+              )}
+            </div>
+            {/* 收藏歌手（右邊，可再撳取消收藏） */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user) {
+                  alert('請先登入後即可收藏歌手');
+                  return;
+                }
+                if (isSavingArtist) return;
+                setIsSavingArtist(true);
+                try {
+                  if (isArtistSaved) {
+                    await removeSavedArtist(user.uid, artist.id);
+                    setIsArtistSaved(false);
+                  } else {
+                    await saveArtistToLibrary(user.uid, artist.id);
+                    setIsArtistSaved(true);
+                  }
+                } catch (err) {
+                  console.error('收藏歌手失敗:', err);
+                  alert('收藏失敗，請重試');
+                } finally {
+                  setIsSavingArtist(false);
+                }
+              }}
+              disabled={isSavingArtist}
+              title={isArtistSaved ? '已收藏（撳一下取消）' : '收藏歌手'}
+              className={`ml-auto p-2 rounded-full flex-shrink-0 transition ${
+                isArtistSaved
+                  ? 'bg-[#FFD700] text-black'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              } ${isSavingArtist ? 'opacity-50' : ''}`}
+            >
+              <Heart className={`w-6 h-6 ${isArtistSaved ? 'fill-black' : 'fill-none'}`} strokeWidth={2} />
+            </button>
           </div>
           
           {/* 設計圖冇顯示歌手資訊 */}
