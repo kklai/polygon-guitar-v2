@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { extractChords, ChordDiagramModal, SingleChordDiagram, ChordWithHover, ChordLineWithHover } from './ChordDiagram';
 import GpSegmentPlayer from './GpSegmentPlayer';
 
@@ -1313,6 +1313,110 @@ function splitLongPair(chordLine, lyricLine, maxChars = 28, isMobile = false) {
   return [{ chordLine, lyricLine }];
 }
 
+// Find index of space character closest to the middle of the lyric line (for post-render split)
+function findSpaceIndexNearestMiddle(lyricLine) {
+  if (!lyricLine || typeof lyricLine !== 'string') return -1;
+  const len = lyricLine.length;
+  const mid = len / 2;
+  const spaceIndices = [];
+  for (let i = 0; i < len; i++) {
+    if (lyricLine[i] === ' ' || lyricLine[i] === '\u3000') spaceIndices.push(i);
+  }
+  if (spaceIndices.length === 0) return -1;
+  let best = spaceIndices[0];
+  let bestDist = Math.abs(best - mid);
+  for (let i = 1; i < spaceIndices.length; i++) {
+    const d = Math.abs(spaceIndices[i] - mid);
+    if (d < bestDist) {
+      bestDist = d;
+      best = spaceIndices[i];
+    }
+  }
+  return best;
+}
+
+// Build chord line string from a slice of alignedChords (from processPair result)
+function buildChordLineFromAlignedChords(alignedChords) {
+  if (!alignedChords || alignedChords.length === 0) return '|';
+  let s = '';
+  for (const c of alignedChords) {
+    s += (c.isBarStart ? ' |' : ' ');
+    s += c.displayName;
+    if (c.trailing && c.trailing.length > 0) {
+      for (const t of c.trailing) {
+        s += (t.isBarStart ? ' |' : ' ') + t.name;
+      }
+    }
+  }
+  return s.trimStart() || '|';
+}
+
+// Split one pair into two at space nearest middle; uses result.lyricSplit and result.alignedChords to split chords
+function splitPairAtSpaceNearestMiddle(pair, result) {
+  const { chordLine, lyricLine } = pair;
+  if (!lyricLine || !result?.lyricSplit?.segments?.length || !result?.alignedChords?.length) return null;
+  const splitIdx = findSpaceIndexNearestMiddle(lyricLine);
+  if (splitIdx <= 0 || splitIdx >= lyricLine.length - 1) return null;
+  const lyric1 = lyricLine.slice(0, splitIdx).trimEnd();
+  const lyric2 = lyricLine.slice(splitIdx).trimStart();
+  if (!lyric1 || !lyric2) return null;
+  const { preBracket = '', segments } = result.lyricSplit;
+  let cumulative = (preBracket || '').length;
+  let segIdx = -1;
+  for (let i = 0; i < segments.length; i++) {
+    const endOfSeg = cumulative + segments[i].length;
+    if (splitIdx <= endOfSeg) {
+      segIdx = i;
+      break;
+    }
+    cumulative = endOfSeg;
+  }
+  if (segIdx < 0) segIdx = segments.length - 1;
+  const chordLine1 = buildChordLineFromAlignedChords(result.alignedChords.slice(0, segIdx + 1));
+  const chordLine2 = buildChordLineFromAlignedChords(result.alignedChords.slice(segIdx + 1));
+  if (!chordLine1 || !chordLine2) return null;
+  return [
+    { chordLine: chordLine1, lyricLine: lyric1 },
+    { chordLine: chordLine2, lyricLine: lyric2 },
+  ];
+}
+
+// Wrapper: after render, if chord/lyric line wraps to two lines, split at space nearest middle and re-render as two lines
+function ChordLyricBlockWithWrap({ pair, result, processPair, renderBlock, pairMarginBottom }) {
+  const containerRef = useRef(null);
+  const firstLineRef = useRef(null);
+  const [splitPairs, setSplitPairs] = useState(null);
+
+  useLayoutEffect(() => {
+    if (splitPairs) return;
+    if (!containerRef.current || !firstLineRef.current) return;
+    const containerHeight = containerRef.current.offsetHeight;
+    const lineHeight = firstLineRef.current.offsetHeight;
+    if (containerHeight > lineHeight * 1.3) {
+      const split = splitPairAtSpaceNearestMiddle(pair, result);
+      if (split) setSplitPairs(split);
+    }
+  }, [pair, result, splitPairs]);
+
+  if (splitPairs && splitPairs.length === 2) {
+    return (
+      <>
+        {splitPairs.map((p, idx) => (
+          <div
+            key={idx}
+            style={{
+              marginBottom: idx === 0 ? (pairMarginBottom ?? '0.05em') : 0,
+            }}
+          >
+            {renderBlock(processPair(p), null)}
+          </div>
+        ))}
+      </>
+    );
+  }
+  return renderBlock(result, { chordLineContainerRef: containerRef, firstChordSpanRef: firstLineRef });
+}
+
 // ============ 主組件 ============
 const TabContent = ({ 
   content, 
@@ -2013,7 +2117,7 @@ const TabContent = ({
               : "'Source Code Pro', monospace";
             const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
             elements.push(
-              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom, lineHeight: '1.1' }}>
+              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom }}>
                 {/* Notation lines (before combined chord+lyric) */}
                 {pairIndex === 0 && !hideNotation && notationLines.map(({ index, line: notationLine }) => {
                   const notationFontSize = getLineFontSize(notationLine);
@@ -2100,10 +2204,17 @@ const TabContent = ({
                   }
                 })}
 
+                <ChordLyricBlockWithWrap
+                  pair={pair}
+                  result={result}
+                  processPair={(p) => processPair(p.chordLine, p.lyricLine, transposeSemitones, hideBrackets, displayFont)}
+                  pairMarginBottom={pairMarginBottom}
+                  renderBlock={(res, refs) => (
+                <>
                 {/* 和弦行 — grid alignment: overflow into remainder when space allows, expand cell when it doesn't */}
                 {useGridAlignment ? (() => {
-                  const segs = result.lyricSplit.segments.map((segment, segIdx) => {
-                    const chord = result.alignedChords[segIdx];
+                  const segs = res.lyricSplit.segments.map((segment, segIdx) => {
+                    const chord = res.alignedChords[segIdx];
                     const { bracketPart, remainder } = splitSegmentAtBracketClose(segment);
                     const bw = getTextWidth(bracketPart);
                     const chordText = chord ? ((chord.isBarStart ? '|' : '') + chord.displayName) : '';
@@ -2127,8 +2238,9 @@ const TabContent = ({
 
                   return (
                   <div
+                    ref={refs?.chordLineContainerRef}
                     className="font-light"
-                    data-clean-text={(currentPrefix || '') + result.chordLine + (currentSuffix || '')}
+                    data-clean-text={(currentPrefix || '') + res.chordLine + (currentSuffix || '')}
                     style={{
                       fontSize: `${lineFontSize}px`,
                       whiteSpace: 'pre-wrap',
@@ -2142,10 +2254,10 @@ const TabContent = ({
                         {currentPrefix}
                       </span>
                     )}
-                    {result.lyricSplit.preBracket && (
+                    {res.lyricSplit.preBracket && (
                       <span style={{ display: 'inline-block', verticalAlign: 'top' }}>
                         <span style={{ visibility: 'hidden', whiteSpace: 'pre', userSelect: 'none' }}>
-                          {result.lyricSplit.preBracket}
+                          {res.lyricSplit.preBracket}
                         </span>
                       </span>
                     )}
@@ -2167,7 +2279,9 @@ const TabContent = ({
                             </span>
                           )}
                           {seg.chord && (
-                            <span style={{
+                            <span
+                              ref={refs && segIdx === 0 ? refs.firstChordSpanRef : undefined}
+                              style={{
                               gridRow: 1, gridColumn: 1,
                               justifySelf: seg.mode === 'fit' ? 'center' : 'start',
                               fontFamily: chordFontFamily,
@@ -2210,8 +2324,8 @@ const TabContent = ({
                       </span>
                     );
                     })}
-                    {result.alignedChords.length > result.lyricSplit.segments.length &&
-                      result.alignedChords.slice(result.lyricSplit.segments.length).map((chord, extraIdx) => (
+                    {res.alignedChords.length > res.lyricSplit.segments.length &&
+                      res.alignedChords.slice(res.lyricSplit.segments.length).map((chord, extraIdx) => (
                         <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
                           {chord.isBarStart && '|'}
                           <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
@@ -2229,30 +2343,41 @@ const TabContent = ({
                     )}
                   </div>
                   );
-                })() : (
+                })() : (refs ? (
+                  <div ref={r => { if (r && refs.chordLineContainerRef) refs.chordLineContainerRef.current = r; if (r && refs.firstChordSpanRef) refs.firstChordSpanRef.current = r; }}>
+                    <ChordLineWithHover
+                      chordLine={res.chordLine}
+                      prefix={currentPrefix}
+                      suffix={currentSuffix}
+                      fontSize={lineFontSize}
+                      theme={theme}
+                      displayFont={displayFont}
+                    />
+                  </div>
+                ) : (
                   <ChordLineWithHover
-                    chordLine={result.chordLine}
+                    chordLine={res.chordLine}
                     prefix={currentPrefix}
                     suffix={currentSuffix}
                     fontSize={lineFontSize}
                     theme={theme}
                     displayFont={displayFont}
                   />
-                )}
+                ))}
 
                 {/* 歌詞行 */}
                 <div
-                  data-clean-text={result.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
+                  data-clean-text={res.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
                   style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}
                 >
                   {useGridAlignment ? (
                     <>
-                      {result.lyricSplit.preBracket && (
+                      {res.lyricSplit.preBracket && (
                         <span style={{ whiteSpace: 'pre-wrap', color: colors.lyricNormal, fontWeight: 400 }}>
-                          {result.lyricSplit.preBracket}
+                          {res.lyricSplit.preBracket}
                         </span>
                       )}
-                      {result.lyricSplit.segments.map((segment, segIdx) => {
+                      {res.lyricSplit.segments.map((segment, segIdx) => {
                         const { bracketPart, remainder } = splitSegmentAtBracketClose(segment);
                         const insideWeight = theme === 'day' ? 'bold' : 400;
                         const bracketOpen = bracketPart[0] || '';
@@ -2280,7 +2405,7 @@ const TabContent = ({
                       })}
                     </>
                   ) : (
-                    result.lyricParts.map((part, idx) => {
+                    res.lyricParts.map((part, idx) => {
                       if (hideBrackets && (part.type === 'bracket-open' || part.type === 'bracket-close')) {
                         return <span key={idx}>&nbsp;</span>;
                       }
@@ -2304,6 +2429,9 @@ const TabContent = ({
                     })
                   )}
                 </div>
+                </>
+                  )}
+                />
               </div>
             );
           });
