@@ -209,26 +209,21 @@ export default function LikedSongs() {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </Head>
       <div className="relative z-10 min-h-screen pb-24 bg-black" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        {/* 返回 + 封面區（同歌單頁） */}
-        <div className="relative px-4 sm:px-6 pt-4 pb-4">
+        {/* 返回 + 標題區（無封面） */}
+        <div className="relative pt-4 pb-1" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
           <Link
             href="/library"
-            className="absolute left-4 top-4 z-10 inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
+            className="inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
             aria-label="返回"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </Link>
-          <div className="flex justify-center">
-            <div className="w-[60vw] max-w-[300px] max-h-[300px] aspect-square overflow-hidden rounded bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-xl">
-              <Heart className="w-24 h-24 text-white fill-white" />
-            </div>
-          </div>
         </div>
 
         {/* 標題行：喜愛結他譜 + 共 X 首 */}
-        <div className="px-4 sm:px-6 pb-1">
+        <div className="pb-1" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
           <div className="flex items-baseline justify-between gap-3">
             <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
               喜愛結他譜
@@ -241,7 +236,7 @@ export default function LikedSongs() {
 
         {/* Action Bar：排序 icon（同歌單頁，無收藏掣） */}
         {songs.length > 0 && (
-          <div className="px-4 sm:px-6 mb-1 pt-0 pb-1 flex items-center gap-3">
+          <div className="mb-1 pt-0 pb-1 flex items-center gap-3" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <div className="flex flex-1 min-w-0 overflow-x-auto scrollbar-hide items-center gap-0">
               <button
                 type="button"
@@ -306,12 +301,12 @@ export default function LikedSongs() {
 
         {/* Songs List（同歌單頁） */}
         {songs.length > 0 ? (
-          <div className="px-4 sm:px-6">
+          <div style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             {sortedSongs.map((song) => (
               <div key={song.id} className="group">
                 <button
                   onClick={() => handleSongClick(song.id)}
-                  className="w-full flex items-center gap-3 py-2 pl-2 pr-2 rounded-[7px] md:hover:bg-white/5 md:transition"
+                  className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
                 >
                   <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
@@ -347,7 +342,7 @@ export default function LikedSongs() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
+          <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <Heart className="w-16 h-16 text-[#3E3E3E] mx-auto mb-4" />
             <h3 className="text-xl text-white mb-2">還沒有喜愛的歌曲</h3>
             <p className="text-gray-500 mb-6">將結他譜加入「喜愛」後會顯示在這裡</p>

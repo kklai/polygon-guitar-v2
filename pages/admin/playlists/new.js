@@ -243,7 +243,7 @@ function NewPlaylist() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="例如：陳奕迅結他精選"
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-1 focus:ring-[#FFD700] focus:border-transparent"
                   required
                 />
               </div>
@@ -258,7 +258,7 @@ function NewPlaylist() {
                   onChange={handleChange}
                   placeholder="簡短描述這個歌單..."
                   rows={3}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-1 focus:ring-[#FFD700] focus:border-transparent"
                 />
               </div>
 
@@ -270,7 +270,7 @@ function NewPlaylist() {
                   name="manualType"
                   value={formData.manualType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-1 focus:ring-[#FFD700] focus:border-transparent"
                 >
                   <option value="artist">🎤 歌手精選</option>
                   <option value="theme">🎵 主題歌單</option>
@@ -289,7 +289,7 @@ function NewPlaylist() {
                   value={formData.curatedBy}
                   onChange={handleChange}
                   placeholder="你的名字"
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-1 focus:ring-[#FFD700] focus:border-transparent"
                 />
               </div>
 
@@ -414,10 +414,10 @@ function NewPlaylist() {
                   placeholder="搜尋歌名或歌手..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                 />
                 <svg 
-                  className="absolute left-3 top-3.5 w-5 h-5 text-gray-500"
+                  className="absolute left-3 top-3.5 w-5 h-5 text-[#666]"
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"

@@ -24,12 +24,16 @@ export default async function handler(req, res) {
       artist: d.artist || d.artistName || '',
       originalKey: d.originalKey || '',
       youtubeVideoId: d.youtubeVideoId || d.youtubeUrl?.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1] || '',
+      coverImage: d.coverImage || null,
+      albumImage: d.albumImage || null,
       thumbnail: d.thumbnail || d.albumImage || '',
+      youtubeUrl: d.youtubeUrl || null,
       composer: d.composer || '',
       lyricist: d.lyricist || '',
       arranger: d.arranger || '',
       uploaderPenName: d.uploaderPenName || '',
-      viewCount: d.viewCount || 0
+      viewCount: d.viewCount || 0,
+      uploadYear: d.uploadYear || d.songYear || 0
     }
   })
 

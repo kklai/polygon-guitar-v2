@@ -5,6 +5,7 @@ import { siteConfig } from '@/lib/seo'
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { recordPageView, getPageType } from '@/lib/analytics'
+import { recordView } from '@/lib/libraryRecentViews'
 
 const SCROLL_STORAGE_KEY = 'pg_scroll'
 
@@ -131,6 +132,20 @@ function PageTracker() {
         }
 
         recordPageView(pageType, pageId, pageTitle, {}, user?.uid || null)
+
+        // 收藏頁「最近瀏覽」：記錄歌手/歌單/用戶歌單的瀏覽（依 URL 獨立取 id，去掉 query）
+        const pathOnly = url.split('?')[0]
+        const segments = pathOnly.split('/')
+        if (pathOnly.startsWith('/artists/') && pathOnly !== '/artists') {
+          const artistId = segments[2]
+          if (artistId) recordView('artist', artistId)
+        } else if (pathOnly.startsWith('/library/playlist/')) {
+          const userPlId = segments[3]
+          if (userPlId) recordView('userPlaylist', userPlId)
+        } else if (pathOnly.startsWith('/playlist/')) {
+          const plId = segments[2]
+          if (plId) recordView('playlist', plId)
+        }
       }, 100)
     }
 

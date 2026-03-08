@@ -193,7 +193,7 @@ function SingleArtistField({
           onFocus={() => inputValue && suggestions.length > 0 && setShowDropdown(true)}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+          className="w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
         />
         
         {isLoading && (

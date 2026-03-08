@@ -506,7 +506,7 @@ export default function ArtistsV2Page() {
                 placeholder="搜索歌手..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#121212] text-white border border-gray-700 rounded-lg px-4 py-2 text-sm w-48"
+                className="bg-[#282828] text-white border-0 rounded-full px-4 py-2 text-sm w-48 placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
               />
               <select
                 value={filter}

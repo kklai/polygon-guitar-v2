@@ -316,7 +316,7 @@ function SpotifyManager() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜尋歌曲或歌手..."
-                  className="flex-1 px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600"
+                  className="flex-1 px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                   onKeyPress={(e) => e.key === 'Enter' && searchAndUpdateSong()}
                 />
                 <button

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
+import { addSongToPlaylist } from '@/lib/playlistApi'
+import { useAuth } from '@/contexts/AuthContext'
 
 const STORAGE_KEY = 'searchPageData'
 const CACHE_TTL = 10 * 60 * 1000    // 10 min full cache
@@ -24,7 +26,10 @@ function writeCache(data) {
 
 export default function Search() {
   const router = useRouter()
+  const { user } = useAuth()
+  const addToPlaylistId = router.query.addToPlaylist
   const [searchQuery, setSearchQuery] = useState('')
+  const [addingToPlaylist, setAddingToPlaylist] = useState(null)
   const [songs, setSongs] = useState([])
   const [artists, setArtists] = useState([])
   const [filteredSongs, setFilteredSongs] = useState([])
@@ -106,7 +111,20 @@ export default function Search() {
     )
   }, [searchQuery, songs, artists])
 
-  const handleSongClick = (songId) => {
+  const handleSongClick = async (songId) => {
+    if (addToPlaylistId && user?.uid) {
+      setAddingToPlaylist(songId)
+      try {
+        await addSongToPlaylist(addToPlaylistId, songId)
+        router.push(`/library/playlist/${addToPlaylistId}`)
+      } catch (e) {
+        console.error(e)
+        alert('加入失敗，請重試')
+      } finally {
+        setAddingToPlaylist(null)
+      }
+      return
+    }
     router.push(`/tabs/${songId}`)
   }
 
@@ -179,11 +197,11 @@ export default function Search() {
               placeholder="想彈咩歌？"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-[#FFD700] transition text-base"
+              className="w-full pl-12 pr-4 py-4 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none transition text-base"
               autoFocus
             />
             <svg 
-              className="absolute left-4 top-4 w-6 h-6 text-gray-500"
+              className="absolute left-4 top-4 w-6 h-6 text-[#666]"
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -193,7 +211,7 @@ export default function Search() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
+                className="absolute right-4 top-4 text-[#666] hover:text-white"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -202,6 +220,12 @@ export default function Search() {
             )}
           </div>
         </div>
+
+        {addToPlaylistId && (
+          <p className="px-4 py-2 text-sm text-[#FFD700] bg-[#282828] rounded-lg mx-4 mb-2">
+            為歌單加歌：揀一首會加入歌單並返回
+          </p>
+        )}
 
         {/* Search Results */}
         {searchQuery.trim() !== '' ? (

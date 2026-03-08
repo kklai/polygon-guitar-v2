@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES } from '@/lib/playlists'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { recordPlaylistView } from '@/lib/recentViews'
 import { useAuth } from '@/contexts/AuthContext'
-import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
+import { MoreVertical, Share2, Heart, BookmarkPlus, Music, User } from 'lucide-react'
 import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved } from '@/lib/playlistApi'
 
 export default function PlaylistDetail() {
@@ -27,7 +29,9 @@ export default function PlaylistDetail() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
-  const [otherPlaylists, setOtherPlaylists] = useState([]) // 其他歌單（頁底 section）
+  const [otherPlaylists, setOtherPlaylists] = useState([]) // 推薦歌單（頁底）：2 自動 + 6 手動
+  const [recommendedArtists, setRecommendedArtists] = useState([]) // 推薦歌單內 2 位歌手（由本歌單內隨機）
+  const [recommendedItems, setRecommendedItems] = useState([]) // 歌手 + 歌單合併後隨機排序，用於渲染
   const [isSavedToLibrary, setIsSavedToLibrary] = useState(false) // 是否已加入「已收藏歌單」
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false)
 
@@ -37,7 +41,7 @@ export default function PlaylistDetail() {
     }
   }, [id])
 
-  // 載入其他歌單：最多 2 自動 + 7 自製，合併後隨機排序，次序每次不一
+  // 載入推薦歌單：最多 2 自動 + 6 手動，合併後隨機排序
   useEffect(() => {
     if (!id) return
     let cancelled = false
@@ -45,7 +49,7 @@ export default function PlaylistDetail() {
       .then(({ auto, manual }) => {
         if (cancelled) return
         const autoFiltered = (auto || []).filter((p) => p.id !== id).slice(0, 2)
-        const manualFiltered = (manual || []).filter((p) => p.id !== id).slice(0, 7)
+        const manualFiltered = (manual || []).filter((p) => p.id !== id).slice(0, 6)
         const combined = [...autoFiltered, ...manualFiltered]
         for (let i = combined.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1))
@@ -56,6 +60,61 @@ export default function PlaylistDetail() {
       .catch(() => {})
     return () => { cancelled = true }
   }, [id])
+
+  // 由本歌單內嘅歌手隨機揀 2 位，用於推薦歌單區
+  useEffect(() => {
+    if (!id || songs.length === 0) {
+      setRecommendedArtists([])
+      return
+    }
+    const uniqueByArtistId = []
+    const seen = new Set()
+    for (const s of songs) {
+      const aid = s.artistId || s.artist_id
+      if (aid && !seen.has(aid)) {
+        seen.add(aid)
+        uniqueByArtistId.push(aid)
+      }
+    }
+    if (uniqueByArtistId.length === 0) {
+      setRecommendedArtists([])
+      return
+    }
+    // Fisher–Yates 揀 2 個（唔改原陣列）
+    const pool = [...uniqueByArtistId]
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[pool[i], pool[j]] = [pool[j], pool[i]]
+    }
+    const twoIds = pool.slice(0, 2)
+    let cancelled = false
+    Promise.all(twoIds.map((artistId) => getDoc(doc(db, 'artists', artistId))))
+      .then((snaps) => {
+        if (cancelled) return
+        const list = snaps
+          .filter((s) => s.exists())
+          .map((s) => ({ id: s.id, ...s.data() }))
+        setRecommendedArtists(list)
+      })
+      .catch(() => setRecommendedArtists([]))
+    return () => { cancelled = true }
+  }, [id, songs])
+
+  // 歌手 + 歌單合併後隨機排序，整體次序隨機
+  useEffect(() => {
+    const artists = recommendedArtists.map((ar) => ({ type: 'artist', data: ar }))
+    const playlists = otherPlaylists.map((pl) => ({ type: 'playlist', data: pl }))
+    const combined = [...artists, ...playlists]
+    if (combined.length === 0) {
+      setRecommendedItems([])
+      return
+    }
+    for (let i = combined.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[combined[i], combined[j]] = [combined[j], combined[i]]
+    }
+    setRecommendedItems(combined)
+  }, [recommendedArtists, otherPlaylists])
 
   // 隨機排序：只喺撳 shuffle 或歌曲載入時 shuffle 一次，唔會因 scroll/re-render 重排
   const computeShuffleOrder = (length) => {
@@ -292,10 +351,11 @@ export default function PlaylistDetail() {
       </Head>
       <div className="relative z-10 min-h-screen pb-24 bg-black" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {/* 返回：絕對定位；封面：置中 */}
-        <div className="relative px-4 sm:px-6 pt-4 pb-4">
+        <div className="relative pt-4 pb-4" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
           <Link
             href="/"
-            className="absolute left-4 top-4 z-10 inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
+            className="absolute top-4 z-10 inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
+            style={{ left: '1rem' }}
             aria-label="返回"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -317,7 +377,8 @@ export default function PlaylistDetail() {
                   alert('連結已複製到剪貼簿')
                 }
               }}
-              className="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 text-white hover:text-white/90 transition p-1.5"
+              className="absolute top-4 z-10 inline-flex items-center gap-1.5 text-white hover:text-white/90 transition p-1.5"
+              style={{ right: '1rem' }}
               aria-label="複製連結分享"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -343,47 +404,46 @@ export default function PlaylistDetail() {
           </div>
         </div>
 
-        {/* 標題行：SVG 32px 白字 + 右 15px 灰「共17首 • By Benji」 */}
-        <div className="px-4 sm:px-6 pb-1">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
-                {playlist.title}
-              </h1>
-              {isAdmin && playlist.source === 'manual' && (
-                <Link
-                  href={`/admin/playlists/edit/${id}`}
-                  className="p-1.5 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition flex-shrink-0"
-                  title="編輯歌單"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </Link>
-              )}
+        {/* 標題行 + Action Bar 共用左右 1rem，右緣對齊 */}
+        <div style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
+          <div className="pb-1">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
+                  {playlist.title}
+                </h1>
+                {isAdmin && playlist.source === 'manual' && (
+                  <Link
+                    href={`/admin/playlists/edit/${id}`}
+                    className="p-1.5 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition flex-shrink-0"
+                    title="編輯歌單"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </Link>
+                )}
+              </div>
+              <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
+                共 {songs.length} 首
+                {playlist.source === 'manual' && playlist.curatedBy && (
+                  <> • By {playlist.curatedBy}</>
+                )}
+                {playlist.source === 'auto' && playlist.lastUpdated && (
+                  <> • 更新於 {formatTimeAgo(playlist.lastUpdated)}</>
+                )}
+              </span>
             </div>
-            <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
-              共 {songs.length} 首
-              {playlist.source === 'manual' && playlist.curatedBy && (
-                <> • By {playlist.curatedBy}</>
-              )}
-              {playlist.source === 'auto' && playlist.lastUpdated && (
-                <> • 更新於 {formatTimeAgo(playlist.lastUpdated)}</>
-              )}
-            </span>
           </div>
-        </div>
 
-        {/* 簡介 - 與下面歌手名同 style：0.85rem #999 */}
-        {playlist.description && (
-          <div className="px-4 sm:px-6 pb-0">
-            <p className="text-[0.85rem] text-[#999] leading-snug line-clamp-4 whitespace-pre-line">{playlist.description}</p>
-          </div>
-        )}
+          {playlist.description && (
+            <div className="pb-0">
+              <p className="text-[0.85rem] text-[#999] leading-snug line-clamp-4 whitespace-pre-line">{playlist.description}</p>
+            </div>
+          )}
 
-        {/* Action Bar：排序 icon + 加入我的收藏（右邊） */}
-        {playlist && (
-          <div className="px-4 sm:px-6 mb-1 pt-0 pb-1 flex items-center gap-3">
+          {playlist && (
+          <div className="mb-1 pt-0 pb-1 flex items-center gap-3">
             {songs.length > 0 && (
             <div className="flex flex-1 min-w-0 overflow-x-auto scrollbar-hide items-center gap-0">
               <button
@@ -472,8 +532,8 @@ export default function PlaylistDetail() {
               }}
               disabled={isSavingPlaylist}
               title={isSavedToLibrary ? '已收藏（撳一下取消）' : '加入我的收藏'}
-              className={`flex-shrink-0 flex items-center gap-2 p-1 rounded-full outline-none ${
-                isSavedToLibrary ? 'text-[#FFD700] py-2 px-2' : 'text-gray-400'
+              className={`flex-shrink-0 flex items-center gap-2 rounded-full outline-none pr-0 ${
+                isSavedToLibrary ? 'text-[#FFD700] py-2 pl-2' : 'text-gray-400 p-1 pl-1'
               } ${isSavingPlaylist ? 'opacity-50' : ''}`}
             >
               {isSavedToLibrary ? (
@@ -491,16 +551,17 @@ export default function PlaylistDetail() {
               {isSavedToLibrary && <span className="text-sm whitespace-nowrap">已收藏</span>}
             </button>
           </div>
-        )}
+          )}
+        </div>
 
         {/* Songs List */}
         {songs.length > 0 && (
-          <div className="px-4 sm:px-6">
+          <div style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             {sortedSongs.map((song) => (
               <div key={song.id} className="group">
                 <button
                   onClick={() => handleSongClick(song.id)}
-                  className="w-full flex items-center gap-3 py-2 pl-2 pr-2 rounded-[7px] md:hover:bg-white/5 md:transition"
+                  className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
                 >
                   <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
@@ -544,7 +605,7 @@ export default function PlaylistDetail() {
 
         {/* Empty State */}
         {songs.length === 0 && (
-          <div className="text-center py-16">
+          <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <span className="text-6xl block mb-4">🎸</span>
             <h3 className="text-xl text-white mb-2">暫時冇歌曲</h3>
             <p className="text-gray-500 mb-6">呢個歌單暫時未有歌曲</p>
@@ -557,34 +618,60 @@ export default function PlaylistDetail() {
           </div>
         )}
 
-        {/* 其他歌單 - 一行過橫向滾動，同首頁 Section 一樣 */}
-        {otherPlaylists.length > 0 && (
+        {/* 推薦歌單 - 2 歌手 + 2 自動 + 6 手動，合併後整體隨機排序 */}
+        {recommendedItems.length > 0 && (
           <section className="pt-8 pb-6" style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>其他歌單</h2>
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>推薦歌單</h2>
             <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {otherPlaylists.map((pl) => (
-                <Link
-                  key={pl.id}
-                  href={`/playlist/${pl.id}`}
-                  className="flex-shrink-0 w-36 flex flex-col group"
-                >
-                  <div className="aspect-square rounded-lg overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
-                    {pl.coverImage ? (
-                      <img
-                        src={pl.coverImage}
-                        alt={pl.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
-                    )}
-                  </div>
-                  <h3 className="text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition">
-                    {pl.title}
-                  </h3>
-                </Link>
-              ))}
+              {recommendedItems.map((item) =>
+                item.type === 'artist' ? (
+                  <Link
+                    key={`artist-${item.data.id}`}
+                    href={`/artists/${item.data.id}`}
+                    className="flex-shrink-0 w-36 flex flex-col group"
+                  >
+                    <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
+                      {item.data.photoURL || item.data.wikiPhotoURL ? (
+                        <img
+                          src={item.data.photoURL || item.data.wikiPhotoURL}
+                          alt={item.data.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl">
+                          <User className="w-14 h-14 text-[#3E3E3E]" />
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition">
+                      {item.data.name}
+                    </h3>
+                  </Link>
+                ) : (
+                  <Link
+                    key={item.data.id}
+                    href={`/playlist/${item.data.id}`}
+                    className="flex-shrink-0 w-36 flex flex-col group"
+                  >
+                    <div className="aspect-square rounded-lg overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
+                      {item.data.coverImage ? (
+                        <img
+                          src={item.data.coverImage}
+                          alt={item.data.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                      )}
+                    </div>
+                    <h3 className="text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition">
+                      {item.data.title}
+                    </h3>
+                  </Link>
+                )
+              )}
             </div>
           </section>
         )}
@@ -665,13 +752,17 @@ export default function PlaylistDetail() {
                   </button>
                 ))}
                 
-                {/* 創建新歌單按鈕 */}
+                {/* 創建新歌單按鈕（加掣跟上面「加入我的收藏」一樣：圓形 outline +） */}
                 <button
                   onClick={() => setShowCreatePlaylistInput(true)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
+                  className="w-full flex items-center space-x-3 p-3 md:hover:bg-[#1a1a1a] rounded-lg text-left border-t border-gray-800 mt-2"
                 >
-                  <div className="w-12 h-12 rounded-[4px] bg-[#FFD700] flex items-center justify-center">
-                    <span className="text-black text-2xl font-light">+</span>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-[#FFD700]">
+                    <svg className="w-6 h-6" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
+                      <circle cx="4.36" cy="4.36" r="3.99" />
+                      <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
+                      <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
+                    </svg>
                   </div>
                   <span className="text-[#FFD700] font-medium">創建新歌單</span>
                 </button>

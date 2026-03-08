@@ -530,7 +530,7 @@ function CategoryImagesAdmin() {
                   placeholder="搜索歌手名..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 bg-[#282828] border border-gray-700 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                 />
               </div>
               

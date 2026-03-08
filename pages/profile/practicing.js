@@ -163,7 +163,7 @@ export default function CurrentlyPracticing() {
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="搜尋歌名或歌手..."
-              className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+              className="w-full px-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
             />
             {isSearching && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">

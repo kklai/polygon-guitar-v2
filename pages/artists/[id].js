@@ -11,6 +11,7 @@ import { getTabsByArtist, getArtistBySlug } from '../../lib/tabs';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { recordPageView } from '../../lib/analytics';
+import { recordView } from '../../lib/libraryRecentViews';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
 import Head from 'next/head';
@@ -108,6 +109,7 @@ export default function ArtistPage() {
 
       // Analytics (fire-and-forget, doesn't block)
       recordArtistView(user?.uid || null, cached.artist);
+      recordView('artist', cached.artist.id); // 收藏頁「最近瀏覽」用 document id
       recordPageView('artist', id, cached.artist.name, {
         pageName: cached.artist.name,
         photoURL: cached.artist.photoURL || cached.artist.wikiPhotoURL
@@ -139,6 +141,7 @@ export default function ArtistPage() {
 
       if (!cached) {
         recordArtistView(user?.uid || null, artistData);
+        recordView('artist', artistDoc.id); // 收藏頁「最近瀏覽」用 document id
         recordPageView('artist', artistDoc.id, artistData.name, {
           pageName: artistData.name,
           photoURL: artistData.photoURL || artistData.wikiPhotoURL

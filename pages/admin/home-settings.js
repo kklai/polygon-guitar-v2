@@ -812,7 +812,7 @@ function HomeSettings() {
                       value={artistSearchTerm}
                       onChange={(e) => setArtistSearchTerm(e.target.value)}
                       placeholder="搜索歌手名..."
-                      className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white placeholder-gray-500"
+                      className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 pr-10 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                     />
                     {artistSearchTerm && (
                       <button
@@ -1047,7 +1047,7 @@ function HomeSettings() {
                       value={tabSearchTerm}
                       onChange={(e) => setTabSearchTerm(e.target.value)}
                       placeholder="搜索歌曲名、歌手、作曲、作詞..."
-                      className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white placeholder-gray-500"
+                      className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 pr-10 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                     />
                     {tabSearchTerm && (
                       <button
@@ -1348,7 +1348,7 @@ function HomeSettings() {
                   value={playlistSearchTerm}
                   onChange={(e) => setPlaylistSearchTerm(e.target.value)}
                   placeholder="搜尋歌單..."
-                  className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500"
+                  className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                 />
               </div>
               
@@ -1428,7 +1428,7 @@ function HomeSettings() {
                     value={playlistGroupTitle}
                     onChange={(e) => setPlaylistGroupTitle(e.target.value)}
                     placeholder="例如：精選歌單、熱門推薦"
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500"
+                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
                   />
                 </div>
                 
@@ -1441,7 +1441,7 @@ function HomeSettings() {
                     value={playlistSearchTerm}
                     onChange={(e) => setPlaylistSearchTerm(e.target.value)}
                     placeholder="搜尋歌單..."
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 mb-3"
+                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none mb-3"
                   />
                   
                   <div className="max-h-64 overflow-y-auto space-y-2">

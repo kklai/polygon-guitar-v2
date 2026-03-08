@@ -21,5 +21,10 @@ module.exports = {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    // 電話版唔要 hover effect：hover 只喺 md (768px) 以上生效
+    function ({ addVariant }) {
+      addVariant('hover', '@media (min-width: 768px) { &:hover }');
+    },
+  ],
 }

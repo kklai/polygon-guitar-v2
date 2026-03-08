@@ -55,7 +55,8 @@ function ArtistFieldRow({
 
   // 搜尋歌手
   const searchArtists = useCallback(async (queryText) => {
-    if (!queryText || queryText.length < 1) {
+    const trimmed = typeof queryText === 'string' ? queryText.trim() : ''
+    if (!trimmed) {
       setSuggestions([])
       return
     }
@@ -64,7 +65,7 @@ function ArtistFieldRow({
     try {
       const results = []
       const seenIds = new Set(excludeIds)
-      const lowerQuery = queryText.toLowerCase()
+      const lowerQuery = trimmed.toLowerCase()
 
       // 1. 精確 ID 匹配
       const exactId = lowerQuery.replace(/\s+/g, '-')
@@ -95,24 +96,53 @@ function ArtistFieldRow({
         })
       } catch (e) {}
 
-      // 3. 包含搜尋
-      if (results.length < 5) {
+      // 3. 包含搜尋（按 name 包含查詢）。結果不足 5 個時必做；查詢很短（<=2 字）時也做，以便搵到「歌手名有陳但 normalizedName 唔係陳開頭」嘅歌手（如 陳奕迅）
+      const shouldRunContains = results.length < 5 || trimmed.length <= 2
+      if (shouldRunContains) {
         try {
           const allSnap = await getDocs(collection(db, 'artists'))
+          const normalizedQuery = lowerQuery.trim()
+          const containsMatches = []
           allSnap.docs.forEach(d => {
-            if (!seenIds.has(d.id) && results.length < 5) {
-              const data = d.data()
-              if (data.name?.toLowerCase().includes(lowerQuery)) {
-                results.push({ id: d.id, ...data })
-                seenIds.add(d.id)
-              }
+            if (seenIds.has(d.id)) return
+            const data = d.data()
+            const name = (data.name || '').toLowerCase().trim()
+            const nameContainsQuery = name && name.includes(normalizedQuery)
+            const queryContainsName = name && normalizedQuery.includes(name)
+            if (nameContainsQuery || queryContainsName) {
+              containsMatches.push({ id: d.id, ...data })
             }
           })
+          containsMatches.sort((a, b) => (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0))
+          if (trimmed.length <= 2) {
+            // 短查詢：合併前綴結果 + 包含結果（按 name 搵到嘅全部合併），之後會再按譜數取頭 5
+            const mergedIds = new Set(results.map(r => r.id))
+            for (const item of containsMatches) {
+              if (!mergedIds.has(item.id)) {
+                results.push(item)
+                mergedIds.add(item.id)
+              }
+            }
+          } else {
+            for (const item of containsMatches) {
+              if (results.length >= 5) break
+              if (!seenIds.has(item.id)) {
+                results.push(item)
+                seenIds.add(item.id)
+              }
+            }
+          }
         } catch (e) {}
       }
 
-      setSuggestions(results)
-      setShowDropdown(results.length > 0)
+      // 最終排序：精確 match 排第一，其餘按譜數多寡，最多顯示 5 個
+      const exactMatch = results.find(r => r.id === exactId)
+      const rest = exactMatch ? results.filter(r => r.id !== exactId) : results
+      rest.sort((a, b) => (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0))
+      const topRest = rest.slice(0, exactMatch ? 4 : 5)
+      const final = exactMatch ? [exactMatch, ...topRest] : topRest
+      setSuggestions(final)
+      setShowDropdown(final.length > 0)
       setSelectedIndex(-1)
     } catch (err) {
       console.error('搜尋歌手失敗:', err)
@@ -245,8 +275,8 @@ function ArtistFieldRow({
             onKeyDown={handleKeyDown}
             onFocus={() => !isConfirmed && inputValue && suggestions.length > 0 && setShowDropdown(true)}
             placeholder={isFirst ? "例如：陳奕迅" : "例如：楊千嬅"}
-            className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none ${
-              artist.id ? 'border-green-700' : 'border-gray-700'
+            className={`w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none ${
+              artist.id ? 'ring-2 ring-green-500/50' : ''
             }`}
           />
           

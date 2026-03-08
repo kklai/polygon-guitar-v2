@@ -13,6 +13,7 @@ import RatingSystem from '@/components/RatingSystem'
 import GpSegmentPlayer from '@/components/GpSegmentPlayer'
 import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
+import { recordTabView } from '@/lib/libraryRecentViews'
 import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
 import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist } from '@/lib/playlistApi'
 import Head from 'next/head'
@@ -134,6 +135,7 @@ export default function TabDetail() {
   const fireSideEffects = (data) => {
     const effects = []
     effects.push(incrementViewCount(id))
+    recordTabView(id) // 收藏頁「最近瀏覽」結他譜（localStorage，最多 20 份）
     if (user) effects.push(recordSongView(user.uid, data))
     effects.push(
       recordPageView('tab', id, data.title, {
