@@ -12,13 +12,17 @@ import { useAuth } from '@/contexts/AuthContext'
 import { MoreVertical, Share2, Heart, BookmarkPlus, Music, User } from 'lucide-react'
 import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved } from '@/lib/playlistApi'
 
-export default function PlaylistDetail() {
+function serializePlaylistData(obj) {
+  return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+}
+
+export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const router = useRouter()
   const { id } = router.query
   const { user, isAdmin } = useAuth()
-  const [playlist, setPlaylist] = useState(null)
-  const [songs, setSongs] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [playlist, setPlaylist] = useState(initialPlaylist || null)
+  const [songs, setSongs] = useState(initialSongs)
+  const [isLoading, setIsLoading] = useState(!initialPlaylist)
   const [sortMode, setSortMode] = useState('default') // 'default' | 'artist' | 'year' | 'shuffle'
   const [shuffleOrder, setShuffleOrder] = useState([]) // shuffle 時用嘅固定次序（indices），避免每次 re-render 重排
 
@@ -36,10 +40,16 @@ export default function PlaylistDetail() {
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false)
 
   useEffect(() => {
-    if (id) {
-      loadPlaylistData()
+    if (!id) return
+    if (initialPlaylist && initialPlaylist.id === id) {
+      setPlaylist(initialPlaylist)
+      setSongs(initialSongs || [])
+      setIsLoading(false)
+      recordPlaylistView(user?.uid || null, initialPlaylist)
+      return
     }
-  }, [id])
+    loadPlaylistData()
+  }, [id, initialPlaylist, initialSongs])
 
   // 載入推薦歌單：最多 2 自動 + 6 手動，合併後隨機排序
   useEffect(() => {
@@ -816,4 +826,32 @@ export default function PlaylistDetail() {
       `}</style>
     </Layout>
   )
+}
+
+export async function getStaticPaths() {
+  return { paths: [], fallback: 'blocking' }
+}
+
+export async function getStaticProps({ params }) {
+  const id = params?.id
+  if (!id) return { notFound: true }
+  try {
+    const playlistData = await getPlaylist(id)
+    if (!playlistData) {
+      return { props: { initialPlaylist: null, initialSongs: [] }, revalidate: 60 }
+    }
+    const songDetails = (playlistData.songIds?.length > 0)
+      ? await getPlaylistSongs(playlistData.songIds)
+      : []
+    return {
+      props: {
+        initialPlaylist: serializePlaylistData(playlistData),
+        initialSongs: serializePlaylistData(songDetails)
+      },
+      revalidate: 300
+    }
+  } catch (e) {
+    console.error('[playlist/[id]] getStaticProps:', e?.message)
+    return { props: { initialPlaylist: null, initialSongs: [] }, revalidate: 60 }
+  }
 }

@@ -15,7 +15,7 @@ import { recordView } from '../../lib/libraryRecentViews';
 import { ArtistHeroImage } from '../../components/ArtistImage';
 import Layout from '../../components/Layout';
 import Head from 'next/head';
-import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig } from '../../lib/seo';
+import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig, getAbsoluteOgImage } from '../../lib/seo';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Prefetch: start loading artist data at module parse time
@@ -55,14 +55,18 @@ function loadArtistCache(artistId) {
   } catch (e) { return null; }
 }
 
-export default function ArtistPage() {
+function serializeForProps(obj) {
+  return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+}
+
+export default function ArtistPage({ initialArtist, initialHotTabs = [], initialAllTabs = [] }) {
   const router = useRouter();
   const { id } = router.query;
-  const [artist, setArtist] = useState(null);
-  const [hotTabs, setHotTabs] = useState([]);
-  const [allTabs, setAllTabs] = useState([]);
+  const [artist, setArtist] = useState(initialArtist || null);
+  const [hotTabs, setHotTabs] = useState(initialHotTabs);
+  const [allTabs, setAllTabs] = useState(initialAllTabs);
   const [sortBy, setSortBy] = useState('year'); // year, strokes, views
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialArtist);
   // user 來自 AuthContext
   const [selectedTab, setSelectedTab] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -82,8 +86,21 @@ export default function ArtistPage() {
   // user 已由 AuthContext 提供
 
   useEffect(() => {
-    if (id) loadArtistData();
-  }, [id]);
+    if (!id) return;
+    if (initialArtist && initialArtist.id === id) {
+      setArtist(initialArtist);
+      setHotTabs(initialHotTabs || []);
+      setAllTabs(initialAllTabs || []);
+      setLoading(false);
+      recordArtistView(user?.uid || null, initialArtist);
+      recordPageView('artist', id, initialArtist.name, {
+        pageName: initialArtist.name,
+        photoURL: initialArtist.photoURL || initialArtist.wikiPhotoURL
+      }, user?.uid || null);
+      return;
+    }
+    loadArtistData();
+  }, [id, initialArtist, initialHotTabs, initialAllTabs]);
 
   // 載入「是否已收藏歌手」
   useEffect(() => {
@@ -406,6 +423,11 @@ export default function ArtistPage() {
     <Layout fullWidth>
       <Head>
         <title>{id ? `${decodeURIComponent(id)} | Polygon Guitar` : 'Polygon Guitar'}</title>
+        <meta name="description" content={siteConfig.description} />
+        <meta property="og:title" content={`${id ? decodeURIComponent(id) : 'Polygon Guitar'} | Polygon Guitar`} />
+        <meta property="og:description" content={siteConfig.description} />
+        <meta property="og:image" content={siteConfig.defaultOgImage || `${siteConfig.url}/og-image.jpg`} />
+        <meta name="twitter:card" content="summary_large_image" />
       </Head>
       <div className="min-h-screen bg-black" />
     </Layout>
@@ -429,15 +451,23 @@ export default function ArtistPage() {
       <title>{seoTitle}</title>
       <meta name="description" content={seoDescription} />
       <link rel="canonical" href={seoUrl} />
+      {/* Open Graph — unique per artist for social share preview */}
       <meta property="og:url" content={seoUrl} />
       <meta property="og:type" content="profile" />
+      <meta property="og:site_name" content={siteConfig.name} />
       <meta property="og:title" content={seoTitle} />
       <meta property="og:description" content={seoDescription} />
-      <meta property="og:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
+      <meta property="og:image" content={getAbsoluteOgImage(artist.photoURL || artist.wikiPhotoURL)} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={`${artist.name} 結他譜 - Polygon Guitar`} />
+      {/* Twitter Card — unique per artist */}
       <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content={siteConfig.twitter} />
       <meta name="twitter:title" content={seoTitle} />
       <meta name="twitter:description" content={seoDescription} />
-      <meta name="twitter:image" content={artist.photoURL || artist.wikiPhotoURL || `${siteConfig.url}/og-image.jpg`} />
+      <meta name="twitter:image" content={getAbsoluteOgImage(artist.photoURL || artist.wikiPhotoURL)} />
+      <meta name="twitter:image:alt" content={`${artist.name} 結他譜 - Polygon Guitar`} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -976,4 +1006,32 @@ export default function ArtistPage() {
     </div>
     </Layout>
   );
+}
+
+export async function getStaticPaths() {
+  return { paths: [], fallback: 'blocking' };
+}
+
+export async function getStaticProps({ params }) {
+  const id = params?.id;
+  if (!id) return { notFound: true };
+  try {
+    const artistDoc = await getDoc(doc(db, 'artists', id));
+    if (!artistDoc.exists()) return { notFound: true };
+    const artistData = { id: artistDoc.id, ...artistDoc.data() };
+    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
+    tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+    const initialHotTabs = tabs.slice(0, 5);
+    return {
+      props: {
+        initialArtist: serializeForProps(artistData),
+        initialHotTabs: serializeForProps(initialHotTabs),
+        initialAllTabs: serializeForProps(tabs)
+      },
+      revalidate: 300
+    };
+  } catch (e) {
+    console.error('[artists/[id]] getStaticProps:', e?.message);
+    return { notFound: true };
+  }
 }

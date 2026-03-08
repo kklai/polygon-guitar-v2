@@ -1,9 +1,13 @@
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 
 let cachedData = null
 let cacheTime = 0
 const SERVER_CACHE_TTL = 10 * 60 * 1000 // 10 min server-side
+
+// Cap reads per cold request (serverless has no shared cache — each instance was doing ~3750 reads)
+const MAX_TABS_READ = 1000   // recent tabs for client-side search
+const MAX_ARTISTS_READ = 600 // artists for client-side search
 
 export default async function handler(req, res) {
   if (cachedData && Date.now() - cacheTime < SERVER_CACHE_TTL) {
@@ -12,8 +16,8 @@ export default async function handler(req, res) {
   }
 
   const [tabsSnap, artistsSnap] = await Promise.all([
-    getDocs(query(collection(db, 'tabs'), orderBy('createdAt', 'desc'))),
-    getDocs(query(collection(db, 'artists')))
+    getDocs(query(collection(db, 'tabs'), orderBy('createdAt', 'desc'), limit(MAX_TABS_READ))),
+    getDocs(query(collection(db, 'artists'), orderBy('name'), limit(MAX_ARTISTS_READ)))
   ])
 
   const tabs = tabsSnap.docs.map(doc => {

@@ -34,7 +34,7 @@ function prefetchHomeData() {
   return _prefetchPromise
 }
 
-// Only used when loading on client (no initialHomeData from getServerSideProps)
+// Only used when loading on client (no initialHomeData from getStaticProps)
 // prefetchHomeData()
 
 // Stale-while-revalidate: cache processed homepage state
@@ -823,7 +823,7 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
       console.warn('Recent views load failed:', e?.message)
     }
 
-    // Full data already from getServerSideProps → no client fetch
+    // Full data already from getStaticProps (ISR) → no client fetch
     if (initialHomeData) {
       setHasSectionData(true)
       loadUserData()
@@ -1277,8 +1277,8 @@ function serializeHomeSettings(data) {
   return JSON.parse(JSON.stringify(data, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
 }
 
-// Load full homepage data server-side so one payload (no client waterfall). 最新廣東歌 etc. included.
-export async function getServerSideProps() {
+// ISR: static at build, revalidate every 5 min so homepage stays fresh without per-request Firestore reads.
+export async function getStaticProps() {
   try {
     const { getHomeData } = await import('@/lib/homeData')
     const initialHomeData = await getHomeData()
@@ -1286,15 +1286,17 @@ export async function getServerSideProps() {
       props: {
         initialHomeSettings: initialHomeData.homeSettings || {},
         initialHomeData
-      }
+      },
+      revalidate: 300
     }
   } catch (e) {
-    console.error('[Home] getServerSideProps:', e?.message)
+    console.error('[Home] getStaticProps:', e?.message)
     return {
       props: {
         initialHomeSettings: {},
         initialHomeData: null
-      }
+      },
+      revalidate: 60
     }
   }
 }

@@ -17,7 +17,7 @@ import { recordTabView } from '@/lib/libraryRecentViews'
 import { MoreVertical, Share2, Heart, BookmarkPlus, Music } from 'lucide-react'
 import { toggleLikeSong, getUserPlaylists, addSongToPlaylist, createPlaylist } from '@/lib/playlistApi'
 import Head from 'next/head'
-import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema } from '@/lib/seo'
+import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema, getAbsoluteOgImage } from '@/lib/seo'
 import { siteConfig } from '@/lib/seo'
 
 // 主題顏色配置
@@ -47,12 +47,17 @@ const themeColors = {
 // Barre 和弦定義
 const BARRE_CHORDS = ['B', 'Bm', 'Bb', 'Bbm', 'B7', 'Bm7', 'Bb7', 'C#', 'C#m', 'C#7', 'C#m7', 'Db', 'Dbm', 'F', 'Fm', 'F7', 'Fm7', 'F#', 'F#m', 'F#7', 'F#m7', 'Gb', 'Gbm', 'G#', 'G#m', 'G#7', 'G#m7', 'Ab', 'Abm'];
 
-export default function TabDetail() {
+function serializeTab(tab) {
+  if (!tab) return null
+  return JSON.parse(JSON.stringify(tab, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+}
+
+export default function TabDetail({ initialTab }) {
   const router = useRouter()
   const { id, key: queryKey } = router.query
   const { user, isAuthenticated, isAdmin } = useAuth()
-  const [tab, setTab] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [tab, setTab] = useState(initialTab || null)
+  const [isLoading, setIsLoading] = useState(!initialTab)
   const [isDeleting, setIsDeleting] = useState(false)
   const [uploaderName, setUploaderName] = useState('')
   const [uploaderId, setUploaderId] = useState('')
@@ -74,11 +79,16 @@ export default function TabDetail() {
 
   // Render-phase cache check — runs before paint so no skeleton flash on cache hit
   if (id && id !== prevId) {
-    const t0 = performance.now()
     setPrevId(id)
     const cached = getTabCached(id)
-    console.log(`[TabDetail] render-phase id=${id} cacheHit=${!!cached} (${(performance.now() - t0).toFixed(1)}ms)`)
-    if (cached) {
+    const fromInitial = initialTab && initialTab.id === id
+    if (fromInitial) {
+      setTab(initialTab)
+      setCurrentKey(queryKey || initialTab.playKey || initialTab.originalKey || 'C')
+      setRatingData({ averageRating: initialTab.averageRating || 0, ratingCount: initialTab.ratingCount || 0 })
+      setShowInfo(false)
+      setIsLoading(false)
+    } else if (cached) {
       setTab(cached)
       setCurrentKey(queryKey || cached.playKey || cached.originalKey || 'C')
       setRatingData({ averageRating: cached.averageRating || 0, ratingCount: cached.ratingCount || 0 })
@@ -92,14 +102,23 @@ export default function TabDetail() {
 
   useEffect(() => {
     if (!id) return
+    if (initialTab && initialTab.id === id) {
+      setTabCache(id, initialTab)
+      setTab(initialTab)
+      setCurrentKey(queryKey || initialTab.playKey || initialTab.originalKey || 'C')
+      setRatingData({ averageRating: initialTab.averageRating || 0, ratingCount: initialTab.ratingCount || 0 })
+      setShowInfo(false)
+      setIsLoading(false)
+      fireSideEffects(initialTab)
+      return
+    }
     const cached = getTabCached(id)
-    console.log(`[TabDetail] useEffect id=${id} cacheHit=${!!cached}`)
     if (cached) {
       fireSideEffects(cached)
     } else {
       loadTab()
     }
-  }, [id])
+  }, [id, initialTab])
 
   // 計算和弦統計
   useEffect(() => {
@@ -160,11 +179,8 @@ export default function TabDetail() {
   }
 
   const loadTab = async () => {
-    const t0 = performance.now()
     try {
       const data = await getTab(id)
-      const t1 = performance.now()
-      console.log(`[loadTab] getTab: ${(t1 - t0).toFixed(0)}ms`)
       if (data) {
         if (!data.youtubeVideoId && data.youtubeUrl) {
           data.youtubeVideoId = extractYouTubeId(data.youtubeUrl)
@@ -182,9 +198,6 @@ export default function TabDetail() {
             console.log('獲取歌手照片失敗:', artistError)
           }
         }
-        const t2 = performance.now()
-        console.log(`[loadTab] artistFallback: ${(t2 - t1).toFixed(0)}ms`)
-
         setTabCache(id, data)
 
         setTab(data)
@@ -194,8 +207,6 @@ export default function TabDetail() {
           averageRating: data.averageRating || 0,
           ratingCount: data.ratingCount || 0
         })
-        console.log(`[loadTab] total until render: ${(performance.now() - t0).toFixed(0)}ms`)
-
         fireSideEffects(data)
       } else {
         router.push('/')
@@ -289,8 +300,6 @@ export default function TabDetail() {
   const isOwner = tab && user && tab.createdBy === user.uid
   const canEdit = isOwner || isAdmin
 
-  console.log(`[TabDetail] render: id=${id} isLoading=${isLoading} hasTab=${!!tab}`)
-
   if (isLoading) {
     return (
       <Layout>
@@ -330,23 +339,26 @@ export default function TabDetail() {
         <meta name="description" content={seoDescription} />
         <link rel="canonical" href={seoUrl} />
         
-        {/* Open Graph */}
+        {/* Open Graph — unique per tab for social share preview */}
         <meta property="og:url" content={seoUrl} />
         <meta property="og:type" content="article" />
+        <meta property="og:site_name" content={siteConfig.name} />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || `${siteConfig.url}/og-image.jpg`} />
+        <meta property="og:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto)} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
         <meta property="article:published_time" content={tab.createdAt} />
         <meta property="article:modified_time" content={tab.updatedAt} />
         
-        {/* Twitter Card */}
+        {/* Twitter Card — unique per tab */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content={siteConfig.twitter} />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto || `${siteConfig.url}/og-image.jpg`} />
+        <meta name="twitter:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto)} />
+        <meta name="twitter:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
         
         {/* 結構化數據 JSON-LD */}
         <script
@@ -653,4 +665,38 @@ export default function TabDetail() {
     </Layout>
     </>
   )
+}
+
+export async function getStaticPaths() {
+  return { paths: [], fallback: 'blocking' }
+}
+
+export async function getStaticProps({ params }) {
+  const id = params?.id
+  if (!id) return { notFound: true }
+  try {
+    const { getTab } = await import('@/lib/tabs')
+    const data = await getTab(id)
+    if (!data) return { notFound: true }
+    if (!data.youtubeVideoId && data.youtubeUrl) {
+      const m = data.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
+      if (m) data.youtubeVideoId = m[1]
+    }
+    if (!data.coverImage && !data.albumImage && !data.thumbnail && data.artist) {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore')
+        const { db } = await import('@/lib/firebase')
+        const artistId = data.artistId || data.artist.toLowerCase().replace(/\s+/g, '-')
+        const artistSnap = await getDoc(doc(db, 'artists', artistId))
+        if (artistSnap.exists()) {
+          const artistData = artistSnap.data()
+          data.artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || null
+        }
+      } catch (_) {}
+    }
+    return { props: { initialTab: serializeTab(data) }, revalidate: 300 }
+  } catch (e) {
+    console.error('[tabs/[id]] getStaticProps:', e?.message)
+    return { notFound: true }
+  }
 }

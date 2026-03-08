@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import Head from 'next/head'
+import { getAllArtists } from '@/lib/tabs'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
@@ -144,12 +145,12 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
   )
 }
 
-export default function Artists() {
+export default function Artists({ initialArtists = [] }) {
   const router = useRouter()
   const { category } = router.query
   
-  const [artists, setArtists] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [artists, setArtists] = useState(initialArtists)
+  const [isLoading, setIsLoading] = useState(!initialArtists?.length)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeRegion, setActiveRegion] = useState('all')
@@ -162,6 +163,11 @@ export default function Artists() {
   }, [category])
 
   useEffect(() => {
+    if (initialArtists?.length) {
+      setArtists(initialArtists)
+      setIsLoading(false)
+      return
+    }
     const cached = loadArtistsCache()
     if (cached) {
       setArtists(cached.artists)
@@ -173,7 +179,7 @@ export default function Artists() {
       console.log('[Artists] Cache stale, refreshing in background')
     }
     loadArtists()
-  }, [])
+  }, [initialArtists])
 
   const loadArtists = async () => {
     const t0 = performance.now()
@@ -444,4 +450,37 @@ export default function Artists() {
       </Layout>
     </>
   )
+}
+
+// ISR: preload artist list at build/revalidate to avoid client fetch on first paint
+export async function getStaticProps() {
+  try {
+    const raw = await getAllArtists()
+    const initialArtists = raw.map((d) => {
+      const count = d.songCount || d.tabCount || 0
+      return {
+        id: d.id,
+        name: d.name || '',
+        photoURL: d.photoURL || null,
+        wikiPhotoURL: d.wikiPhotoURL || null,
+        photo: d.photo || d.photoURL || d.wikiPhotoURL || null,
+        artistType: d.artistType || d.gender || 'other',
+        gender: d.gender || null,
+        region: d.region || null,
+        regions: d.regions || [],
+        adminScore: d.adminScore || 0,
+        totalViewCount: d.totalViewCount || 0,
+        viewCount: d.viewCount || 0,
+        songCount: count,
+        tabCount: count,
+        spotifyFollowers: d.spotifyFollowers || 0,
+        spotifyPopularity: d.spotifyPopularity || 0,
+        normalizedName: d.normalizedName || null
+      }
+    })
+    return { props: { initialArtists }, revalidate: 300 }
+  } catch (e) {
+    console.error('[Artists] getStaticProps:', e?.message)
+    return { props: { initialArtists: [] }, revalidate: 60 }
+  }
 }
