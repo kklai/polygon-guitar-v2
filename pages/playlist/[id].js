@@ -20,7 +20,7 @@ function serializePlaylistData(obj) {
 export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const router = useRouter()
   const { id } = router.query
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, signInWithGoogle } = useAuth()
   const [playlist, setPlaylist] = useState(initialPlaylist || null)
   const [songs, setSongs] = useState(initialSongs)
   const [isLoading, setIsLoading] = useState(!initialPlaylist)
@@ -47,6 +47,11 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const [showPlaylistMoreModal, setShowPlaylistMoreModal] = useState(false)
   const [playlistModalDragY, setPlaylistModalDragY] = useState(0)
   const playlistModalTouchStartY = useRef(0)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
+
+  useEffect(() => setHasMounted(true), [])
 
   useEffect(() => {
     if (!id) return
@@ -273,18 +278,16 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
 
   const sortedSongs = getSortedSongs()
 
-  // 格式化時間
+  // 格式化時間（僅 client 用，避免 server/client 時間唔同導致 hydration mismatch）
   const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return ''
-    
+    if (!timestamp || !hasMounted) return ''
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
     const now = new Date()
     const diff = Math.floor((now - date) / 1000)
-    
     if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘前`
     if (diff < 86400) return `${Math.floor(diff / 3600)} 小時前`
     if (diff < 604800) return `${Math.floor(diff / 86400)} 天前`
-    return date.toLocaleDateString('zh-HK')
+    return date.toLocaleDateString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
   }
 
   const DRAG_CLOSE_THRESHOLD = 80
@@ -611,7 +614,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
                   <> • By {playlist.curatedBy}</>
                 )}
                 {playlist.source === 'auto' && playlist.lastUpdated && (
-                  <> • 更新於 {formatTimeAgo(playlist.lastUpdated)}</>
+                  <> • 更新於 {hasMounted ? formatTimeAgo(playlist.lastUpdated) : '—'}</>
                 )}
               </span>
             </div>
@@ -765,7 +768,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
                   </div>
                   {playlist.source === 'auto' && (
                     <span className="text-xs text-gray-600 hidden sm:block">
-                      {(song.viewCount || 0).toLocaleString()} 瀏覽
+                      {(song.viewCount || 0).toLocaleString('zh-HK')} 瀏覽
                     </span>
                   )}
                   <button

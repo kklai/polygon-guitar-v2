@@ -1,5 +1,6 @@
 // pages/library.js
 import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -9,21 +10,66 @@ import { getLastViewedAt, getRecentTabIds } from '../lib/libraryRecentViews';
 import { getSongThumbnail } from '../lib/getSongThumbnail';
 import Layout from '../components/Layout';
 
+/** 一次過攞收藏頁所需數據，供 SWR 做 cache */
+async function fetchLibraryData(userId) {
+  const [userPlaylists, savedList, artistsList, likedSongs] = await Promise.all([
+    getUserPlaylists(userId),
+    getSavedPlaylistsWithMeta(userId),
+    getSavedArtistsWithMeta(userId),
+    getUserLikedSongs(userId)
+  ]);
+  const tabIdsToFetch = [];
+  const playlistTabIds = userPlaylists.map((pl) => (pl.songIds || []).slice(0, 4));
+  const seen = new Set();
+  for (const ids of playlistTabIds) {
+    for (const id of ids) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        tabIdsToFetch.push(id);
+      }
+    }
+  }
+  const tabSnaps = tabIdsToFetch.length
+    ? await Promise.all(tabIdsToFetch.map((tabId) => getDoc(doc(db, 'tabs', tabId))))
+    : [];
+  const tabMap = new Map();
+  tabSnaps.forEach((snap, i) => {
+    if (snap.exists()) tabMap.set(tabIdsToFetch[i], { id: snap.id, ...snap.data() });
+  });
+  const playlists = userPlaylists.map((pl) => {
+    const ids = (pl.songIds || []).slice(0, 4);
+    const coverSongs = ids.map((id) => tabMap.get(id)).filter(Boolean);
+    return { ...pl, coverSongs };
+  });
+  return { playlists, savedPlaylists: savedList, savedArtists: artistsList, likedCount: likedSongs.length };
+}
+
 export default function Library() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [playlists, setPlaylists] = useState([]);
-  const [savedPlaylists, setSavedPlaylists] = useState([]); // 已收藏歌單（站內 playlists）
-  const [savedArtists, setSavedArtists] = useState([]); // 已收藏歌手
-  const [likedCount, setLikedCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [loading, setLoading] = useState(true);
   const LIBRARY_SORT_KEY = 'pg_library_sort_mode';
   const [sortMode, setSortMode] = useState('recent'); // 'recent' | 'added'
   const [sortRefreshKey, setSortRefreshKey] = useState(0) // 返回頁面時強制重讀「最近瀏覽」
   const [recentTabsCount, setRecentTabsCount] = useState(0) // 最近瀏覽結他譜數量（localStorage）
   const [recentCoverTabs, setRecentCoverTabs] = useState([]) // 頭四份用於 2x2 封面
+
+  const libraryKey = user ? `library-${user.uid}` : null;
+  const { data, error, isLoading: swrLoading, isValidating, mutate } = useSWR(
+    libraryKey,
+    (key) => fetchLibraryData(key.replace('library-', '')),
+    {
+      revalidateOnFocus: true,   // 切返嚟 tab 時背景更新
+      dedupingInterval: 20000,  // 20 秒內唔重複 request，第二次入頁即出 cache
+      keepPreviousData: true    // 重新驗證時保留上一次 data，唔會閃 loading
+    }
+  );
+  const playlists = data?.playlists ?? [];
+  const savedPlaylists = data?.savedPlaylists ?? [];
+  const savedArtists = data?.savedArtists ?? [];
+  const likedCount = data?.likedCount ?? 0;
+  const loading = !user ? true : !data && swrLoading;
 
   // 還原用戶上次揀選嘅排序方法（localStorage）
   useEffect(() => {
@@ -61,7 +107,6 @@ export default function Library() {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        loadData(currentUser.uid);
       } else {
         router.push('/login');
       }
@@ -69,19 +114,13 @@ export default function Library() {
     return () => unsubscribe();
   }, []);
 
-  // 頁面重新顯示時重新載入喜愛數量，並強制重算「最近瀏覽」排序（撳上一頁返嚟會更新次序）
+  // 頁面重新顯示時重算「最近瀏覽」排序（localStorage），SWR 會自己 revalidateOnFocus
   useEffect(() => {
     const onVisibility = () => {
-      if (document.visibilityState === 'visible' && user?.uid) {
-        loadData(user.uid);
-        setSortRefreshKey((k) => k + 1); // 重讀 localStorage 最近瀏覽
-      }
+      if (document.visibilityState === 'visible' && user?.uid) setSortRefreshKey((k) => k + 1);
     };
     const onPageShow = (e) => {
-      if (e.persisted && user?.uid) {
-        // 從 bfcache 還原（撳上一頁），重算排序
-        setSortRefreshKey((k) => k + 1);
-      }
+      if (e.persisted && user?.uid) setSortRefreshKey((k) => k + 1);
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pageshow', onPageShow);
@@ -90,45 +129,6 @@ export default function Library() {
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [user?.uid]);
-
-  const loadData = async (userId) => {
-    setLoading(true);
-    try {
-      // 獲取用戶歌單
-      const userPlaylists = await getUserPlaylists(userId);
-      
-      // 獲取每個歌單頭四首歌（用於 2x2 封面）
-      const playlistsWithCovers = await Promise.all(
-        userPlaylists.map(async (pl) => {
-          const ids = (pl.songIds || []).slice(0, 4);
-          const coverSongs = [];
-          for (const songId of ids) {
-            const songDoc = await getDoc(doc(db, 'tabs', songId));
-            if (songDoc.exists()) coverSongs.push({ id: songDoc.id, ...songDoc.data() });
-          }
-          return { ...pl, coverSongs };
-        })
-      );
-      
-      setPlaylists(playlistsWithCovers);
-      
-      // 已收藏歌單（站內 playlists，含 savedAtMs）
-      const savedList = await getSavedPlaylistsWithMeta(userId);
-      setSavedPlaylists(savedList);
-      
-      // 已收藏歌手（含 savedAtMs）
-      const artistsList = await getSavedArtistsWithMeta(userId);
-      setSavedArtists(artistsList);
-      
-      // 獲取喜愛歌曲數量
-      const likedSongs = await getUserLikedSongs(userId);
-      setLikedCount(likedSongs.length);
-    } catch (error) {
-      console.error('載入收藏失敗:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const createPlaylist = async () => {
     if (!newPlaylistName.trim() || !user) return;
@@ -148,7 +148,7 @@ export default function Library() {
       
       setNewPlaylistName('');
       setShowCreateModal(false);
-      loadData(user.uid);
+      mutate(); // 令 SWR 重新攞數據，新歌單即時出現
     } catch (error) {
       console.error('創建歌單失敗:', error);
       alert('創建失敗，請重試');
@@ -203,6 +203,19 @@ export default function Library() {
       <Layout>
         <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 p-4">
+          <p className="text-[#B3B3B3]">載入失敗，請重試</p>
+          <button onClick={() => mutate()} className="py-2 px-4 bg-[#FFD700] text-black rounded-lg font-medium">
+            重試
+          </button>
         </div>
       </Layout>
     );
