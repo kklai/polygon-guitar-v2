@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, writeBatch, doc, updateDoc, deleteDoc, query, where, getDocs as getDocsQuery } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { invalidateArtistCaches } from '@/lib/tabs'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { Trash2, Users, User, Users2, AlertCircle, Check, X, Search } from 'lucide-react'
@@ -169,6 +170,7 @@ export default function CategorizeArtists() {
       })
       
       await batch.commit()
+      invalidateArtistCaches()
       
       // 更新本地狀態
       setArtists(artists.filter(a => !selectedArtists.has(a.id)))
@@ -245,6 +247,7 @@ export default function CategorizeArtists() {
         gender: category,
         updatedAt: new Date().toISOString()
       })
+      invalidateArtistCaches()
       
       // 從列表移除
       setArtists(artists.filter(a => a.id !== artistId))

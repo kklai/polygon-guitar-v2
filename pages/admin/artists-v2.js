@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { invalidateArtistCaches } from '../../lib/tabs'
 import { 
   collection, 
   query, 
@@ -335,6 +336,7 @@ export default function ArtistsV2Page() {
       }
       
       await updateDoc(artistRef, updateData)
+      invalidateArtistCaches()
       console.log('Artist updated successfully')
 
       const message = nameChanged 
@@ -410,6 +412,7 @@ export default function ArtistsV2Page() {
       }
     }
 
+    invalidateArtistCaches()
     showMessage(`批量設置完成: ${success} 成功, ${failed} 失敗`)
     setSelectedArtists(new Set()) // 清空選中
     fetchArtists()

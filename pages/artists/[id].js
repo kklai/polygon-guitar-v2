@@ -83,7 +83,8 @@ export default function ArtistPage() {
   }, [id]);
 
   const loadArtistData = async () => {
-    const cached = loadArtistCache(id);
+    const bust = typeof window !== 'undefined' && localStorage.getItem('pg_artists_bust')
+    const cached = bust ? null : loadArtistCache(id);
     if (cached) {
       setArtist(cached.artist);
       setHotTabs(cached.hotTabs || []);

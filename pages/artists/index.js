@@ -178,7 +178,13 @@ export default function Artists() {
   const loadArtists = async () => {
     const t0 = performance.now()
     try {
-      const res = await fetch('/api/artists')
+      let url = '/api/artists'
+      const bust = localStorage.getItem('pg_artists_bust')
+      if (bust) {
+        url += `?bust=${bust}`
+        localStorage.removeItem('pg_artists_bust')
+      }
+      const res = await fetch(url)
       const data = await res.json()
       console.log('[Artists] API fetch took', Math.round(performance.now() - t0), 'ms, got', data.length, 'artists')
       setArtists(data)
