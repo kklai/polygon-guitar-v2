@@ -7,6 +7,7 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
+import { nameToSlug, getArtistBySlug } from '@/lib/tabs'
 import { X, MapPin } from 'lucide-react'
 
 const REGIONS = [
@@ -80,6 +81,15 @@ function EditArtist() {
         }
       }
       
+      // 再搵唔到就試用 normalizedName（slug）查，例如改名後用新 URL 入編輯頁
+      if (!artistSnap.exists()) {
+        const bySlug = await getArtistBySlug(id);
+        if (bySlug) {
+          artistRef = doc(db, 'artists', bySlug.id);
+          artistSnap = await getDoc(artistRef);
+        }
+      }
+      
       if (!artistSnap.exists()) {
         alert('搵唔到歌手')
         router.push('/artists')
@@ -131,10 +141,13 @@ function EditArtist() {
 
     setIsSubmitting(true)
     try {
-      // 如果歌手名變更，自動更新所有相關歌曲（強制同步）
+      // 由新歌手名生成網站 ID（slug），例如 "陳奕迅 Eason Chan" → "陳奕迅-Eason-Chan"
+      const newSlug = nameToSlug(formData.name) || id
+      
+      // 如果歌手名變更，自動更新所有相關歌曲（含 artistId / artistSlug 一齊改為新 slug）
       if (originalName && formData.name !== originalName) {
-        console.log('歌手名變更，自動更新相關歌曲...')
-        await handleFixSongsData(true) // true = 靜默模式（唔顯示確認對話框）
+        console.log('歌手名變更，自動更新相關歌曲及網站 ID...')
+        await handleFixSongsData(true, newSlug) // 靜默 + 新 slug，會一齊更新歌曲嘅 artistId/artistSlug
       }
       
       // 使用實際嘅 document ID（處理簡繁體問題）
@@ -142,6 +155,7 @@ function EditArtist() {
       const artistRef = doc(db, 'artists', docId)
       await updateDoc(artistRef, {
         name: formData.name,
+        normalizedName: newSlug, // 網站 ID 跟住歌手名一齊變
         photoURL: formData.photoURL,
         wikiPhotoURL: formData.wikiPhotoURL,
         photo: formData.photo,  // 舊資料兼容
@@ -153,12 +167,11 @@ function EditArtist() {
         artistType: formData.artistType || 'other',
         regions: formData.regions || [],
         region: formData.regions?.[0] || null, // 保留第一地區向後兼容
-        // 保留原有 normalizedName 不變，確保舊連結繼續有效
         updatedAt: new Date().toISOString()
       })
       
-      // 保留原有 URL，唔會因改名而改變連結
-      router.push(`/artists/${id}`)
+      // 跳去新嘅歌手 URL（用新 slug）
+      router.push(`/artists/${encodeURIComponent(newSlug)}`)
     } catch (error) {
       console.error('Update artist error:', error)
       alert('更新失敗：' + error.message)
@@ -299,9 +312,9 @@ function EditArtist() {
     }
   }
 
-  // 修復歌曲數據（只更新顯示名稱，保留原有 URL slug）
-  const handleFixSongsData = async (silent = false) => {
-    if (!silent && !confirm('確定要修復所有相關歌曲的數據嗎？這會更新歌曲的歌手顯示名稱（URL 連結保持不變）。')) return
+  // 修復歌曲數據。newSlug 有值時會一齊更新 artistId/artistSlug（改名後用）；冇則只更新顯示名稱
+  const handleFixSongsData = async (silent = false, newSlug = null) => {
+    if (!silent && !confirm('確定要修復所有相關歌曲的數據嗎？' + (newSlug ? '這會更新歌手顯示名稱及網站 ID（URL 會變）。' : '這會更新歌曲的歌手顯示名稱（URL 連結保持不變）。'))) return
     
     setIsFixingSongs(true)
     setFixMessage(null)
@@ -310,16 +323,20 @@ function EditArtist() {
       const oldArtistId = originalName.toLowerCase().replace(/\s+/g, '-')
       
       // 查找所有相關歌曲（用舊的 artistId 或 artist 名）
-      // 使用實際嘅 document ID（處理簡繁體問題）
       const docId = actualDocId || id
       const possibleOldIds = [
-        docId, // normalizedName
+        docId,
         oldArtistId,
         originalName
       ].filter(Boolean)
       
+      const songUpdates = newSlug
+        ? { artist: formData.name, artistName: formData.name, artistId: newSlug, artistSlug: newSlug, updatedAt: new Date().toISOString() }
+        : { artist: formData.name, artistName: formData.name, updatedAt: new Date().toISOString() }
+      
       let updatedCount = 0
       const batch = writeBatch(db)
+      const seen = new Set()
       
       // 方法 1: 用 artistId 查找
       for (const oldId of possibleOldIds) {
@@ -329,13 +346,10 @@ function EditArtist() {
         )
         const snapshot = await getDocs(q)
         
-        snapshot.docs.forEach(doc => {
-          batch.update(doc.ref, {
-            artist: formData.name,
-            artistName: formData.name,
-            // 保留 artistId 和 artistSlug 不變，確保舊連結繼續有效
-            updatedAt: new Date().toISOString()
-          })
+        snapshot.docs.forEach(d => {
+          if (seen.has(d.id)) return
+          seen.add(d.id)
+          batch.update(d.ref, songUpdates)
           updatedCount++
         })
       }
@@ -347,36 +361,29 @@ function EditArtist() {
       )
       const snapshot2 = await getDocs(q2)
       
-      snapshot2.docs.forEach(doc => {
-        // 避免重複更新，同時保留原有 artistId/artistSlug
-        const data = doc.data()
-        if (data.artist !== formData.name) {
-          batch.update(doc.ref, {
-            artist: formData.name,
-            artistName: formData.name,
-            // 保留 artistId 和 artistSlug 不變，確保舊連結繼續有效
-            updatedAt: new Date().toISOString()
-          })
-          updatedCount++
-        }
+      snapshot2.docs.forEach(d => {
+        if (seen.has(d.id)) return
+        seen.add(d.id)
+        batch.update(d.ref, songUpdates)
+        updatedCount++
       })
       
       if (updatedCount > 0) {
         await batch.commit()
       }
       
-      // 非靜默模式先顯示成功消息
       if (!silent) {
         setFixMessage({
           type: 'success',
-          text: `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料`
+          text: newSlug
+            ? `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料及網站 ID`
+            : `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料`
         })
       } else {
-        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料`)
+        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料` + (newSlug ? '及網站 ID' : ''))
       }
       
-      // 更新相關歌曲計數（使用原有 ID，因為 URL slug 冇改變）
-      await checkRelatedSongs(formData.name, id)
+      await checkRelatedSongs(formData.name, newSlug || id)
       
     } catch (error) {
       console.error('Fix songs error:', error)
@@ -514,6 +521,9 @@ function EditArtist() {
               {errors.name && (
                 <p className="mt-1 text-sm text-red-400">{errors.name}</p>
               )}
+              <p className="mt-1 text-xs text-[#B3B3B3]">
+                保存後網址：/artists/{formData.name.trim() ? nameToSlug(formData.name) || id : id}
+              </p>
               
               {/* 歌手名變更警告 */}
               {showNameChangeWarning && (

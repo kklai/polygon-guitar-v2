@@ -7,7 +7,7 @@ import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, inc
 import { ArrowLeft, MoreVertical, Share2, Heart, BookmarkPlus, ChevronDown, Music, Info, Edit, Star, Eye } from 'lucide-react';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
-import { getTabsByArtist } from '../../lib/tabs';
+import { getTabsByArtist, getArtistBySlug } from '../../lib/tabs';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { recordPageView } from '../../lib/analytics';
@@ -119,14 +119,19 @@ export default function ArtistPage() {
     }
 
     try {
-      const artistDoc = (_prefetchId === id && _prefetchPromise)
+      let artistDoc = (_prefetchId === id && _prefetchPromise)
         ? await _prefetchPromise
         : await getDoc(doc(db, 'artists', id));
       _prefetchPromise = null;
       _prefetchId = null;
+      // 若用 doc id 搵唔到（例如改名後用新 slug 入嚟），改用 normalizedName 查
       if (!artistDoc.exists()) {
-        router.push('/artists');
-        return;
+        const bySlug = await getArtistBySlug(id);
+        if (!bySlug) {
+          router.push('/artists');
+          return;
+        }
+        artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) };
       }
       const artistData = { id: artistDoc.id, ...artistDoc.data() };
       setArtist(artistData);
@@ -406,7 +411,8 @@ export default function ArtistPage() {
   const songCount = allTabs.length;
   const seoTitle = generateArtistTitle(artist.name);
   const seoDescription = generateArtistDescription(artist.name, songCount);
-  const seoUrl = `${siteConfig.url}/artists/${artist.id}`;
+  const artistSlug = artist.normalizedName || artist.id;
+  const seoUrl = `${siteConfig.url}/artists/${encodeURIComponent(artistSlug)}`;
   const artistSchema = generateArtistSchema(artist, allTabs);
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
@@ -466,7 +472,7 @@ export default function ArtistPage() {
               </button>
               {isAdmin && (
                 <Link
-                  href={`/artists/${artist.id}/edit`}
+                  href={`/artists/${encodeURIComponent(artistSlug)}/edit`}
                   className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition flex-shrink-0"
                   title="編輯歌手"
                 >
