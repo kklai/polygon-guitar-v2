@@ -1359,7 +1359,7 @@ const TabContent = ({
   // 使用 playKey 作為基準調（如果有的話）
   const baseKey = playKey || originalKey;
   const [currentKey, setCurrentKey] = useState(initialKey || baseKey);
-  const [internalFontSize, setInternalFontSize] = useState(18);
+  const [internalFontSize, setInternalFontSize] = useState(17);
   const [internalIsAutoScroll, setInternalIsAutoScroll] = useState(false);
   const [internalScrollSpeed, setInternalScrollSpeed] = useState(3);
   const [isEditing, setIsEditing] = useState(false);
@@ -1378,7 +1378,7 @@ const TabContent = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   // 優先使用外部傳入的值，否則使用內部 state
   const theme = externalTheme !== undefined ? externalTheme : internalTheme;
   const setTheme = externalSetTheme !== undefined ? externalSetTheme : setInternalTheme;
@@ -1879,7 +1879,7 @@ const TabContent = ({
                 partColor = colors.lyricNormal;
               }
               return (
-                <span key={idx} style={{ color: partColor, whiteSpace: 'pre' }}>
+                <span key={idx} style={{ color: partColor, whiteSpace: 'pre-wrap' }}>
                   {part.text}
                 </span>
               );
@@ -1918,7 +1918,9 @@ const TabContent = ({
             whiteSpace: 'pre-wrap', 
             overflowWrap: 'break-word',
             fontWeight: displayFont === 'arial' ? 'normal' : 300,
-            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace"
+            fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
+            maxWidth: '100%',
+            minWidth: 0
           }}>
             {notationParts.map((part, idx) => {
               // 處理隱藏括號：將括號替換為空格占位
@@ -2010,7 +2012,6 @@ const TabContent = ({
               ? "Arial, Helvetica, sans-serif"
               : "'Source Code Pro', monospace";
             const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
-
             elements.push(
               <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom, lineHeight: '1.1' }}>
                 {/* Notation lines (before combined chord+lyric) */}
@@ -2022,7 +2023,7 @@ const TabContent = ({
                   
                   if (aligned) {
                     return (
-                      <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1' }}>
+                      <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1', maxWidth: '100%', minWidth: 0 }}>
                         <div style={{ 
                           fontSize: `${notationFontSize}px`, 
                           whiteSpace: 'pre-wrap',
@@ -2032,7 +2033,9 @@ const TabContent = ({
                           color: colors.numericNotation,
                           display: 'flex',
                           flexWrap: 'wrap',
-                          alignItems: 'flex-end'
+                          alignItems: 'flex-end',
+                          maxWidth: '100%',
+                          minWidth: 0
                         }}>
                           {aligned.map((item, idx) => {
                             if (item.type === 'text' || item.type === 'bracket') {
@@ -2074,7 +2077,9 @@ const TabContent = ({
                         whiteSpace: 'pre-wrap', 
                         overflowWrap: 'break-word',
                         fontWeight: displayFont === 'arial' ? 'normal' : 300,
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace"
+                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
+                        maxWidth: '100%',
+                        minWidth: 0
                       }}>
                         {notationParts.map((part, idx) => {
                           let content = part.content;
@@ -2223,7 +2228,7 @@ const TabContent = ({
                   />
                 )}
 
-                {/* 歌詞行 — natural flow, no extra spacing */}
+                {/* 歌詞行 */}
                 <div
                   data-clean-text={result.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
                   style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}
@@ -2231,7 +2236,7 @@ const TabContent = ({
                   {useGridAlignment ? (
                     <>
                       {result.lyricSplit.preBracket && (
-                        <span style={{ whiteSpace: 'pre', color: colors.lyricNormal, fontWeight: 400 }}>
+                        <span style={{ whiteSpace: 'pre-wrap', color: colors.lyricNormal, fontWeight: 400 }}>
                           {result.lyricSplit.preBracket}
                         </span>
                       )}
@@ -2243,7 +2248,7 @@ const TabContent = ({
                         const bracketInside = bracketPart.substring(1, bracketPart.length - 1);
 
                         return (
-                          <span key={segIdx} style={{ whiteSpace: 'pre' }}>
+                          <span key={segIdx} style={{ whiteSpace: 'pre-wrap' }}>
                             <span style={{ color: colors.lyricInside, fontWeight: 100, opacity: 0.7 }}>
                               {hideBrackets ? '\u00A0' : bracketOpen}
                             </span>
@@ -2276,7 +2281,7 @@ const TabContent = ({
                       const cleanText = (part.text || '').replace(/\r?\n/g, '');
                       const isBracketChar = part.type === 'bracket-open' || part.type === 'bracket-close';
                       return (
-                        <span key={idx} style={{ 
+                        <span key={idx} style={{
                           color: partColor,
                           fontWeight: theme === 'day' ? ((part.isInside || part.type === 'inside' || isBracketChar) ? 'bold' : 'normal') : (isBracketChar ? 100 : 400),
                           opacity: isBracketChar && theme !== 'day' ? 0.7 : 1
