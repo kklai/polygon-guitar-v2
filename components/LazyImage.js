@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import Link from 'next/link'
 import Skeleton from './Skeleton'
+import { HomeSectionImageContext } from './HomeSectionImageContext'
 
 /**
  * LazyImage - 帶骨架屏的延遲載入圖片
@@ -66,9 +67,11 @@ export default function LazyImage({
 
 /**
  * SongCard - 帶骨架屏的歌曲卡片
+ * Respects HomeSectionImageContext: when false (section not in viewport), shows placeholder only.
  */
 export function SongCard({ song, artistPhoto, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const loadImages = useContext(HomeSectionImageContext)
 
   // 獲取封面圖 — 同 tab 頁面統一優先順序
   const getCoverImage = () => {
@@ -82,6 +85,7 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
   }
 
   const coverImage = getCoverImage()
+  const showRealImage = loadImages && coverImage
 
   const Wrapper = href ? Link : 'button'
   const wrapperProps = href ? { href } : { onClick }
@@ -93,7 +97,7 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
     >
       {/* 封面區域 */}
       <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
-        {coverImage ? (
+        {showRealImage ? (
           <>
             {/* 骨架屏 */}
             {!imageLoaded && (
@@ -115,6 +119,14 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
               onError={() => setImageLoaded(true)}
             />
           </>
+        ) : coverImage ? (
+          /* Section not in viewport yet: placeholder only (no img request) */
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828]">
+            <span className="text-3xl mb-1">🎵</span>
+            <span className="text-[10px] text-gray-500 text-center px-2 line-clamp-1">
+              {song.artist}
+            </span>
+          </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
             <span className="text-4xl mb-1">🎵</span>
@@ -135,11 +147,14 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
 
 /**
  * PlaylistCard - 帶骨架屏的歌單卡片
+ * Respects HomeSectionImageContext: when false, shows placeholder only.
  */
 export function PlaylistCard({ playlist, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const loadImages = useContext(HomeSectionImageContext)
 
   const coverImage = playlist.coverImage || null
+  const showRealImage = loadImages && coverImage
 
   const Wrapper = href ? Link : 'button'
   const wrapperProps = href ? { href } : { onClick }
@@ -151,7 +166,7 @@ export function PlaylistCard({ playlist, onClick, href }) {
     >
       {/* 封面區域 */}
       <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
-        {coverImage ? (
+        {showRealImage ? (
           <>
             {/* 骨架屏 */}
             {!imageLoaded && (
@@ -170,6 +185,10 @@ export function PlaylistCard({ playlist, onClick, href }) {
               onError={() => setImageLoaded(true)}
             />
           </>
+        ) : coverImage ? (
+          <div className="w-full h-full flex items-center justify-center bg-[#282828]">
+            <span className="text-3xl">🎸</span>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
             <span className="text-4xl">🎸</span>
@@ -189,11 +208,14 @@ export function PlaylistCard({ playlist, onClick, href }) {
 
 /**
  * ArtistAvatar - 帶骨架屏的歌手頭像
+ * Respects HomeSectionImageContext: when false, shows placeholder only.
  */
 export function ArtistAvatar({ artist, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const loadImages = useContext(HomeSectionImageContext)
 
   const photoUrl = artist.photoURL || artist.wikiPhotoURL
+  const showRealImage = loadImages && photoUrl
 
   const Wrapper = href ? Link : 'button'
   const wrapperProps = href ? { href } : { onClick }
@@ -204,7 +226,7 @@ export function ArtistAvatar({ artist, onClick, href }) {
       className="flex-shrink-0 flex flex-col text-left w-36 group"
     >
       <div className="w-36 h-36 rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
-        {photoUrl ? (
+        {showRealImage ? (
           <>
             {!imageLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828] z-10">
@@ -222,6 +244,10 @@ export function ArtistAvatar({ artist, onClick, href }) {
               onError={() => setImageLoaded(true)}
             />
           </>
+        ) : photoUrl ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-[#282828]">
+            <span className="text-3xl mb-1">🎤</span>
+          </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
             <span className="text-4xl mb-1">🎤</span>

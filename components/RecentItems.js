@@ -19,8 +19,6 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
     ? items 
     : items.filter(item => item.type !== 'liked-songs');
 
-  if (displayItems.length === 0) return null;
-
   return (
     <div style={{ marginBottom: 25, marginTop: 10 }}>
       <div className="flex justify-between items-end mb-2 pr-6" style={{ paddingLeft: '1rem' }}>
@@ -35,7 +33,9 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
       
       <div className="overflow-x-auto scrollbar-hide">
         <div className="flex space-x-4 pr-6" style={{ paddingLeft: '1rem' }}>
-          {displayItems.map((item, index) => (
+          {displayItems.length === 0 ? (
+            <p className="text-[#B3B3B3] text-sm py-2">暫無瀏覽記錄</p>
+          ) : displayItems.map((item, index) => (
             <Link 
               key={index}
               href={getItemHref(item)}

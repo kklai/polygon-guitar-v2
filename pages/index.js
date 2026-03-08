@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useContext } from 'react'
 import { useRouter } from 'next/router'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -11,6 +11,8 @@ import Head from 'next/head'
 import { siteConfig, generateBreadcrumbSchema } from '@/lib/seo'
 import RecentItems from '@/components/RecentItems'
 import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
+import SectionViewportLoader from '@/components/SectionViewportLoader'
+import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
 
 // Prefetch: fire Firestore queries at module-load time (before component mount/render)
 let _prefetchPromise = null
@@ -26,12 +28,14 @@ function prefetchHomeData() {
     getPopularArtists(30),
     getAllActivePlaylists(),
     getRecentTabs(10),
-    getHotTabs(22)
+    getHotTabs(22),
+    getCategoryImages()
   ])
   return _prefetchPromise
 }
 
-prefetchHomeData()
+// Only used when loading on client (no initialHomeData from getServerSideProps)
+// prefetchHomeData()
 
 // Stale-while-revalidate: cache processed homepage state
 const HOMEPAGE_CACHE_KEY = 'pg_home_v1'
@@ -110,27 +114,64 @@ function loadHomepageCache() {
 
 const _homepageCache = loadHomepageCache()
 
-// 歌手分類預設資料
+// 歌手分類預設資料（image starts null; real images come from Firestore/cache）
 const DEFAULT_CATEGORIES = [
   {
     id: 'male',
     name: '男歌手',
-    image: 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=600&h=400&fit=crop',
+    image: null,
     color: 'from-blue-900/80 to-black/80'
   },
   {
     id: 'female',
     name: '女歌手',
-    image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=600&h=400&fit=crop',
+    image: null,
     color: 'from-pink-900/80 to-black/80'
   },
   {
     id: 'group',
     name: '組合',
-    image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=400&fit=crop',
+    image: null,
     color: 'from-purple-900/80 to-black/80'
   }
 ]
+
+const DEFAULT_SECTION_ORDER = [
+  { id: 'categories', enabled: true },
+  { id: 'recent', enabled: true },
+  { id: 'hotTabs', enabled: true },
+  { id: 'hotArtists', enabled: true },
+  { id: 'autoPlaylists', enabled: true },
+  { id: 'latest', enabled: true },
+  { id: 'manualPlaylists', enabled: true }
+]
+
+// Initial state: always same on server and client to avoid hydration mismatch (no cache here).
+function getInitialHomeState() {
+  const defaultHotArtists = { male: [], female: [], group: [], all: [] }
+  return {
+    artists: [],
+    latestSongs: [],
+    hotTabs: [],
+    allSongs: [],
+    hotArtists: defaultHotArtists,
+    artistPhotoMap: {},
+    autoPlaylists: [],
+    manualPlaylists: [],
+    categories: DEFAULT_CATEGORIES,
+    totalViewCount: 0,
+    homeSettings: {
+      manualSelection: { male: [], female: [], group: [] },
+      useManualSelection: { male: false, female: false, group: false },
+      hotArtistSortBy: 'viewCount',
+      displayCount: 20,
+      sectionOrder: DEFAULT_SECTION_ORDER
+    },
+    recentItems: []
+  }
+}
+
+const _initialHomeState = getInitialHomeState()
 
 // 裁剪維基百科圖片URL（顯示頭部區域）
 function getCroppedWikiImage(url) {
@@ -228,30 +269,58 @@ const FALLBACK_MANUAL_PLAYLISTS = [
   }
 ]
 
-// 自訂歌單區域 — 直接 fetch 歌單所有歌
-function CustomPlaylistSection({ title, songIds, artistPhotoMap, onSongClick }) {
-  const [songs, setSongs] = useState([])
+// 自訂歌單區域 — 有 preloadedSongs 即用（SSR/API 已載），否則一次過 fetch 再顯示
+function CustomPlaylistSection({ title, songIds, artistPhotoMap, onSongClick, preloadedSongs }) {
+  const [songs, setSongs] = useState(() => (Array.isArray(preloadedSongs) && preloadedSongs.length > 0 ? preloadedSongs : []))
+  const [loading, setLoading] = useState(() => !(Array.isArray(preloadedSongs) && preloadedSongs.length > 0))
 
   useEffect(() => {
-    if (songIds?.length > 0) {
-      getTabsByIds(songIds).then(setSongs)
+    if (Array.isArray(preloadedSongs) && preloadedSongs.length > 0) {
+      setSongs(preloadedSongs)
+      setLoading(false)
+      return
     }
-  }, [songIds?.join(',')])
+    if (!songIds?.length) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    let cancelled = false
+    getTabsByIds(songIds).then(fetched => {
+      if (cancelled) return
+      const byId = new Map(fetched.map(t => [t.id, t]))
+      const ordered = songIds.map(id => byId.get(id)).filter(Boolean)
+      setSongs(ordered)
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [songIds?.join(','), preloadedSongs])
 
-  if (songs.length === 0) return null
+  const count = songIds?.length ?? songs.length ?? 0
+  const showSkeleton = loading && count > 0
 
   return (
     <section style={{ marginBottom: 25 }}>
       <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{title}</h2>
       <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-        {songs.map((song) => (
-          <SongCard
-            key={song.id}
-            song={song}
-            artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-            href={`/tabs/${song.id}`}
-          />
-        ))}
+        {showSkeleton ? (
+          [...Array(Math.min(count, 12))].map((_, i) => (
+            <div key={i} className="flex-shrink-0 w-36">
+              <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+              <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
+              <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+            </div>
+          ))
+        ) : (
+          songs.map((song) => (
+            <SongCard
+              key={song.id}
+              song={song}
+              artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+              href={`/tabs/${song.id}`}
+            />
+          ))
+        )}
       </div>
     </section>
   )
@@ -301,47 +370,127 @@ function useLazySection(sectionId, isEnabled = true) {
   return { ref, isVisible, hasLoaded }
 }
 
-export default function Home() {
-  const router = useRouter()
-  const { user, isAdmin } = useAuth()
-  const [artists, setArtists] = useState([])
-  const [latestSongs, setLatestSongs] = useState([])
-  const [hotTabs, setHotTabs] = useState([])
-  const [allSongs, setAllSongs] = useState([])
-  const [hotArtists, setHotArtists] = useState({
-    male: [],
-    female: [],
-    group: [],
-    all: []
-  })
-  const [artistPhotoMap, setArtistPhotoMap] = useState({})
-  const [autoPlaylists, setAutoPlaylists] = useState([])
-  const [manualPlaylists, setManualPlaylists] = useState([])
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadingPhase, setLoadingPhase] = useState('static')
-  const [totalViewCount, setTotalViewCount] = useState(0)
-  
-  // 首頁設置
-  const [homeSettings, setHomeSettings] = useState({
-    manualSelection: { male: [], female: [], group: [] },
-    useManualSelection: { male: false, female: false, group: false },
+function mergeInitialHomeSettings(initialHomeSettings = {}) {
+  const sectionOrder = Array.isArray(initialHomeSettings.sectionOrder) && initialHomeSettings.sectionOrder.length > 0
+    ? initialHomeSettings.sectionOrder
+    : DEFAULT_SECTION_ORDER
+  const customPlaylistSections = Array.isArray(initialHomeSettings.customPlaylistSections)
+    ? initialHomeSettings.customPlaylistSections
+    : []
+  return {
+    manualSelection: _initialHomeState.homeSettings.manualSelection,
+    useManualSelection: _initialHomeState.homeSettings.useManualSelection,
     hotArtistSortBy: 'viewCount',
     displayCount: 20,
-    sectionOrder: [
-      { id: 'categories', enabled: true },
-      { id: 'recent', enabled: true },
-      { id: 'hotTabs', enabled: true },
-      { id: 'hotArtists', enabled: true },
-      { id: 'autoPlaylists', enabled: true },
-      { id: 'latest', enabled: true },
-      { id: 'manualPlaylists', enabled: true }
-    ]
-  })
-  const [recentItems, setRecentItems] = useState([])
+    sectionOrder,
+    customPlaylistSections,
+    ...initialHomeSettings,
+    sectionOrder,
+    customPlaylistSections
+  }
+}
 
-  // 渲染單個區域
-  const renderSection = (section) => {
+// Category card that respects viewport image loading (used inside SectionViewportLoader)
+function HomeCategoryCard({ category, hotArtists }) {
+  const loadImages = useContext(HomeSectionImageContext)
+  const showImage = loadImages && category.image
+  return (
+    <Link
+      href={`/artists?category=${category.id}`}
+      className="flex-shrink-0 flex flex-col cursor-pointer"
+    >
+      <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800">
+        {showImage ? (
+          <img
+            src={category.image}
+            alt={category.name}
+            className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
+            draggable="false"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : category.image ? (
+          <>
+            <div className="absolute inset-0 bg-gray-800 animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl opacity-50">🎵</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-gray-800 animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl opacity-50">🎵</span>
+            </div>
+          </>
+        )}
+        <div className="absolute bottom-2 right-0 w-1/2">
+          <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
+            category.id === 'male' ? 'bg-[#1fc3df]' :
+            category.id === 'female' ? 'bg-[#ff9b98]' :
+            'bg-[#fed702]'
+          }`}>
+            {category.name}
+          </span>
+        </div>
+      </div>
+      <div className="w-36 mt-2 px-1">
+        <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
+          {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+function getInitialStateFromHomeData(initialHomeData) {
+  if (!initialHomeData) return null
+  return {
+    hotTabs: initialHomeData.hotTabs || _initialHomeState.hotTabs,
+    latestSongs: initialHomeData.latestSongs || _initialHomeState.latestSongs,
+    allSongs: initialHomeData.allSongs || _initialHomeState.allSongs,
+    hotArtists: initialHomeData.hotArtists || _initialHomeState.hotArtists,
+    artistPhotoMap: initialHomeData.artistPhotoMap || _initialHomeState.artistPhotoMap,
+    autoPlaylists: initialHomeData.autoPlaylists?.length ? initialHomeData.autoPlaylists : _initialHomeState.autoPlaylists,
+    manualPlaylists: initialHomeData.manualPlaylists?.length ? initialHomeData.manualPlaylists : _initialHomeState.manualPlaylists,
+    categories: initialHomeData.categories?.length ? initialHomeData.categories : _initialHomeState.categories,
+    totalViewCount: initialHomeData.totalViewCount ?? _initialHomeState.totalViewCount,
+    customPlaylistSongs: initialHomeData.customPlaylistSongs || {}
+  }
+}
+
+export default function Home({ initialHomeSettings = {}, initialHomeData = null }) {
+  const router = useRouter()
+  const { user, isAdmin } = useAuth()
+  const fromServer = getInitialStateFromHomeData(initialHomeData)
+  const [artists, setArtists] = useState(_initialHomeState.artists)
+  const [latestSongs, setLatestSongs] = useState(fromServer?.latestSongs ?? _initialHomeState.latestSongs)
+  const [hotTabs, setHotTabs] = useState(fromServer?.hotTabs ?? _initialHomeState.hotTabs)
+  const [allSongs, setAllSongs] = useState(fromServer?.allSongs ?? _initialHomeState.allSongs)
+  const [hotArtists, setHotArtists] = useState(fromServer?.hotArtists ?? _initialHomeState.hotArtists)
+  const [artistPhotoMap, setArtistPhotoMap] = useState(fromServer?.artistPhotoMap ?? _initialHomeState.artistPhotoMap)
+  const [autoPlaylists, setAutoPlaylists] = useState(fromServer?.autoPlaylists ?? _initialHomeState.autoPlaylists)
+  const [manualPlaylists, setManualPlaylists] = useState(fromServer?.manualPlaylists ?? _initialHomeState.manualPlaylists)
+  const [categories, setCategories] = useState(fromServer?.categories ?? _initialHomeState.categories)
+  const [totalViewCount, setTotalViewCount] = useState(fromServer?.totalViewCount ?? _initialHomeState.totalViewCount)
+  const [homeSettings, setHomeSettings] = useState(() => mergeInitialHomeSettings(initialHomeSettings))
+  const [customPlaylistSongs, setCustomPlaylistSongs] = useState(() => fromServer?.customPlaylistSongs ?? {})
+  const [recentItems, setRecentItems] = useState([])
+  const [hasSectionData, setHasSectionData] = useState(!!fromServer)
+
+  // Freeze layout from first paint so no later setState (cache, Firestore) can replace it — prevents section appearing, disappearing, then reappearing
+  const layoutFrozenRef = useRef(null)
+  if (layoutFrozenRef.current === null && (homeSettings.sectionOrder?.length || homeSettings.customPlaylistSections?.length)) {
+    layoutFrozenRef.current = {
+      sectionOrder: homeSettings.sectionOrder,
+      customPlaylistSections: homeSettings.customPlaylistSections || []
+    }
+  }
+  const frozenLayout = layoutFrozenRef.current
+
+  // 渲染單個區域；customPlaylistSectionsForRender 可傳入凍結的 list，避免 layout 跳動
+  const renderSection = (section, customPlaylistSectionsForRender) => {
+    const customSections = customPlaylistSectionsForRender ?? (homeSettings.customPlaylistSections || [])
     const sectionLabels = {
       categories: '歌手分類',
       recent: '最近瀏覽',
@@ -358,54 +507,30 @@ export default function Home() {
     
     switch (section.id) {
       case 'categories':
+        if (!hasSectionData) {
+          return (
+            <section key={section.id} className="pt-2" style={{ marginBottom: 25 }}>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex-shrink-0 flex flex-col w-36">
+                    <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 animate-pulse" />
+                    <div className="w-36 mt-2 h-3 bg-gray-800 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
         return (
-          <section key={section.id} className="pt-2" style={{ marginBottom: 25 }}>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
-              {(loadingPhase === 'static' ? DEFAULT_CATEGORIES : categories).map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/artists?category=${category.id}`}
-                  className="flex-shrink-0 flex flex-col cursor-pointer"
-                >
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800">
-                    {loadingPhase === 'static' ? (
-                      // Phase 1: 骨架屏
-                      <>
-                        <div className="absolute inset-0 bg-gray-800 animate-pulse" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-2xl opacity-50">🎵</span>
-                        </div>
-                      </>
-                    ) : (
-                      // Phase 2+: 實際圖片
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    )}
-                    <div className="absolute bottom-2 right-0 w-1/2">
-                      <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
-                        category.id === 'male' ? 'bg-[#1fc3df]' :
-                        category.id === 'female' ? 'bg-[#ff9b98]' :
-                        'bg-[#fed702]'
-                      }`}>
-                        {category.name}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-36 mt-2 px-1">
-                    <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
-                      {loadingPhase !== 'static' && hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
+          <SectionViewportLoader key={section.id}>
+            <section className="pt-2" style={{ marginBottom: 25 }}>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
+                {categories.map((category) => (
+                  <HomeCategoryCard key={category.id} category={category} hotArtists={hotArtists} />
+                ))}
+              </div>
+            </section>
+          </SectionViewportLoader>
         )
 
       case 'recent':
@@ -430,19 +555,21 @@ export default function Home() {
           )
         }
         return (
-          <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {hotTabs.map((song) => (
-                <SongCard
-                  key={song.id}
-                  song={song}
-                  artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-                  href={`/tabs/${song.id}`}
-                />
-              ))}
-            </div>
-          </section>
+          <SectionViewportLoader key={section.id}>
+            <section style={{ marginBottom: 25 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                {hotTabs.map((song) => (
+                  <SongCard
+                    key={song.id}
+                    song={song}
+                    artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+                    href={`/tabs/${song.id}`}
+                  />
+                ))}
+              </div>
+            </section>
+          </SectionViewportLoader>
         )
 
       case 'hotArtists':
@@ -462,18 +589,20 @@ export default function Home() {
           )
         }
         return (
-          <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {hotArtists.all.map((artist) => (
-                <ArtistAvatar
+          <SectionViewportLoader key={section.id}>
+            <section style={{ marginBottom: 25 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                {hotArtists.all.map((artist) => (
+                  <ArtistAvatar
                     key={artist.id}
                     artist={artist}
                     href={`/artists/${artist.id}`}
                   />
-              ))}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          </SectionViewportLoader>
         )
 
       case 'autoPlaylists':
@@ -493,18 +622,20 @@ export default function Home() {
           )
         }
         return (
-          <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {autoPlaylists.map((playlist) => (
-                <PlaylistCard
-                  key={playlist.id}
-                  playlist={playlist}
-                  href={`/playlist/${playlist.id}`}
-                />
-              ))}
-            </div>
-          </section>
+          <SectionViewportLoader key={section.id}>
+            <section style={{ marginBottom: 25 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                {autoPlaylists.map((playlist) => (
+                  <PlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    href={`/playlist/${playlist.id}`}
+                  />
+                ))}
+              </div>
+            </section>
+          </SectionViewportLoader>
         )
 
       case 'latest':
@@ -525,19 +656,21 @@ export default function Home() {
           )
         }
         return (
-          <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {latestSongs.map((song) => (
-                <SongCard
-                  key={song.id}
-                  song={song}
-                  artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
-                  href={`/tabs/${song.id}`}
-                />
-              ))}
-            </div>
-          </section>
+          <SectionViewportLoader key={section.id}>
+            <section style={{ marginBottom: 25 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                {latestSongs.map((song) => (
+                  <SongCard
+                    key={song.id}
+                    song={song}
+                    artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+                    href={`/tabs/${song.id}`}
+                  />
+                ))}
+              </div>
+            </section>
+          </SectionViewportLoader>
         )
 
       case 'manualPlaylists':
@@ -557,26 +690,32 @@ export default function Home() {
           )
         }
         return (
-          <section key={section.id} style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {manualPlaylists.map((playlist) => (
-                <PlaylistCard
-                  key={playlist.id}
-                  playlist={playlist}
-                  href={`/playlist/${playlist.id}`}
-                />
-              ))}
-            </div>
-          </section>
+          <SectionViewportLoader key={section.id}>
+            <section style={{ marginBottom: 25 }}>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                {manualPlaylists.map((playlist) => (
+                  <PlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    href={`/playlist/${playlist.id}`}
+                  />
+                ))}
+              </div>
+            </section>
+          </SectionViewportLoader>
         )
 
-      default:
-        // 在 static 階段，自定義區域顯示骨架屏
-        if (loadingPhase === 'static') {
+      default: {
+        // 自定義歌單區域：用傳入的 customSections（凍結）或 homeSettings，避免中途被覆寫導致 section 消失
+        const customSection = customSections.find(s => s.id === section.id)
+        const sectionTitle = section.customLabel || section.title || (customSection && customSection.title) || ''
+
+        if (!customSection) {
+          // Section 在 sectionOrder 但沒有定義（例如首屏時 customPlaylistSections 未載入）— 預留骨架區位
           return (
             <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{section.title || '載入中...'}</h2>
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle || '載入中...'}</h2>
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-36">
@@ -590,30 +729,39 @@ export default function Home() {
           )
         }
         
-        // 處理自定義歌單區域
-        const customSection = (homeSettings.customPlaylistSections || []).find(s => s.id === section.id)
-        
-        if (!customSection) {
-          return null
-        }
-        
         // 單歌單區域
         if (customSection.type === 'customPlaylist' && customSection.playlistId) {
           const playlist = manualPlaylists.find(p => p.id === customSection.playlistId) || 
                           autoPlaylists.find(p => p.id === customSection.playlistId)
+          const hasContent = playlist && playlist.songIds && playlist.songIds.length > 0
           
-          if (!playlist || !playlist.songIds || playlist.songIds.length === 0) {
-            return null
+          if (!hasContent) {
+            return (
+              <section key={section.id} style={{ marginBottom: 25 }}>
+                <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle}</h2>
+                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex-shrink-0 w-36">
+                      <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                      <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
+                      <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )
           }
           
           return (
-            <CustomPlaylistSection
-              key={section.id}
-              title={section.title || customSection.title}
-              songIds={playlist.songIds}
-              artistPhotoMap={artistPhotoMap}
-              onSongClick={handleSongClick}
-            />
+            <SectionViewportLoader key={section.id}>
+              <CustomPlaylistSection
+                title={sectionTitle}
+                songIds={playlist.songIds}
+                artistPhotoMap={artistPhotoMap}
+                onSongClick={handleSongClick}
+                preloadedSongs={customPlaylistSongs[section.id]}
+              />
+            </SectionViewportLoader>
           )
         }
         
@@ -624,41 +772,73 @@ export default function Home() {
             .filter(Boolean)
           
           if (playlists.length === 0) {
-            return null
+            return (
+              <section key={section.id} style={{ marginBottom: 25 }}>
+                <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle}</h2>
+                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex-shrink-0 w-36">
+                      <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                      <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )
           }
           
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{section.title || customSection.title}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-                {playlists.map((playlist) => (
-                  <PlaylistCard
-                    key={playlist.id}
-                    playlist={playlist}
-                    href={`/playlist/${playlist.id}`}
-                  />
-                ))}
-              </div>
-            </section>
+            <SectionViewportLoader key={section.id}>
+              <section style={{ marginBottom: 25 }}>
+                <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle}</h2>
+                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+                  {playlists.map((playlist) => (
+                    <PlaylistCard
+                      key={playlist.id}
+                      playlist={playlist}
+                      href={`/playlist/${playlist.id}`}
+                    />
+                  ))}
+                </div>
+              </section>
+            </SectionViewportLoader>
           )
         }
         
         return null
+      }
     }
   }
 
-  // 分階段載入
+  // 分階段載入（after mount only; keeps server/client first paint identical for hydration）
   useEffect(() => {
-    // Load recent views from localStorage immediately (no Firestore needed)
     try {
       const saved = localStorage.getItem('recentViews')
-      if (saved) setRecentItems(JSON.parse(saved).slice(0, 10))
-    } catch (e) {}
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        const list = Array.isArray(parsed) ? parsed : (parsed?.recentViews && Array.isArray(parsed.recentViews) ? parsed.recentViews : [])
+        setRecentItems(list.slice(0, 10))
+      }
+    } catch (e) {
+      console.warn('Recent views load failed:', e?.message)
+    }
 
-    // Apply cached data instantly (before Firestore queries return)
+    // Full data already from getServerSideProps → no client fetch
+    if (initialHomeData) {
+      setHasSectionData(true)
+      loadUserData()
+      return
+    }
+
+    // Apply cached data for content only; keep layout (sectionOrder, customPlaylistSections) from initial state so it doesn't jump when cache has older layout
     if (_homepageCache) {
       const c = _homepageCache
-      if (c.homeSettings) setHomeSettings(prev => ({ ...prev, ...c.homeSettings }))
+      if (c.homeSettings) setHomeSettings(prev => ({
+        ...prev,
+        ...c.homeSettings,
+        sectionOrder: layoutFrozenRef.current?.sectionOrder ?? prev.sectionOrder,
+        customPlaylistSections: layoutFrozenRef.current?.customPlaylistSections ?? prev.customPlaylistSections
+      }))
       setArtists(c.artists || [])
       setLatestSongs(c.latestSongs || [])
       setHotTabs(c.hotTabs || [])
@@ -669,15 +849,12 @@ export default function Home() {
       setManualPlaylists(c.manualPlaylists || [])
       if (c.categories) setCategories(c.categories)
       setTotalViewCount(c.totalViewCount || 0)
-      setLoadingPhase('public')
+      setHasSectionData(true)
     }
-    
-    // Fetch fresh data in background
+
     loadPublicData().then(() => {
-      setLoadingPhase('public')
-      loadUserData().then(() => {
-        setLoadingPhase('complete')
-      })
+      setHasSectionData(true)
+      loadUserData()
     })
   }, [])
 
@@ -693,11 +870,18 @@ export default function Home() {
         popularArtistsData,
         playlistsData,
         recentTabsData,
-        defaultHotTabsData
+        defaultHotTabsData,
+        categoryImages
       ] = await prefetchHomeData();
       
       const settings = settingsDoc.exists() ? settingsDoc.data() : {};
-      setHomeSettings(prev => ({ ...prev, ...settings }));
+      // Use frozen layout so section order never changes mid-session (prevents appear→disappear→reappear)
+      setHomeSettings(prev => ({
+        ...prev,
+        ...settings,
+        sectionOrder: layoutFrozenRef.current?.sectionOrder ?? prev.sectionOrder,
+        customPlaylistSections: layoutFrozenRef.current?.customPlaylistSections ?? prev.customPlaylistSections
+      }));
       
       const autoPlaylistsData = playlistsData.auto || [];
       const manualPlaylistsData = playlistsData.manual || [];
@@ -901,7 +1085,33 @@ export default function Home() {
       setHotArtists(hotArtistsData);
       setArtists(artistsSlice);
       
-      // Save to sessionStorage for instant load on next visit
+      // Process category images (already prefetched in parallel)
+      let processedCategories = null;
+      if (categoryImages) {
+        const artistMap = new Map(popularArtists.map(a => [a.id, a]));
+        
+        processedCategories = DEFAULT_CATEGORIES.map(cat => {
+          const catData = categoryImages[cat.id];
+          let imageUrl = null;
+          
+          if (catData?.artistId && artistMap.has(catData.artistId)) {
+            const artist = artistMap.get(catData.artistId);
+            imageUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo || catData.image || null;
+          } else if (catData?.image) {
+            imageUrl = catData.image;
+          }
+          
+          if (imageUrl?.includes('wikipedia.org')) {
+            imageUrl = getCroppedWikiImage(imageUrl);
+          }
+          
+          return { ...cat, image: imageUrl };
+        });
+        
+        setCategories(processedCategories);
+      }
+      
+      // Save to localStorage for instant load on next visit
       saveHomepageCache({
         _ts: Date.now(),
         homeSettings: { sectionOrder: settings.sectionOrder, hotArtistSortBy: settings.hotArtistSortBy, displayCount: settings.displayCount, manualSelection: settings.manualSelection, useManualSelection: settings.useManualSelection },
@@ -918,40 +1128,9 @@ export default function Home() {
         },
         artists: slimArtists(artistsSlice),
         artistPhotoMap: photoMap,
+        categories: processedCategories,
         totalViewCount: popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0)
       });
-      
-      // 延遲載入分類圖片（非關鍵數據）
-      setTimeout(async () => {
-        try {
-          const categoryImages = await getCategoryImages();
-          if (!categoryImages) return;
-          
-          const artistMap = new Map(popularArtists.map(a => [a.id, a]));
-          
-          const updatedCategories = DEFAULT_CATEGORIES.map(cat => {
-            const catData = categoryImages[cat.id];
-            let imageUrl = cat.image;
-            
-            if (catData?.artistId && artistMap.has(catData.artistId)) {
-              const artist = artistMap.get(catData.artistId);
-              imageUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo || catData.image || cat.image;
-            } else if (catData?.image) {
-              imageUrl = catData.image;
-            }
-            
-            if (imageUrl?.includes('wikipedia.org')) {
-              imageUrl = getCroppedWikiImage(imageUrl);
-            }
-            
-            return { ...cat, image: imageUrl };
-          });
-          
-          setCategories(updatedCategories);
-        } catch (e) {
-          console.error('Error loading category images:', e);
-        }
-      }, 100);
       
     } catch (error) {
       console.error('Error loading public data:', error);
@@ -961,15 +1140,14 @@ export default function Home() {
   // Phase 3: 載入需要登入的資料
   const loadUserData = async () => {
     try {
-      // 載入最近瀏覽（從 localStorage）
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('recentViews') : null;
-      let items = saved ? JSON.parse(saved).slice(0, 10) : [];
-      setRecentItems(items);
-      
-      // 如果有登入用戶，可以載入個人化資料
-      // 例如：喜愛歌曲、推薦等
+      if (typeof window === 'undefined') return
+      const saved = localStorage.getItem('recentViews')
+      if (!saved) return
+      const parsed = JSON.parse(saved)
+      const list = Array.isArray(parsed) ? parsed : (parsed?.recentViews && Array.isArray(parsed.recentViews) ? parsed.recentViews : [])
+      setRecentItems(list.slice(0, 10))
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.warn('Recent views load failed:', error?.message)
     }
   };
 
@@ -991,69 +1169,6 @@ export default function Home() {
   // 處理歌單點擊
   const handlePlaylistClick = (playlistId) => {
     router.push(`/playlist/${playlistId}`)
-  }
-
-  // 初始靜態載入（Phase 1）- 立即顯示骨架屏
-  if (loadingPhase === 'static') {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-black pb-24">
-          {/* 分類骨架屏 - 可點擊 */}
-          <section className="pt-2" style={{ marginBottom: 25 }}>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
-              {DEFAULT_CATEGORIES.map((category) => (
-                <div
-                  key={category.id}
-                  className="flex-shrink-0 flex flex-col cursor-pointer"
-                >
-                  <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800 animate-pulse">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl opacity-50">🎵</span>
-                    </div>
-                    <div className="absolute bottom-2 right-0 w-1/2">
-                      <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
-                        category.id === 'male' ? 'bg-[#1fc3df]' :
-                        category.id === 'female' ? 'bg-[#ff9b98]' :
-                        'bg-[#fed702]'
-                      }`}>
-                        {category.name}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-          
-          {/* 熱門譜骨架屏 */}
-          <section style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>熱門結他譜</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-36">
-                  <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
-                  <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
-                  <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </section>
-          
-          {/* 熱門歌手骨架屏 */}
-          <section style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>熱門歌手</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-36">
-                  <div className="w-36 h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
-                  <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </Layout>
-    )
   }
 
   // SEO 配置
@@ -1131,18 +1246,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* 根據 sectionOrder 動態渲染各區域 */}
-        {(homeSettings.sectionOrder || [
-          { id: 'categories', enabled: true },
-          { id: 'recent', enabled: true },
-          { id: 'hotTabs', enabled: true },
-          { id: 'hotArtists', enabled: true },
-          { id: 'autoPlaylists', enabled: true },
-          { id: 'latest', enabled: true },
-          { id: 'manualPlaylists', enabled: true }
-        ])
+        {/* 根據 sectionOrder 動態渲染（用凍結的 layout 避免 appear→disappear→reappear） */}
+        {(frozenLayout ? frozenLayout.sectionOrder : (homeSettings.sectionOrder || DEFAULT_SECTION_ORDER))
           .filter(section => section.enabled !== false)
-          .map(section => renderSection(section))}
+          .map(section => renderSection(section, frozenLayout ? frozenLayout.customPlaylistSections : (homeSettings.customPlaylistSections || [])))}
 
         {/* 底部 Spacer */}
         <div className="h-8" />
@@ -1162,4 +1269,32 @@ export default function Home() {
     </Layout>
     </>
   )
+}
+
+// Firestore doc may contain non-JSON values (e.g. Timestamp); serialize so props pass to client
+function serializeHomeSettings(data) {
+  if (!data || typeof data !== 'object') return {}
+  return JSON.parse(JSON.stringify(data, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+}
+
+// Load full homepage data server-side so one payload (no client waterfall). 最新廣東歌 etc. included.
+export async function getServerSideProps() {
+  try {
+    const { getHomeData } = await import('@/lib/homeData')
+    const initialHomeData = await getHomeData()
+    return {
+      props: {
+        initialHomeSettings: initialHomeData.homeSettings || {},
+        initialHomeData
+      }
+    }
+  } catch (e) {
+    console.error('[Home] getServerSideProps:', e?.message)
+    return {
+      props: {
+        initialHomeSettings: {},
+        initialHomeData: null
+      }
+    }
+  }
 }
