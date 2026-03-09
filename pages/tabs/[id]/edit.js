@@ -364,7 +364,9 @@ export default function EditTab() {
         fetch('/api/search-data?bust=1').catch(() => {})
         fetch('/api/artists?bust=1').catch(() => {})
       }
-      router.push(`/tabs/${id}`)
+      // 用 ?updated=1 + sessionStorage 令樂譜頁強制從 Firestore 重載（localhost 上 router.query 可能未就緒）
+      try { sessionStorage.setItem('pg_tab_just_updated', id) } catch (e) {}
+      router.push(`/tabs/${id}?updated=1`)
     } catch (error) {
       console.error('Update tab error:', error)
       alert('更新失敗：' + error.message)

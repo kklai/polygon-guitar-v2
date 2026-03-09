@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { getTab, getTabCached, setTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
+import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -54,7 +54,10 @@ function serializeTab(tab) {
 
 export default function TabDetail({ initialTab }) {
   const router = useRouter()
-  const { id, key: queryKey } = router.query
+  const { id, key: queryKey, updated: queryUpdated } = router.query
+  // router.query 可能未就緒（localhost/ client nav），用 asPath + sessionStorage 確保捉到「剛保存」
+  const fromSaveRedirect = queryUpdated != null ||
+    (typeof window !== 'undefined' && id && (router.asPath.includes('updated=1') || sessionStorage.getItem('pg_tab_just_updated') === id))
   const { user, isAuthenticated, isAdmin } = useAuth()
   const [tab, setTab] = useState(initialTab || null)
   const [isLoading, setIsLoading] = useState(!initialTab)
@@ -79,13 +82,19 @@ export default function TabDetail({ initialTab }) {
   const [newPlaylistName, setNewPlaylistName] = useState('')
 
   const [prevId, setPrevId] = useState(null)
+  const justRefetchedIdRef = useRef(null)
 
   // Render-phase cache check — runs before paint so no skeleton flash on cache hit
+  // 若有 ?updated=1 唔用 initialTab/cache，強制之後 useEffect 從 Firestore 重載
   if (id && id !== prevId) {
     setPrevId(id)
+    const fromUpdated = fromSaveRedirect
     const cached = getTabCached(id)
-    const fromInitial = initialTab && initialTab.id === id
-    if (fromInitial) {
+    const fromInitial = !fromUpdated && initialTab && initialTab.id === id
+    if (fromUpdated) {
+      setTab(null)
+      setIsLoading(true)
+    } else if (fromInitial) {
       setTab(initialTab)
       setCurrentKey(queryKey || initialTab.playKey || initialTab.originalKey || 'C')
       setRatingData({ averageRating: initialTab.averageRating || 0, ratingCount: initialTab.ratingCount || 0 })
@@ -105,7 +114,23 @@ export default function TabDetail({ initialTab }) {
 
   useEffect(() => {
     if (!id) return
+    // 剛從編輯頁保存過來：強制重載，唔用 initialTab / cache，然後清走 URL 的 ?updated=1
+    const fromSave = queryUpdated != null ||
+      (typeof window !== 'undefined' && id && (router.asPath.includes('updated=1') || sessionStorage.getItem('pg_tab_just_updated') === id))
+    if (fromSave) {
+      justRefetchedIdRef.current = id
+      try { sessionStorage.removeItem('pg_tab_just_updated') } catch (e) {}
+      clearTabCache(id)
+      loadTab().then(() => {
+        router.replace(`/tabs/${id}${queryKey ? `?key=${queryKey}` : ''}`, undefined, { shallow: true })
+      })
+      return
+    }
     if (initialTab && initialTab.id === id) {
+      if (justRefetchedIdRef.current === id) {
+        justRefetchedIdRef.current = null
+        return
+      }
       setTabCache(id, initialTab)
       setTab(initialTab)
       setCurrentKey(queryKey || initialTab.playKey || initialTab.originalKey || 'C')
@@ -121,7 +146,7 @@ export default function TabDetail({ initialTab }) {
     } else {
       loadTab()
     }
-  }, [id, initialTab])
+  }, [id, initialTab, queryUpdated, router.asPath])
 
   // 計算和弦統計
   useEffect(() => {
