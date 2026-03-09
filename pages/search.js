@@ -2,12 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
+import { SongCard } from '@/components/LazyImage'
 import { addSongToPlaylist } from '@/lib/playlistApi'
 import { useAuth } from '@/contexts/AuthContext'
 
 const STORAGE_KEY = 'searchPageData'
 const CACHE_TTL = 10 * 60 * 1000    // 10 min full cache
 const FRESH_TTL = 2 * 60 * 1000     // 2 min = skip fetch entirely
+const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
+const HOMEPAGE_LOCAL_CACHE_TTL_MS = 60 * 60 * 1000
 
 function readCache() {
   try {
@@ -49,49 +52,11 @@ export default function Search() {
   const [categoryCovers, setCategoryCovers] = useState({
     male: null, female: null, group: null, recent: null
   })
-  // 與首頁同款：後台設定的分類封面圖（優先於「該類第一位歌手」）
-  const [categoryImageUrls, setCategoryImageUrls] = useState({ male: null, female: null, group: null })
   const fetchedRef = useRef(false)
 
   const applyData = useCallback((data) => {
     setSongs(data.tabs || [])
     setArtists(data.artists || [])
-    setHotSongs(data.hotTabs || [])
-    setHotArtists(data.hotArtists || [])
-    
-    const byType = (type) => (data.artists || [])
-      .filter(a => a.artistType === type || a.gender === type)
-      .sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-    const male = byType('male')
-    const female = byType('female')
-    const group = [...byType('group'), ...byType('band')]
-    setCategoryCovers({
-      male: male[0] || null,
-      female: female[0] || null,
-      group: group[0] || null,
-      recent: male[1] || male[0] || null
-    })
-
-    // 解析分類封面：與首頁一致，用後台設定嘅圖（或指定歌手相）
-    if (data.categoryImages && data.artists?.length) {
-      const artistMap = new Map(data.artists.map(a => [a.id, a]))
-      const urls = {}
-      for (const catId of ['male', 'female', 'group']) {
-        const catData = data.categoryImages[catId]
-        let imageUrl = null
-        if (catData?.artistId && artistMap.has(catData.artistId)) {
-          const artist = artistMap.get(catData.artistId)
-          imageUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo || catData.image || null
-        } else if (catData?.image) {
-          imageUrl = catData.image
-        }
-        if (imageUrl?.includes('wikipedia.org')) imageUrl = getCroppedWikiImage(imageUrl)
-        urls[catId] = imageUrl || null
-      }
-      setCategoryImageUrls(urls)
-    } else {
-      setCategoryImageUrls({ male: null, female: null, group: null })
-    }
   }, [])
 
   useEffect(() => {
@@ -121,6 +86,38 @@ export default function Search() {
       })
       .finally(() => setIsLoading(false))
   }, [applyData])
+
+  // 熱門歌曲、熱門歌手、分類卡片圖片: all from home-data (cache or /api/home-data)
+  useEffect(() => {
+    function applyHomeHot(data) {
+      if (data?.hotTabs?.length) setHotSongs(data.hotTabs)
+      if (data?.hotArtists) setHotArtists(Array.isArray(data.hotArtists) ? data.hotArtists : (data.hotArtists.all || []))
+      // 男歌手、女歌手、組合: image from home categories. 最新上架: first item in 最近上架 (latestSongs)
+      const cats = data?.categories || []
+      const firstLatest = data?.latestSongs?.[0]
+      const recentUrl = firstLatest ? (firstLatest.coverImage || firstLatest.artistPhoto || null) : null
+      setCategoryCovers({
+        male: cats.find((c) => c.id === 'male')?.image ?? null,
+        female: cats.find((c) => c.id === 'female')?.image ?? null,
+        group: cats.find((c) => c.id === 'group')?.image ?? null,
+        recent: recentUrl
+      })
+    }
+    try {
+      const raw = typeof window !== 'undefined' && localStorage.getItem(HOMEPAGE_LOCAL_CACHE_KEY)
+      if (raw) {
+        const { data, _ts } = JSON.parse(raw)
+        if (data && _ts && Date.now() - _ts <= HOMEPAGE_LOCAL_CACHE_TTL_MS) {
+          applyHomeHot(data)
+          return
+        }
+      }
+    } catch {}
+    fetch('/api/home-data')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText)))
+      .then(applyHomeHot)
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -283,24 +280,10 @@ export default function Search() {
                     <button
                       key={song.id}
                       onClick={() => handleSongClick(song.id)}
-                      className="w-full flex items-center gap-4 p-3 hover:bg-white/10 rounded-lg transition"
+                      className="w-full flex items-center gap-3 p-3 hover:bg-white/10 rounded-lg transition"
                     >
-                      <span className="text-gray-500 w-6 text-center">{index + 1}</span>
-                      <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center text-xl overflow-hidden">
-                        {song.youtubeVideoId ? (
-                          <img
-                            src={`https://img.youtube.com/vi/${song.youtubeVideoId}/default.jpg`}
-                            alt={song.title}
-                            className="w-full h-full object-cover rounded pointer-events-none select-none"
-                            draggable="false"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          '🎵'
-                        )}
-                      </div>
-                      <div className="flex-1 text-left">
+                      <span className="text-gray-500 w-6 text-center flex-shrink-0">{index + 1}</span>
+                      <div className="flex-1 text-left min-w-0">
                         <h3 className="text-white font-medium">
                           {song.title}
                         </h3>
@@ -340,92 +323,68 @@ export default function Search() {
         ) : (
           /* Default View */
           <div className="space-y-6">
-            {/* 分類卡片：電話版 3 張跟 screen width 平分 + 左右 1rem，桌面版維持橫捲 */}
-            <div className="flex gap-2 md:gap-3 md:overflow-x-auto scrollbar-hide px-4 md:px-0 md:pr-4">
-              {categories.map((category) => {
-                const cover = categoryCovers[category.id]
-                const imageUrl = categoryImageUrls[category.id] ?? (cover && getArtistPhoto(cover))
-                return (
-                  <Link
-                    key={category.id}
-                    href={`/artists?category=${category.id}`}
-                    className="flex-1 min-w-0 flex flex-col md:flex-shrink-0 md:w-36"
-                  >
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-800">
-                      {imageUrl ? (
+            {/* 分類卡片 2x2 */}
+            <div className="grid grid-cols-2 gap-3">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={`relative h-24 rounded-xl overflow-hidden bg-gradient-to-br ${cat.gradient} p-4 flex items-center justify-between group active:scale-95 transition-transform`}
+                >
+                  <span className="text-white font-bold text-lg z-10 relative">
+                    {cat.name}
+                  </span>
+                  
+                  {/* 右側正方形歌手圖 - categoryCovers: photo URL string or legacy { photo } object */}
+                  <div className="w-16 h-16 rounded-lg overflow-hidden shadow-lg z-10 relative">
+                    {(() => {
+                      const cover = categoryCovers[cat.id]
+                      const coverUrl = typeof cover === 'string' ? cover : (cover && getArtistPhoto(cover))
+                      return coverUrl ? (
                         <img
-                          src={imageUrl}
-                          alt={cover?.name ?? category.name}
-                          className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
+                          src={coverUrl}
+                          alt={cat.name}
+                          className="w-full h-full object-cover pointer-events-none select-none"
                           draggable="false"
                           loading="lazy"
                           decoding="async"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-2xl opacity-50">🎵</span>
+                        <div className="w-full h-full bg-black/30 flex items-center justify-center text-2xl">
+                          {cat.id === 'male' && '👨'}
+                          {cat.id === 'female' && '👩'}
+                          {cat.id === 'group' && '👥'}
+                          {cat.id === 'latest' && '✨'}
                         </div>
-                      )}
-                      <div className="absolute bottom-2 right-0">
-                        <span className={`inline-block text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none whitespace-nowrap leading-tight tracking-[0.1em] ${
-                          category.id === 'male' ? 'bg-[#1fc3df]' :
-                          category.id === 'female' ? 'bg-[#ff9b98]' :
-                          'bg-[#fed702]'
-                        }`}>
-                          {category.name}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full mt-2 px-0 md:px-1 md:w-36">
-                      <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
-                        {hotArtistsByCategory[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
-                      </p>
-                    </div>
-                  </Link>
-                )
-              })}
+                      )
+                    })()}
+                  </div>
+                  
+                  {/* 裝飾性背景圓形 */}
+                  <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/10" />
+                </button>
+              ))}
             </div>
 
-            {/* 熱門歌曲 */}
+            {/* 熱門歌曲 - same data and component as home (home-data API + SongCard) */}
             {!isLoading && hotSongs.length > 0 && (
               <section className="pl-4">
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌曲</h2>
                 <div className="flex overflow-x-auto scrollbar-hide gap-3 pr-4">
                   {hotSongs.map((song) => (
-                    <button
+                    <SongCard
                       key={song.id}
-                      onClick={() => handleSongClick(song.id)}
-                      className="flex-shrink-0 w-32"
-                    >
-                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-800 mb-2 shadow-md">
-                        {song.thumbnail || song.youtubeVideoId ? (
-                          <img
-                            src={song.thumbnail || `https://img.youtube.com/vi/${song.youtubeVideoId}/mqdefault.jpg`}
-                            alt={song.title}
-                            className="w-full h-full object-cover pointer-events-none select-none"
-                            draggable="false"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-3xl">
-                            🎵
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="text-white text-sm font-medium truncate text-left">
-                        {song.title}
-                      </h3>
-                      <p className="text-gray-500 text-xs truncate text-left">
-                        {song.artist}
-                      </p>
-                    </button>
+                      song={song}
+                      artistPhoto={song.artistPhoto}
+                      href={addToPlaylistId ? undefined : `/tabs/${song.id}`}
+                      onClick={addToPlaylistId ? () => handleSongClick(song.id) : undefined}
+                    />
                   ))}
                 </div>
               </section>
             )}
 
-            {/* 熱門歌手 */}
+            {/* 熱門歌手 - same data as home (home-data API) */}
             {!isLoading && hotArtists.length > 0 && (
               <section className="pl-4">
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌手</h2>
