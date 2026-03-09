@@ -75,12 +75,19 @@ export default function Search() {
     }
 
     fetch('/api/search-data')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(r.statusText || 'Search data failed')
+        return r.json()
+      })
       .then(data => {
+        if (data.error) throw new Error(data.message || data.error)
         applyData(data)
         writeCache(data)
       })
-      .catch(err => console.error('Error loading search data:', err))
+      .catch(err => {
+        console.error('Error loading search data:', err)
+        try { localStorage.removeItem(STORAGE_KEY) } catch {}
+      })
       .finally(() => setIsLoading(false))
   }, [applyData])
 

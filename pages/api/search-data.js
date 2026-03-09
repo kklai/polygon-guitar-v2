@@ -1,13 +1,9 @@
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 
 let cachedData = null
 let cacheTime = 0
 const SERVER_CACHE_TTL = 10 * 60 * 1000 // 10 min server-side
-
-// Cap reads per cold request (serverless has no shared cache — each instance was doing ~3750 reads)
-const MAX_TABS_READ = 1000   // recent tabs for client-side search
-const MAX_ARTISTS_READ = 600 // artists for client-side search
 
 export default async function handler(req, res) {
   if (req.query.bust === '1' || req.query.bust === 'true') {
@@ -19,10 +15,11 @@ export default async function handler(req, res) {
     return res.json(cachedData)
   }
 
-  const [tabsSnap, artistsSnap] = await Promise.all([
-    getDocs(query(collection(db, 'tabs'), orderBy('createdAt', 'desc'), limit(MAX_TABS_READ))),
-    getDocs(query(collection(db, 'artists'), orderBy('name'), limit(MAX_ARTISTS_READ)))
-  ])
+  try {
+    const [tabsSnap, artistsSnap] = await Promise.all([
+      getDocs(query(collection(db, 'tabs'), orderBy('createdAt', 'desc'))),
+      getDocs(query(collection(db, 'artists'), orderBy('name')))
+    ])
 
   const tabs = tabsSnap.docs.map(doc => {
     const d = doc.data()
@@ -70,4 +67,8 @@ export default async function handler(req, res) {
 
   res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')
   return res.json(cachedData)
+  } catch (err) {
+    console.error('search-data API error:', err)
+    res.status(500).json({ error: 'Failed to load search data', message: err?.message })
+  }
 }
