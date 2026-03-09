@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import Layout from '@/components/Layout'
 import { addSongToPlaylist } from '@/lib/playlistApi'
 import { useAuth } from '@/contexts/AuthContext'
@@ -24,6 +25,13 @@ function writeCache(data) {
   } catch {}
 }
 
+// 與首頁一致：裁剪維基圖 URL
+function getCroppedWikiImage(url) {
+  if (!url) return url
+  if (url.includes('/thumb/')) return url.replace(/\/\d+px-/, '/200px-')
+  return url
+}
+
 export default function Search() {
   const router = useRouter()
   const { user } = useAuth()
@@ -41,6 +49,8 @@ export default function Search() {
   const [categoryCovers, setCategoryCovers] = useState({
     male: null, female: null, group: null, recent: null
   })
+  // 與首頁同款：後台設定的分類封面圖（優先於「該類第一位歌手」）
+  const [categoryImageUrls, setCategoryImageUrls] = useState({ male: null, female: null, group: null })
   const fetchedRef = useRef(false)
 
   const applyData = useCallback((data) => {
@@ -61,6 +71,27 @@ export default function Search() {
       group: group[0] || null,
       recent: male[1] || male[0] || null
     })
+
+    // 解析分類封面：與首頁一致，用後台設定嘅圖（或指定歌手相）
+    if (data.categoryImages && data.artists?.length) {
+      const artistMap = new Map(data.artists.map(a => [a.id, a]))
+      const urls = {}
+      for (const catId of ['male', 'female', 'group']) {
+        const catData = data.categoryImages[catId]
+        let imageUrl = null
+        if (catData?.artistId && artistMap.has(catData.artistId)) {
+          const artist = artistMap.get(catData.artistId)
+          imageUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo || catData.image || null
+        } else if (catData?.image) {
+          imageUrl = catData.image
+        }
+        if (imageUrl?.includes('wikipedia.org')) imageUrl = getCroppedWikiImage(imageUrl)
+        urls[catId] = imageUrl || null
+      }
+      setCategoryImageUrls(urls)
+    } else {
+      setCategoryImageUrls({ male: null, female: null, group: null })
+    }
   }, [])
 
   useEffect(() => {
@@ -140,44 +171,22 @@ export default function Search() {
     router.push(`/artists/${artist.id}`)
   }
   
-  const handleCategoryClick = (category) => {
-    if (category === 'latest') {
-      router.push('/')
-    } else {
-      router.push(`/artists?category=${category}`)
-    }
+  // 首頁同款：男/女/組合三類，用於分類卡
+  const categories = [
+    { id: 'male', name: '男歌手' },
+    { id: 'female', name: '女歌手' },
+    { id: 'group', name: '組合' }
+  ]
+  const byType = (type) => (artists || [])
+    .filter(a => a.artistType === type || a.gender === type)
+    .sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
+  const hotArtistsByCategory = {
+    male: byType('male'),
+    female: byType('female'),
+    group: [...byType('group'), ...byType('band')]
   }
 
-  // 熱門搜尋建議
   const popularSearches = ['陳奕迅', '張敬軒', 'Dear Jane', '方皓玟', '姜濤', '柳應廷']
-
-  // 分類卡片數據
-  const categories = [
-    { 
-      id: 'male', 
-      name: '男歌手', 
-      color: '#1E90FF',
-      gradient: 'from-[#1E90FF] to-[#0066CC]'
-    },
-    { 
-      id: 'female', 
-      name: '女歌手', 
-      color: '#FF6B9D',
-      gradient: 'from-[#FF6B9D] to-[#D63384]'
-    },
-    { 
-      id: 'group', 
-      name: '組合', 
-      color: '#8B4513',
-      gradient: 'from-[#A0522D] to-[#8B4513]'
-    },
-    { 
-      id: 'latest', 
-      name: '最新上架', 
-      color: '#2E8B57',
-      gradient: 'from-[#3CB371] to-[#2E8B57]'
-    }
-  ]
 
   // 獲取歌手照片
   const getArtistPhoto = (artist) => {
@@ -188,15 +197,7 @@ export default function Search() {
     <Layout>
       <div className="min-h-screen bg-black pb-24">
         {/* Header */}
-        <div className="py-4">
-          <div className="flex items-center gap-3 mb-4">
-            {/* 用戶頭像 placeholder */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-black font-bold text-sm">
-              你
-            </div>
-            <h1 className="text-2xl font-bold text-white">搜尋</h1>
-          </div>
-          
+        <div className="py-4 px-4">
           {/* Search Input */}
           <div className="relative">
             <input
@@ -204,7 +205,7 @@ export default function Search() {
               placeholder="想彈咩歌？"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none transition text-base"
+              className="w-full pl-12 pr-4 py-4 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none transition text-base"
               autoFocus
             />
             <svg 
@@ -229,19 +230,19 @@ export default function Search() {
         </div>
 
         {addToPlaylistId && (
-          <p className="px-4 py-2 text-sm text-[#FFD700] bg-[#282828] rounded-lg mx-4 mb-2">
+          <p className="py-2 text-sm text-[#FFD700] bg-[#282828] rounded-lg mb-2">
             為歌單加歌：揀一首會加入歌單並返回
           </p>
         )}
 
         {/* Search Results */}
         {searchQuery.trim() !== '' ? (
-          <div className="space-y-6">
+          <div className="space-y-6 pl-4">
             {/* Artists Results */}
             {filteredArtists.length > 0 && (
               <section>
                 <h2 className="text-lg font-bold text-white mb-4">歌手</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-4">
+                <div className="flex overflow-x-auto scrollbar-hide gap-4 pr-4">
                   {filteredArtists.map((artist) => (
                     <div
                       key={artist.id}
@@ -339,77 +340,57 @@ export default function Search() {
         ) : (
           /* Default View */
           <div className="space-y-6">
-            {/* 分類卡片 2x2 */}
-            <div className="grid grid-cols-2 gap-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat.id)}
-                  className={`relative h-24 rounded-xl overflow-hidden bg-gradient-to-br ${cat.gradient} p-4 flex items-center justify-between group active:scale-95 transition-transform`}
-                >
-                  <span className="text-white font-bold text-lg z-10 relative">
-                    {cat.name}
-                  </span>
-                  
-                  {/* 右側正方形歌手圖 */}
-                  <div className="w-16 h-16 rounded-lg overflow-hidden shadow-lg z-10 relative">
-                    {cat.id === 'male' && categoryCovers.male && getArtistPhoto(categoryCovers.male) ? (
-                      <img 
-                        src={getArtistPhoto(categoryCovers.male)} 
-                        alt={categoryCovers.male.name}
-                        className="w-full h-full object-cover pointer-events-none select-none"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : cat.id === 'female' && categoryCovers.female && getArtistPhoto(categoryCovers.female) ? (
-                      <img 
-                        src={getArtistPhoto(categoryCovers.female)} 
-                        alt={categoryCovers.female.name}
-                        className="w-full h-full object-cover pointer-events-none select-none"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : cat.id === 'group' && categoryCovers.group && getArtistPhoto(categoryCovers.group) ? (
-                      <img 
-                        src={getArtistPhoto(categoryCovers.group)} 
-                        alt={categoryCovers.group.name}
-                        className="w-full h-full object-cover pointer-events-none select-none"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : cat.id === 'latest' && categoryCovers.recent?.thumbnail ? (
-                      <img 
-                        src={categoryCovers.recent.thumbnail} 
-                        alt="最新上架"
-                        className="w-full h-full object-cover pointer-events-none select-none"
-                        draggable="false"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-black/30 flex items-center justify-center text-2xl">
-                        {cat.id === 'male' && '👨'}
-                        {cat.id === 'female' && '👩'}
-                        {cat.id === 'group' && '👥'}
-                        {cat.id === 'latest' && '✨'}
+            {/* 分類卡片：電話版 3 張跟 screen width 平分 + 左右 1rem，桌面版維持橫捲 */}
+            <div className="flex gap-2 md:gap-3 md:overflow-x-auto scrollbar-hide px-4 md:px-0 md:pr-4">
+              {categories.map((category) => {
+                const cover = categoryCovers[category.id]
+                const imageUrl = categoryImageUrls[category.id] ?? (cover && getArtistPhoto(cover))
+                return (
+                  <Link
+                    key={category.id}
+                    href={`/artists?category=${category.id}`}
+                    className="flex-1 min-w-0 flex flex-col md:flex-shrink-0 md:w-36"
+                  >
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-800">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={cover?.name ?? category.name}
+                          className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
+                          draggable="false"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-2xl opacity-50">🎵</span>
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-0">
+                        <span className={`inline-block text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none whitespace-nowrap leading-tight tracking-[0.1em] ${
+                          category.id === 'male' ? 'bg-[#1fc3df]' :
+                          category.id === 'female' ? 'bg-[#ff9b98]' :
+                          'bg-[#fed702]'
+                        }`}>
+                          {category.name}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* 裝飾性背景圓形 */}
-                  <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/10" />
-                </button>
-              ))}
+                    </div>
+                    <div className="w-full mt-2 px-0 md:px-1 md:w-36">
+                      <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
+                        {hotArtistsByCategory[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
 
             {/* 熱門歌曲 */}
             {!isLoading && hotSongs.length > 0 && (
-              <section>
+              <section className="pl-4">
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌曲</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-3">
+                <div className="flex overflow-x-auto scrollbar-hide gap-3 pr-4">
                   {hotSongs.map((song) => (
                     <button
                       key={song.id}
@@ -446,9 +427,9 @@ export default function Search() {
 
             {/* 熱門歌手 */}
             {!isLoading && hotArtists.length > 0 && (
-              <section>
+              <section className="pl-4">
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌手</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-4">
+                <div className="flex overflow-x-auto scrollbar-hide gap-4 pr-4">
                   {hotArtists.map((artist) => (
                     <button
                       key={artist.id}
@@ -487,7 +468,7 @@ export default function Search() {
             )}
 
             {/* 熱門搜尋 */}
-            <section>
+            <section className="pl-4">
               <h2 className="text-lg font-bold text-white mb-4">熱門搜尋</h2>
               <div className="flex flex-wrap gap-2">
                 {popularSearches.map((term) => (

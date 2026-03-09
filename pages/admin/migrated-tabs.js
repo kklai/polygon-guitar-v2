@@ -714,7 +714,7 @@ export default function MigratedTabsPage() {
                         type="text"
                         value={editForm.title}
                         onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -725,7 +725,7 @@ export default function MigratedTabsPage() {
                           type="text"
                           value={editForm.artist}
                           onChange={(e) => setEditForm({...editForm, artist: e.target.value})}
-                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                         />
                         <button
                           onClick={handleWikiSearch}
@@ -781,7 +781,7 @@ export default function MigratedTabsPage() {
                         <select
                           value={editForm.originalKey}
                           onChange={(e) => setEditForm({...editForm, originalKey: e.target.value})}
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                         >
                           {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(k => (
                             <option key={k} value={k}>{k}</option>
@@ -796,7 +796,7 @@ export default function MigratedTabsPage() {
                           max="12"
                           value={editForm.capo}
                           onChange={(e) => setEditForm({...editForm, capo: e.target.value})}
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                         />
                       </div>
                     </div>
@@ -812,7 +812,7 @@ export default function MigratedTabsPage() {
                         value={editForm.content}
                         onChange={(e) => setEditForm({...editForm, content: e.target.value})}
                         rows={15}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none font-mono text-sm"
+                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 font-mono text-sm"
                       />
                     </div>
                   </div>

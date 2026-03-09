@@ -162,7 +162,7 @@ export default function NewTablaturePage() {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                   placeholder="例如：海闊天空"
                   required
                 />
@@ -175,7 +175,7 @@ export default function NewTablaturePage() {
                   name="artist"
                   value={formData.artist}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                   placeholder="例如：Beyond"
                   required
                 />
@@ -187,7 +187,7 @@ export default function NewTablaturePage() {
                   name="originalKey"
                   value={formData.originalKey}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                 >
                   {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(key => (
                     <option key={key} value={key}>{key}</option>
@@ -202,7 +202,7 @@ export default function NewTablaturePage() {
                   value={formData.description}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                   placeholder="簡介這份譜的難度、適合程度..."
                 />
               </div>
@@ -214,7 +214,7 @@ export default function NewTablaturePage() {
                   name="youtubeUrl"
                   value={formData.youtubeUrl}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                   placeholder="https://youtube.com/watch?v=..."
                 />
               </div>

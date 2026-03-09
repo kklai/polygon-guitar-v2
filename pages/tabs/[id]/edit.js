@@ -680,7 +680,7 @@ export default function EditTab() {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent ${
+                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] ${
                   errors.title ? 'border-red-500' : 'border-gray-800'
                 }`}
               />
@@ -740,7 +740,7 @@ export default function EditTab() {
                   name="artistType"
                   value={formData.artistType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
                 >
                   <option value="">請選擇...</option>
                   <option value="male">男歌手</option>
@@ -1072,31 +1072,31 @@ export default function EditTab() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="songYear" className="block text-sm font-medium text-white mb-1">歌曲年份</label>
-                <input type="text" id="songYear" name="songYear" value={formData.songYear} onChange={handleChange} placeholder="例如：1993" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="text" id="songYear" name="songYear" value={formData.songYear} onChange={handleChange} placeholder="例如：1993" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="album" className="block text-sm font-medium text-white mb-1">所屬專輯/CD</label>
-                <input type="text" id="album" name="album" value={formData.album} onChange={handleChange} placeholder="例如：樂與怒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="text" id="album" name="album" value={formData.album} onChange={handleChange} placeholder="例如：樂與怒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="bpm" className="block text-sm font-medium text-white mb-1">BPM</label>
-                <input type="number" id="bpm" name="bpm" value={formData.bpm} onChange={handleChange} placeholder="例如：120" min="1" max="300" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="number" id="bpm" name="bpm" value={formData.bpm} onChange={handleChange} placeholder="例如：120" min="1" max="300" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="composer" className="block text-sm font-medium text-white mb-1">作曲</label>
-                <input type="text" id="composer" name="composer" value={formData.composer} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="text" id="composer" name="composer" value={formData.composer} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="lyricist" className="block text-sm font-medium text-white mb-1">填詞</label>
-                <input type="text" id="lyricist" name="lyricist" value={formData.lyricist} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="text" id="lyricist" name="lyricist" value={formData.lyricist} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="arranger" className="block text-sm font-medium text-white mb-1">編曲</label>
-                <input type="text" id="arranger" name="arranger" value={formData.arranger} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="text" id="arranger" name="arranger" value={formData.arranger} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="producer" className="block text-sm font-medium text-white mb-1">監製</label>
-                <input type="text" id="producer" name="producer" value={formData.producer} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+                <input type="text" id="producer" name="producer" value={formData.producer} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               
               {/* 上傳者筆名 */}
@@ -1114,7 +1114,7 @@ export default function EditTab() {
                   placeholder="例如：Kermit、結他小王子（顯示為『編譜：xxx』）" 
                   className={`w-full px-4 py-2 bg-black rounded-lg text-white placeholder-[#B3B3B3] ${
                     isAdmin 
-                      ? 'border border-gray-800 focus:ring-2 focus:ring-[#FFD700] focus:border-transparent' 
+                      ? 'border border-gray-800' 
                       : 'border border-gray-800 cursor-not-allowed opacity-70'
                   }`} 
                 />
@@ -1140,7 +1140,7 @@ export default function EditTab() {
                   快速添加（自動選第一個）
                 </button>
               </div>
-              <input type="url" id="youtubeUrl" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="貼上 YouTube 連結..." className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent" />
+              <input type="url" id="youtubeUrl" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="貼上 YouTube 連結..." className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               {formData.youtubeVideoId && (
                 <div className="mt-3">
                   <p className="text-xs text-green-400 mb-2">✓ 已識別 Video ID: {formData.youtubeVideoId}</p>
@@ -1161,7 +1161,7 @@ export default function EditTab() {
                 name="originalKey"
                 value={formData.originalKey}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
               >
                 <optgroup label="Major (大調)">
                   {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
@@ -1186,7 +1186,7 @@ export default function EditTab() {
                 name="capo"
                 value={formData.capo}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
               >
                 <option value="">唔用 Capo</option>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((num) => (
@@ -1208,7 +1208,7 @@ export default function EditTab() {
                 name="playKey"
                 value={formData.playKey}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
               >
                 <option value="">同原調</option>
                 <optgroup label="Major (大調)">
@@ -1243,7 +1243,7 @@ export default function EditTab() {
                     onChange={handleChange}
                     placeholder="例如：↓ ↓↑ ↓↑ ↓↑&#10;或：D DU DU DU"
                     rows={3}
-                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent font-mono text-sm"
+                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] font-mono text-sm"
                   />
                   <p className="mt-1 text-xs text-gray-500">可以用箭頭 ↓↑ 或 D/U 表示</p>
                 </div>
@@ -1259,7 +1259,7 @@ export default function EditTab() {
                     onChange={handleChange}
                     placeholder="例如：副歌可以用Power Chord加強節奏感&#10;間奏Solo建議用食指橫按..."
                     rows={3}
-                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm"
+                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] text-sm"
                   />
                 </div>
               </div>
@@ -1371,7 +1371,7 @@ export default function EditTab() {
                 }}
                 rows={20}
                 placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
-                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent text-sm ${
+                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] text-sm ${
                   errors.content ? 'border-red-500' : 'border-gray-800'
                 } ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
                 style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }}

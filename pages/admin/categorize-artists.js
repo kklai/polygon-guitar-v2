@@ -323,7 +323,7 @@ export default function CategorizeArtists() {
                   type="checkbox"
                   checked={filteredArtists.length > 0 && selectedArtists.size === filteredArtists.length}
                   onChange={toggleSelectAll}
-                  className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700] focus:ring-[#FFD700]"
+                  className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
                 />
                 <span className="text-white text-sm">
                   全選 ({selectedArtists.size}/{filteredArtists.length})
@@ -340,7 +340,7 @@ export default function CategorizeArtists() {
                   placeholder="搜尋歌手名..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                  className="w-full pl-9 pr-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none"
                 />
               </div>
             </div>
@@ -428,7 +428,7 @@ export default function CategorizeArtists() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelect(artist.id)}
-                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700] focus:ring-[#FFD700]"
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
                       />
 
                       {/* 歌手圖片 */}

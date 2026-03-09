@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 
 let cachedData = null
@@ -16,10 +16,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [tabsSnap, artistsSnap] = await Promise.all([
+    const [tabsSnap, artistsSnap, categoryImagesSnap] = await Promise.all([
       getDocs(query(collection(db, 'tabs'), orderBy('createdAt', 'desc'))),
-      getDocs(query(collection(db, 'artists'), orderBy('name')))
+      getDocs(query(collection(db, 'artists'), orderBy('name'))),
+      getDoc(doc(db, 'settings', 'categoryImages'))
     ])
+    const categoryImages = categoryImagesSnap?.exists?.() ? categoryImagesSnap.data() : null
 
   const tabs = tabsSnap.docs.map(doc => {
     const d = doc.data()
@@ -62,7 +64,7 @@ export default async function handler(req, res) {
   const hotTabs = [...tabs].sort((a, b) => b.viewCount - a.viewCount).slice(0, 12)
   const hotArtists = [...artists].sort((a, b) => b.viewCount - a.viewCount).slice(0, 12)
 
-  cachedData = { tabs, artists, hotTabs, hotArtists }
+  cachedData = { tabs, artists, hotTabs, hotArtists, categoryImages }
   cacheTime = Date.now()
 
   res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')

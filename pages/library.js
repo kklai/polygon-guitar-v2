@@ -413,7 +413,7 @@ export default function Library() {
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
                 placeholder="歌單名稱"
-                className="w-full bg-[#282828] text-white px-4 py-3 rounded-lg mb-6 focus:outline-none focus:ring-2 focus:ring-[#FFD700] placeholder-[#6B7280]"
+                className="w-full bg-[#282828] text-white px-4 py-3 rounded-lg mb-6 outline-none placeholder-[#6B7280]"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && createPlaylist()}
               />

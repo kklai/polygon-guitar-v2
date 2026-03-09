@@ -233,7 +233,7 @@ export default function ArtistsScore() {
                 type="checkbox"
                 checked={selectedArtists.size === artists.length && artists.length > 0}
                 onChange={toggleSelectAll}
-                className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700] focus:ring-[#FFD700]"
+                className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
               />
               <span className="text-white text-sm">
                 全選 ({selectedArtists.size}/{artists.length})
@@ -252,7 +252,7 @@ export default function ArtistsScore() {
                 value={batchScore}
                 onChange={(e) => setBatchScore(e.target.value)}
                 placeholder="0-1000"
-                className="w-24 bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded-lg border border-gray-700 focus:border-[#FFD700] focus:outline-none"
+                className="w-24 bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded-lg border border-gray-700 outline-none"
               />
               <button
                 onClick={applyBatchScore}
@@ -315,7 +315,7 @@ export default function ArtistsScore() {
                       type="checkbox"
                       checked={selectedArtists.has(artist.id)}
                       onChange={() => toggleSelect(artist.id)}
-                      className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700] focus:ring-[#FFD700]"
+                      className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
                     />
                   </div>
 
@@ -372,7 +372,7 @@ export default function ArtistsScore() {
                           }))
                         }
                       }}
-                      className={`w-full bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded-lg border focus:outline-none ${
+                      className={`w-full bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded-lg border outline-none ${
                         parseInt(individualScores[artist.id]) !== (artist.adminScore || 0)
                           ? 'border-[#FFD700] text-[#FFD700]'
                           : 'border-gray-700'

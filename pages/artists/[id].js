@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
-import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy } from 'lucide-react';
+import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
@@ -758,7 +758,10 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
               {/* 歌曲資訊 */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-white text-base font-medium truncate">{tab.title}</h3>
-                <p className="text-[#B3B3B3] text-xs mt-0.5">{tab.viewCount?.toLocaleString() || 0} 瀏覽</p>
+                <p className="text-[#B3B3B3] text-xs mt-0.5 flex items-center gap-1">
+                  <PenLine className="w-3 h-3 flex-shrink-0" />
+                  {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                </p>
               </div>
               
               {/* 更多 - 橫向三點（與 library/playlist 一致） */}
@@ -1076,7 +1079,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                     value={newPlaylistName}
                     onChange={(e) => setNewPlaylistName(e.target.value)}
                     placeholder="輸入歌單名稱"
-                    className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-[#FFD700]"
+                    className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none"
                     autoFocus
                   />
                   <div className="flex space-x-2">

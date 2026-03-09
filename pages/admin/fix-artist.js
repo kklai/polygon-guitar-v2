@@ -805,7 +805,7 @@ function FixArtistPage() {
                               value={editForm.artist}
                               onChange={(e) => setEditForm(prev => ({ ...prev, artist: e.target.value }))}
                               placeholder="例如：陳奕迅"
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm focus:border-[#FFD700] focus:outline-none"
+                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm outline-none"
                             />
                           </div>
                           <div>
@@ -815,7 +815,7 @@ function FixArtistPage() {
                               value={editForm.title}
                               onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
                               placeholder="例如：十年"
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm focus:border-[#FFD700] focus:outline-none"
+                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm outline-none"
                             />
                           </div>
                         </div>

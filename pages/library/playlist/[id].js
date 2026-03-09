@@ -914,7 +914,7 @@ export default function UserPlaylistDetail() {
                       value={newPlaylistName}
                       onChange={(e) => setNewPlaylistName(e.target.value)}
                       placeholder="輸入歌單名稱"
-                      className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-1 focus:ring-[#FFD700]"
+                      className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none"
                       autoFocus
                     />
                     <div className="flex space-x-2">
@@ -1008,7 +1008,7 @@ export default function UserPlaylistDetail() {
                     placeholder="搜尋歌曲"
                     value={addSongSearchQuery}
                     onChange={(e) => setAddSongSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-[#282828] text-white placeholder-[#666] rounded-full outline-none focus:ring-1 focus:ring-[#FFD700]"
+                    className="w-full pl-10 pr-4 py-3 bg-[#282828] text-white placeholder-[#666] rounded-full outline-none"
                   />
                 </div>
               </div>
@@ -1341,7 +1341,7 @@ export default function UserPlaylistDetail() {
                     value={editTitleValue}
                     onChange={(e) => setEditTitleValue(e.target.value)}
                     placeholder="歌單名稱"
-                    className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#FFD700] placeholder-[#666]"
+                    className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none placeholder-[#666]"
                   />
                 </div>
                 <div>
@@ -1351,7 +1351,7 @@ export default function UserPlaylistDetail() {
                     onChange={(e) => setEditDescriptionValue(e.target.value)}
                     placeholder="簡介（選填）"
                     rows={3}
-                    className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-[#FFD700] placeholder-[#666] resize-none"
+                    className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none placeholder-[#666] resize-none"
                   />
                 </div>
                 <button

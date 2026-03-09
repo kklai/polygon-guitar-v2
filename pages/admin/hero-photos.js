@@ -203,7 +203,7 @@ function HeroPhotosAdmin() {
             placeholder="搜尋歌手..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+            className="w-full pl-10 pr-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none"
           />
           <svg 
             className="absolute left-3 top-3.5 w-5 h-5 text-[#666]"

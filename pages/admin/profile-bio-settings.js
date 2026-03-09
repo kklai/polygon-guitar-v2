@@ -533,7 +533,7 @@ function BioSettingsAdmin() {
                           newQuestions[qIdx].label = e.target.value
                           setConfig({ ...config, questions: newQuestions })
                         }}
-                        className="bg-transparent text-white font-bold text-lg w-full focus:outline-none"
+                        className="bg-transparent text-white font-bold text-lg w-full outline-none"
                       />
                       <input
                         type="text"
@@ -543,7 +543,7 @@ function BioSettingsAdmin() {
                           newQuestions[qIdx].question = e.target.value
                           setConfig({ ...config, questions: newQuestions })
                         }}
-                        className="bg-transparent text-gray-400 text-sm w-full focus:outline-none mt-1"
+                        className="bg-transparent text-gray-400 text-sm w-full outline-none mt-1"
                       />
                     </div>
                   </div>

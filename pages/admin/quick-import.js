@@ -546,7 +546,7 @@ export default function QuickImport() {
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
                 placeholder="貼上從網站複製的譜文字..."
-                className="w-full h-96 bg-[#1a1a1a] text-white rounded-lg p-4 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#FFD700] whitespace-pre"
+                className="w-full h-96 bg-[#1a1a1a] text-white rounded-lg p-4 font-mono text-sm resize-none outline-none whitespace-pre"
                 style={{ whiteSpace: 'pre' }}
               />
               

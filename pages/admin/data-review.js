@@ -432,7 +432,7 @@ function DataReview() {
                       type="checkbox"
                       checked={selectedItems.has(artist.id)}
                       onChange={() => toggleSelection(artist.id)}
-                      className="mt-1 w-4 h-4 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700]"
+                      className="mt-1 w-4 h-4 rounded border-gray-600 text-[#FFD700]"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -526,7 +526,7 @@ function DataReview() {
                       type="checkbox"
                       checked={selectedItems.has(tab.id)}
                       onChange={() => toggleSelection(tab.id)}
-                      className="mt-1 w-4 h-4 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700]"
+                      className="mt-1 w-4 h-4 rounded border-gray-600 text-[#FFD700]"
                     />
                     <div className="flex-1">
                       <div className="mb-2">

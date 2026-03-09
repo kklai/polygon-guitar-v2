@@ -508,7 +508,7 @@ export default function ArtistsV2Page() {
                 placeholder="搜索歌手..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#282828] text-white border-0 rounded-full px-4 py-2 text-sm w-48 placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                className="bg-[#282828] text-white border-0 rounded-full px-4 py-2 text-sm w-48 placeholder-[#666] outline-none"
               />
               <select
                 value={filter}
@@ -623,7 +623,7 @@ export default function ArtistsV2Page() {
                         type="checkbox"
                         checked={selectedArtists.has(artist.id)}
                         onChange={() => toggleSelection(artist.id)}
-                        className="w-5 h-5 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700] focus:ring-offset-0 bg-[#1a1a1a]"
+                        className="w-5 h-5 rounded border-gray-600 text-[#FFD700] bg-[#1a1a1a]"
                       />
                     )}
                     {/* 照片 */}
@@ -734,7 +734,7 @@ export default function ArtistsV2Page() {
                         type="text"
                         value={editForm.name}
                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -743,7 +743,7 @@ export default function ArtistsV2Page() {
                       <select
                         value={editForm.artistType}
                         onChange={(e) => setEditForm({...editForm, artistType: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                       >
                         {GENDER_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -757,7 +757,7 @@ export default function ArtistsV2Page() {
                         value={editForm.bio}
                         onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
                         rows={3}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -770,7 +770,7 @@ export default function ArtistsV2Page() {
                           type="text"
                           value={editForm.photoURL}
                           onChange={(e) => setEditForm({...editForm, photoURL: e.target.value})}
-                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                         />
                         <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
                           上傳
@@ -799,7 +799,7 @@ export default function ArtistsV2Page() {
                         type="text"
                         value={editForm.wikiPhotoURL}
                         onChange={(e) => setEditForm({...editForm, wikiPhotoURL: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -813,7 +813,7 @@ export default function ArtistsV2Page() {
                           value={editForm.birthYear}
                           onChange={(e) => setEditForm({...editForm, birthYear: e.target.value})}
                           placeholder="例如: 1990"
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                         />
                       </div>
                       <div>
@@ -825,7 +825,7 @@ export default function ArtistsV2Page() {
                           value={editForm.debutYear}
                           onChange={(e) => setEditForm({...editForm, debutYear: e.target.value})}
                           placeholder="例如: 2010"
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none"
+                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
                         />
                       </div>
                     </div>
@@ -839,7 +839,7 @@ export default function ArtistsV2Page() {
                           value={editForm.heroPhoto}
                           onChange={(e) => setEditForm({...editForm, heroPhoto: e.target.value})}
                           rows={3}
-                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 focus:border-[#FFD700] focus:outline-none text-xs font-mono"
+                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 text-xs font-mono"
                         />
                         <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer self-start">
                           上傳

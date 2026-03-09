@@ -67,7 +67,7 @@ export default function RatingSystem({ tabId, averageRating = 0, ratingCount = 0
             onMouseEnter={() => setHoverRating(star)}
             onMouseLeave={() => setHoverRating(0)}
             disabled={isLoading}
-            className="focus:outline-none transition-transform hover:scale-110 disabled:opacity-50"
+            className="outline-none transition-transform hover:scale-110 disabled:opacity-50"
           >
             <Star
               className={`${starSizes[size]} ${

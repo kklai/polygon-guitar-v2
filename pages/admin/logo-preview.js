@@ -238,7 +238,7 @@ export default function LogoPreview() {
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       placeholder="輸入文字，例如：精選"
-                      className="w-full bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-gray-700 focus:border-[#FFD700] outline-none"
+                      className="w-full bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-gray-700 outline-none"
                     />
                   </div>
 
@@ -248,7 +248,7 @@ export default function LogoPreview() {
                     <select
                       value={textFont}
                       onChange={(e) => setTextFont(e.target.value)}
-                      className="w-full bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-gray-700 focus:border-[#FFD700] outline-none"
+                      className="w-full bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-gray-700 outline-none"
                     >
                       {FONT_OPTIONS.map((font) => (
                         <option key={font.value} value={font.value}>{font.name}</option>

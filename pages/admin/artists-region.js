@@ -252,7 +252,7 @@ export default function ArtistsRegion() {
                   type="checkbox"
                   checked={selectedArtists.size === artists.length && artists.length > 0}
                   onChange={toggleSelectAll}
-                  className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700] focus:ring-[#FFD700]"
+                  className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
                 />
                 <span className="text-white text-sm">
                   全選 ({selectedArtists.size}/{artists.length})
@@ -282,7 +282,7 @@ export default function ArtistsRegion() {
                   <select
                     value=""
                     onChange={(e) => e.target.value && addBatchRegion(e.target.value)}
-                    className="bg-[#1a1a1a] text-white text-sm px-3 py-1.5 rounded-lg border border-gray-700 focus:border-[#FFD700] focus:outline-none"
+                    className="bg-[#1a1a1a] text-white text-sm px-3 py-1.5 rounded-lg border border-gray-700 outline-none"
                   >
                     <option value="">+ 添加地區 ({batchRegions.length + 1}/3)</option>
                     {REGIONS.filter(r => !batchRegions.includes(r.value)).map(r => (
@@ -345,7 +345,7 @@ export default function ArtistsRegion() {
                         type="checkbox"
                         checked={selectedArtists.has(artist.id)}
                         onChange={() => toggleSelect(artist.id)}
-                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700] focus:ring-[#FFD700]"
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
                       />
                     </div>
 
@@ -409,7 +409,7 @@ export default function ArtistsRegion() {
                           <select
                             value=""
                             onChange={(e) => e.target.value && addIndividualRegion(artist.id, e.target.value)}
-                            className="w-full bg-black text-white text-xs px-2 py-1.5 rounded border border-gray-700 focus:border-[#FFD700] focus:outline-none"
+                            className="w-full bg-black text-white text-xs px-2 py-1.5 rounded border border-gray-700 outline-none"
                           >
                             <option value="">+ 添加地區</option>
                             {REGIONS.filter(r => !newRegions.includes(r.value)).map(r => (

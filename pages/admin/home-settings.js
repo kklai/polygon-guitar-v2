@@ -842,7 +842,7 @@ function HomeSettings() {
                       value={artistSearchTerm}
                       onChange={(e) => setArtistSearchTerm(e.target.value)}
                       placeholder="搜索歌手名..."
-                      className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 pr-10 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                      className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 pr-10 text-white placeholder-[#666] outline-none"
                     />
                     {artistSearchTerm && (
                       <button
@@ -957,7 +957,7 @@ function HomeSettings() {
                         }))
                         setHasChanges(true)
                       }}
-                      className="w-5 h-5 rounded border-gray-600 text-[#FFD700] focus:ring-[#FFD700] bg-[#282828]"
+                      className="w-5 h-5 rounded border-gray-600 text-[#FFD700] bg-[#282828]"
                     />
                     <span className="text-sm text-gray-300">只顯示手動揀選</span>
                   </label>
@@ -1077,7 +1077,7 @@ function HomeSettings() {
                       value={tabSearchTerm}
                       onChange={(e) => setTabSearchTerm(e.target.value)}
                       placeholder="搜索歌曲名、歌手、作曲、作詞..."
-                      className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 pr-10 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                      className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 pr-10 text-white placeholder-[#666] outline-none"
                     />
                     {tabSearchTerm && (
                       <button
@@ -1216,7 +1216,7 @@ function HomeSettings() {
                               setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
                               setHasChanges(true)
                             }}
-                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 focus:border-[#FFD700] focus:outline-none transition px-1 -ml-1"
+                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 transition px-1 -ml-1"
                           />
                           <p className="text-xs text-gray-500 ml-1">
                             {isGroup ? '多歌單區域' : '單歌單區域'}
@@ -1296,7 +1296,7 @@ function HomeSettings() {
                               setHasChanges(true)
                             }}
                             placeholder={option.label}
-                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 focus:border-[#FFD700] focus:outline-none transition px-1 -ml-1"
+                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 transition px-1 -ml-1"
                           />
                           {section.customLabel && (
                             <span className="text-xs text-gray-500 ml-1">原名：{option.label}</span>
@@ -1386,7 +1386,7 @@ function HomeSettings() {
                   value={playlistSearchTerm}
                   onChange={(e) => setPlaylistSearchTerm(e.target.value)}
                   placeholder="搜尋歌單..."
-                  className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                  className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] outline-none"
                 />
               </div>
               
@@ -1466,7 +1466,7 @@ function HomeSettings() {
                     value={playlistGroupTitle}
                     onChange={(e) => setPlaylistGroupTitle(e.target.value)}
                     placeholder="例如：精選歌單、熱門推薦"
-                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] outline-none"
                   />
                 </div>
                 
@@ -1479,7 +1479,7 @@ function HomeSettings() {
                     value={playlistSearchTerm}
                     onChange={(e) => setPlaylistSearchTerm(e.target.value)}
                     placeholder="搜尋歌單..."
-                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none mb-3"
+                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-2 text-white placeholder-[#666] outline-none mb-3"
                   />
                   
                   <div className="max-h-64 overflow-y-auto space-y-2">

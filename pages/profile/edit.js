@@ -234,7 +234,7 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
               value={formData.bio || ''}
               onChange={(e) => onBioChange(e.target.value)}
               placeholder="例如：大家好，我係Kermit，彈結他十年，鍾意自彈自唱，歡迎交流..."
-              className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none resize-none"
               rows={4}
             />
           </div>
@@ -533,7 +533,7 @@ export default function EditProfile() {
                 value={formData.displayName}
                 onChange={(e) => handleChange('displayName', e.target.value)}
                 placeholder="你的名稱"
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none"
               />
             </div>
 
@@ -547,7 +547,7 @@ export default function EditProfile() {
                 value={formData.penName}
                 onChange={(e) => handleChange('penName', e.target.value)}
                 placeholder="例如：結他小王子、Kermit Guitar"
-                className="w-full px-4 py-3 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-gray-500 outline-none"
               />
               <p className="text-xs text-gray-400 mt-2">
                 出譜時會自動使用此筆名，顯示為「編譜：xxx」
@@ -561,7 +561,7 @@ export default function EditProfile() {
                 onChange={(e) => handleChange('bio', e.target.value)}
                 placeholder="介紹一下自己，例如音樂風格、喜歡的歌手、聯絡方式..."
                 rows={4}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none resize-none"
               />
             </div>
           </div>
@@ -588,7 +588,7 @@ export default function EditProfile() {
                   value={formData.socialMedia?.[key] || ''}
                   onChange={(e) => handleSocialMediaChange(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none"
                 />
               </div>
             ))}
@@ -605,7 +605,7 @@ export default function EditProfile() {
               <select
                 value={formData.guitarExperience}
                 onChange={(e) => handleChange('guitarExperience', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.experience.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -620,7 +620,7 @@ export default function EditProfile() {
                 value={formData.favoriteArtist}
                 onChange={(e) => handleChange('favoriteArtist', e.target.value)}
                 placeholder="例如：陳奕迅、周杰倫、Taylor Swift..."
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none"
               />
             </div>
 
@@ -629,7 +629,7 @@ export default function EditProfile() {
               <select
                 value={formData.favoriteKey}
                 onChange={(e) => handleChange('favoriteKey', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
               >
                 {FAVORITE_KEY_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -642,7 +642,7 @@ export default function EditProfile() {
               <select
                 value={formData.playingStyle}
                 onChange={(e) => handleChange('playingStyle', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.style.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -655,7 +655,7 @@ export default function EditProfile() {
               <select
                 value={formData.favoriteChords}
                 onChange={(e) => handleChange('favoriteChords', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.chords.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -668,7 +668,7 @@ export default function EditProfile() {
               <select
                 value={formData.practiceLocation}
                 onChange={(e) => handleChange('practiceLocation', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.location.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>

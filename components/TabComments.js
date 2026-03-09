@@ -98,7 +98,7 @@ export default function TabComments({ tabId }) {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="分享你對呢份譜嘅感想..."
-            className="w-full bg-[#121212] border border-gray-700 rounded-lg p-3 text-white text-sm placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
+            className="w-full bg-[#121212] border border-gray-700 rounded-lg p-3 text-white text-sm placeholder-gray-500 outline-none resize-none"
             rows={3}
             maxLength={500}
           />

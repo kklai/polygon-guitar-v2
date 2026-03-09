@@ -177,7 +177,7 @@ function RoleSettings() {
             placeholder="搜尋用戶（Email 或用戶名）..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+            className="w-full px-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none"
           />
         </div>
 

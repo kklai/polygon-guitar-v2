@@ -295,7 +295,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
             onChange={e => setTitleText(e.target.value.slice(0, 6))}
             maxLength={6}
             placeholder="歌單名稱（最多6字）"
-            className="w-full px-3 py-2 bg-[#1A1A1A] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-[#FFD700]"
+            className="w-full px-3 py-2 bg-[#1A1A1A] border border-gray-700 rounded-lg text-white text-sm outline-none"
           />
         </div>
       )}

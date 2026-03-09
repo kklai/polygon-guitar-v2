@@ -362,7 +362,7 @@ export default function RecentTabs() {
                         value={newPlaylistName}
                         onChange={(e) => setNewPlaylistName(e.target.value)}
                         placeholder="輸入歌單名稱"
-                        className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-[#FFD700]"
+                        className="w-full bg-[#282828] text-white px-3 py-2 rounded-lg mb-2 outline-none"
                         autoFocus
                       />
                       <div className="flex space-x-2">

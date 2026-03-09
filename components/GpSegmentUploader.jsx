@@ -389,7 +389,7 @@ export default function GpSegmentUploader({
               <select
                 value={segmentType}
                 onChange={(e) => setSegmentType(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
               >
                 {SEGMENT_TYPES.map(type => (
                   <option key={type.value} value={type.value}>
@@ -408,7 +408,7 @@ export default function GpSegmentUploader({
                   max={totalBars || 1}
                   value={startBar}
                   onChange={(e) => setStartBar(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                 />
               </div>
               <div>
@@ -419,7 +419,7 @@ export default function GpSegmentUploader({
                   max={totalBars || 1}
                   value={endBar}
                   onChange={(e) => setEndBar(parseInt(e.target.value) || startBar)}
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white focus:border-[#FFD700] focus:outline-none"
+                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
                 />
               </div>
             </div>

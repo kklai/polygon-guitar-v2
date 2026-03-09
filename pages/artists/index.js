@@ -319,7 +319,7 @@ export default function Artists({ initialArtists = [] }) {
                 placeholder="搜尋歌手..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-[#282828] rounded-full text-white placeholder-[#666] focus:outline-none focus:ring-1 focus:ring-[#FFD700]"
+                className="w-full pl-12 pr-4 py-4 bg-[#282828] rounded-full text-white placeholder-[#666] outline-none"
               />
               <svg 
                 className="absolute left-4 top-3.5 w-5 h-5 text-[#666]"

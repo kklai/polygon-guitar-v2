@@ -2750,7 +2750,7 @@ const TabContent = ({
       <div className={`${theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
         {showControls && <ControlBar />}
         <div className="p-4">
-          <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className={`w-full h-96 p-4 rounded-lg border focus:outline-none resize-none font-mono text-sm ${theme === 'day' ? 'bg-gray-50 text-gray-800 border-gray-300 focus:border-purple-500' : 'bg-black text-gray-300 border-gray-700 focus:border-[#FFD700]'}`} placeholder="輸入譜內容..." />
+          <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className={`w-full h-96 p-4 rounded-lg border outline-none resize-none font-mono text-sm ${theme === 'day' ? 'bg-gray-50 text-gray-800 border-gray-300' : 'bg-black text-gray-300 border-gray-700'}`} placeholder="輸入譜內容..." />
           <div className="flex justify-end gap-3 mt-4">
             <button onClick={() => setIsEditing(false)} className={`px-4 py-2 transition ${theme === 'day' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-white'}`}>取消</button>
             <button onClick={handleSave} className={`px-4 py-2 rounded-lg transition ${theme === 'day' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-[#FFD700] text-black hover:opacity-90'}`}>保存</button>

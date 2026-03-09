@@ -235,7 +235,7 @@ function SpotifyManager() {
                     checked={forceUpdate}
                     onChange={(e) => setForceUpdate(e.target.checked)}
                     disabled={isBulkUpdating}
-                    className="w-4 h-4 rounded border-gray-600 text-[#1DB954] focus:ring-[#1DB954]"
+                    className="w-4 h-4 rounded border-gray-600 text-[#1DB954]"
                   />
                   強制更新所有歌手
                 </label>
@@ -271,7 +271,7 @@ function SpotifyManager() {
                   type="checkbox"
                   checked={showAllArtists}
                   onChange={(e) => setShowAllArtists(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 text-[#1DB954] focus:ring-[#1DB954]"
+                  className="w-4 h-4 rounded border-gray-600 text-[#1DB954]"
                 />
                 顯示全部歌手（{artists.length} 個）
               </label>
@@ -316,7 +316,7 @@ function SpotifyManager() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜尋歌曲或歌手..."
-                  className="flex-1 px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                  className="flex-1 px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none"
                   onKeyPress={(e) => e.key === 'Enter' && searchAndUpdateSong()}
                 />
                 <button

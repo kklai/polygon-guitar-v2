@@ -519,7 +519,7 @@ function EditArtist() {
                 name="name"
                 value={formData.name}
                 onChange={handleNameChange}
-                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent ${
+                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] ${
                   errors.name ? 'border-red-500' : 'border-gray-800'
                 } ${showNameChangeWarning ? 'border-yellow-600' : ''}`}
               />
@@ -556,7 +556,7 @@ function EditArtist() {
                           type="checkbox"
                           checked={updateSongsWithNewName}
                           onChange={(e) => setUpdateSongsWithNewName(e.target.checked)}
-                          className="w-4 h-4 rounded border-yellow-600 text-[#FFD700] focus:ring-[#FFD700]"
+                          className="w-4 h-4 rounded border-yellow-600 text-[#FFD700]"
                         />
                         <span className="text-yellow-200 text-sm">
                           同時更新所有歌曲的歌手資料（推薦）
@@ -578,7 +578,7 @@ function EditArtist() {
                 name="artistType"
                 value={formData.artistType}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
               >
                 <option value="">請選擇...</option>
                 <option value="male">👨‍🎤 男歌手</option>
@@ -630,7 +630,7 @@ function EditArtist() {
                         }))
                       }
                     }}
-                    className="w-full bg-black text-white text-sm px-3 py-2 rounded border border-gray-700 focus:border-[#FFD700] focus:outline-none"
+                    className="w-full bg-black text-white text-sm px-3 py-2 rounded border border-gray-700 outline-none"
                   >
                     <option value="">+ 添加地區 ({(formData.regions?.length || 0) + 1}/3)</option>
                     {REGIONS.filter(r => !formData.regions?.includes(r.value)).map(r => (
@@ -731,7 +731,7 @@ function EditArtist() {
                     value={formData.photoURL}
                     onChange={handleChange}
                     placeholder="https://..."
-                    className="flex-1 px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                    className="flex-1 px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3]"
                   />
                   <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
                     {isUploading ? '上傳中...' : '選擇檔案'}
@@ -779,7 +779,7 @@ function EditArtist() {
                   value={formData.wikiPhotoURL}
                   onChange={handleChange}
                   placeholder="https://..."
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-[#B3B3B3]"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   當無用戶上傳相片時顯示
@@ -814,7 +814,7 @@ function EditArtist() {
                   value={formData.heroPhoto}
                   onChange={handleChange}
                   placeholder="https://..."
-                  className="flex-1 px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                  className="flex-1 px-4 py-2 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-[#B3B3B3]"
                 />
                 <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
                   {isUploading ? '上傳中...' : '選擇檔案'}
@@ -859,7 +859,7 @@ function EditArtist() {
                 value={formData.birthYear}
                 onChange={handleChange}
                 placeholder="例如：1990 或 1990-05-15"
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]"
               />
               <p className="text-xs text-gray-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
             </div>
@@ -876,7 +876,7 @@ function EditArtist() {
                 value={formData.debutYear}
                 onChange={handleChange}
                 placeholder="例如：2022 或 2022-07-12"
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]"
               />
               <p className="text-xs text-gray-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
             </div>
@@ -935,7 +935,7 @@ function EditArtist() {
                 onChange={handleChange}
                 rows={6}
                 placeholder="歌手簡介..."
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] focus:ring-2 focus:ring-[#FFD700] focus:border-transparent"
+                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]"
               />
               <p className="mt-1 text-sm text-[#B3B3B3]">
                 {formData.bio.length} 字

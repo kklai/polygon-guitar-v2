@@ -443,7 +443,7 @@ export default function TabRequestsPage() {
                     type="text"
                     value={formData.songTitle}
                     onChange={(e) => setFormData({...formData, songTitle: e.target.value})}
-                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none"
                     placeholder="輸入歌名"
                   />
                 </div>
@@ -454,7 +454,7 @@ export default function TabRequestsPage() {
                     type="text"
                     value={formData.artistName}
                     onChange={(e) => setFormData({...formData, artistName: e.target.value})}
-                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none"
+                    className="w-full bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none"
                     placeholder="輸入歌手名"
                   />
                 </div>

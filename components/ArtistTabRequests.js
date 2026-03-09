@@ -89,7 +89,7 @@ export default function ArtistTabRequests({ artistId, artistName }) {
               value={songTitle}
               onChange={(e) => setSongTitle(e.target.value)}
               placeholder={`想求 ${artistName} 嘅邊首歌？`}
-              className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-sm placeholder-gray-500 focus:border-[#FFD700] focus:outline-none"
+              className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-sm placeholder-gray-500 outline-none"
               maxLength={100}
             />
           </div>
@@ -99,7 +99,7 @@ export default function ArtistTabRequests({ artistId, artistName }) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="例如：想要簡單版、原調版本等..."
-              className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-sm placeholder-gray-500 focus:border-[#FFD700] focus:outline-none resize-none"
+              className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-sm placeholder-gray-500 outline-none resize-none"
               rows={2}
               maxLength={200}
             />

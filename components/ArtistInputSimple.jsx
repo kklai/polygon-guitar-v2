@@ -253,7 +253,7 @@ function ArtistFieldRow({
           <select
             value={artist.relation || 'slash'}
             onChange={handleRelationChange}
-            className="w-20 flex-shrink-0 px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:border-[#FFD700] focus:outline-none"
+            className="w-20 flex-shrink-0 px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none"
           >
             {RELATION_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -275,7 +275,7 @@ function ArtistFieldRow({
             onKeyDown={handleKeyDown}
             onFocus={() => !isConfirmed && inputValue && suggestions.length > 0 && setShowDropdown(true)}
             placeholder={isFirst ? "例如：陳奕迅" : "例如：楊千嬅"}
-            className={`w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] focus:ring-1 focus:ring-[#FFD700] outline-none ${
+            className={`w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none ${
               artist.id ? 'ring-2 ring-green-500/50' : ''
             }`}
           />
