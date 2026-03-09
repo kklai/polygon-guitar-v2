@@ -30,3 +30,6 @@ scripts/.cache-tabs-lyricist.json
 
 # Firebase
 .firebase/
+
+#audit doc
+*audit.md

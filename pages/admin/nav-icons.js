@@ -82,6 +82,7 @@ function NavIconsAdmin() {
 
       const next = { ...icons, [itemId]: url }
       await setDoc(doc(db, 'settings', 'navIcons'), next)
+      try { localStorage.removeItem('navIcons') } catch (_) {} // cache bust so admin sees new icons
       setIcons(next)
       flash(`✅ ${NAV_ITEMS.find(i => i.id === itemId)?.label} 圖標已保存`)
     } catch (e) {
@@ -98,6 +99,7 @@ function NavIconsAdmin() {
       const next = { ...icons }
       delete next[itemId]
       await setDoc(doc(db, 'settings', 'navIcons'), next)
+      try { localStorage.removeItem('navIcons') } catch (_) {} // cache bust so admin sees new icons
       setIcons(next)
       flash(`已清除 ${NAV_ITEMS.find(i => i.id === itemId)?.label} 圖標`)
     } catch (e) {

@@ -6,6 +6,30 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
 
+const NAV_ICONS_STORAGE_KEY = 'navIcons'
+// No TTL — cache is valid until admin changes nav icons (cache bust in admin/nav-icons.js)
+
+function getNavIconsCached() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(NAV_ICONS_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    const data = parsed?.data ?? parsed
+    if (!data || typeof data !== 'object') return null
+    return { data }
+  } catch {
+    return null
+  }
+}
+
+function setNavIconsCached(data) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(NAV_ICONS_STORAGE_KEY, JSON.stringify({ data, ts: Date.now() }))
+  } catch {}
+}
+
 export default function Layout({ children, fullWidth = false, hideHeader = false }) {
   const router = useRouter()
   const { isAdmin } = useAuth()
@@ -14,17 +38,18 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
   const [navIcons, setNavIcons] = useState({})
 
   useEffect(() => {
-    try {
-      const cached = localStorage.getItem('navIcons')
-      if (cached) setNavIcons(JSON.parse(cached))
-    } catch {}
+    const cached = getNavIconsCached()
+    if (cached?.data) {
+      setNavIcons(cached.data)
+      return // cache valid until admin busts it — no Firestore read
+    }
     const loadNavIcons = async () => {
       try {
         const docSnap = await getDoc(doc(db, 'settings', 'navIcons'))
         if (docSnap.exists()) {
           const data = docSnap.data()
           setNavIcons(data)
-          localStorage.setItem('navIcons', JSON.stringify(data))
+          setNavIconsCached(data)
         }
       } catch (error) {
         console.error('Error loading nav icons:', error)
