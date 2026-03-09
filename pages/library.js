@@ -53,7 +53,7 @@ export default function Library() {
   const [sortMode, setSortMode] = useState('recent'); // 'recent' | 'added'
   const [sortRefreshKey, setSortRefreshKey] = useState(0) // 返回頁面時強制重讀「最近瀏覽」
   const [recentTabsCount, setRecentTabsCount] = useState(0) // 最近瀏覽結他譜數量（localStorage）
-  const [recentCoverTabs, setRecentCoverTabs] = useState([]) // 頭四份用於 2x2 封面
+  const [recentCoverTab, setRecentCoverTab] = useState(null) // 第一份用於封面
 
   const libraryKey = user ? `library-${user.uid}` : null;
   const { data, error, isLoading: swrLoading, isValidating, mutate } = useSWR(
@@ -85,22 +85,21 @@ export default function Library() {
     return () => clearTimeout(t);
   }, []);
 
-  // 最近瀏覽結他譜數量 + 頭四份資料（2x2 封面用，client 讀 localStorage 再 fetch）
+  // 最近瀏覽結他譜數量 + 第一份做封面（client 讀 localStorage 再 fetch）
   useEffect(() => {
     const ids = getRecentTabIds();
     setRecentTabsCount(ids.length);
     if (ids.length === 0) {
-      setRecentCoverTabs([]);
+      setRecentCoverTab(null);
       return;
     }
-    const loadRecentCovers = async () => {
-      const top = ids.slice(0, 4).map((e) => e.id);
-      const list = await Promise.all(
-        top.map((tabId) => getDoc(doc(db, 'tabs', tabId)).then((snap) => (snap.exists() ? { id: snap.id, ...snap.data() } : null)))
-      );
-      setRecentCoverTabs(list.filter(Boolean));
+    const loadRecentCover = async () => {
+      const firstId = ids[0]?.id;
+      if (!firstId) return;
+      const snap = await getDoc(doc(db, 'tabs', firstId));
+      setRecentCoverTab(snap.exists() ? { id: snap.id, ...snap.data() } : null);
     };
-    loadRecentCovers();
+    loadRecentCover();
   }, [sortRefreshKey]);
 
   useEffect(() => {
@@ -268,31 +267,20 @@ export default function Library() {
               <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {likedCount}份譜</div>
             </div>
 
-            {/* 最近瀏覽（結他譜，頭四份 2x2 封面） */}
+            {/* 最近瀏覽（結他譜，第一首歌做封面） */}
             <div 
               onClick={() => router.push('/library/recent-tabs')}
               className="cursor-pointer group"
             >
-              <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative grid grid-cols-2 grid-rows-2">
-                {recentCoverTabs.length === 0 ? (
-                  <div className="col-span-2 row-span-2 w-full h-full flex items-center justify-center bg-[#282828]">
+              <div className="aspect-square rounded-[4px] overflow-hidden mb-2 bg-[#121212] relative">
+                {!recentCoverTab ? (
+                  <div className="w-full h-full flex items-center justify-center bg-[#282828]">
                     <Clock className="w-12 h-12 sm:w-14 sm:h-14 text-[#B3B3B3]" />
                   </div>
+                ) : getSongThumbnail(recentCoverTab) ? (
+                  <img src={getSongThumbnail(recentCoverTab)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 ) : (
-                  Array.from({ length: 4 }, (_, i) => {
-                    const tab = recentCoverTabs[i];
-                    if (!tab) return <div key={`recent-empty-${i}`} className="w-full h-full min-h-0 bg-[#282828]" aria-hidden />;
-                    const thumb = getSongThumbnail(tab);
-                    return (
-                      <div key={`recent-${tab.id}`} className="relative w-full h-full min-h-0 bg-[#282828]">
-                        {thumb ? (
-                          <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E] text-lg">🎸</div>
-                        )}
-                      </div>
-                    );
-                  })
+                  <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E] text-lg">🎸</div>
                 )}
               </div>
               <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>最近瀏覽</div>

@@ -421,28 +421,43 @@ export default function LikedSongs() {
           <>
             <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionModal(false)} />
             <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
-              <div className="px-4 text-left">
+              <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+              </div>
+              <div className="text-left pb-4 px-4 pt-0">
               {selectedSong && (
-                <div className="mb-4 pb-4 border-b border-[#3E3E3E]">
-                  <p className="text-white font-medium truncate">{selectedSong.title}</p>
-                  <p className="text-gray-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
+                <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
+                  <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                    {getSongThumbnail(selectedSong) ? (
+                      <img
+                        src={getSongThumbnail(selectedSong)}
+                        alt={selectedSong.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white font-medium truncate">{selectedSong.title}</p>
+                    <p className="text-gray-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
+                  </div>
                 </div>
               )}
               <div className="space-y-1">
-                <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Copy className="w-5 h-5 text-[#B3B3B3]" />
+                <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-2xl text-left">
+                  <Copy className="w-5 h-5 text-[#B3B3B3] shrink-0" />
                   <span className="text-white">複製分享連結</span>
                 </button>
-                <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Share className="w-5 h-5 text-[#B3B3B3]" />
+                <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-2xl text-left">
+                  <Share className="w-5 h-5 text-[#B3B3B3] shrink-0" />
                   <span className="text-white">選取歌詞分享</span>
                 </button>
-                <button onClick={handleRemoveFromLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                <button onClick={handleRemoveFromLiked} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-2xl text-left">
+                  <Heart className="w-5 h-5 text-[#FFD700] fill-[#FFD700] shrink-0" />
                   <span className="text-white">取消喜愛</span>
                 </button>
-                <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
+                <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-2xl text-left">
                   <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
                     <circle cx="4.4" cy="4.4" r="4" />
                     <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
