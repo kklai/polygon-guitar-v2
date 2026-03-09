@@ -133,8 +133,8 @@ function transposeChordLine(line, semitones) {
 function normalizeChordSpacing(line) {
   if (!line) return line;
   
-  // 將全角豎線轉為半角
-  let result = line.replace(/｜/g, '|');
+  // 將全角豎線、Unicode 豎線（│ U+2502）轉為半角 |
+  let result = line.replace(/｜/g, '|').replace(/\u2502/g, '|');
   // 確保 | 後面至少有一個空格
   result = result.replace(/\|([^\s])/g, '| $1');
   
@@ -218,7 +218,7 @@ function findAdjustedBracketPositions(lyricLine) {
 }
 
 function normalizeInput(text) {
-  return text.replace(/｜/g, '|').replace(/　/g, ' ').replace(/\r?\n/g, '');
+  return text.replace(/｜/g, '|').replace(/\u2502/g, '|').replace(/　/g, ' ').replace(/\r?\n/g, '');
 }
 
 function splitLyricAtBrackets(lyricLine) {
@@ -1112,6 +1112,8 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
   
   // 即使不匹配，也嘗試對齊（取最小值）
   const minCount = Math.min(chordTokens.length, bracketPositions.length);
+  const extraChordCount = chordTokens.length - minCount;
+  const totalLyricWidth = getTextWidth(normalizedLyric);
 
   // 計算每個 token 應該對齊嘅位置
   // 和弦對齊括號，延長符號平均分布在前後和弦之間
@@ -1123,13 +1125,15 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
     const token = tokens[idx];
     
     if (token.isChord) {
-      // 如果還有括號位置，對齊；否則放在最後
+      // 如果還有括號位置，對齊；否則在剩餘歌詞寬度內自然攤開
       if (chordIdx < minCount) {
         tokenPositions.push(bracketPositions[chordIdx]);
       } else {
-        // 多餘的和弦，放喺最後一個位置後面
         const lastPos = bracketPositions.length > 0 ? bracketPositions[bracketPositions.length - 1] : 0;
-        tokenPositions.push(lastPos + 6 * (chordIdx - minCount + 1));
+        const remainingWidth = Math.max(0, totalLyricWidth - lastPos);
+        const k = chordIdx - minCount + 1; // 1-based index among extra chords
+        const pos = lastPos + Math.round(remainingWidth * k / (extraChordCount + 1));
+        tokenPositions.push(pos);
       }
       chordIdx++;
     } else {
@@ -1919,23 +1923,23 @@ const TabContent = ({
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const englishWords = line.match(/[a-zA-Z]+/g) || [];
       // 檢查是否有 | 開頭的和弦標記
-      const hasChordBar = /\|[\s]*[A-G]/.test(line);
+      const hasChordBar = /[\|｜\u2502][\s]*[A-G]/.test(line);
       
       // 檢查是否為和弦行（支持組合後綴如 madd9, maj7, add9 等）
       // 和弦格式：[根音][升降]([m/maj/min/sus/dim/aug])([add/7/9/11/13]數字)?
       const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
       const chordMatches = line.match(strictChordPattern) || [];
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
-      const hasBarLineStart = /^[\s]*[\|｜]/.test(line);
+      const hasBarLineStart = /^[\s]*[\|｜\u2502]/.test(line);
       // 修復：單一和弦（無|）也要識別，只要全行符合和弦模式
       const isChordOnlyLine = validChordMatches.length > 0 && line.trim().split(/\s+/).every(part => {
-        // 檢查每個部分是否為和弦或小節線
-        if (!part || part === '|' || part === '｜') return true;
+        // 檢查每個部分是否為和弦或小節線（含 Unicode 豎線 │）
+        if (!part || part === '|' || part === '｜' || part === '\u2502') return true;
         // 支援 D/F# 這樣的 slash chord 以及 Dmadd9, Cmaj7 等組合後綴
         const chordWithSlash = part.match(/^[A-G][#b]?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?$/);
         if (chordWithSlash) return true;
-        // 清理後再檢查（處理 |G| 這樣的情況）
-        const cleanPart = part.replace(/[\|\/\s]/g, '');
+        // 清理後再檢查（處理 |G|、│G 這樣的情況）
+        const cleanPart = part.replace(/[\|｜\u2502\/\s]/g, '');
         return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*$/);
       });
       const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
@@ -2064,7 +2068,8 @@ const TabContent = ({
           if (!targetLine) break;
           
           const targetChinese = (targetLine.match(/[\u4e00-\u9fff]/g) || []).length;
-          const targetHasChord = /\|[\s]*[A-G]/.test(targetLine);
+          // 支援 ASCII |、全角｜、Unicode 豎線 │ (U+2502)
+          const targetHasChord = /[\|｜\u2502][\s]*[A-G]/.test(targetLine);
           const targetDigits = (targetLine.match(/\d/g) || []).length;
           const targetHasBrackets = /[\(（]/.test(targetLine);
           
@@ -2096,8 +2101,40 @@ const TabContent = ({
         const hasLyric = lyricLine && (lyricChinese > 0 || (lyricEnglish > 0 && !lyricEnglishIsChords) || lyricHasBrackets);
         
         if (hasLyric) {
-          // 有歌詞行，渲染和弦 + 所有簡譜行 + 歌詞
-          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
+          // 和弦行用「緊貼歌詞嗰行」，唔係第一行（多行和弦時第一行可能係 intro）
+          const chordLineForPair = lines[targetLyricIndex - 1];
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForPair);
+          
+          // 若有多行和弦（e.g. intro 行 + 本段和弦行），先單獨顯示前面嘅和弦行
+          const firstChordLineIndex = i;
+          const lastChordLineIndex = targetLyricIndex - 1;
+          if (lastChordLineIndex > firstChordLineIndex) {
+            for (let chordOnlyIdx = firstChordLineIndex; chordOnlyIdx < lastChordLineIndex; chordOnlyIdx++) {
+              const chordOnlyLine = lines[chordOnlyIdx];
+              const { prefix: p, suffix: s, cleanLine: chordOnlyClean } = extractSectionMarkers(chordOnlyLine);
+              const transposedChordOnly = transposeChordLine(chordOnlyClean, transposeSemitones);
+              const nextLine = lines[chordOnlyIdx + 1];
+              const nextHasChord = nextLine && /\|[\s]*[A-G]/.test(nextLine);
+              const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine)) && !nextHasChord;
+              const chordMarginBottom = (nextHasChord || nextHasLyric) ? '0em' : `${lineFontSize * 0.6}px`;
+              elements.push(
+                <div key={`chord-only-${chordOnlyIdx}`} style={{
+                  color: colors.chord,
+                  fontWeight: displayFont === 'arial' ? 'normal' : 300,
+                  fontSize: `${lineFontSize}px`,
+                  fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word',
+                  marginBottom: chordMarginBottom,
+                  lineHeight: '1.1'
+                }}>
+                  {p && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{p}</span>}
+                  {transposedChordOnly}
+                  {s && <span style={{ color: colors.prefixSuffix, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>{s}</span>}
+                </div>
+              );
+            }
+          }
           
           // 判斷是否需要拆分：有簡譜行時不拆分，保持原有行為
           const shouldSplit = notationLines.length === 0;
@@ -2116,7 +2153,8 @@ const TabContent = ({
             
             const currentPrefix = pairIndex === 0 ? prefix : null;
             const currentSuffix = pairIndex === pairs.length - 1 ? suffix : null;
-            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial';
+            // 若和弦多過括號段，唔用 grid 對齊，改用預先排好嘅 chordLine（自然攤開）
+            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial' && result.alignedChords.length <= result.lyricSplit.segments.length;
             const chordFontFamily = displayFont === 'arial'
               ? "Arial, Helvetica, sans-serif"
               : "'Source Code Pro', monospace";
