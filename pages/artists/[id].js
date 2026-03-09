@@ -1,13 +1,15 @@
 // pages/artists/[id].js
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
-import { ArrowLeft, MoreVertical, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy } from 'lucide-react';
+import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy } from 'lucide-react';
+import SongActionSheet from '../../components/SongActionSheet';
 import RatingSystem from '../../components/RatingSystem';
 import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist, getArtistBySlug } from '../../lib/tabs';
+import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
 import { recordPageView } from '../../lib/analytics';
@@ -82,11 +84,9 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
   const [expandedTitles, setExpandedTitles] = useState({});
   const [isArtistSaved, setIsArtistSaved] = useState(false);
   const [isSavingArtist, setIsSavingArtist] = useState(false);
-  
+
   // 使用 AuthContext
   const { user, isAdmin } = useAuth();
-
-  // user 已由 AuthContext 提供
 
   useEffect(() => {
     if (!id) return;
@@ -273,6 +273,22 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     return '1979 或更早';
   };
 
+  /** 某 tab 屬於邊個年份區（用於「按年份」時把歌名組放去對應區） */
+  const getYearRangeFromTab = (tab) => {
+    const y = getYearFromCreatedAt(tab);
+    return y ? getYearRange(y) : '未知年份';
+  };
+
+  /** 為一個 title group 揀「放喺邊個年份區」：優先用有年份嘅版本，避免成組跌入未知年份 */
+  const getYearRangeForTitleGroup = (item) => {
+    const tabs = item.type === 'single' ? [item.tab] : item.versions;
+    const withYear = tabs.find((t) => getYearFromCreatedAt(t));
+    return withYear ? getYearRangeFromTab(withYear) : '未知年份';
+  };
+
+  /** 年份區顯示順序（有年份由新到舊，未知年份最後） */
+  const YEAR_RANGE_ORDER = ['2021-2026', '2016-2020', '2011-2015', '2006-2010', '2000-2005', '1995-1999', '1990-1994', '1980-1989', '1979 或更早', '未知年份'];
+
   const handleMoreClick = async (e, tab) => {
     e.stopPropagation();
     setSelectedTab(tab);
@@ -436,28 +452,42 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
   };
 
   const groupByTitle = (tabs) => {
-    const map = new Map();
+    const map = new Map(); // groupKey -> tab[]
     tabs.forEach(tab => {
-      const key = tab.title?.trim() || tab.id;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(tab);
+      const keys = getGroupKeys(tab.title, tab.id);
+      keys.forEach(key => {
+        if (!map.has(key)) map.set(key, []);
+        const arr = map.get(key);
+        if (!arr.includes(tab)) arr.push(tab);
+      });
     });
     const result = [];
-    map.forEach((group, title) => {
+    map.forEach((group, groupKey) => {
       if (group.length === 1) {
         result.push({ type: 'single', tab: group[0] });
       } else {
         const sorted = [...group].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-        result.push({ type: 'group', title, representative: sorted[0], versions: sorted });
+        result.push({ type: 'group', title: groupKey, representative: sorted[0], versions: sorted });
       }
     });
     return result;
   };
 
-  // 按年份時分組，其他排序不分組
-  const displayData = sortBy === 'year' 
-    ? { grouped: true, data: groupByYear(sortedTabs()) }
-    : { grouped: false, data: sortedTabs() };
+  // 按年份時：先按歌名合併（跨全部歌曲），再按「有年份嘅版本」放入對應區（優先用有年份，避免成組跌入未知年份）
+  const displayData = (() => {
+    if (sortBy !== 'year') return { grouped: false, data: sortedTabs() };
+    const allTabs = sortedTabs();
+    const titleGroups = groupByTitle(allTabs);
+    const byYear = {};
+    titleGroups.forEach((item) => {
+      const yearRange = getYearRangeForTitleGroup(item);
+      if (!byYear[yearRange]) byYear[yearRange] = [];
+      byYear[yearRange].push(item);
+    });
+    const ordered = {};
+    YEAR_RANGE_ORDER.forEach((r) => { if (byYear[r]?.length) ordered[r] = byYear[r]; });
+    return { grouped: true, data: ordered };
+  })();
 
   const toggleTitle = (key) => {
     setExpandedTitles(prev => ({ ...prev, [key]: !prev[key] }));
@@ -731,12 +761,17 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                 <p className="text-[#B3B3B3] text-xs mt-0.5">{tab.viewCount?.toLocaleString() || 0} 瀏覽</p>
               </div>
               
-              {/* 三點按鈕 - 一直顯示 */}
+              {/* 更多 - 橫向三點（與 library/playlist 一致） */}
               <button 
                 onClick={(e) => { e.preventDefault(); handleMoreClick(e, tab); }}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-[#B3B3B3] hover:text-white"
+                aria-label="更多"
               >
-                <MoreVertical className="w-5 h-5" />
+                <svg className="w-5 h-5" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
+                  <circle cx="1.27" cy="1.27" r="1.27" />
+                  <circle cx="7.48" cy="1.27" r="1.27" />
+                  <circle cx="13.69" cy="1.27" r="1.27" />
+                </svg>
               </button>
             </Link>
           ))}
@@ -783,8 +818,10 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
 
         {/* 歌曲列表 - 按年份分組或平鋪顯示 */}
         {displayData.grouped ? (
-          // 按年份分組顯示
-          Object.entries(displayData.data).map(([yearRange, tabs]) => (
+          // 按年份分組顯示（每區係已按歌名合併嘅 title group items）
+          YEAR_RANGE_ORDER.filter((r) => displayData.data[r]?.length).map((yearRange) => {
+            const items = displayData.data[yearRange];
+            return (
             <div key={yearRange} style={{ marginBottom: '0.5rem' }}>
               <h3 className={`text-sm font-mediumremo sticky top-0 bg-black/95 py-2 z-10 ${
                 yearRange === '未知年份' 
@@ -792,12 +829,12 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                   : 'text-[#FFD700]'
               }`}>
                 {yearRange}
-                {yearRange === '未知年份' && tabs.length > 0 && (
-                  <span className="ml-2 text-xs">({tabs.length} 首)</span>
+                {yearRange === '未知年份' && items.length > 0 && (
+                  <span className="ml-2 text-xs">({items.length} 首)</span>
                 )}
               </h3>
               <div>
-                {groupByTitle(tabs).map((item, idx, arr) => {
+                {items.map((item, idx, arr) => {
                   if (item.type === 'single') {
                     const tab = item.tab;
                     return (
@@ -809,7 +846,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                       >
                         <div className="flex-1 min-w-0 pr-4">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                            <h4 className="text-white text-base font-medium truncate">{tab.title}</h4>
                           </div>
                         </div>
                         <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
@@ -836,7 +873,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                       >
                         <div className="flex-1 min-w-0 pr-4">
                           <div className="flex items-center gap-2">
-                            <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{item.title}</h4>
+                            <h4 className="text-white text-base font-medium truncate">{item.title}</h4>
                             <span className="text-sm px-1.5 py-0.5 rounded flex-shrink-0 bg-yellow-500/20 text-[#FFD700]">{item.versions.length}份譜</span>
                             <ChevronDown className={`w-3.5 h-3.5 text-gray-500 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                           </div>
@@ -851,7 +888,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                         >
                           <div className="flex-1 min-w-0 pr-4">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-white font-normal truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                              <h4 className="text-white text-base font-normal truncate">{tab.title}</h4>
                             </div>
                           </div>
                           <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
@@ -870,7 +907,8 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                 })}
               </div>
             </div>
-          ))
+            );
+          })
         ) : (
           // 平鋪顯示（按筆畫/瀏覽）
           <div>
@@ -886,7 +924,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                   >
                     <div className="flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                        <h4 className="text-white text-base font-medium truncate">{tab.title}</h4>
                       </div>
                     </div>
                     <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
@@ -913,7 +951,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                   >
                     <div className="flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-white font-medium truncate" style={{ fontSize: '1.1rem' }}>{item.title}</h4>
+                        <h4 className="text-white text-base font-medium truncate">{item.title}</h4>
                         <span className="text-sm px-1.5 py-0.5 rounded flex-shrink-0 bg-yellow-500/20 text-[#FFD700]">{item.versions.length}份譜</span>
                         <ChevronDown className={`w-3.5 h-3.5 text-gray-500 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
@@ -928,7 +966,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                     >
                       <div className="flex-1 min-w-0 pr-4">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-white font-normal truncate" style={{ fontSize: '1.1rem' }}>{tab.title}</h4>
+                          <h4 className="text-white text-base font-normal truncate">{tab.title}</h4>
                         </div>
                       </div>
                       <div className="flex items-center justify-end flex-shrink-0" style={{ width: '3.5rem', marginRight: '0.4rem' }}>
@@ -951,55 +989,19 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
       )}
       </div>
 
-      {/* Action Modal（分享/收藏） */}
-      {showActionModal && selectedTab && (
-        <>
-          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionModal(false)} />
-          <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 animate-slide-up">
-            <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
-            <div className="px-4 text-left">
-            <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
-              <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-[#282828]">
-                {selectedTab && getSongThumbnail(selectedTab) ? (
-                  <img src={getSongThumbnail(selectedTab)} alt={selectedTab.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" loading="lazy" decoding="async" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#3E3E3E]">♪</div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-white font-medium truncate">{selectedTab.title}</h4>
-                <p className="text-[#B3B3B3] text-sm">{artist.name}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 p-3 rounded-lg">
-                <Copy className="w-5 h-5 text-[#B3B3B3]" />
-                <span className="text-white">複製分享連結</span>
-              </button>
-              <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 p-3 rounded-lg">
-                <Share className="w-5 h-5 text-[#B3B3B3]" />
-                <span className="text-white">選取歌詞分享</span>
-              </button>
-              
-              <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 rounded-lg">
-                <Heart className={`w-5 h-5 text-[#FFD700] ${selectedTabLiked ? 'fill-[#FFD700]' : 'fill-none'}`} strokeWidth={1.5} />
-                <span className="text-white">{selectedTabLiked ? '取消喜愛' : '加到我最喜愛'}</span>
-              </button>
-              
-              <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 rounded-lg">
-                <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
-                  <circle cx="4.4" cy="4.4" r="4" />
-                  <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
-                  <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
-                </svg>
-                <span className="text-white">加入歌單</span>
-              </button>
-            </div>
-            </div>
-          </div>
-        </>
-      )}
+      <SongActionSheet
+        open={!!(showActionModal && selectedTab)}
+        onClose={() => setShowActionModal(false)}
+        title={selectedTab?.title ?? ''}
+        artist={artist?.name ?? ''}
+        thumbnailUrl={selectedTab ? getSongThumbnail(selectedTab) : null}
+        liked={selectedTabLiked}
+        likeLabel={selectedTabLiked ? '取消喜愛' : '加到我最喜愛'}
+        onCopyShareLink={handleCopyShareLink}
+        onSelectLyricsShare={handleSelectLyricsShare}
+        onAddToLiked={handleAddToLiked}
+        onAddToPlaylist={handleAddToPlaylistClick}
+      />
 
       {/* 加入歌單 Modal */}
       {showAddToPlaylist && (

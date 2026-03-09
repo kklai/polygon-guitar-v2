@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-03-01（Guitar Pro 支援 + GP 檔案上傳顯示 + 手機版控制項）
+> 最後更新：2026-03-09（更多掣統一：SongActionSheet 元件 + AGENTS.md 規格）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -89,6 +89,18 @@ pages/
 | `TabVersionComparison.js` | 版本比較 |
 | `GpSegmentUploader` | GP 檔案上傳與預覽 | `components/GpSegmentUploader.jsx` |
 | `GpSegmentPlayer` | GP 譜面顯示 | `components/GpSegmentPlayer.jsx` |
+| **`SongActionSheet`** | **歌曲「更多」底部彈出 Menu（統一規格）** | `components/SongActionSheet.js` |
+
+#### 更多掣標準（以後加「更多」請跟呢個）
+
+加「更多」掣時，**必須用** `SongActionSheet` 元件，唔好再複製貼上彈出層。規格已包：
+
+- **內容左對齊 1rem**（`px-4`）
+- **把手**：`px-12 -mx-4`，無移位問題
+- **拖曳關閉**：向下拖 >80px 關閉，鎖 body 滾動
+- **封面縮圖**：49×49，無圖時 🎸 fallback
+
+**用法**：`<SongActionSheet open={...} onClose={...} title={...} artist={...} thumbnailUrl={...} liked={...} likeLabel={...} onCopyShareLink onSelectLyricsShare onAddToLiked onAddToPlaylist artistHref={...} />`。可選 `paddingBottom`（預設留位給底部導航）。已用頁面：`artists/[id].js`、`playlist/[id].js`、`library/recent-tabs.js`、`library/liked.js`。
 
 ### Firestore 資料結構
 

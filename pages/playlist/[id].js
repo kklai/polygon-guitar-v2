@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES } from '@/lib/playlists'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
+import SongActionSheet from '@/components/SongActionSheet'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import { recordPlaylistView } from '@/lib/recentViews'
@@ -42,8 +43,6 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const [recommendedItems, setRecommendedItems] = useState([]) // 歌手 + 歌單合併後隨機排序，用於渲染
   const [isSavedToLibrary, setIsSavedToLibrary] = useState(false) // 是否已加入「已收藏歌單」
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false)
-  const [actionModalDragY, setActionModalDragY] = useState(0)
-  const actionModalTouchStartY = useRef(0)
   const [showPlaylistMoreModal, setShowPlaylistMoreModal] = useState(false)
   const [playlistModalDragY, setPlaylistModalDragY] = useState(0)
   const playlistModalTouchStartY = useRef(0)
@@ -64,15 +63,6 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
     }
     loadPlaylistData()
   }, [id, initialPlaylist, initialSongs])
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    if (showActionModal) {
-      const prev = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      return () => { document.body.style.overflow = prev }
-    }
-  }, [showActionModal])
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -290,28 +280,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
     return date.toLocaleDateString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
   }
 
-  const DRAG_CLOSE_THRESHOLD = 80
   const getClientY = (e) => e.touches?.[0]?.clientY ?? e.clientY
-  const handleActionModalSheetDragStart = (e) => {
-    if (e.pointerType === 'mouse') return
-    actionModalTouchStartY.current = getClientY(e)
-    try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId); } catch (_) {}
-  }
-  const handleActionModalSheetDragMove = (e) => {
-    if (e.pointerType === 'mouse') return
-    const y = getClientY(e)
-    const delta = y - actionModalTouchStartY.current
-    if (delta > 0) setActionModalDragY(Math.min(delta, 200))
-  }
-  const handleActionModalSheetDragEnd = () => {
-    if (actionModalDragY >= DRAG_CLOSE_THRESHOLD) {
-      setShowActionModal(false)
-      setActionModalDragY(0)
-    } else {
-      setActionModalDragY(0)
-    }
-  }
-
   const handlePlaylistModalDragStart = (e) => {
     if (e.pointerType === 'mouse') return
     playlistModalTouchStartY.current = getClientY(e)
@@ -862,121 +831,21 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
 
         </div>
         {/* 更多 - 底部彈出 Menu（同 library/playlist 排序 style） */}
-        {showActionModal && typeof document !== 'undefined' && createPortal(
-          <>
-            <div
-              className="fixed inset-0 bg-black/60 z-[9999]"
-              onClick={() => { setShowActionModal(false); setActionModalDragY(0); }}
-              aria-hidden
-            />
-            <div
-              className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
-              style={{
-                paddingBottom: 'env(safe-area-inset-bottom, 0)',
-                transform: `translateY(${actionModalDragY}px)`,
-                transition: actionModalDragY === 0 ? 'transform 0.2s ease-out' : 'none'
-              }}
-            >
-              <div
-                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
-                onTouchStart={handleActionModalSheetDragStart}
-                onTouchMove={handleActionModalSheetDragMove}
-                onTouchEnd={handleActionModalSheetDragEnd}
-                onTouchCancel={handleActionModalSheetDragEnd}
-                onPointerDown={handleActionModalSheetDragStart}
-                onPointerMove={handleActionModalSheetDragMove}
-                onPointerUp={handleActionModalSheetDragEnd}
-                onPointerCancel={handleActionModalSheetDragEnd}
-                role="button"
-                tabIndex={0}
-                aria-label="向下拖曳關閉"
-                onKeyDown={(e) => e.key === 'Enter' && (setShowActionModal(false), setActionModalDragY(0))}
-              >
-                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
-                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
-                </div>
-              </div>
-              <div className="pb-4 px-4 text-left">
-                {selectedSong && (
-                  <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
-                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
-                      {getSongThumbnail(selectedSong) ? (
-                        <img
-                          src={getSongThumbnail(selectedSong)}
-                          alt={selectedSong.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-white font-medium truncate">{selectedSong.title}</p>
-                      <p className="text-gray-400 text-sm truncate">{selectedSong.artist}</p>
-                    </div>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={handleCopyShareLink}
-                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
-                >
-                  <span className="flex items-center gap-3">
-                    <Copy className="w-5 h-5 text-[#B3B3B3]" />
-                    複製分享連結
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSelectLyricsShare}
-                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
-                >
-                  <span className="flex items-center gap-3">
-                    <Share className="w-5 h-5 text-[#B3B3B3]" />
-                    選取歌詞分享
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddToLiked}
-                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
-                >
-                  <span className="flex items-center gap-3">
-                    <Heart className={`w-5 h-5 text-[#FFD700] ${selectedSongLiked ? 'fill-[#FFD700]' : 'fill-none'}`} strokeWidth={1.5} />
-                    {selectedSongLiked ? '取消喜愛' : '加入喜愛結他譜'}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddToPlaylistClick}
-                  className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
-                >
-                  <span className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
-                      <circle cx="4.4" cy="4.4" r="4" />
-                      <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
-                      <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
-                    </svg>
-                    加入歌單
-                  </span>
-                </button>
-                {selectedSong && (selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug) && (
-                  <Link
-                    href={`/artists/${selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug}`}
-                    onClick={() => { setShowActionModal(false); setActionModalDragY(0); }}
-                    className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white"
-                  >
-                    <span className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-[#B3B3B3]" />
-                      瀏覽歌手
-                    </span>
-                  </Link>
-                )}
-              </div>
-            </div>
-          </>,
-          document.body
-        )}
+        <SongActionSheet
+          open={showActionModal}
+          onClose={() => setShowActionModal(false)}
+          title={selectedSong?.title ?? ''}
+          artist={selectedSong?.artist ?? ''}
+          thumbnailUrl={selectedSong ? getSongThumbnail(selectedSong) : null}
+          liked={selectedSongLiked}
+          likeLabel={selectedSongLiked ? '取消喜愛' : '加入喜愛結他譜'}
+          onCopyShareLink={handleCopyShareLink}
+          onSelectLyricsShare={handleSelectLyricsShare}
+          onAddToLiked={handleAddToLiked}
+          onAddToPlaylist={handleAddToPlaylistClick}
+          artistHref={selectedSong && (selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug) ? `/artists/${selectedSong.artistId || selectedSong.artist_id || selectedSong.artistSlug}` : undefined}
+          paddingBottom="env(safe-area-inset-bottom, 0)"
+        />
 
         {/* 歌單「更多」- 底部彈出 Menu（同歌曲「更多」一樣 style） */}
         {showPlaylistMoreModal && typeof document !== 'undefined' && createPortal(
