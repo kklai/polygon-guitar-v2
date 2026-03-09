@@ -48,7 +48,8 @@ export default function Search() {
   const [isLoading, setIsLoading] = useState(true)
   
   const [hotSongs, setHotSongs] = useState([])
-  const [hotArtists, setHotArtists] = useState([])
+  // 與首頁同款：{ male: [], female: [], group: [], all: [] }，用於分類卡下方歌手預覽 + 熱門歌手區
+  const [hotArtists, setHotArtists] = useState({ male: [], female: [], group: [], all: [] })
   const [categoryCovers, setCategoryCovers] = useState({
     male: null, female: null, group: null, recent: null
   })
@@ -91,7 +92,10 @@ export default function Search() {
   useEffect(() => {
     function applyHomeHot(data) {
       if (data?.hotTabs?.length) setHotSongs(data.hotTabs)
-      if (data?.hotArtists) setHotArtists(Array.isArray(data.hotArtists) ? data.hotArtists : (data.hotArtists.all || []))
+      if (data?.hotArtists) {
+        const ha = data.hotArtists
+        setHotArtists(ha && !Array.isArray(ha) ? ha : { male: [], female: [], group: [], all: Array.isArray(ha) ? ha : (ha?.all || []) })
+      }
       // 男歌手、女歌手、組合: image from home categories. 最新上架: first item in 最近上架 (latestSongs)
       const cats = data?.categories || []
       const firstLatest = data?.latestSongs?.[0]
@@ -167,21 +171,13 @@ export default function Search() {
     // 使用 artist.id 確保連結不變（即使歌手改名）
     router.push(`/artists/${artist.id}`)
   }
-  
-  // 首頁同款：男/女/組合三類，用於分類卡
+
+  // 首頁同款：男/女/組合三類，用於分類卡（結構與 index.js HomeCategoryCard 一致）
   const categories = [
     { id: 'male', name: '男歌手' },
     { id: 'female', name: '女歌手' },
     { id: 'group', name: '組合' }
   ]
-  const byType = (type) => (artists || [])
-    .filter(a => a.artistType === type || a.gender === type)
-    .sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-  const hotArtistsByCategory = {
-    male: byType('male'),
-    female: byType('female'),
-    group: [...byType('group'), ...byType('band')]
-  }
 
   const popularSearches = ['陳奕迅', '張敬軒', 'Dear Jane', '方皓玟', '姜濤', '柳應廷']
 
@@ -321,50 +317,59 @@ export default function Search() {
             )}
           </div>
         ) : (
-          /* Default View */
+          /* Default View - 分類區與首頁同款：橫向滾動、正方形卡、右下標籤、下方歌手預覽 */
           <div className="space-y-6">
-            {/* 分類卡片 2x2 */}
-            <div className="grid grid-cols-2 gap-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat.id)}
-                  className={`relative h-24 rounded-xl overflow-hidden bg-gradient-to-br ${cat.gradient} p-4 flex items-center justify-between group active:scale-95 transition-transform`}
-                >
-                  <span className="text-white font-bold text-lg z-10 relative">
-                    {cat.name}
-                  </span>
-                  
-                  {/* 右側正方形歌手圖 - categoryCovers: photo URL string or legacy { photo } object */}
-                  <div className="w-16 h-16 rounded-lg overflow-hidden shadow-lg z-10 relative">
-                    {(() => {
-                      const cover = categoryCovers[cat.id]
-                      const coverUrl = typeof cover === 'string' ? cover : (cover && getArtistPhoto(cover))
-                      return coverUrl ? (
-                        <img
-                          src={coverUrl}
-                          alt={cat.name}
-                          className="w-full h-full object-cover pointer-events-none select-none"
-                          draggable="false"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-black/30 flex items-center justify-center text-2xl">
-                          {cat.id === 'male' && '👨'}
-                          {cat.id === 'female' && '👩'}
-                          {cat.id === 'group' && '👥'}
-                          {cat.id === 'latest' && '✨'}
+            {/* 歌手分類 - 手機三格 fit 屏寬，桌面橫向滾動 */}
+            <section className="pt-2 px-4 md:pl-4 md:pr-0" style={{ marginBottom: 25 }}>
+              <div className="flex gap-2 md:flex-nowrap md:overflow-x-auto md:scrollbar-hide md:pr-6 md:gap-3">
+                {categories.map((category) => {
+                  const coverUrl = typeof categoryCovers[category.id] === 'string'
+                    ? categoryCovers[category.id]
+                    : (categoryCovers[category.id] && getArtistPhoto(categoryCovers[category.id]))
+                  return (
+                    <Link
+                      key={category.id}
+                      href={`/artists?category=${category.id}`}
+                      className="flex-1 min-w-0 flex flex-col cursor-pointer md:flex-initial md:w-36 md:min-w-0 md:shrink-0"
+                    >
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-800 md:w-36 md:h-36 md:aspect-auto">
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={category.name}
+                            className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
+                            draggable="false"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <>
+                            <div className="absolute inset-0 bg-gray-800" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-2xl opacity-50">🎵</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="absolute bottom-2 right-0">
+                          <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
+                            category.id === 'male' ? 'bg-[#1fc3df]' :
+                            category.id === 'female' ? 'bg-[#ff9b98]' :
+                            'bg-[#fed702]'
+                          }`}>
+                            {category.name}
+                          </span>
                         </div>
-                      )
-                    })()}
-                  </div>
-                  
-                  {/* 裝飾性背景圓形 */}
-                  <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/10" />
-                </button>
-              ))}
-            </div>
+                      </div>
+                      <div className="w-full mt-2 px-0.5 md:w-36 md:px-1">
+                        <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
+                          {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
+                        </p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
 
             {/* 熱門歌曲 - same data and component as home (home-data API + SongCard) */}
             {!isLoading && hotSongs.length > 0 && (
@@ -385,11 +390,11 @@ export default function Search() {
             )}
 
             {/* 熱門歌手 - same data as home (home-data API) */}
-            {!isLoading && hotArtists.length > 0 && (
+            {!isLoading && (hotArtists.all?.length > 0) && (
               <section className="pl-4">
                 <h2 className="text-lg font-bold text-white mb-4">熱門歌手</h2>
                 <div className="flex overflow-x-auto scrollbar-hide gap-4 pr-4">
-                  {hotArtists.map((artist) => (
+                  {(hotArtists.all || []).map((artist) => (
                     <button
                       key={artist.id}
                       onClick={() => handleArtistClick(artist)}
