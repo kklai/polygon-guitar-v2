@@ -13,7 +13,8 @@ import {
   Timestamp,
   onSnapshot,
   doc,
-  getDoc
+  getDoc,
+  getCountFromServer
 } from 'firebase/firestore'
 
 function AnalyticsDashboard() {
@@ -41,30 +42,39 @@ function AnalyticsDashboard() {
     loadDailyUsers()
     loadPeakHours()
     
-    // 實時監聽今日數據
+    // 實時監聽今日數據（只取最近 100 筆，避免大量 reads）
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
+    const todayQueryLimited = query(
+      collection(db, 'pageViews'),
+      where('timestamp', '>=', Timestamp.fromDate(today)),
+      orderBy('timestamp', 'desc'),
+      limit(100)
+    )
+    const todayCountQuery = query(
+      collection(db, 'pageViews'),
+      where('timestamp', '>=', Timestamp.fromDate(today)),
+      orderBy('timestamp', 'desc')
+    )
+    
     const unsubscribe = onSnapshot(
-      query(
-        collection(db, 'pageViews'),
-        where('timestamp', '>=', Timestamp.fromDate(today)),
-        orderBy('timestamp', 'desc')
-      ),
-      (snapshot) => {
-        const filteredDocs = snapshot.docs.filter(doc => {
-          const data = doc.data()
-          return !(data.pageType === 'admin' || 
+      todayQueryLimited,
+      async (snapshot) => {
+        const filteredDocs = snapshot.docs.filter(d => {
+          const data = d.data()
+          return !(data.pageType === 'admin' ||
                   (data.pagePath && data.pagePath.startsWith('/admin')))
         })
-        
-        setStats(prev => ({ ...prev, today: filteredDocs.length }))
-        
-        const views = []
-        filteredDocs.slice(0, 20).forEach(doc => {
-          views.push({ id: doc.id, ...doc.data() })
-        })
+        const views = filteredDocs.slice(0, 20).map(d => ({ id: d.id, ...d.data() }))
         setRecentViews(views)
+        // 今日總數用 count 查詢（約 1 read），不讀取全部文檔
+        try {
+          const countSnap = await getCountFromServer(todayCountQuery)
+          setStats(prev => ({ ...prev, today: countSnap.data().count }))
+        } catch (e) {
+          setStats(prev => ({ ...prev, today: filteredDocs.length }))
+        }
       },
       (error) => {
         console.error('Realtime stats error:', error)
@@ -74,7 +84,7 @@ function AnalyticsDashboard() {
     return () => unsubscribe()
   }, [])
 
-  // 加載趨勢數據（最近7天每天）
+  // 加載趨勢數據（最近7天每天）- 用 getCountFromServer，不讀取文檔
   const loadTrendData = async () => {
     const trend = []
     const now = new Date()
@@ -88,18 +98,12 @@ function AnalyticsDashboard() {
       nextDate.setDate(nextDate.getDate() + 1)
       
       try {
-        const snap = await getDocs(query(
+        const countSnap = await getCountFromServer(query(
           collection(db, 'pageViews'),
           where('timestamp', '>=', Timestamp.fromDate(date)),
           where('timestamp', '<', Timestamp.fromDate(nextDate))
         ))
-        
-        const count = snap.docs.filter(doc => {
-          const data = doc.data()
-          return !(data.pageType === 'admin' || 
-                  (data.pagePath && data.pagePath.startsWith('/admin')))
-        }).length
-        
+        const count = countSnap.data().count
         trend.push({
           date: date.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric' }),
           day: date.toLocaleDateString('zh-HK', { weekday: 'short' }),
@@ -131,10 +135,12 @@ function AnalyticsDashboard() {
         const snap = await getDocs(query(
           collection(db, 'pageViews'),
           where('timestamp', '>=', Timestamp.fromDate(date)),
-          where('timestamp', '<', Timestamp.fromDate(nextDate))
+          where('timestamp', '<', Timestamp.fromDate(nextDate)),
+          orderBy('timestamp', 'desc'),
+          limit(5000)
         ))
         
-        // 去重：按 sessionId 或用戶ID
+        // 去重：按 sessionId 或用戶ID（基於取樣，最多 5000 筆/天）
         const uniqueSessions = new Set()
         let loggedInUsers = 0
         
@@ -173,7 +179,7 @@ function AnalyticsDashboard() {
     setDailyUsers(userStats)
   }
 
-  // 加載高峰時段（按小時統計）
+  // 加載高峰時段（按小時統計）- 限制 10000 筆避免大量 reads
   const loadPeakHours = async () => {
     const now = new Date()
     const sevenDaysAgo = new Date(now)
@@ -183,7 +189,9 @@ function AnalyticsDashboard() {
     try {
       const snap = await getDocs(query(
         collection(db, 'pageViews'),
-        where('timestamp', '>=', Timestamp.fromDate(sevenDaysAgo))
+        where('timestamp', '>=', Timestamp.fromDate(sevenDaysAgo)),
+        orderBy('timestamp', 'desc'),
+        limit(10000)
       ))
       
       // 按小時統計（0-23）
@@ -234,55 +242,55 @@ function AnalyticsDashboard() {
       const last30Days = new Date(today)
       last30Days.setDate(last30Days.getDate() - 30)
 
+      // 用 getCountFromServer 取數量，不讀取文檔（每查詢約 1 read，不會 588K）
       const [
-        todaySnap,
-        yesterdaySnap,
-        last7DaysSnap,
-        last30DaysSnap,
-        totalSnap
+        todayCountSnap,
+        yesterdayCountSnap,
+        last7CountSnap,
+        last30CountSnap,
+        totalCountSnap
       ] = await Promise.all([
-        getDocs(query(
+        getCountFromServer(query(
           collection(db, 'pageViews'),
           where('timestamp', '>=', Timestamp.fromDate(today))
         )),
-        getDocs(query(
+        getCountFromServer(query(
           collection(db, 'pageViews'),
           where('timestamp', '>=', Timestamp.fromDate(yesterday)),
           where('timestamp', '<', Timestamp.fromDate(today))
         )),
-        getDocs(query(
+        getCountFromServer(query(
           collection(db, 'pageViews'),
           where('timestamp', '>=', Timestamp.fromDate(last7Days))
         )),
-        getDocs(query(
+        getCountFromServer(query(
           collection(db, 'pageViews'),
           where('timestamp', '>=', Timestamp.fromDate(last30Days))
         )),
-        getDocs(collection(db, 'pageViews'))
+        getCountFromServer(collection(db, 'pageViews'))
       ])
 
-      const filterAdminPages = (snap) => {
-        let count = 0
-        snap.forEach(doc => {
-          const data = doc.data()
-          const isAdmin = data.pageType === 'admin' || 
-                         (data.pagePath && data.pagePath.startsWith('/admin'))
-          if (!isAdmin) count++
-        })
-        return count
-      }
-
       setStats({
-        today: filterAdminPages(todaySnap),
-        yesterday: filterAdminPages(yesterdaySnap),
-        last7Days: filterAdminPages(last7DaysSnap),
-        last30Days: filterAdminPages(last30DaysSnap),
-        total: filterAdminPages(totalSnap)
+        today: todayCountSnap.data().count,
+        yesterday: yesterdayCountSnap.data().count,
+        last7Days: last7CountSnap.data().count,
+        last30Days: last30CountSnap.data().count,
+        total: totalCountSnap.data().count
       })
 
-      // 頁面類型分布
+      // 頁面類型分布與熱門頁面：只取最近 30 天內最多 5000 筆（避免全表讀取）
+      const last30DocsQuery = query(
+        collection(db, 'pageViews'),
+        where('timestamp', '>=', Timestamp.fromDate(last30Days)),
+        orderBy('timestamp', 'desc'),
+        limit(5000)
+      )
+      const last30DaysSnap = await getDocs(last30DocsQuery)
+
       const typeCount = {}
-      last30DaysSnap.forEach(doc => {
+      const pageCount = {}
+      
+      last30DaysSnap.docs.forEach(doc => {
         const data = doc.data()
         const isAdmin = data.pageType === 'admin' || 
                        (data.pagePath && data.pagePath.startsWith('/admin'))
@@ -290,23 +298,6 @@ function AnalyticsDashboard() {
         
         const type = data.pageType || 'other'
         typeCount[type] = (typeCount[type] || 0) + 1
-      })
-      
-      const typeStats = Object.entries(typeCount)
-        .map(([type, count]) => ({ type, count }))
-        .sort((a, b) => b.count - a.count)
-      
-      setPageTypeStats(typeStats)
-
-      // 熱門頁面（帶詳細信息）
-      const pageCount = {}
-      const pageData = {}
-      
-      last30DaysSnap.forEach(doc => {
-        const data = doc.data()
-        const isAdmin = data.pageType === 'admin' || 
-                       (data.pagePath && data.pagePath.startsWith('/admin'))
-        if (isAdmin) return
         
         const key = data.pageId 
           ? `${data.pageType}:${data.pageId}`
@@ -325,7 +316,6 @@ function AnalyticsDashboard() {
           }
         }
         pageCount[key].count++
-        // 保存最詳細的標題
         if (data.pageName && !pageCount[key].pageName) {
           pageCount[key].pageName = data.pageName
         }
@@ -333,6 +323,12 @@ function AnalyticsDashboard() {
           pageCount[key].artistName = data.artistName
         }
       })
+      
+      const typeStats = Object.entries(typeCount)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count)
+      
+      setPageTypeStats(typeStats)
 
       // 加載額外詳細信息（歌曲名、歌手名）
       const topPageEntries = Object.values(pageCount)
