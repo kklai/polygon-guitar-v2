@@ -146,5 +146,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ==================== Cache (home page snapshot) ====================
+    // Read: anyone (SSR/API serves home from this doc). Write: via Firebase Admin only (no client write).
+    match /cache/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
   }
 }

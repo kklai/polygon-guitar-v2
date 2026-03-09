@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useContext } from 'react'
 import { useRouter } from 'next/router'
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { getPopularArtists, getHotTabs, getRecentTabs, getCategoryImages, getTabsByIds } from '@/lib/tabs'
-import { getAllActivePlaylists } from '@/lib/playlists'
+import { getTabsByIds } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
@@ -14,105 +11,34 @@ import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
 import SectionViewportLoader from '@/components/SectionViewportLoader'
 import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
 
-// Prefetch: fire Firestore queries at module-load time (before component mount/render)
-let _prefetchPromise = null
-let _prefetchTime = 0
+// 1-hour local cache for home payload (cache/homePage snapshot) — reload reads from here
+const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
+const HOMEPAGE_LOCAL_CACHE_TTL_MS = 60 * 60 * 1000
 
-function prefetchHomeData() {
-  if (typeof window === 'undefined') return null
-  const now = Date.now()
-  if (_prefetchPromise && now - _prefetchTime < 30000) return _prefetchPromise
-  _prefetchTime = now
-  _prefetchPromise = Promise.all([
-    getDoc(doc(db, 'settings', 'home')),
-    getPopularArtists(30),
-    getAllActivePlaylists(),
-    getRecentTabs(10),
-    getHotTabs(22),
-    getCategoryImages()
-  ])
-  return _prefetchPromise
-}
-
-// Only used when loading on client (no initialHomeData from getStaticProps)
-// prefetchHomeData()
-
-// Stale-while-revalidate: cache processed homepage state
-const HOMEPAGE_CACHE_KEY = 'pg_home_v1'
-const HOMEPAGE_CACHE_TTL = 10 * 60 * 1000
-
-function slimTabForCache(tab) {
-  if (!tab) return tab
-  return {
-    id: tab.id, title: tab.title, artistName: tab.artistName,
-    artistId: tab.artistId, artist: tab.artist,
-    thumbnail: tab.thumbnail, albumImage: tab.albumImage,
-    youtubeUrl: tab.youtubeUrl, youtubeVideoId: tab.youtubeVideoId,
-    viewCount: tab.viewCount, createdAt: tab.createdAt
-  }
-}
-
-function slimArtistForCache(a) {
-  if (!a) return a
-  return {
-    id: a.id, name: a.name, normalizedName: a.normalizedName,
-    photoURL: a.photoURL, wikiPhotoURL: a.wikiPhotoURL, photo: a.photo,
-    viewCount: a.viewCount, songCount: a.songCount, tabCount: a.tabCount,
-    artistType: a.artistType, gender: a.gender, adminScore: a.adminScore
-  }
-}
-
-function slimTabs(items) {
-  return Array.isArray(items) ? items.map(slimTabForCache) : []
-}
-
-function slimArtists(items) {
-  return Array.isArray(items) ? items.map(slimArtistForCache) : []
-}
-
-function saveHomepageCache(data) {
-  try {
-    const payload = JSON.stringify(data, (key, value) => {
-      if (value && typeof value === 'object' && typeof value.toDate === 'function') {
-        return value.toDate().getTime()
-      }
-      return value
-    })
-    try {
-      localStorage.setItem(HOMEPAGE_CACHE_KEY, payload)
-    } catch (quotaErr) {
-      localStorage.removeItem(HOMEPAGE_CACHE_KEY)
-      localStorage.setItem(HOMEPAGE_CACHE_KEY, payload)
-    }
-    console.log('[Cache] Saved homepage cache:', Math.round(payload.length / 1024), 'KB')
-  } catch (e) {
-    console.error('[Cache] Failed to save:', e.name, e.message)
-  }
-}
-
-function loadHomepageCache() {
+function getHomeDataFromLocalCache() {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem(HOMEPAGE_CACHE_KEY)
-    if (!raw) {
-      console.log('[Cache] No cache found')
-      return null
-    }
-    const data = JSON.parse(raw)
-    if (Date.now() - data._ts > HOMEPAGE_CACHE_TTL) {
-      console.log('[Cache] Cache expired, age:', Math.round((Date.now() - data._ts) / 1000), 's')
-      localStorage.removeItem(HOMEPAGE_CACHE_KEY)
-      return null
-    }
-    console.log('[Cache] Cache hit, age:', Math.round((Date.now() - data._ts) / 1000), 's')
+    const raw = localStorage.getItem(HOMEPAGE_LOCAL_CACHE_KEY)
+    if (!raw) return null
+    const { data, _ts } = JSON.parse(raw)
+    if (!data || !_ts || Date.now() - _ts > HOMEPAGE_LOCAL_CACHE_TTL_MS) return null
     return data
-  } catch (e) {
-    console.error('[Cache] Failed to load:', e.name, e.message)
+  } catch {
     return null
   }
 }
 
-const _homepageCache = loadHomepageCache()
+function setHomeDataToLocalCache(data) {
+  if (typeof window === 'undefined' || !data) return
+  try {
+    localStorage.setItem(HOMEPAGE_LOCAL_CACHE_KEY, JSON.stringify({ data, _ts: Date.now() }))
+  } catch (e) {
+    try {
+      localStorage.removeItem(HOMEPAGE_LOCAL_CACHE_KEY)
+      localStorage.setItem(HOMEPAGE_LOCAL_CACHE_KEY, JSON.stringify({ data, _ts: Date.now() }))
+    } catch (_) {}
+  }
+}
 
 // 歌手分類預設資料（image starts null; real images come from Firestore/cache）
 const DEFAULT_CATEGORIES = [
@@ -155,11 +81,9 @@ function getInitialHomeState() {
     hotTabs: [],
     allSongs: [],
     hotArtists: defaultHotArtists,
-    artistPhotoMap: {},
     autoPlaylists: [],
     manualPlaylists: [],
     categories: DEFAULT_CATEGORIES,
-    totalViewCount: 0,
     homeSettings: {
       manualSelection: { male: [], female: [], group: [] },
       useManualSelection: { male: false, female: false, group: false },
@@ -270,7 +194,7 @@ const FALLBACK_MANUAL_PLAYLISTS = [
 ]
 
 // 自訂歌單區域 — 有 preloadedSongs 即用（SSR/API 已載），否則一次過 fetch 再顯示
-function CustomPlaylistSection({ title, songIds, artistPhotoMap, onSongClick, preloadedSongs }) {
+function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs }) {
   const [songs, setSongs] = useState(() => (Array.isArray(preloadedSongs) && preloadedSongs.length > 0 ? preloadedSongs : []))
   const [loading, setLoading] = useState(() => !(Array.isArray(preloadedSongs) && preloadedSongs.length > 0))
 
@@ -316,7 +240,7 @@ function CustomPlaylistSection({ title, songIds, artistPhotoMap, onSongClick, pr
             <SongCard
               key={song.id}
               song={song}
-              artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+              artistPhoto={song.artistPhoto}
               href={`/tabs/${song.id}`}
             />
           ))
@@ -450,11 +374,9 @@ function getInitialStateFromHomeData(initialHomeData) {
     latestSongs: initialHomeData.latestSongs || _initialHomeState.latestSongs,
     allSongs: initialHomeData.allSongs || _initialHomeState.allSongs,
     hotArtists: initialHomeData.hotArtists || _initialHomeState.hotArtists,
-    artistPhotoMap: initialHomeData.artistPhotoMap || _initialHomeState.artistPhotoMap,
     autoPlaylists: initialHomeData.autoPlaylists?.length ? initialHomeData.autoPlaylists : _initialHomeState.autoPlaylists,
     manualPlaylists: initialHomeData.manualPlaylists?.length ? initialHomeData.manualPlaylists : _initialHomeState.manualPlaylists,
     categories: initialHomeData.categories?.length ? initialHomeData.categories : _initialHomeState.categories,
-    totalViewCount: initialHomeData.totalViewCount ?? _initialHomeState.totalViewCount,
     customPlaylistSongs: initialHomeData.customPlaylistSongs || {}
   }
 }
@@ -468,11 +390,9 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
   const [hotTabs, setHotTabs] = useState(fromServer?.hotTabs ?? _initialHomeState.hotTabs)
   const [allSongs, setAllSongs] = useState(fromServer?.allSongs ?? _initialHomeState.allSongs)
   const [hotArtists, setHotArtists] = useState(fromServer?.hotArtists ?? _initialHomeState.hotArtists)
-  const [artistPhotoMap, setArtistPhotoMap] = useState(fromServer?.artistPhotoMap ?? _initialHomeState.artistPhotoMap)
   const [autoPlaylists, setAutoPlaylists] = useState(fromServer?.autoPlaylists ?? _initialHomeState.autoPlaylists)
   const [manualPlaylists, setManualPlaylists] = useState(fromServer?.manualPlaylists ?? _initialHomeState.manualPlaylists)
   const [categories, setCategories] = useState(fromServer?.categories ?? _initialHomeState.categories)
-  const [totalViewCount, setTotalViewCount] = useState(fromServer?.totalViewCount ?? _initialHomeState.totalViewCount)
   const [homeSettings, setHomeSettings] = useState(() => mergeInitialHomeSettings(initialHomeSettings))
   const [customPlaylistSongs, setCustomPlaylistSongs] = useState(() => fromServer?.customPlaylistSongs ?? {})
   const [recentItems, setRecentItems] = useState([])
@@ -563,7 +483,7 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
                   <SongCard
                     key={song.id}
                     song={song}
-                    artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+                    artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                   />
                 ))}
@@ -664,7 +584,7 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
                   <SongCard
                     key={song.id}
                     song={song}
-                    artistPhoto={artistPhotoMap[song.artistId] || artistPhotoMap[song.artist]}
+                    artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                   />
                 ))}
@@ -729,11 +649,13 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
           )
         }
         
-        // 單歌單區域
-        if (customSection.type === 'customPlaylist' && customSection.playlistId) {
-          const playlist = manualPlaylists.find(p => p.id === customSection.playlistId) || 
-                          autoPlaylists.find(p => p.id === customSection.playlistId)
-          const hasContent = playlist && playlist.songIds && playlist.songIds.length > 0
+        // 單歌單區域（playlistId may be omitted when it equals section id）
+        const playlistId = customSection.playlistId ?? customSection.id
+        if (customSection.type === 'customPlaylist' && playlistId) {
+          const playlist = manualPlaylists.find(p => p.id === playlistId) ||
+                          autoPlaylists.find(p => p.id === playlistId)
+          const preloaded = customPlaylistSongs[section.id]
+          const hasContent = (playlist?.songIds?.length > 0) || (preloaded?.length > 0)
           
           if (!hasContent) {
             return (
@@ -756,8 +678,7 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
             <SectionViewportLoader key={section.id}>
               <CustomPlaylistSection
                 title={sectionTitle}
-                songIds={playlist.songIds}
-                artistPhotoMap={artistPhotoMap}
+                songIds={playlist?.songIds}
                 onSongClick={handleSongClick}
                 preloadedSongs={customPlaylistSongs[section.id]}
               />
@@ -823,320 +744,56 @@ export default function Home({ initialHomeSettings = {}, initialHomeData = null 
       console.warn('Recent views load failed:', e?.message)
     }
 
-    // Full data already from getStaticProps (ISR) → no client fetch
-    if (initialHomeData) {
+    // 1) Prefer 1h local cache (reload = 0 Firestore reads)
+    const localCached = getHomeDataFromLocalCache()
+    if (localCached) {
+      applyHomeDataToState(localCached)
       setHasSectionData(true)
       loadUserData()
       return
     }
 
-    // Apply cached data for content only; keep layout (sectionOrder, customPlaylistSections) from initial state so it doesn't jump when cache has older layout
-    if (_homepageCache) {
-      const c = _homepageCache
-      if (c.homeSettings) setHomeSettings(prev => ({
-        ...prev,
-        ...c.homeSettings,
-        sectionOrder: layoutFrozenRef.current?.sectionOrder ?? prev.sectionOrder,
-        customPlaylistSections: layoutFrozenRef.current?.customPlaylistSections ?? prev.customPlaylistSections
-      }))
-      setArtists(c.artists || [])
-      setLatestSongs(c.latestSongs || [])
-      setHotTabs(c.hotTabs || [])
-      setAllSongs(c.allSongs || [])
-      setHotArtists(c.hotArtists || { male: [], female: [], group: [], all: [] })
-      setArtistPhotoMap(c.artistPhotoMap || {})
-      setAutoPlaylists(c.autoPlaylists || [])
-      setManualPlaylists(c.manualPlaylists || [])
-      if (c.categories) setCategories(c.categories)
-      setTotalViewCount(c.totalViewCount || 0)
-      setHasSectionData(true)
-    }
-
-    loadPublicData().then(() => {
+    // 2) Use server payload (getStaticProps) and cache for 1h
+    if (initialHomeData) {
+      setHomeDataToLocalCache(initialHomeData)
       setHasSectionData(true)
       loadUserData()
-    })
+      return
+    }
+
+    // 3) Fetch from API (1 read of cache/homePage) and cache for 1h
+    fetch('/api/home-data')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return
+        applyHomeDataToState(data)
+        setHomeDataToLocalCache(data)
+        setHasSectionData(true)
+        loadUserData()
+      })
+      .catch(err => console.error('Home data fetch failed:', err))
   }, [])
 
-  // Phase 2: 載入公開資料（不需要登入）
-  const loadPublicData = async () => {
-    const startTime = performance.now();
-    if (_homepageCache) console.log('[Performance] Cache hit — showing cached data instantly');
-    
-    try {
-      // Phase A: Reuse module-level prefetch (queries started before component mounted)
-      const [
-        settingsDoc,
-        popularArtistsData,
-        playlistsData,
-        recentTabsData,
-        defaultHotTabsData,
-        categoryImages
-      ] = await prefetchHomeData();
-      
-      const settings = settingsDoc.exists() ? settingsDoc.data() : {};
-      // Use frozen layout so section order never changes mid-session (prevents appear→disappear→reappear)
-      setHomeSettings(prev => ({
-        ...prev,
-        ...settings,
-        sectionOrder: layoutFrozenRef.current?.sectionOrder ?? prev.sectionOrder,
-        customPlaylistSections: layoutFrozenRef.current?.customPlaylistSections ?? prev.customPlaylistSections
-      }));
-      
-      const autoPlaylistsData = playlistsData.auto || [];
-      const manualPlaylistsData = playlistsData.manual || [];
-      
-      // Progressive render: set non-dependent state immediately
-      setLatestSongs(recentTabsData || []);
-      setAutoPlaylists(autoPlaylistsData.length > 0 ? autoPlaylistsData : FALLBACK_AUTO_PLAYLISTS);
-      setManualPlaylists(manualPlaylistsData.length > 0 ? manualPlaylistsData : FALLBACK_MANUAL_PLAYLISTS);
-      
-      console.log('[Performance] Phase A (parallel):', Math.round(performance.now() - startTime), 'ms');
+  function applyHomeDataToState(data) {
+    const d = data || {}
+    const settings = d.homeSettings || {}
+    setHomeSettings(prev => ({
+      ...prev,
+      ...settings,
+      sectionOrder: layoutFrozenRef.current?.sectionOrder ?? settings.sectionOrder ?? prev.sectionOrder,
+      customPlaylistSections: layoutFrozenRef.current?.customPlaylistSections ?? settings.customPlaylistSections ?? prev.customPlaylistSections
+    }))
+    setArtists(d.hotArtists?.all?.slice(0, 10) ?? [])
+    setLatestSongs(d.latestSongs ?? [])
+    setHotTabs(d.hotTabs ?? [])
+    setAllSongs(d.allSongs ?? [])
+    setHotArtists(d.hotArtists ?? { male: [], female: [], group: [], all: [] })
+    setAutoPlaylists(d.autoPlaylists?.length ? d.autoPlaylists : FALLBACK_AUTO_PLAYLISTS)
+    setManualPlaylists(d.manualPlaylists?.length ? d.manualPlaylists : FALLBACK_MANUAL_PLAYLISTS)
+    if (d.categories?.length) setCategories(d.categories)
+    setCustomPlaylistSongs(d.customPlaylistSongs ?? {})
+  }
 
-      // Phase B: Process settings-dependent data in parallel
-      const hotTabsPromise = (async () => {
-        const targetCount = Math.min(settings.hotTabs?.displayCount || 12, 100);
-        
-        if (settings.hotTabs?.useManual && settings.hotTabs?.manualSelection?.length > 0) {
-          const manualIds = settings.hotTabs.manualSelection
-            .map(t => typeof t === 'object' && t !== null ? t.id : t)
-            .filter(id => typeof id === 'string' && id.trim() !== '')
-            .slice(0, 30);
-          
-          const manualTabs = manualIds.length > 0 ? await getTabsByIds(manualIds) : [];
-          
-          if (manualTabs.length < targetCount) {
-            const manualIdsSet = new Set(manualIds);
-            const autoFill = defaultHotTabsData
-              .filter(t => !manualIdsSet.has(t.id))
-              .slice(0, targetCount - manualTabs.length);
-            return [...manualTabs, ...autoFill];
-          }
-          return manualTabs.slice(0, targetCount);
-        }
-        return defaultHotTabsData.slice(0, targetCount);
-      })();
-
-      const customSongsPromise = (async () => {
-        const customSections = settings.customPlaylistSections || [];
-        const customSongIds = new Set();
-        customSections.forEach(section => {
-          if (section.type === 'customPlaylist' && section.playlistId) {
-            const playlist = autoPlaylistsData.find(p => p.id === section.playlistId) ||
-                            manualPlaylistsData.find(p => p.id === section.playlistId);
-            if (playlist?.songIds) {
-              playlist.songIds.forEach(id => customSongIds.add(id));
-            }
-          }
-        });
-        
-        const knownIds = new Set([
-          ...defaultHotTabsData.map(t => t.id),
-          ...recentTabsData.map(t => t.id)
-        ]);
-        const missingSongIds = Array.from(customSongIds).filter(id => !knownIds.has(id));
-        
-        if (missingSongIds.length > 0) {
-          return await getTabsByIds(missingSongIds.slice(0, 50));
-        }
-        return [];
-      })();
-
-      const artistsPromise = (async () => {
-        let popularArtists = popularArtistsData || [];
-        
-        const rawManualSelection = Array.isArray(settings.manualSelection) 
-          ? settings.manualSelection 
-          : [
-              ...(settings.manualSelection?.male || []),
-              ...(settings.manualSelection?.female || []),
-              ...(settings.manualSelection?.group || [])
-            ];
-        
-        const manualArtistIds = rawManualSelection
-          .map(item => typeof item === 'object' && item !== null ? item.id : item)
-          .filter(id => typeof id === 'string' && id.trim() !== '');
-        
-        if (manualArtistIds.length > 0) {
-          const existingArtistIds = new Set(popularArtists.map(a => a.id));
-          const missingIds = manualArtistIds.filter(id => !existingArtistIds.has(id));
-          
-          if (missingIds.length > 0) {
-            const batchSize = 10;
-            const allMissing = [];
-            for (let i = 0; i < missingIds.length; i += batchSize) {
-              const batch = missingIds.slice(i, i + batchSize);
-              const q = query(
-                collection(db, 'artists'),
-                where('__name__', 'in', batch)
-              );
-              const snapshot = await getDocs(q);
-              snapshot.docs.forEach(d => {
-                const data = d.data();
-                allMissing.push({
-                  id: d.id, ...data,
-                  photo: data.photoURL || data.wikiPhotoURL || data.photo || null,
-                  tabCount: data.songCount || data.tabCount || 0
-                });
-              });
-            }
-            popularArtists = [...popularArtists, ...allMissing];
-          }
-        }
-        return popularArtists;
-      })();
-
-      const [hotTabsData, customSongs, popularArtists] = await Promise.all([
-        hotTabsPromise, customSongsPromise, artistsPromise
-      ]);
-      
-      setHotTabs(hotTabsData);
-      setAllSongs(customSongs);
-      
-      console.log('[Performance] Phase B (parallel):', Math.round(performance.now() - startTime), 'ms');
-      
-      // 建立照片 lookup
-      const photoMap = {};
-      popularArtists.forEach(artist => {
-        photoMap[artist.id] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null;
-        if (artist.name) photoMap[artist.name] = artist.photoURL || artist.wikiPhotoURL || artist.photo || null;
-      });
-      setArtistPhotoMap(photoMap);
-      setTotalViewCount(popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0));
-      
-      // 排序歌手
-      const displayCount = settings.displayCount || 20
-      const sortBy = settings.hotArtistSortBy || 'viewCount'
-      
-      const sortArtists = (artists) => {
-        return [...artists].sort((a, b) => {
-          if (sortBy === 'tabCount') {
-            return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
-          } else if (sortBy === 'adminScore') {
-            return (b.adminScore || 0) - (a.adminScore || 0)
-          } else if (sortBy === 'mixed') {
-            const scoreA = (a.viewCount || 0) * 0.5 +
-                          (a.songCount || a.tabCount || 0) * 30 +
-                          (a.adminScore || 0) * 200
-            const scoreB = (b.viewCount || 0) * 0.5 +
-                          (b.songCount || b.tabCount || 0) * 30 +
-                          (b.adminScore || 0) * 200
-            return scoreB - scoreA
-          } else {
-            const viewsA = a.viewCount || 0
-            const viewsB = b.viewCount || 0
-            if (viewsB !== viewsA) return viewsB - viewsA
-            const scoreA = a.adminScore || 0
-            const scoreB = b.adminScore || 0
-            if (scoreB !== scoreA) return scoreB - scoreA
-            return (b.songCount || b.tabCount || 0) - (a.songCount || a.tabCount || 0)
-          }
-        })
-      }
-
-      const sortedArtists = sortArtists(popularArtists)
-      
-      const getHotArtists = () => {
-        let manualIds = []
-        if (Array.isArray(settings.manualSelection)) {
-          manualIds = settings.manualSelection
-        } else if (typeof settings.manualSelection === 'object' && settings.manualSelection) {
-          manualIds = [
-            ...(settings.manualSelection?.male || []),
-            ...(settings.manualSelection?.female || []),
-            ...(settings.manualSelection?.group || [])
-          ]
-        }
-        
-        const hasManualSelection = Array.isArray(settings.manualSelection) 
-          ? manualIds.length > 0 
-          : (settings.useManualSelection?.male || settings.useManualSelection?.female || settings.useManualSelection?.group)
-
-        if (hasManualSelection && manualIds.length > 0) {
-          const manualArtists = manualIds
-            .map(id => popularArtists.find(a => a.id === id))
-            .filter(Boolean)
-
-          const manualIdsSet = new Set(manualIds)
-          const autoFill = sortedArtists
-            .filter(a => !manualIdsSet.has(a.id))
-            .slice(0, displayCount - manualArtists.length)
-
-          return [...manualArtists, ...autoFill].slice(0, displayCount)
-        } else {
-          return sortedArtists.slice(0, displayCount)
-        }
-      }
-      
-      const artistPageSort = (artists) => [...artists].sort((a, b) => {
-        const scoreA = a.adminScore || a.totalViewCount || a.viewCount || a.tabCount || 0
-        const scoreB = b.adminScore || b.totalViewCount || b.viewCount || b.tabCount || 0
-        return scoreB - scoreA
-      })
-      
-      const hotArtistsData = {
-        all: getHotArtists(),
-        male: artistPageSort(popularArtists.filter(a => (a.artistType || a.gender) === 'male')).slice(0, 5),
-        female: artistPageSort(popularArtists.filter(a => (a.artistType || a.gender) === 'female')).slice(0, 5),
-        group: artistPageSort(popularArtists.filter(a => (a.artistType || a.gender) === 'group')).slice(0, 5)
-      };
-      const artistsSlice = sortedArtists.slice(0, 10);
-      
-      setHotArtists(hotArtistsData);
-      setArtists(artistsSlice);
-      
-      // Process category images (already prefetched in parallel)
-      let processedCategories = null;
-      if (categoryImages) {
-        const artistMap = new Map(popularArtists.map(a => [a.id, a]));
-        
-        processedCategories = DEFAULT_CATEGORIES.map(cat => {
-          const catData = categoryImages[cat.id];
-          let imageUrl = null;
-          
-          if (catData?.artistId && artistMap.has(catData.artistId)) {
-            const artist = artistMap.get(catData.artistId);
-            imageUrl = artist.photoURL || artist.wikiPhotoURL || artist.photo || catData.image || null;
-          } else if (catData?.image) {
-            imageUrl = catData.image;
-          }
-          
-          if (imageUrl?.includes('wikipedia.org')) {
-            imageUrl = getCroppedWikiImage(imageUrl);
-          }
-          
-          return { ...cat, image: imageUrl };
-        });
-        
-        setCategories(processedCategories);
-      }
-      
-      // Save to localStorage for instant load on next visit
-      saveHomepageCache({
-        _ts: Date.now(),
-        homeSettings: { sectionOrder: settings.sectionOrder, hotArtistSortBy: settings.hotArtistSortBy, displayCount: settings.displayCount, manualSelection: settings.manualSelection, useManualSelection: settings.useManualSelection },
-        hotTabs: slimTabs(hotTabsData),
-        latestSongs: slimTabs(recentTabsData),
-        autoPlaylists: (autoPlaylistsData || []).map(p => ({ id: p.id, title: p.title, description: p.description, coverImage: p.coverImage, songIds: p.songIds, source: p.source, displayOrder: p.displayOrder })),
-        manualPlaylists: (manualPlaylistsData || []).map(p => ({ id: p.id, title: p.title, description: p.description, coverImage: p.coverImage, songIds: p.songIds, source: p.source, displayOrder: p.displayOrder, manualType: p.manualType })),
-        allSongs: slimTabs(customSongs),
-        hotArtists: {
-          all: slimArtists(hotArtistsData.all),
-          male: slimArtists(hotArtistsData.male),
-          female: slimArtists(hotArtistsData.female),
-          group: slimArtists(hotArtistsData.group)
-        },
-        artists: slimArtists(artistsSlice),
-        artistPhotoMap: photoMap,
-        categories: processedCategories,
-        totalViewCount: popularArtists.reduce((sum, a) => sum + (a.viewCount || 0), 0)
-      });
-      
-    } catch (error) {
-      console.error('Error loading public data:', error);
-    }
-  };
-  
   // Phase 3: 載入需要登入的資料
   const loadUserData = async () => {
     try {

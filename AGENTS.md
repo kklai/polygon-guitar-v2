@@ -372,6 +372,11 @@ const capo = (originalIndex - targetIndex + 12) % 12;
 - Preset：`artist_photos` (Unsigned)
 - 用途：歌手相片上傳
 
+### 首頁快取（Firestore 讀取優化）
+- 首頁完整數據存於 **`cache/homePage`**，每 6 小時過期；每次首頁訪問僅 **1 次 Firestore 讀取**（當快取有效時）。
+- **重建快取**：後台 首頁設置 → 「🔄 重建首頁快取」；或呼叫 `POST /api/admin/rebuild-home-cache`（Bearer token 或 `x-cron-secret` header）。
+- 可選：每 6 小時用 cron 呼叫上述 API（帶 `CRON_SECRET`）以保持快取常暖。Firestore 規則：`cache` 集合只讀、寫入僅透過 Firebase Admin。
+
 ### 環境變數
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=
@@ -383,6 +388,12 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=drld2cjpo
 YOUTUBE_API_KEY=
 BLOGGER_API_KEY=
+# 可選：首頁快取重建 API 用（cron 或手動 bust）
+CRON_SECRET=   # 或 HOME_CACHE_BUST_SECRET
+# Firebase Admin（用於 sitemap、首頁快取寫入等）
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
 ```
 
 ---

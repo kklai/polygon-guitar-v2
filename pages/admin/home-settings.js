@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import { 
   doc, 
   getDoc, 
@@ -117,6 +117,9 @@ function HomeSettings() {
   // 拖放排序狀態
   const [draggingArtistIndex, setDraggingArtistIndex] = useState(null)
   const [draggingTabIndex, setDraggingTabIndex] = useState(null)
+
+  // 首頁快取重建
+  const [rebuildingCache, setRebuildingCache] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -246,6 +249,33 @@ function HomeSettings() {
       setMessage('❌ 保存失敗')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const rebuildHomeCache = async () => {
+    setRebuildingCache(true)
+    try {
+      const token = await auth.currentUser?.getIdToken?.()
+      if (!token) {
+        setMessage('❌ 請先登入')
+        return
+      }
+      const res = await fetch('/api/admin/rebuild-home-cache', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessage(data.error || '❌ 重建快取失敗')
+        return
+      }
+      setMessage('✅ 首頁快取已重建，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取')
+      setTimeout(() => setMessage(''), 5000)
+    } catch (err) {
+      console.error(err)
+      setMessage('❌ 重建快取失敗')
+    } finally {
+      setRebuildingCache(false)
     }
   }
 
@@ -1308,17 +1338,25 @@ function HomeSettings() {
           </div>
         )}
 
-        <div className="flex gap-4 mt-8">
+        <div className="flex flex-wrap gap-4 mt-8">
           <button
             onClick={saveSettings}
             disabled={saving}
-            className={`flex-1 py-3 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 ${
+            className={`flex-1 min-w-[140px] py-3 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 ${
               hasChanges 
                 ? 'bg-[#FFD700] text-black'  // 有改動 = 黃色
                 : 'bg-green-600 text-white'   // 已保存 = 綠色
             }`}
           >
             {saving ? '保存中...' : hasChanges ? '💾 保存設置' : '✅ 已保存'}
+          </button>
+          <button
+            onClick={rebuildHomeCache}
+            disabled={rebuildingCache}
+            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50"
+            title="重建首頁快取後，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取"
+          >
+            {rebuildingCache ? '重建中...' : '🔄 重建首頁快取'}
           </button>
           <button
             onClick={() => router.push('/')}

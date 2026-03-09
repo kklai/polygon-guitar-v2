@@ -199,8 +199,8 @@ export function PlaylistCard({ playlist, onClick, href }) {
       <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
         {playlist.title}
       </div>
-      {playlist.description && (
-        <div className="text-gray-500 line-clamp-2" style={{ fontSize: 13, lineHeight: '16px' }}>{playlist.description}</div>
+      {typeof playlist.description === 'string' && playlist.description.trim() && (
+        <div className="text-gray-500 line-clamp-2" style={{ fontSize: 13, lineHeight: '16px' }}>{playlist.description.trim()}</div>
       )}
     </Wrapper>
   )
@@ -214,7 +214,7 @@ export function ArtistAvatar({ artist, onClick, href }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const loadImages = useContext(HomeSectionImageContext)
 
-  const photoUrl = artist.photoURL || artist.wikiPhotoURL
+  const photoUrl = artist.photo ?? artist.photoURL ?? artist.wikiPhotoURL
   const showRealImage = loadImages && photoUrl
 
   const Wrapper = href ? Link : 'button'
