@@ -6,7 +6,11 @@ let cacheTime = 0
 const SERVER_CACHE_TTL = 5 * 60 * 1000 // 5 min in-memory
 
 export default async function handler(req, res) {
-  const bust = req.query.bust
+  const bust = req.query.bust === '1' || req.query.bust === 'true'
+  if (bust) {
+    cachedData = null
+    cacheTime = 0
+  }
   if (!bust && cachedData && Date.now() - cacheTime < SERVER_CACHE_TTL) {
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
     return res.json(cachedData)

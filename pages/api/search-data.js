@@ -10,6 +10,10 @@ const MAX_TABS_READ = 1000   // recent tabs for client-side search
 const MAX_ARTISTS_READ = 600 // artists for client-side search
 
 export default async function handler(req, res) {
+  if (req.query.bust === '1' || req.query.bust === 'true') {
+    cachedData = null
+    cacheTime = 0
+  }
   if (cachedData && Date.now() - cacheTime < SERVER_CACHE_TTL) {
     res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')
     return res.json(cachedData)

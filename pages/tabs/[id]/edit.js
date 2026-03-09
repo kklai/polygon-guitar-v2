@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { getTab, updateTab, deleteTab, parseCollaborators, normalizeArtistId } from '@/lib/tabs'
+import { getTab, updateTab, deleteTab, parseCollaborators, normalizeArtistId, clearTabCache, invalidateArtistCaches, invalidateArtistTabsCache } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
@@ -351,13 +351,18 @@ export default function EditTab() {
       
       console.log('Submitting data:', submitData)
       await updateTab(id, submitData, user.uid, isAdmin)
-      // 清除該歌手的頁面 cache，等歌手頁會重新載入（年份等改動即時反映）
+      // 清除 cache，等樂譜頁／歌手頁／搜尋即時反映改動
       if (typeof window !== 'undefined') {
-        try {
-          const primaryName = (formData.artists?.[0]?.name || formData.artist || '').trim()
-          const artistId = formData.artists?.[0]?.id || formData.artistId || (primaryName && normalizeArtistId(primaryName))
-          if (artistId) localStorage.removeItem(`pg_artist_${artistId}`)
-        } catch (e) {}
+        clearTabCache(id)
+        invalidateArtistCaches()
+        const primaryName = (formData.artists?.[0]?.name || formData.artist || '').trim()
+        const artistId = formData.artists?.[0]?.id || formData.artistId || (primaryName && normalizeArtistId(primaryName))
+        if (artistId) {
+          try { localStorage.removeItem(`pg_artist_${artistId}`) } catch (e) {}
+          invalidateArtistTabsCache(artistId)
+        }
+        fetch('/api/search-data?bust=1').catch(() => {})
+        fetch('/api/artists?bust=1').catch(() => {})
       }
       router.push(`/tabs/${id}`)
     } catch (error) {

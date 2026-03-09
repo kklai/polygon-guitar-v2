@@ -7,7 +7,7 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
-import { nameToSlug, getArtistBySlug } from '@/lib/tabs'
+import { nameToSlug, getArtistBySlug, invalidateArtistCaches } from '@/lib/tabs'
 import { X, MapPin, ArrowLeft } from 'lucide-react'
 
 const REGIONS = [
@@ -169,7 +169,14 @@ function EditArtist() {
         region: formData.regions?.[0] || null, // 保留第一地區向後兼容
         updatedAt: new Date().toISOString()
       })
-      
+
+      // 清除 cache，等歌手列表／搜尋即時反映改動
+      if (typeof window !== 'undefined') {
+        invalidateArtistCaches()
+        fetch('/api/search-data?bust=1').catch(() => {})
+        fetch('/api/artists?bust=1').catch(() => {})
+      }
+
       // 跳去新嘅歌手 URL（用新 slug）
       router.push(`/artists/${encodeURIComponent(newSlug)}`)
     } catch (error) {
