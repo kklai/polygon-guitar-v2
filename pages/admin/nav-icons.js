@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
-import { db } from '@/lib/firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { navIcons as defaultNavIcons } from '@/lib/navIcons'
 
 const CLOUD_NAME = 'drld2cjpo'
 const UPLOAD_PRESET = 'artist_photos'
@@ -38,37 +37,27 @@ async function uploadImage(file, itemId) {
   return data.secure_url
 }
 
+function toConfigSnippet(icons) {
+  const lines = Object.entries(icons)
+    .map(([k, v]) => `  ${k}: ${v ? `'${v}'` : "''"}`)
+  return `export const navIcons = {\n${lines.join(',\n')}\n}`
+}
+
 function NavIconsAdmin() {
   const router = useRouter()
-  const [icons, setIcons] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [icons, setIcons] = useState({ ...defaultNavIcons })
   const [busy, setBusy] = useState(null)
   const [msg, setMsg] = useState('')
+  const [copySnippet, setCopySnippet] = useState(null)
   const fileRefs = useRef({})
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const snap = await getDoc(doc(db, 'settings', 'navIcons'))
-        if (snap.exists()) {
-          const data = snap.data()
-          const clean = {}
-          for (const [k, v] of Object.entries(data)) {
-            if (typeof v === 'string' && v.startsWith('http')) clean[k] = v
-          }
-          setIcons(clean)
-        }
-      } catch (e) {
-        console.error('Load error:', e)
-      }
-      setLoading(false)
-    }
-    load()
-  }, [])
 
   const flash = (text) => {
     setMsg(text)
     setTimeout(() => setMsg(''), 3000)
+  }
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => flash('已複製到剪貼簿')).catch(() => flash('複製失敗'))
   }
 
   const handleUpload = async (itemId, file) => {
@@ -76,15 +65,16 @@ function NavIconsAdmin() {
     if (file.size > 500 * 1024) return alert('圖片不能超過 500KB')
 
     setBusy(itemId)
+    setCopySnippet(null)
     try {
       const url = await uploadImage(file, itemId)
       if (!url) throw new Error('無效 URL')
 
       const next = { ...icons, [itemId]: url }
-      await setDoc(doc(db, 'settings', 'navIcons'), next)
-      try { localStorage.removeItem('navIcons') } catch (_) {} // cache bust so admin sees new icons
       setIcons(next)
-      flash(`✅ ${NAV_ITEMS.find(i => i.id === itemId)?.label} 圖標已保存`)
+      const snippet = toConfigSnippet(next)
+      setCopySnippet(snippet)
+      flash(`✅ 上傳成功。請複製下方程式碼到 lib/navIcons.js 並部署。`)
     } catch (e) {
       console.error(e)
       alert('上傳失敗：' + e.message)
@@ -92,29 +82,12 @@ function NavIconsAdmin() {
     setBusy(null)
   }
 
-  const handleClear = async (itemId) => {
+  const handleClear = (itemId) => {
     if (!confirm('確定清除此圖標？')) return
-    setBusy(itemId)
-    try {
-      const next = { ...icons }
-      delete next[itemId]
-      await setDoc(doc(db, 'settings', 'navIcons'), next)
-      try { localStorage.removeItem('navIcons') } catch (_) {} // cache bust so admin sees new icons
-      setIcons(next)
-      flash(`已清除 ${NAV_ITEMS.find(i => i.id === itemId)?.label} 圖標`)
-    } catch (e) {
-      console.error(e)
-      alert('清除失敗：' + e.message)
-    }
-    setBusy(null)
-  }
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="max-w-4xl mx-auto p-8 text-center text-gray-400">載入中...</div>
-      </Layout>
-    )
+    const next = { ...icons, [itemId]: '' }
+    setIcons(next)
+    setCopySnippet(toConfigSnippet(next))
+    flash(`已清除 ${NAV_ITEMS.find(i => i.id === itemId)?.label}。請更新 lib/navIcons.js 並部署。`)
   }
 
   return (
@@ -123,12 +96,26 @@ function NavIconsAdmin() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">底部導航圖標設置</h1>
-            <p className="text-gray-500 mt-1">上傳圖片即時保存，建議 48-64px PNG，黑色圖標</p>
+            <p className="text-gray-500 mt-1">圖標存於程式碼 <code className="text-[#FFD700]">lib/navIcons.js</code>。上傳後複製程式碼到該檔案並部署即可生效。</p>
           </div>
           <button onClick={() => router.push('/admin')} className="text-gray-400 hover:text-white">
             返回後台
           </button>
         </div>
+
+        {copySnippet && (
+          <div className="mb-6 p-4 bg-[#1a1a1a] rounded-lg border border-gray-700">
+            <p className="text-gray-400 text-sm mb-2">複製到 lib/navIcons.js：</p>
+            <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap break-all mb-2">{copySnippet}</pre>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(copySnippet)}
+              className="px-3 py-1.5 text-sm rounded-lg bg-[#FFD700] text-black font-medium hover:opacity-90"
+            >
+              複製
+            </button>
+          </div>
+        )}
 
         {msg && (
           <div className="mb-6 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-400 text-sm">
