@@ -103,7 +103,7 @@ export default function UserPlaylistDetail() {
   useEffect(() => {
     if (!showAddSongModal) return;
     setAddSongLoading(true);
-    fetch('/api/search-data')
+    fetch('/api/search-data?only=tabs')
       .then((r) => r.json())
       .then((data) => {
         setAddSongCatalog(data.tabs || data.hotTabs || []);

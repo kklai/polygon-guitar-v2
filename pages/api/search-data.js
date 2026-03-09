@@ -21,8 +21,12 @@ export default async function handler(req, res) {
     cachedData = data
     cacheTime = Date.now()
 
+    // Optional: return only tabs or only artists to reduce payload for single-purpose callers (same 1 read)
+    const only = req.query.only === 'artists' ? 'artists' : req.query.only === 'tabs' ? 'tabs' : null
+    const body = only === 'artists' ? { artists: data.artists } : only === 'tabs' ? { tabs: data.tabs } : data
+
     res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')
-    return res.json(data)
+    return res.json(body)
   } catch (err) {
     console.error('search-data API error:', err)
     res.status(500).json({ error: 'Failed to load search data', message: err?.message })

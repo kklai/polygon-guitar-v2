@@ -174,7 +174,6 @@ function EditArtist() {
       if (typeof window !== 'undefined') {
         invalidateArtistCaches()
         fetch('/api/search-data?bust=1').catch(() => {})
-        fetch('/api/artists?bust=1').catch(() => {})
       }
 
       // 跳去新嘅歌手 URL（用新 slug）

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import Head from 'next/head'
-import { getAllArtists } from '@/lib/tabs'
+import { getSearchData } from '@/lib/searchData'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
@@ -94,10 +94,10 @@ function ArtistCircle({ artist, href }) {
 
 // 將歌手按評分排序後，每3個一組分成columns（垂直排列）
 function distributeToColumns(artists) {
-  // 按評分排序（adminScore > totalViewCount > viewCount > tabCount）
+  // 按評分排序（adminScore > viewCount > tabCount）
   const sorted = [...artists].sort((a, b) => {
-    const scoreA = a.adminScore || a.totalViewCount || a.viewCount || a.tabCount || 0
-    const scoreB = b.adminScore || b.totalViewCount || b.viewCount || b.tabCount || 0
+    const scoreA = a.adminScore || a.viewCount || a.tabCount || 0
+    const scoreB = b.adminScore || b.viewCount || b.tabCount || 0
     return scoreB - scoreA
   })
   
@@ -184,17 +184,18 @@ export default function Artists({ initialArtists = [] }) {
   const loadArtists = async () => {
     const t0 = performance.now()
     try {
-      let url = '/api/artists'
+      let url = '/api/search-data?only=artists'
       const bust = localStorage.getItem('pg_artists_bust')
       if (bust) {
-        url += `?bust=${bust}`
+        url += `&bust=${bust}`
         localStorage.removeItem('pg_artists_bust')
       }
       const res = await fetch(url)
       const data = await res.json()
-      console.log('[Artists] API fetch took', Math.round(performance.now() - t0), 'ms, got', data.length, 'artists')
-      setArtists(data)
-      saveArtistsCache(data)
+      const list = data?.artists ?? []
+      console.log('[Artists] search-data API took', Math.round(performance.now() - t0), 'ms, got', list.length, 'artists')
+      setArtists(list)
+      saveArtistsCache(list)
     } catch (error) {
       console.error('Error loading artists:', error)
     } finally {
@@ -452,32 +453,11 @@ export default function Artists({ initialArtists = [] }) {
   )
 }
 
-// ISR: preload artist list at build/revalidate to avoid client fetch on first paint
+// ISR: use search-data cache (1 read when fresh) so artist list shares same source as search
 export async function getStaticProps() {
   try {
-    const raw = await getAllArtists()
-    const initialArtists = raw.map((d) => {
-      const count = d.songCount || d.tabCount || 0
-      return {
-        id: d.id,
-        name: d.name || '',
-        photoURL: d.photoURL || null,
-        wikiPhotoURL: d.wikiPhotoURL || null,
-        photo: d.photo || d.photoURL || d.wikiPhotoURL || null,
-        artistType: d.artistType || d.gender || 'other',
-        gender: d.gender || null,
-        region: d.region || null,
-        regions: d.regions || [],
-        adminScore: d.adminScore || 0,
-        totalViewCount: d.totalViewCount || 0,
-        viewCount: d.viewCount || 0,
-        songCount: count,
-        tabCount: count,
-        spotifyFollowers: d.spotifyFollowers || 0,
-        spotifyPopularity: d.spotifyPopularity || 0,
-        normalizedName: d.normalizedName || null
-      }
-    })
+    const data = await getSearchData()
+    const initialArtists = data?.artists ?? []
     return { props: { initialArtists }, revalidate: 300 }
   } catch (e) {
     console.error('[Artists] getStaticProps:', e?.message)
