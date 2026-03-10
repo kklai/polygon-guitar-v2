@@ -14,9 +14,23 @@ export default function Navbar() {
   const router = useRouter()
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30)
+    const onScroll = () => {
+      // 有彈出視窗打開時唔好收窄 navbar（避免 mobile Safari 手勢觸發）
+      if (document.body.getAttribute('data-modal-open') === 'true') {
+        setScrolled(false)
+        return
+      }
+      setScrolled(window.scrollY > 30)
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const observer = new MutationObserver(() => {
+      if (document.body.getAttribute('data-modal-open') === 'true') setScrolled(false)
+    })
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-modal-open'] })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      observer.disconnect()
+    }
   }, [])
 
   useEffect(() => {

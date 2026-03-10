@@ -71,7 +71,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
       
       {/* 手機版底部導航 - 黃底黑字設計 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 md:hidden" style={{ paddingBottom: 'min(env(safe-area-inset-bottom, 0px), 30px)' }}>
-        <div className="flex justify-around items-center h-16">
+        <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
           {mobileNavItems.map((item) => (
             <Link 
               key={item.path}
@@ -87,7 +87,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                 iconUrl={navIcons[item.icon]}
                 label={item.label}
                 active={isActive(item.path)}
-                className={`w-[30px] h-[30px]`}
+                className={`w-[32px] h-[32px]`}
               />
               <span className="text-xs mt-0.5 font-medium">{item.label}</span>
             </Link>
@@ -98,7 +98,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
       {/* 桌面版底部導航 - 黃底黑字設計 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-around items-center h-16">
+          <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
             {desktopNavItems.map((item) => (
               <Link 
                 key={item.path}
@@ -114,7 +114,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                   iconUrl={navIcons[item.icon]}
                   label={item.label}
                   active={isActive(item.path)}
-                  className={`w-[30px] h-[30px]`}
+                  className={`w-[32px] h-[32px]`}
                 />
                 <span className="text-xs mt-0.5 font-medium">{item.label}</span>
               </Link>
