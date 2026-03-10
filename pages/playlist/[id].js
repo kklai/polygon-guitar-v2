@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES } from '@/lib/playlists'
+import { getPlaylistPageCache, setPlaylistPageCache } from '@/lib/playlistPageCache'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import SongActionSheet from '@/components/SongActionSheet'
 import Layout from '@/components/Layout'
@@ -18,12 +17,19 @@ function serializePlaylistData(obj) {
   return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
 }
 
-export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
+export default function PlaylistDetail({
+  initialPlaylist,
+  initialSongs = [],
+  initialUniqueArtists = [],
+  initialOtherPlaylists = []
+}) {
   const router = useRouter()
   const { id } = router.query
   const { user, isAdmin, signInWithGoogle } = useAuth()
   const [playlist, setPlaylist] = useState(initialPlaylist || null)
   const [songs, setSongs] = useState(initialSongs)
+  const [uniqueArtists, setUniqueArtists] = useState(initialUniqueArtists)
+  const [otherPlaylists, setOtherPlaylists] = useState(initialOtherPlaylists)
   const [isLoading, setIsLoading] = useState(!initialPlaylist)
   const [sortMode, setSortMode] = useState('default') // 'default' | 'artist' | 'year' | 'shuffle'
   const [shuffleOrder, setShuffleOrder] = useState([]) // shuffle 時用嘅固定次序（indices），避免每次 re-render 重排
@@ -38,8 +44,7 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const [addToPlaylistInitialIds, setAddToPlaylistInitialIds] = useState([]) // 打開 modal 時首歌已在嘅歌單，用於確認時移除
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
-  const [otherPlaylists, setOtherPlaylists] = useState([]) // 推薦歌單（頁底）：2 自動 + 6 手動
-  const [recommendedArtists, setRecommendedArtists] = useState([]) // 推薦歌單內 2 位歌手（由本歌單內隨機）
+  const [recommendedArtists, setRecommendedArtists] = useState([]) // 推薦歌單內 2 位歌手（由 uniqueArtists 隨機揀）
   const [recommendedItems, setRecommendedItems] = useState([]) // 歌手 + 歌單合併後隨機排序，用於渲染
   const [isSavedToLibrary, setIsSavedToLibrary] = useState(false) // 是否已加入「已收藏歌單」
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false)
@@ -52,17 +57,36 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
 
   useEffect(() => setHasMounted(true), [])
 
+  // 從 uniqueArtists 隨機揀 2 位做推薦歌手（唔使再 getDoc(artists)）
+  const pickTwoRecommendedArtists = (artists) => {
+    if (!artists?.length) return []
+    const pool = [...artists]
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[pool[i], pool[j]] = [pool[j], pool[i]]
+    }
+    return pool.slice(0, 2).map((a) => ({
+      id: a.id,
+      name: a.name,
+      photo: a.photo,
+      slug: a.slug
+    }))
+  }
+
   useEffect(() => {
     if (!id) return
     if (initialPlaylist && initialPlaylist.id === id) {
       setPlaylist(initialPlaylist)
       setSongs(initialSongs || [])
+      setUniqueArtists(initialUniqueArtists || [])
+      setOtherPlaylists(initialOtherPlaylists || [])
+      setRecommendedArtists(pickTwoRecommendedArtists(initialUniqueArtists || []))
       setIsLoading(false)
       recordPlaylistView(user?.uid || null, initialPlaylist)
       return
     }
     loadPlaylistData()
-  }, [id, initialPlaylist, initialSongs])
+  }, [id, initialPlaylist, initialSongs, initialUniqueArtists, initialOtherPlaylists])
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -73,64 +97,6 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
     }
   }, [showPlaylistMoreModal])
 
-  // 載入推薦歌單：最多 2 自動 + 6 手動，合併後隨機排序
-  useEffect(() => {
-    if (!id) return
-    let cancelled = false
-    getAllActivePlaylists()
-      .then(({ auto, manual }) => {
-        if (cancelled) return
-        const autoFiltered = (auto || []).filter((p) => p.id !== id).slice(0, 2)
-        const manualFiltered = (manual || []).filter((p) => p.id !== id).slice(0, 6)
-        const combined = [...autoFiltered, ...manualFiltered]
-        for (let i = combined.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1))
-          ;[combined[i], combined[j]] = [combined[j], combined[i]]
-        }
-        setOtherPlaylists(combined)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [id])
-
-  // 由本歌單內嘅歌手隨機揀 2 位，用於推薦歌單區
-  useEffect(() => {
-    if (!id || songs.length === 0) {
-      setRecommendedArtists([])
-      return
-    }
-    const uniqueByArtistId = []
-    const seen = new Set()
-    for (const s of songs) {
-      const aid = s.artistId || s.artist_id
-      if (aid && !seen.has(aid)) {
-        seen.add(aid)
-        uniqueByArtistId.push(aid)
-      }
-    }
-    if (uniqueByArtistId.length === 0) {
-      setRecommendedArtists([])
-      return
-    }
-    // Fisher–Yates 揀 2 個（唔改原陣列）
-    const pool = [...uniqueByArtistId]
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[pool[i], pool[j]] = [pool[j], pool[i]]
-    }
-    const twoIds = pool.slice(0, 2)
-    let cancelled = false
-    Promise.all(twoIds.map((artistId) => getDoc(doc(db, 'artists', artistId))))
-      .then((snaps) => {
-        if (cancelled) return
-        const list = snaps
-          .filter((s) => s.exists())
-          .map((s) => ({ id: s.id, ...s.data() }))
-        setRecommendedArtists(list)
-      })
-      .catch(() => setRecommendedArtists([]))
-    return () => { cancelled = true }
-  }, [id, songs])
 
   // 歌手 + 歌單合併後隨機排序，整體次序隨機
   useEffect(() => {
@@ -184,43 +150,32 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
   const loadPlaylistData = async () => {
     try {
       setIsLoading(true)
-      
-      // 獲取歌單資料
-      let playlistData = await getPlaylist(id)
-      
-      // 如果是自動歌單類型，使用預設資訊
-      if (!playlistData && AUTO_PLAYLIST_TYPES[id]) {
-        // 從資料庫重新獲取自動歌單（如果存在）
-        const { refreshAllAutoPlaylists } = await import('@/lib/playlists')
-        await refreshAllAutoPlaylists()
-        
-        // 重新載入
-        playlistData = await getPlaylist(id)
-        
-        // 如果還是沒有，顯示錯誤
-        if (!playlistData) {
+      const res = await fetch(`/api/playlist-page?id=${encodeURIComponent(id)}`)
+      if (!res.ok) {
+        if (res.status === 404) {
           router.push('/')
           return
         }
+        throw new Error(res.statusText)
       }
-      
-      if (!playlistData) {
-        router.push('/')
-        return
+      const data = await res.json()
+      setPlaylist(data.playlist)
+      setSongs(data.songs || [])
+      setUniqueArtists(data.uniqueArtists || [])
+      setRecommendedArtists(pickTwoRecommendedArtists(data.uniqueArtists || []))
+      const { auto = [], manual = [] } = data.otherPlaylists || {}
+      const autoFiltered = (auto || []).filter((p) => p.id !== id).slice(0, 2)
+      const manualFiltered = (manual || []).filter((p) => p.id !== id).slice(0, 6)
+      const combined = [...autoFiltered, ...manualFiltered]
+      for (let i = combined.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[combined[i], combined[j]] = [combined[j], combined[i]]
       }
-      
-      setPlaylist(playlistData)
-      
-      // 記錄瀏覽（支援未登入用戶）
-      recordPlaylistView(user?.uid || null, playlistData);
-      
-      // 獲取歌曲詳情
-      if (playlistData.songIds && playlistData.songIds.length > 0) {
-        const songDetails = await getPlaylistSongs(playlistData.songIds)
-        setSongs(songDetails)
-      }
+      setOtherPlaylists(combined)
+      recordPlaylistView(user?.uid || null, data.playlist)
     } catch (error) {
       console.error('Error loading playlist:', error)
+      router.push('/')
     } finally {
       setIsLoading(false)
     }
@@ -784,9 +739,9 @@ export default function PlaylistDetail({ initialPlaylist, initialSongs = [] }) {
                     className="flex-shrink-0 w-36 flex flex-col group"
                   >
                     <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
-                      {item.data.photoURL || item.data.wikiPhotoURL ? (
+                      {item.data.photo ? (
                         <img
-                          src={item.data.photoURL || item.data.wikiPhotoURL}
+                          src={item.data.photo}
                           alt={item.data.name}
                           className="w-full h-full object-cover"
                           loading="lazy"
@@ -1113,22 +1068,50 @@ export async function getStaticProps({ params }) {
   const id = params?.id
   if (!id) return { notFound: true }
   try {
+    const cached = await getPlaylistPageCache(id)
+    if (cached) {
+      const autoF = (cached.otherPlaylists?.auto || []).filter((p) => p.id !== id).slice(0, 2)
+      const manualF = (cached.otherPlaylists?.manual || []).filter((p) => p.id !== id).slice(0, 6)
+      return {
+        props: {
+          initialPlaylist: cached.playlist,
+          initialSongs: cached.songs || [],
+          initialUniqueArtists: cached.uniqueArtists || [],
+          initialOtherPlaylists: [...autoF, ...manualF]
+        },
+        revalidate: 300
+      }
+    }
     const playlistData = await getPlaylist(id)
     if (!playlistData) {
-      return { props: { initialPlaylist: null, initialSongs: [] }, revalidate: 60 }
+      return { props: { initialPlaylist: null, initialSongs: [], initialUniqueArtists: [], initialOtherPlaylists: [] }, revalidate: 60 }
     }
-    const songDetails = (playlistData.songIds?.length > 0)
-      ? await getPlaylistSongs(playlistData.songIds)
-      : []
+    const songIds = playlistData.songIds || []
+    const { songs, uniqueArtists } = songIds.length > 0
+      ? await getPlaylistSongs(songIds)
+      : { songs: [], uniqueArtists: [] }
+    const otherPlaylists = await getAllActivePlaylists()
+    const autoFiltered = (otherPlaylists.auto || []).filter((p) => p.id !== id).slice(0, 2)
+    const manualFiltered = (otherPlaylists.manual || []).filter((p) => p.id !== id).slice(0, 6)
+    const initialOtherPlaylists = [...autoFiltered, ...manualFiltered]
+    const payload = {
+      playlist: playlistData,
+      songs,
+      uniqueArtists,
+      otherPlaylists
+    }
+    await setPlaylistPageCache(id, payload)
     return {
       props: {
         initialPlaylist: serializePlaylistData(playlistData),
-        initialSongs: serializePlaylistData(songDetails)
+        initialSongs: serializePlaylistData(songs),
+        initialUniqueArtists: serializePlaylistData(uniqueArtists),
+        initialOtherPlaylists: serializePlaylistData(initialOtherPlaylists)
       },
       revalidate: 300
     }
   } catch (e) {
     console.error('[playlist/[id]] getStaticProps:', e?.message)
-    return { props: { initialPlaylist: null, initialSongs: [] }, revalidate: 60 }
+    return { props: { initialPlaylist: null, initialSongs: [], initialUniqueArtists: [], initialOtherPlaylists: [] }, revalidate: 60 }
   }
 }
