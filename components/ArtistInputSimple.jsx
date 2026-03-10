@@ -59,6 +59,7 @@ function ArtistFieldRow({
     const trimmed = typeof queryText === 'string' ? queryText.trim() : ''
     if (!trimmed) {
       setSuggestions([])
+      setShowDropdown(false)
       return
     }
 
@@ -113,7 +114,7 @@ function ArtistFieldRow({
         const topRest = rest.slice(0, exactMatch ? 4 : 5)
         const final = exactMatch ? [exactMatch, ...topRest] : topRest
         setSuggestions(final)
-        setShowDropdown(final.length > 0)
+        setShowDropdown(final.length > 0 || trimmed.length > 0)
         setSelectedIndex(-1)
         setIsLoading(false)
         return
@@ -189,7 +190,7 @@ function ArtistFieldRow({
       const topRest = rest.slice(0, exactMatch ? 4 : 5)
       const final = exactMatch ? [exactMatch, ...topRest] : topRest
       setSuggestions(final)
-      setShowDropdown(final.length > 0)
+      setShowDropdown(final.length > 0 || trimmed.length > 0)
       setSelectedIndex(-1)
     } catch (err) {
       console.error('搜尋歌手失敗:', err)
@@ -225,11 +226,13 @@ function ArtistFieldRow({
   const handleSelectArtist = (selectedArtist) => {
     setInputValue(selectedArtist.name)
     setShowDropdown(false)
+    setIsConfirmed(true)
     onChange(index, {
       ...artist,
       name: selectedArtist.name,
       id: selectedArtist.id,
       photo: selectedArtist.photoURL || selectedArtist.wikiPhotoURL || selectedArtist.photo,
+      artistType: selectedArtist.artistType || artist.artistType,
       isNew: false
     })
   }
@@ -290,28 +293,22 @@ function ArtistFieldRow({
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-2">
-        {/* 如果是第一個，顯示 "主唱" 標籤 */}
-        {isFirst && (
-          <span className="text-xs text-gray-500 w-10 flex-shrink-0">主唱</span>
-        )}
-        
-        {/* 如果不是第一個，顯示關係選擇 */}
-        {!isFirst && (
-          <select
-            value={artist.relation || 'slash'}
-            onChange={handleRelationChange}
-            className="w-20 flex-shrink-0 px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none"
-          >
-            {RELATION_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        )}
-
-        {/* 如果是第一個，顯示主唱標籤 */}
-        {isFirst && (
-          <span className="text-xs text-gray-500 w-10 flex-shrink-0">主唱</span>
-        )}
+        {/* 左側固定寬度：主唱標籤 或 關係選擇，讓輸入框對齊 */}
+        <div className="w-20 flex-shrink-0">
+          {isFirst ? (
+            <span className="text-xs text-gray-500">主唱</span>
+          ) : (
+            <select
+              value={artist.relation || 'slash'}
+              onChange={handleRelationChange}
+              className="w-full px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none"
+            >
+              {RELATION_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          )}
+        </div>
 
         {/* 輸入欄位 */}
         <div className="flex-1 relative">
@@ -320,7 +317,7 @@ function ArtistFieldRow({
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            onFocus={() => !isConfirmed && inputValue && suggestions.length > 0 && setShowDropdown(true)}
+            onFocus={() => !isConfirmed && inputValue.trim() && setShowDropdown(true)}
             placeholder={isFirst ? "例如：陳奕迅" : "例如：楊千嬅"}
             className={`w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none ${
               artist.id ? 'ring-2 ring-green-500/50' : ''
@@ -366,8 +363,8 @@ function ArtistFieldRow({
         )}
       </div>
 
-      {/* Suggest 下拉選單 */}
-      {showDropdown && (
+      {/* Suggest 下拉選單 - 僅在有輸入時顯示 */}
+      {showDropdown && inputValue.trim() && (
         <div className="absolute z-50 left-0 right-0 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
           {suggestions.map((suggestion, idx) => (
             <button
@@ -457,11 +454,14 @@ export default function ArtistInputSimple({ value, onChange }) {
     return () => { cancelled = true }
   }, [])
 
-  // 同步外部變化
+  // 同步外部變化（合併時保留已選中的 id，避免父組件未更新時被舊資料覆蓋，導致第二個歌手無綠勾）
   useEffect(() => {
-    if (value?.artists) {
-      setArtists(value.artists)
-    }
+    if (!value?.artists?.length) return
+    setArtists(prev => value.artists.map((v, i) => {
+      const p = prev[i]
+      if (p?.id && !v?.id) return p
+      return v
+    }))
   }, [value])
 
   // 通知父組件

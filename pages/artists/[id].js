@@ -6,8 +6,6 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
-import RatingSystem from '../../components/RatingSystem';
-import { getTabStats } from '../../lib/ratingApi';
 import { getTabsByArtist, getArtistBySlug } from '../../lib/tabs';
 import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
