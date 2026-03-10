@@ -163,6 +163,7 @@ export default function NewTab() {
   const [youTubeAutoSelect, setYouTubeAutoSelect] = useState(false)
   const [similarArtists, setSimilarArtists] = useState([])
   const [useExistingArtistSelected, setUseExistingArtistSelected] = useState(false)
+  const [artistListFromSearch, setArtistListFromSearch] = useState([])
   
   // 區塊展開/收合狀態
   const [expandedSections, setExpandedSections] = useState({
@@ -213,7 +214,7 @@ export default function NewTab() {
     [formData.artist]
   )
   
-  // 檢查相似歌手
+  // 檢查相似歌手（使用 search-data API，1 cache read，不讀全表 artists）
   useEffect(() => {
     const checkSimilarArtists = async () => {
       if (!formData.artist?.trim() || formData.artist.length < 2) {
@@ -222,10 +223,14 @@ export default function NewTab() {
       }
       
       try {
-        const snapshot = await getDocs(collection(db, 'artists'))
-        const allDbArtists = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        let list = artistListFromSearch
+        if (list.length === 0) {
+          const res = await fetch('/api/search-data?only=artists')
+          const data = await res.json()
+          list = data?.artists || []
+          setArtistListFromSearch(list)
+        }
         
-        // 解析多歌手，為每個合作歌手檢查相似
         const { collaborators } = parseCollaborators(formData.artist)
         const foundArtists = []
         
@@ -233,13 +238,12 @@ export default function NewTab() {
           const inputName = collabName.toLowerCase().replace(/\s+/g, '')
           const inputCore = inputName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || inputName
           
-          for (const artist of allDbArtists) {
-            const artistName = artist.name.toLowerCase().replace(/\s+/g, '')
+          for (const artist of list) {
+            const artistName = (artist.name || '').toLowerCase().replace(/\s+/g, '')
             const artistCore = artistName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || artistName
             
-            // 檢查是否匹配
-            const isMatch = artistCore === inputCore || 
-              artistName.includes(inputName) || 
+            const isMatch = artistCore === inputCore ||
+              artistName.includes(inputName) ||
               inputName.includes(artistName) ||
               (inputCore && artistCore && (artistCore.includes(inputCore) || inputCore.includes(artistCore)))
             
@@ -251,14 +255,11 @@ export default function NewTab() {
         
         setSimilarArtists(foundArtists.slice(0, 5))
         
-        // 如果找到相似歌手且當前沒有歌手相片，自動使用第一個匹配歌手的相片
         if (foundArtists.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
           const firstMatch = foundArtists[0]
-          if (firstMatch.photoURL || firstMatch.wikiPhotoURL) {
-            setFormData(prev => ({
-              ...prev,
-              artistPhoto: firstMatch.photoURL || firstMatch.wikiPhotoURL || ''
-            }))
+          const photo = firstMatch.photo || ''
+          if (photo) {
+            setFormData(prev => ({ ...prev, artistPhoto: photo }))
           }
         }
       } catch (err) {
@@ -268,7 +269,7 @@ export default function NewTab() {
     
     const timer = setTimeout(checkSimilarArtists, 500)
     return () => clearTimeout(timer)
-  }, [formData.artist, useExistingArtistSelected])
+  }, [formData.artist, useExistingArtistSelected, artistListFromSearch])
   
   useEffect(() => {
     if (!authLoading && !authChecked) {

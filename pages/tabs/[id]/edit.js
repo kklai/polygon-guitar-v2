@@ -11,8 +11,6 @@ import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { ArrowLeft } from 'lucide-react'
 
@@ -128,6 +126,9 @@ export default function EditTab() {
   const [similarArtists, setSimilarArtists] = useState([])
   const [useExistingArtistSelected, setUseExistingArtistSelected] = useState(false)
   
+  // 歌手列表來自 search-data API（1 cache read），供相似歌手匹配與頭像解析用
+  const [artistListFromSearch, setArtistListFromSearch] = useState([])
+  
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -143,7 +144,7 @@ export default function EditTab() {
     [formData.artist]
   )
   
-  // 檢查相似歌手並自動獲取相片
+  // 檢查相似歌手並自動獲取相片（使用 search-data API，1 cache read，不讀全表 artists）
   useEffect(() => {
     const checkSimilarArtists = async () => {
       if (!formData.artist?.trim() || formData.artist.length < 2) {
@@ -152,8 +153,13 @@ export default function EditTab() {
       }
       
       try {
-        const snapshot = await getDocs(collection(db, 'artists'))
-        const allDbArtists = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        let list = artistListFromSearch
+        if (list.length === 0) {
+          const res = await fetch('/api/search-data?only=artists')
+          const data = await res.json()
+          list = data?.artists || []
+          setArtistListFromSearch(list)
+        }
         
         // 解析多歌手，為每個合作歌手檢查相似
         const { collaborators } = parseCollaborators(formData.artist)
@@ -163,13 +169,12 @@ export default function EditTab() {
           const inputName = collabName.toLowerCase().replace(/\s+/g, '')
           const inputCore = inputName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || inputName
           
-          for (const artist of allDbArtists) {
-            const artistName = artist.name.toLowerCase().replace(/\s+/g, '')
+          for (const artist of list) {
+            const artistName = (artist.name || '').toLowerCase().replace(/\s+/g, '')
             const artistCore = artistName.match(/[\u4e00-\u9fa5]{2,}/)?.[0] || artistName
             
-            // 檢查是否匹配
-            const isMatch = artistCore === inputCore || 
-              artistName.includes(inputName) || 
+            const isMatch = artistCore === inputCore ||
+              artistName.includes(inputName) ||
               inputName.includes(artistName) ||
               (inputCore && artistCore && (artistCore.includes(inputCore) || inputCore.includes(artistCore)))
             
@@ -181,14 +186,11 @@ export default function EditTab() {
         
         setSimilarArtists(foundArtists.slice(0, 5))
         
-        // 如果找到相似歌手且當前沒有歌手相片，自動使用第一個匹配歌手的相片
         if (foundArtists.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
           const firstMatch = foundArtists[0]
-          if (firstMatch.photoURL || firstMatch.wikiPhotoURL) {
-            setFormData(prev => ({
-              ...prev,
-              artistPhoto: firstMatch.photoURL || firstMatch.wikiPhotoURL || ''
-            }))
+          const photo = firstMatch.photo || ''
+          if (photo) {
+            setFormData(prev => ({ ...prev, artistPhoto: photo }))
           }
         }
       } catch (err) {
@@ -198,7 +200,7 @@ export default function EditTab() {
     
     const timer = setTimeout(checkSimilarArtists, 500)
     return () => clearTimeout(timer)
-  }, [formData.artist])
+  }, [formData.artist, artistListFromSearch])
 
   useEffect(() => {
     if (id && isAuthenticated) {
@@ -224,15 +226,16 @@ export default function EditTab() {
 
       setIsAuthorized(true)
       
-      // 如果冇歌手相片但有歌手ID，嘗試從數據庫獲取
+      // 歌手相片：缺則用 search-data API 依 artistId 解析（1 cache read，不單獨 getDoc artists）
       let artistPhoto = data.artistPhoto || ''
       if (!artistPhoto && data.artistId) {
         try {
-          const artistDoc = await getDoc(doc(db, 'artists', data.artistId))
-          if (artistDoc.exists()) {
-            const artistData = artistDoc.data()
-            artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || ''
-          }
+          const res = await fetch('/api/search-data?only=artists')
+          const apiData = await res.json()
+          const artists = apiData?.artists || []
+          const match = artists.find(a => a.id === data.artistId)
+          if (match?.photo) artistPhoto = match.photo
+          if (artists.length > 0) setArtistListFromSearch(artists)
         } catch (e) {
           console.log('獲取歌手相片失敗:', e)
         }
