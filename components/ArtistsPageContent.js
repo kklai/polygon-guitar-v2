@@ -5,12 +5,13 @@ import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
+const ARTISTS_CACHE_VERSION = 2 // bump to invalidate when API shape changes (e.g. region/regions)
 const ARTISTS_CACHE_TTL = 10 * 60 * 1000 // 10 min
 const ARTISTS_CACHE_FRESH = 2 * 60 * 1000 // 2 min = skip fetch
 
 function saveArtistsCache(data) {
   try {
-    localStorage.setItem(ARTISTS_CACHE_KEY, JSON.stringify({ _ts: Date.now(), artists: data }))
+    localStorage.setItem(ARTISTS_CACHE_KEY, JSON.stringify({ _ts: Date.now(), _v: ARTISTS_CACHE_VERSION, artists: data }))
   } catch (e) { /* quota exceeded */ }
 }
 
@@ -20,7 +21,7 @@ function loadArtistsCache() {
     const raw = localStorage.getItem(ARTISTS_CACHE_KEY)
     if (!raw) return null
     const data = JSON.parse(raw)
-    if (Date.now() - data._ts > ARTISTS_CACHE_TTL) return null
+    if (data._v !== ARTISTS_CACHE_VERSION || Date.now() - data._ts > ARTISTS_CACHE_TTL) return null
     return { artists: data.artists, fresh: (Date.now() - data._ts) < ARTISTS_CACHE_FRESH }
   } catch (e) { return null }
 }
@@ -215,7 +216,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
 
     if (activeRegion !== 'all') {
       result = result.filter(artist => {
-        const regions = artist.regions || (artist.region ? [artist.region] : [])
+        const regions = (artist.regions && artist.regions.length) ? artist.regions : (artist.region ? [artist.region] : [])
         return regions.includes(activeRegion)
       })
     }
