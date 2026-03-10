@@ -1,49 +1,25 @@
-import { collection, getDocs, query } from 'firebase/firestore'
-import { db } from '../../lib/firebase'
+import { getSearchData } from '@/lib/searchData'
 
-let cachedData = null
-let cacheTime = 0
-const SERVER_CACHE_TTL = 5 * 60 * 1000 // 5 min in-memory
+/**
+ * Artists list API: reads from Firestore cache/searchData (1 read when cache fresh).
+ * Cache TTL 24h; same source as /api/search-data?only=artists. No direct getDocs(artists).
+ *
+ * On Vercel serverless, in-memory cache does not persist across invocations (each request
+ * can hit a new instance), so we use the shared Firestore cache instead. Refresh once per
+ * day or via admin "Rebuild search cache" in home-settings.
+ */
+const CACHE_MAX_AGE = 24 * 60 * 60 // 24h in seconds
+const STALE_WHILE_REVALIDATE = 24 * 60 * 60 // 24h
 
 export default async function handler(req, res) {
-  const bust = req.query.bust === '1' || req.query.bust === 'true'
-  if (bust) {
-    cachedData = null
-    cacheTime = 0
+  try {
+    const data = await getSearchData()
+    const artists = data?.artists ?? []
+
+    res.setHeader('Cache-Control', `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=${STALE_WHILE_REVALIDATE}`)
+    return res.json(artists)
+  } catch (err) {
+    console.error('[api/artists] error:', err?.message)
+    res.status(500).json({ error: 'Failed to load artists', message: err?.message })
   }
-  if (!bust && cachedData && Date.now() - cacheTime < SERVER_CACHE_TTL) {
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
-    return res.json(cachedData)
-  }
-
-  const t0 = Date.now()
-  const snapshot = await getDocs(query(collection(db, 'artists')))
-  const artists = snapshot.docs.map(doc => {
-    const d = doc.data()
-    const count = d.songCount || d.tabCount || 0
-    return {
-      id: doc.id,
-      name: d.name,
-      photoURL: d.photoURL || null,
-      wikiPhotoURL: d.wikiPhotoURL || null,
-      photo: d.photoURL || d.wikiPhotoURL || d.photo || null,
-      artistType: d.artistType || d.gender || 'other',
-      gender: d.gender || null,
-      region: d.region || null,
-      regions: d.regions || [],
-      totalViewCount: d.totalViewCount || 0,
-      viewCount: d.viewCount || 0,
-      songCount: count,
-      tabCount: count,
-      spotifyFollowers: d.spotifyFollowers || 0,
-      spotifyPopularity: d.spotifyPopularity || 0,
-      normalizedName: d.normalizedName || null
-    }
-  })
-
-  cachedData = artists
-  cacheTime = Date.now()
-
-  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
-  return res.json(artists)
 }
