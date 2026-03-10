@@ -14,8 +14,39 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore'
-import { getRecentTabs, getHotTabs } from '@/lib/tabs'
+import { getHotTabs } from '@/lib/tabs'
 import { getAllPlaylists } from '@/lib/playlists'
+
+// 首頁設置頁面資料：24 小時內使用快取，減少 Firestore 讀取
+const HOME_SETTINGS_CACHE_KEY = 'pg_home_settings_page_cache'
+const HOME_SETTINGS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+
+function serializeForCache(obj) {
+  if (obj == null) return obj
+  return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+}
+
+function getHomeSettingsFromCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(HOME_SETTINGS_CACHE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (!data || !data._ts || Date.now() - data._ts > HOME_SETTINGS_CACHE_TTL_MS) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+function setHomeSettingsCache(payload) {
+  if (typeof window === 'undefined' || !payload) return
+  try {
+    const existing = getHomeSettingsFromCache()
+    const merged = existing ? { ...existing, ...payload, _ts: Date.now() } : { ...payload, _ts: Date.now() }
+    localStorage.setItem(HOME_SETTINGS_CACHE_KEY, JSON.stringify(merged))
+  } catch (e) { /* quota */ }
+}
 
 const SORT_OPTIONS = [
   { value: 'tier', label: 'Tier 等級', desc: 'Tier 1→2→3→4→5，同 Tier 以譜數多→少（推薦）' },
@@ -102,7 +133,7 @@ function HomeSettings() {
   const [selectedTabIds, setSelectedTabIds] = useState([])
   
   const [message, setMessage] = useState('')
-  const [activeTab, setActiveTab] = useState('artists')
+  const [activeTab, setActiveTab] = useState('layout') // default to layout so on open we only load settings (1 read)
   
   // 歌單區域相關
   const [playlists, setPlaylists] = useState([])
@@ -119,9 +150,16 @@ function HomeSettings() {
   // 首頁快取重建
   const [rebuildingCache, setRebuildingCache] = useState(false)
   const [rebuildingSearchCache, setRebuildingSearchCache] = useState(false)
+  const [rebuildingAllTabsCache, setRebuildingAllTabsCache] = useState(false)
+
+  // Lazy-load state: only fetch lists when user opens the section that needs them
+  const [loadingArtists, setLoadingArtists] = useState(false)
+  const [loadingTabs, setLoadingTabs] = useState(false)
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false)
+  const [listsLoaded, setListsLoaded] = useState({ artists: false, tabs: false, playlists: false })
 
   useEffect(() => {
-    loadData()
+    loadSettingsOnly()
   }, [])
 
   // 歌曲搜索 - 類似 search 頁面，本地過濾所有字段
@@ -146,8 +184,139 @@ function HomeSettings() {
     setTabSearchResults(results)
   }, [tabSearchTerm, tabs])
 
+  const applySettingsFromData = (data) => {
+    if (!data) return
+    let manualSelection = data.manualSelection || []
+    if (typeof manualSelection === 'object' && !Array.isArray(manualSelection)) {
+      const male = manualSelection.male || []
+      const female = manualSelection.female || []
+      const group = manualSelection.group || []
+      manualSelection = [...new Set([...male, ...female, ...group])]
+    }
+    if (Array.isArray(manualSelection)) {
+      manualSelection = manualSelection.map(item => {
+        if (typeof item === 'object' && item !== null && item.id) return item.id
+        return item
+      }).filter(id => typeof id === 'string')
+    }
+    setSettings(prev => ({
+      ...prev,
+      ...data,
+      manualSelection,
+      hotTabs: { ...prev.hotTabs, ...(data.hotTabs || {}) },
+      sectionOrder: data.sectionOrder || prev.sectionOrder,
+      customPlaylistSections: data.customPlaylistSections || []
+    }))
+    if (data.hotTabs?.manualSelection) {
+      let tabSelection = data.hotTabs.manualSelection
+      if (Array.isArray(tabSelection)) {
+        tabSelection = tabSelection.map(item => {
+          if (typeof item === 'object' && item !== null && item.id) return item.id
+          return item
+        }).filter(id => typeof id === 'string')
+      }
+      setSelectedTabIds(tabSelection)
+    }
+  }
+
+  /** Load only settings on open (1 read). Artists/tabs/playlists load when user opens that section. */
+  const loadSettingsOnly = async () => {
+    try {
+      const settingsDoc = await getDoc(doc(db, 'settings', 'home'))
+      if (settingsDoc.exists()) {
+        applySettingsFromData(settingsDoc.data())
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /** Load artists when user opens the "熱門歌手" tab. Uses 24h cache if available. */
+  const loadArtistsIfNeeded = async () => {
+    if (listsLoaded.artists) return
+    const cached = getHomeSettingsFromCache()
+    if (cached?.artists?.length) {
+      setArtists(cached.artists)
+      setListsLoaded(prev => ({ ...prev, artists: true }))
+      return
+    }
+    setLoadingArtists(true)
+    try {
+      const searchRes = await fetch('/api/search-data?only=artists')
+      const artistsData = searchRes.ok ? ((await searchRes.json()).artists || []) : []
+      setArtists(artistsData)
+      setListsLoaded(prev => ({ ...prev, artists: true }))
+      setHomeSettingsCache({ artists: artistsData })
+    } catch (error) {
+      console.error('Error loading artists:', error)
+    } finally {
+      setLoadingArtists(false)
+    }
+  }
+
+  /** Load tabs when user opens the "熱門歌曲" tab. Uses 24h cache if available. */
+  const loadTabsIfNeeded = async () => {
+    if (listsLoaded.tabs) return
+    const cached = getHomeSettingsFromCache()
+    if (cached?.tabs?.length) {
+      setTabs(cached.tabs)
+      setListsLoaded(prev => ({ ...prev, tabs: true }))
+      return
+    }
+    setLoadingTabs(true)
+    try {
+      const tabsData = await getHotTabs(100)
+      setTabs(tabsData)
+      setListsLoaded(prev => ({ ...prev, tabs: true }))
+      setHomeSettingsCache({ tabs: tabsData })
+    } catch (error) {
+      console.error('Error loading tabs:', error)
+    } finally {
+      setLoadingTabs(false)
+    }
+  }
+
+  /** Load playlists when user opens a playlist modal. Uses 24h cache if available. */
+  const loadPlaylistsIfNeeded = async () => {
+    if (listsLoaded.playlists) return
+    const cached = getHomeSettingsFromCache()
+    if (cached?.playlists?.length) {
+      setPlaylists(cached.playlists)
+      setListsLoaded(prev => ({ ...prev, playlists: true }))
+      return
+    }
+    setLoadingPlaylists(true)
+    try {
+      const playlistsData = await getAllPlaylists()
+      setPlaylists(playlistsData)
+      setListsLoaded(prev => ({ ...prev, playlists: true }))
+      setHomeSettingsCache({ playlists: playlistsData })
+    } catch (error) {
+      console.error('Error loading playlists:', error)
+    } finally {
+      setLoadingPlaylists(false)
+    }
+  }
+
+  // Lazy-load lists when user switches to the tab or opens the modal that needs them
+  useEffect(() => {
+    if (activeTab === 'artists') loadArtistsIfNeeded()
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'tabs') loadTabsIfNeeded()
+  }, [activeTab])
+
+  useEffect(() => {
+    if (showPlaylistModal || showPlaylistGroupModal) loadPlaylistsIfNeeded()
+  }, [showPlaylistModal, showPlaylistGroupModal])
+
+  /** Force full reload (used by "立即更新此頁資料" button): clear cache and load everything. */
   const loadData = async () => {
     try {
+      setListsLoaded({ artists: false, tabs: false, playlists: false })
       const [searchRes, tabsData, playlistsData, settingsDoc] = await Promise.all([
         fetch('/api/search-data?only=artists'),
         getHotTabs(100),
@@ -155,63 +324,26 @@ function HomeSettings() {
         getDoc(doc(db, 'settings', 'home'))
       ])
       const artistsData = searchRes.ok ? ((await searchRes.json()).artists || []) : []
-
       setPlaylists(playlistsData)
       setArtists(artistsData)
       setTabs(tabsData)
-      
+      setListsLoaded({ artists: true, tabs: true, playlists: true })
       if (settingsDoc.exists()) {
         const data = settingsDoc.data()
-        
-        // 數據遷移：將舊的按分類格式轉換為新格式
-        let manualSelection = data.manualSelection || []
-        
-        // 如果是舊格式（對象而不是數組），轉換為新格式
-        if (typeof manualSelection === 'object' && !Array.isArray(manualSelection)) {
-          console.log('Migrating old manual selection format...')
-          // 合併三個分類的選擇，去重
-          const male = manualSelection.male || []
-          const female = manualSelection.female || []
-          const group = manualSelection.group || []
-          manualSelection = [...new Set([...male, ...female, ...group])]
-        }
-        
-        // 清理：確保 manualSelection 只包含 ID 字符串（如果入面有對象，提取 id）
-        if (Array.isArray(manualSelection)) {
-          manualSelection = manualSelection.map(item => {
-            if (typeof item === 'object' && item !== null && item.id) {
-              return item.id
-            }
-            return item
-          }).filter(id => typeof id === 'string')
-        }
-        
-        setSettings(prev => ({
-          ...prev,
-          ...data,
-          manualSelection,
-          hotTabs: {
-            ...prev.hotTabs,
-            ...(data.hotTabs || {})
-          },
-          sectionOrder: data.sectionOrder || prev.sectionOrder,
-          customPlaylistSections: data.customPlaylistSections || []
-        }))
-        
-        // 初始化已選歌曲 - 確保只包含 ID 字符串
-        if (data.hotTabs?.manualSelection) {
-          let tabSelection = data.hotTabs.manualSelection
-          if (Array.isArray(tabSelection)) {
-            tabSelection = tabSelection.map(item => {
-              if (typeof item === 'object' && item !== null && item.id) {
-                return item.id
-              }
-              return item
-            }).filter(id => typeof id === 'string')
-          }
-          setSelectedTabIds(tabSelection)
-          console.log('Loaded selected tabs:', tabSelection)
-        }
+        applySettingsFromData(data)
+        setHomeSettingsCache({
+          artists: artistsData,
+          tabs: tabsData,
+          playlists: playlistsData,
+          settings: serializeForCache(data)
+        })
+      } else {
+        setHomeSettingsCache({
+          artists: artistsData,
+          tabs: tabsData,
+          playlists: playlistsData,
+          settings: null
+        })
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -240,6 +372,7 @@ function HomeSettings() {
       
       await setDoc(doc(db, 'settings', 'home'), dedupedSettings)
       setHasChanges(false)  // 保存成功後重置改動狀態
+      try { localStorage.removeItem(HOME_SETTINGS_CACHE_KEY) } catch (_) {} // 下次載入會取最新資料
       setMessage('✅ 設置已保存')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
@@ -301,6 +434,33 @@ function HomeSettings() {
       setMessage('❌ 重建搜尋快取失敗')
     } finally {
       setRebuildingSearchCache(false)
+    }
+  }
+
+  const rebuildAllTabsCache = async () => {
+    setRebuildingAllTabsCache(true)
+    try {
+      const token = await auth.currentUser?.getIdToken?.()
+      if (!token) {
+        setMessage('❌ 請先登入')
+        return
+      }
+      const res = await fetch('/api/admin/rebuild-all-tabs-cache', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessage(data.error || '❌ 重建樂譜列表快取失敗')
+        return
+      }
+      setMessage(`✅ 樂譜列表快取已重建（${data.count ?? 0} 份），約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取`)
+      setTimeout(() => setMessage(''), 5000)
+    } catch (err) {
+      console.error(err)
+      setMessage('❌ 重建樂譜列表快取失敗')
+    } finally {
+      setRebuildingAllTabsCache(false)
     }
   }
 
@@ -713,6 +873,9 @@ function HomeSettings() {
                       揀選歌手組成「熱門歌手」列表，有揀選就優先顯示，冇就自動排序
                     </p>
                   </div>
+                  {loadingArtists && (
+                    <span className="text-sm text-gray-400">Loading list…</span>
+                  )}
                 </div>
               </div>
               
@@ -995,9 +1158,14 @@ function HomeSettings() {
 
             {/* 手動選擇歌曲 */}
             <div className="bg-[#121212] rounded-xl border border-gray-800">
-              <div className="p-4 border-b border-gray-800">
-                <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
-                <p className="text-sm text-gray-500 mt-1">揀選特定歌曲顯示喺熱門結他譜區</p>
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
+                  <p className="text-sm text-gray-500 mt-1">揀選特定歌曲顯示喺熱門結他譜區</p>
+                </div>
+                {loadingTabs && (
+                  <span className="text-sm text-gray-400">Loading list…</span>
+                )}
               </div>
 
               <div className="p-4">
@@ -1392,6 +1560,25 @@ function HomeSettings() {
             {rebuildingSearchCache ? '重建中...' : '🔄 重建搜尋快取'}
           </button>
           <button
+            onClick={rebuildAllTabsCache}
+            disabled={rebuildingAllTabsCache}
+            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50"
+            title="重建樂譜列表快取後，約 24 小時內後台 getAllTabs（Spotify 管理、修復歌手等）只會用 1 次 Firestore 讀取"
+          >
+            {rebuildingAllTabsCache ? '重建中...' : '🔄 重建樂譜列表快取'}
+          </button>
+          <button
+            onClick={() => {
+              try { localStorage.removeItem(HOME_SETTINGS_CACHE_KEY) } catch (_) {}
+              setLoading(true)
+              loadData()
+            }}
+            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition"
+            title="清除此頁 24 小時快取，立即從 Firestore 重新載入歌手/歌曲列表"
+          >
+            🔄 立即更新此頁資料
+          </button>
+          <button
             onClick={() => router.push('/')}
             className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
           >
@@ -1506,6 +1693,7 @@ function HomeSettings() {
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
                     選擇歌單 ({selectedPlaylistIds.length} 個)
+                    {loadingPlaylists && <span className="ml-2 text-gray-500">Loading…</span>}
                   </label>
                   <input
                     type="text"

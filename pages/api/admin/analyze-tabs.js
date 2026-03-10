@@ -87,7 +87,7 @@ export default async function handler(req, res) {
   try {
     // 如果指定了 tabId，只分析該譜
     if (tabId) {
-      const tabs = await getAllTabs();
+      const tabs = await getAllTabs({ withContent: true });
       const tab = tabs.find(t => t.id === tabId);
       
       if (!tab) {
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
     // 批量分析
     console.log(`🎸 開始分析結他譜 (limit: ${limit}, dryRun: ${dryRun})`);
     
-    const tabs = await getAllTabs();
+    const tabs = await getAllTabs({ withContent: true });
     const tabsToAnalyze = tabs.slice(0, limit);
     
     const results = {

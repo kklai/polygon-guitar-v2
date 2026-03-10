@@ -54,7 +54,7 @@ function DataReview() {
     try {
       const [artistsData, tabsData] = await Promise.all([
         getAllArtists(),
-        getAllTabs()
+        getAllTabs({ withContent: true }) // needs content for suspicious checks
       ])
       setArtists(artistsData)
       setTabs(tabsData)
