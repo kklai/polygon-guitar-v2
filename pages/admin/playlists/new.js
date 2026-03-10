@@ -4,10 +4,8 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-import { getAllTabs } from '@/lib/tabs'
 import { createPlaylist } from '@/lib/playlists'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import { getSongThumbnail } from '@/lib/getSongThumbnail'
 
 function NewPlaylist() {
   const router = useRouter()
@@ -44,7 +42,10 @@ function NewPlaylist() {
 
   const loadSongs = async () => {
     try {
-      const songs = await getAllTabs()
+      const res = await fetch('/api/search-data?only=tabs')
+      if (!res.ok) throw new Error('Failed to load songs')
+      const { tabs } = await res.json()
+      const songs = tabs || []
       setAllSongs(songs)
       setSearchResults(songs.slice(0, 50)) // 預設顯示前 50 首
     } catch (error) {
@@ -348,23 +349,10 @@ function NewPlaylist() {
                       className="flex items-center gap-3 p-3 bg-black rounded-lg group"
                     >
                       <span className="text-gray-600 w-6 text-center">{index + 1}</span>
-                      <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
-                        {getSongThumbnail(song) ? (
-                          <img
-                            src={getSongThumbnail(song)}
-                            alt={song.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg">🎵</div>
-                        )}
-                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{song.title}</p>
                         <p className="text-gray-500 text-xs truncate">{song.artist}</p>
                       </div>
-                      <span className="text-xs text-[#FFD700]">{song.originalKey || 'C'}</span>
-                      
                       {/* Reorder & Remove Buttons */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         <button
@@ -449,24 +437,7 @@ function NewPlaylist() {
                             : 'bg-black hover:bg-gray-800'
                         }`}
                       >
-                        {/* 排名數字 - 同搜尋頁面一樣 */}
                         <span className="text-gray-500 w-6 text-center">{index + 1}</span>
-                        
-                        {/* 縮圖 - 同搜尋頁面一樣 */}
-                        <div className="w-12 h-12 rounded bg-gray-800 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
-                          {song.youtubeVideoId ? (
-                            <img
-                              src={`https://img.youtube.com/vi/${song.youtubeVideoId}/default.jpg`}
-                              alt={song.title}
-                              className="w-full h-full object-cover rounded pointer-events-none select-none"
-                              draggable="false"
-                            />
-                          ) : (
-                            '🎵'
-                          )}
-                        </div>
-                        
-                        {/* 歌曲資訊 - 同搜尋頁面一樣，包作曲/填詞/編曲 */}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-medium truncate">{song.title}</h3>
                           <p className="text-sm text-gray-500">{song.artist}</p>
@@ -478,11 +449,6 @@ function NewPlaylist() {
                             </p>
                           )}
                         </div>
-                        
-                        {/* Key */}
-                        <span className="text-xs text-gray-600">{song.originalKey || 'C'}</span>
-                        
-                        {/* 狀態 */}
                         {isSelected ? (
                           <span className="text-green-500 text-xs">✓</span>
                         ) : (

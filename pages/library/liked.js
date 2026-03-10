@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { auth, db } from '../../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { getTabsByIds } from '../../lib/tabs';
 import { Heart, Share, Music, Plus, Copy, ArrowLeft } from 'lucide-react';
 import { getSongThumbnail } from '../../lib/getSongThumbnail';
 import { getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '../../lib/playlistApi';
@@ -74,16 +75,9 @@ export default function LikedSongs() {
         where('userId', '==', userId)
       );
       const likedSnap = await getDocs(likedQuery);
-      const songsData = await Promise.all(
-        likedSnap.docs.map(async (likedDoc) => {
-          const songDoc = await getDoc(doc(db, 'tabs', likedDoc.data().songId));
-          if (songDoc.exists()) {
-            return { id: songDoc.id, ...songDoc.data() };
-          }
-          return null;
-        })
-      );
-      setSongs(songsData.filter(Boolean));
+      const songIds = likedSnap.docs.map((d) => d.data().songId).filter(Boolean);
+      const songsData = songIds.length ? await getTabsByIds(songIds) : [];
+      setSongs(songsData);
     } catch (error) {
       console.error('載入喜愛歌曲失敗:', error);
     } finally {

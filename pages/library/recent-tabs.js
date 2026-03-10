@@ -2,9 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { auth, db } from '../../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth } from '../../lib/firebase';
 import { getRecentTabIds } from '../../lib/libraryRecentViews';
+import { getTabsByIds } from '../../lib/tabs';
 import { getSongThumbnail } from '../../lib/getSongThumbnail';
 import { useAuth } from '../../contexts/AuthContext';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '../../lib/playlistApi';
@@ -169,13 +169,9 @@ export default function RecentTabs() {
         setLoading(false);
         return;
       }
-      const list = await Promise.all(
-        recent.map(async ({ id: tabId }) => {
-          const snap = await getDoc(doc(db, 'tabs', tabId));
-          return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-        })
-      );
-      setTabs(list.filter(Boolean));
+      const tabIds = recent.map(({ id }) => id).filter(Boolean);
+      const list = tabIds.length ? await getTabsByIds(tabIds) : [];
+      setTabs(list);
     } catch (error) {
       console.error('載入最近瀏覽失敗:', error);
       setTabs([]);

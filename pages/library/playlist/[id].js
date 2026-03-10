@@ -6,6 +6,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { db } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getTabsByIds } from '../../../lib/tabs';
 import { Music, Share, Heart, Plus, ListMusic, ArrowUpDown, Pencil, X, Search, User, Copy, ArrowLeft } from 'lucide-react';
 import Layout from '../../../components/Layout';
 import { getSongThumbnail } from '../../../lib/getSongThumbnail';
@@ -127,13 +128,7 @@ export default function UserPlaylistDetail() {
       }
       setPlaylist(playlistData);
       if (playlistData.songIds && playlistData.songIds.length > 0) {
-        const songDetails = [];
-        for (const songId of playlistData.songIds) {
-          const songDoc = await getDoc(doc(db, 'tabs', songId));
-          if (songDoc.exists()) {
-            songDetails.push({ id: songDoc.id, ...songDoc.data() });
-          }
-        }
+        const songDetails = await getTabsByIds(playlistData.songIds);
         setSongs(songDetails);
       }
     } catch (error) {
@@ -359,9 +354,9 @@ export default function UserPlaylistDetail() {
     setAddingSongId(songId);
     try {
       await addSongToPlaylist(id, songId);
-      const songDoc = await getDoc(doc(db, 'tabs', songId));
-      if (songDoc.exists()) {
-        setSongs((prev) => [...prev, { id: songDoc.id, ...songDoc.data() }]);
+      const [added] = await getTabsByIds([songId]);
+      if (added) {
+        setSongs((prev) => [...prev, added]);
       }
       setPlaylist((p) => p ? { ...p, songIds: [...(p.songIds || []), songId] } : p);
     } catch (e) {
