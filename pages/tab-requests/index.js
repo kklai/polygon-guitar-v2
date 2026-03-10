@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
-import { 
-  collection, query, orderBy, getDocs, addDoc, 
-  updateDoc, doc, arrayUnion, arrayRemove, serverTimestamp,
-  where, deleteDoc
+import {
+  collection, query, orderBy, getDocs, addDoc, updateDoc, doc,
+  arrayUnion, arrayRemove, serverTimestamp, where, deleteDoc
 } from 'firebase/firestore'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -32,14 +31,11 @@ export default function TabRequestsPage() {
   const [searchSource, setSearchSource] = useState(null) // 'spotify', 'youtube', 'manual', 'multiple'
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   
-  // 檢查現有樂譜
-  const [existingTab, setExistingTab] = useState(null)
-  const [showExistingTabModal, setShowExistingTabModal] = useState(false)
   // 未登入按「我也需要」時顯示登入提示
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [loginPromptLoading, setLoginPromptLoading] = useState(false)
   const scrollPositionRef = useRef(0)
-  const modalOpen = showForm || showLoginPrompt || showExistingTabModal
+  const modalOpen = showForm || showLoginPrompt
 
   // 載入求譜列表
   useEffect(() => {
@@ -94,30 +90,47 @@ export default function TabRequestsPage() {
 
   const loadRequests = async () => {
     try {
-      // 使用單一字段排序（避免需要複合索引）
-      const q = query(
-        collection(db, 'tabRequests'),
-        orderBy('voteCount', 'desc')
-      )
-      const snapshot = await getDocs(q)
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+      const res = await fetch('/api/tab-requests')
+      if (!res.ok) throw new Error('Failed to load requests')
+      const { tabRequests: raw } = await res.json()
+      const list = Array.isArray(raw) ? raw : []
+      const data = list.map((r) => ({
+        ...r,
+        createdAt: r.createdAt != null ? new Date(r.createdAt) : new Date(),
       }))
-      // 在客戶端進行二次排序：先按 voteCount，再按 createdAt
-      data.sort((a, b) => {
-        if (b.voteCount !== a.voteCount) {
-          return b.voteCount - a.voteCount
-        }
-        return b.createdAt - a.createdAt
-      })
       setRequests(data)
+      // If API returned empty (e.g. cache not built, Admin not configured), load from Firestore
+      if (data.length === 0) {
+        const q = query(
+          collection(db, 'tabRequests'),
+          orderBy('voteCount', 'desc')
+        )
+        const snapshot = await getDocs(q)
+        const fallback = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+          createdAt: docSnap.data().createdAt?.toDate?.() || new Date(),
+        }))
+        fallback.sort((a, b) => {
+          if (b.voteCount !== a.voteCount) return b.voteCount - a.voteCount
+          return b.createdAt - a.createdAt
+        })
+        if (fallback.length > 0) setRequests(fallback)
+      }
     } catch (error) {
       console.error('Error loading requests:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Keep server cache in sync after writes (fire-and-forget)
+  const refreshCache = (payload) => {
+    fetch('/api/tab-requests/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {})
   }
 
   // 只以 YouTube 搜尋
@@ -266,34 +279,6 @@ export default function TabRequestsPage() {
   }
 
   // 檢查是否已有相同樂譜
-  const checkExistingTab = async () => {
-    if (!searchResults) return false
-    
-    try {
-      // 搜尋相同歌名和歌手的樂譜
-      const tabsQuery = query(
-        collection(db, 'tabs'),
-        where('title', '==', searchResults.title),
-        where('artist', '==', searchResults.artist)
-      )
-      const tabsSnap = await getDocs(tabsQuery)
-      
-      if (!tabsSnap.empty) {
-        setExistingTab({
-          id: tabsSnap.docs[0].id,
-          ...tabsSnap.docs[0].data()
-        })
-        setShowExistingTabModal(true)
-        return true
-      }
-      
-      return false
-    } catch (error) {
-      console.error('Error checking existing tab:', error)
-      return false
-    }
-  }
-
   // 提交求譜
   const handleSubmit = async () => {
     if (!user) {
@@ -304,14 +289,6 @@ export default function TabRequestsPage() {
 
     setSubmitting(true)
     try {
-      // 先檢查是否已有相同樂譜
-      const hasExistingTab = await checkExistingTab()
-      if (hasExistingTab) {
-        setSubmitting(false)
-        return
-      }
-      
-      // 繼續提交求譜...
       await submitRequest()
     } catch (error) {
       console.error('Error submitting request:', error)
@@ -336,25 +313,35 @@ export default function TabRequestsPage() {
         const existing = existingSnap.docs[0]
         const requestId = existing.id
         const requestData = existing.data()
-        
+        const hasVoted = requestData.voters?.includes(user.uid)
+        const newVoteCount = hasVoted ? (requestData.voteCount || 1) - 1 : (requestData.voteCount || 0) + 1
+        const newVoters = hasVoted
+          ? (requestData.voters || []).filter((id) => id !== user.uid)
+          : [...(requestData.voters || []), user.uid]
+
         const requestRef = doc(db, 'tabRequests', requestId)
-        
-        if (requestData.voters?.includes(user.uid)) {
-          // 取消投票
+        if (hasVoted) {
           await updateDoc(requestRef, {
-            voteCount: (requestData.voteCount || 1) - 1,
+            voteCount: newVoteCount,
             voters: arrayRemove(user.uid)
           })
         } else {
-          // 投票
           await updateDoc(requestRef, {
-            voteCount: (requestData.voteCount || 0) + 1,
+            voteCount: newVoteCount,
             voters: arrayUnion(user.uid)
           })
         }
+        setRequests((prev) => {
+          const next = prev.map((r) =>
+            r.id === requestId ? { ...r, voteCount: newVoteCount, voters: newVoters } : r
+          )
+          next.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0) || ((b.createdAt?.getTime?.() ?? b.createdAt) - (a.createdAt?.getTime?.() ?? a.createdAt)))
+          return next
+        })
+        refreshCache({ action: 'vote', id: requestId, voteCount: newVoteCount, voters: newVoters })
       } else {
         // 創建新求譜
-        await addDoc(collection(db, 'tabRequests'), {
+        const payload = {
           songTitle: searchResults.title,
           artistName: searchResults.artist,
           albumImage: searchResults.albumImage || null,
@@ -370,6 +357,56 @@ export default function TabRequestsPage() {
           status: 'pending',
           fulfilledBy: null,
           fulfilledAt: null,
+        }
+        const ref = await addDoc(collection(db, 'tabRequests'), payload)
+        // Optimistic update: cache won't have new doc yet, so add to local state
+        const newRequest = {
+          id: ref.id,
+          songTitle: searchResults.title,
+          artistName: searchResults.artist,
+          albumImage: searchResults.albumImage || null,
+          albumName: searchResults.albumName || null,
+          youtubeUrl: searchResults.youtubeUrl || null,
+          searchSource: searchSource || null,
+          requestedBy: user.uid,
+          requesterName: user.displayName || '匿名用戶',
+          requesterPhoto: user.photoURL || null,
+          createdAt: new Date(),
+          voteCount: 1,
+          voters: [user.uid],
+          status: 'pending',
+          fulfilledBy: null,
+          fulfilledByName: null,
+          fulfilledAt: null,
+          tabId: null,
+        }
+        setRequests((prev) => {
+          const next = [newRequest, ...prev]
+          next.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0) || ((b.createdAt?.getTime?.() ?? b.createdAt) - (a.createdAt?.getTime?.() ?? a.createdAt)))
+          return next
+        })
+        refreshCache({
+          action: 'add',
+          doc: {
+            id: ref.id,
+            songTitle: searchResults.title,
+            artistName: searchResults.artist,
+            albumImage: searchResults.albumImage || null,
+            albumName: searchResults.albumName || null,
+            youtubeUrl: searchResults.youtubeUrl || null,
+            searchSource: searchSource || null,
+            requestedBy: user.uid,
+            requesterName: user.displayName || '匿名用戶',
+            requesterPhoto: user.photoURL || null,
+            voteCount: 1,
+            voters: [user.uid],
+            status: 'pending',
+            fulfilledBy: null,
+            fulfilledByName: null,
+            fulfilledAt: null,
+            tabId: null,
+            createdAt: Date.now(),
+          },
         })
       }
       
@@ -379,11 +416,6 @@ export default function TabRequestsPage() {
       setSearchSource(null)
       setShowConfirmModal(false)
       setShowForm(false)
-      
-      // 稍微延遲確保 Firestore 同步完成，然後重新載入
-      setTimeout(() => {
-        loadRequests()
-      }, 300)
     } catch (error) {
       console.error('Error submitting request:', error)
       alert('提交失敗，請重試')
@@ -433,9 +465,11 @@ export default function TabRequestsPage() {
           voters: arrayUnion(user.uid)
         })
       }
+      const newCount = hasUserVoted ? (request.voteCount || 1) - 1 : (request.voteCount || 0) + 1
+      const newVoters = hasUserVoted ? (request.voters || []).filter((id) => id !== user.uid) : [...(request.voters || []), user.uid]
+      refreshCache({ action: 'vote', id: requestId, voteCount: newCount, voters: newVoters })
     } catch (error) {
       console.error('Error voting:', error)
-      // 出錯時重新載入
       loadRequests()
     }
   }
@@ -453,8 +487,8 @@ export default function TabRequestsPage() {
     
     try {
       await deleteDoc(doc(db, 'tabRequests', requestId))
-      // 從本地列表移除
       setRequests(requests.filter(r => r.id !== requestId))
+      refreshCache({ action: 'delete', id: requestId })
     } catch (error) {
       console.error('Error deleting request:', error)
       alert('刪除失敗，請重試')
@@ -481,14 +515,12 @@ export default function TabRequestsPage() {
         songTitle: editFormData.songTitle,
         artistName: editFormData.artistName
       })
-      
-      // 更新本地列表
-      setRequests(requests.map(r => 
-        r.id === editingRequest.id 
+      setRequests(requests.map(r =>
+        r.id === editingRequest.id
           ? { ...r, songTitle: editFormData.songTitle, artistName: editFormData.artistName }
           : r
       ))
-      
+      refreshCache({ action: 'edit', id: editingRequest.id, songTitle: editFormData.songTitle, artistName: editFormData.artistName })
       setEditingRequest(null)
     } catch (error) {
       console.error('Error updating request:', error)
@@ -958,85 +990,6 @@ export default function TabRequestsPage() {
           </div>
         )}
 
-        {/* 現有樂譜提示對話框 */}
-        {showExistingTabModal && existingTab && (
-          <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4 pointer-events-auto">
-            <div className="bg-[#121212] rounded-2xl w-full max-w-md overflow-hidden">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-white">已存在相同樂譜</h2>
-                <button onClick={() => setShowExistingTabModal(false)} className="text-gray-400">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="p-4 space-y-4">
-                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-green-400 font-medium text-sm">找到相同樂譜！</p>
-                      <p className="text-gray-400 text-xs mt-1">
-                        資料庫中已有「{existingTab.title} - {existingTab.artist}」的樂譜。
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 現有樂譜預覽 */}
-                <div className="bg-[#1a1a1a] rounded-xl p-4 flex items-center gap-4">
-                  <div className="w-16 h-16 bg-[#282828] rounded-lg overflow-hidden flex-shrink-0">
-                    {existingTab.thumbnail || existingTab.albumImage ? (
-                      <img 
-                        src={existingTab.thumbnail || existingTab.albumImage} 
-                        alt="" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white font-medium truncate">{existingTab.title}</div>
-                    <div className="text-gray-500 text-sm truncate">{existingTab.artist}</div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Link
-                    href={`/tabs/${existingTab.id}`}
-                    onClick={() => setShowExistingTabModal(false)}
-                    className="flex-1 py-3 bg-[#FFD700] text-black rounded-xl font-bold text-center"
-                  >
-                    查看樂譜
-                  </Link>
-                </div>
-
-                <div className="border-t border-gray-800 pt-4">
-                  <p className="text-gray-500 text-sm mb-3">
-                    這份樂譜不符合你的需求？你仍然可以提交求譜：
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowExistingTabModal(false)
-                      submitRequest()
-                    }}
-                    className="w-full py-2 bg-[#282828] text-gray-400 hover:text-white rounded-lg text-sm"
-                  >
-                    仍然要求譜（例如：需要不同版本）
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   )
