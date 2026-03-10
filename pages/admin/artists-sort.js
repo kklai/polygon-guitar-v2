@@ -3,13 +3,34 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { useAuth } from '@/contexts/AuthContext'
 import { collection, getDocs, doc, writeBatch } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import Link from 'next/link'
-import { Save, AlertCircle } from 'lucide-react'
+import { Save, GripVertical } from 'lucide-react'
+
+const DEFAULT_TIER = 5
+const DISPLAY_ORDER_LAST = 999999
+
+// 後台列表：Tier 優先，揀新 Tier 會即時重新排列；同 Tier 內再按 displayOrder、譜數
+function sortByTierThenDisplayOrderTabCount(list) {
+  return [...list].sort((a, b) => {
+    const ta = a.tier ?? DEFAULT_TIER
+    const tb = b.tier ?? DEFAULT_TIER
+    if (ta !== tb) return ta - tb
+    const oa = a.displayOrder ?? DISPLAY_ORDER_LAST
+    const ob = b.displayOrder ?? DISPLAY_ORDER_LAST
+    if (oa !== ob) return oa - ob
+    const ca = a.songCount ?? a.tabCount ?? 0
+    const cb = b.songCount ?? b.tabCount ?? 0
+    if (cb !== ca) return cb - ca
+    return (a.name || '').localeCompare(b.name || '')
+  })
+}
+// 相容舊名（避免 cache 報錯）
+const sortByDisplayOrderTierTabCount = sortByTierThenDisplayOrderTabCount
 
 export default function ArtistsSortPage() {
   const { isAdmin } = useAuth()
-  
+
   const [artists, setArtists] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -17,100 +38,126 @@ export default function ArtistsSortPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [hasChanges, setHasChanges] = useState(false)
   const [changedIds, setChangedIds] = useState(new Set())
+  const [orderChanged, setOrderChanged] = useState(false)
+  const [dragId, setDragId] = useState(null)
 
-  // 載入歌手
   useEffect(() => {
-    if (isAdmin) {
-      loadArtists()
-    }
+    if (isAdmin) loadArtists()
   }, [isAdmin])
 
   const loadArtists = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'artists'))
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      
-      // 按評分排序（高分在前）
-      data.sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-      
-      setArtists(data)
-      setChangedIds(new Set())
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+      setArtists(sortByTierThenDisplayOrderTabCount(data))
       setHasChanges(false)
-    } catch (error) {
-      console.error('載入歌手失敗:', error)
+      setChangedIds(new Set())
+      setOrderChanged(false)
+    } catch (e) {
+      console.error('載入歌手失敗:', e)
       alert('載入失敗')
     } finally {
       setLoading(false)
     }
   }
 
-  // 過濾同分類
   const filteredArtists = artists.filter(artist => {
     const type = artist.artistType || artist.gender || 'other'
-    const matchesTab = 
+    const matchesTab =
       (activeTab === 'male' && (type === 'male' || type === '男')) ||
       (activeTab === 'female' && (type === 'female' || type === '女')) ||
       (activeTab === 'group' && (type === 'group' || type === 'band' || type === '組合' || type === '樂隊')) ||
       (activeTab === 'other' && !['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊'].includes(type))
-
-    const matchesSearch = searchQuery === '' || 
-      artist.name?.toLowerCase().includes(searchQuery.toLowerCase())
-
+    const matchesSearch = !searchQuery.trim() || artist.name?.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesTab && matchesSearch
   })
 
-  // 修改評分
-  const handleScoreChange = (artistId, newScore) => {
-    const score = parseInt(newScore) || 0
-    
-    setArtists(prev => {
-      const updated = prev.map(a => 
-        a.id === artistId ? { ...a, adminScore: score } : a
-      )
-      // 重新按評分排序
-      return updated.sort((a, b) => (b.adminScore || 0) - (a.adminScore || 0))
-    })
-    
+  const setTier = (artistId, tier) => {
+    setArtists(prev => prev.map(a => (a.id === artistId ? { ...a, tier } : a)))
     setChangedIds(prev => new Set(prev).add(artistId))
     setHasChanges(true)
   }
 
-  // 儲存更改
+  const handleDragStart = (e, artistId) => {
+    setDragId(artistId)
+    e.dataTransfer.setData('text/plain', artistId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDragEnd = () => {
+    setDragId(null)
+  }
+
+  const handleDrop = (e, dropTargetId) => {
+    e.preventDefault()
+    const draggedId = e.dataTransfer.getData('text/plain')
+    if (!draggedId || draggedId === dropTargetId) {
+      setDragId(null)
+      return
+    }
+    const fromIdx = artists.findIndex(a => a.id === draggedId)
+    const toIdx = artists.findIndex(a => a.id === dropTargetId)
+    if (fromIdx === -1 || toIdx === -1) {
+      setDragId(null)
+      return
+    }
+    const next = [...artists]
+    const [removed] = next.splice(fromIdx, 1)
+    next.splice(toIdx, 0, removed)
+    setArtists(next)
+    setOrderChanged(true)
+    setHasChanges(true)
+    setDragId(null)
+  }
+
   const saveChanges = async () => {
-    if (changedIds.size === 0) {
+    if (!hasChanges) {
       alert('沒有更改需要儲存')
       return
     }
-    
     setSaving(true)
     try {
       const batch = writeBatch(db)
-      let updateCount = 0
-      
-      changedIds.forEach(id => {
-        const artist = artists.find(a => a.id === id)
-        if (artist) {
-          const ref = doc(db, 'artists', id)
-          batch.update(ref, {
-            adminScore: artist.adminScore || 0,
-            // 清除 displayOrder，因為只用評分排序
-            displayOrder: null,
+      if (orderChanged) {
+        artists.forEach((artist, i) => {
+          batch.update(doc(db, 'artists', artist.id), {
+            displayOrder: i + 1,
+            tier: artist.tier ?? DEFAULT_TIER,
             updatedAt: new Date()
           })
-          updateCount++
-        }
-      })
-      
+        })
+      } else {
+        changedIds.forEach(id => {
+          const artist = artists.find(a => a.id === id)
+          if (artist) {
+            batch.update(doc(db, 'artists', id), {
+              tier: artist.tier ?? DEFAULT_TIER,
+              updatedAt: new Date()
+            })
+          }
+        })
+      }
       await batch.commit()
       setHasChanges(false)
       setChangedIds(new Set())
-      alert(`✅ 已儲存 ${updateCount} 個歌手的評分！`)
-    } catch (error) {
-      console.error('儲存失敗:', error)
-      alert('儲存失敗: ' + error.message)
+      setOrderChanged(false)
+      const msg = orderChanged ? `已儲存次序（共 ${artists.length} 位）` : `已儲存 ${changedIds.size} 位歌手的 Tier`
+      // 重建歌手頁用的 search cache，等 /artists 即時跟到新次序
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/admin/rebuild-search-cache', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+        }
+      } catch (_) { /* 不阻擋成功訊息 */ }
+      alert(`✅ ${msg}\n歌手頁 /artists 已更新次序。`)
+    } catch (e) {
+      console.error('儲存失敗:', e)
+      alert('儲存失敗: ' + e.message)
     } finally {
       setSaving(false)
     }
@@ -136,90 +183,49 @@ export default function ArtistsSortPage() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-6 pb-24">
-        {/* Header */}
+      <div className="max-w-4xl mx-auto space-y-6 pb-24 px-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">歌手評分排序</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">歌手排序</h1>
             <p className="text-gray-500">
-              修改評分自動排序，高分顯示在前面。評分更改後會即時重新排列。
+              次序：<strong className="text-[#FFD700]">Tier 1→2→3→4→5</strong>，同 Tier 以譜數多→少。
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin/artists-v2"
-              className="text-gray-400 hover:text-white transition"
-            >
-              返回歌手管理
-            </Link>
-            <button
-              onClick={saveChanges}
-              disabled={saving || !hasChanges}
-              className={`px-4 py-2 rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2 ${
-                hasChanges 
-                  ? 'bg-[#FFD700] text-black hover:opacity-90' 
-                  : 'bg-gray-600 text-gray-300'
-              }`}
-            >
-              {saving ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  儲存中...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  {hasChanges ? `儲存 (${changedIds.size})` : '無更改'}
-                </>
-              )}
-            </button>
-          </div>
+          <Link href="/admin/artists-v2" className="text-gray-400 hover:text-white transition">
+            返回歌手管理
+          </Link>
         </div>
 
-        {/* 搜尋同 Tab */}
         <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 space-y-4">
-          {/* 搜尋 */}
           <div className="relative">
             <input
               type="text"
               placeholder="搜尋歌手名..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none"
             />
-            <svg 
-              className="absolute left-3 top-3.5 w-5 h-5 text-[#666]"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
+            <svg className="absolute left-3 top-3.5 w-5 h-5 text-[#666]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-
-          {/* 分類 Tab */}
           <div className="flex gap-2">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
-                  activeTab === tab.id 
-                    ? 'bg-[#FFD700] text-black' 
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                  activeTab === tab.id ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-gray-400 hover:text-white'
                 }`}
               >
                 {tab.label}
                 <span className="ml-2 text-sm opacity-60">
                   ({artists.filter(a => {
-                    const type = a.artistType || a.gender || 'other'
-                    if (tab.id === 'male') return type === 'male' || type === '男'
-                    if (tab.id === 'female') return type === 'female' || type === '女'
-                    if (tab.id === 'group') return ['group', 'band', '組合', '樂隊'].includes(type)
-                    return !['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊'].includes(type)
+                    const t = a.artistType || a.gender || 'other'
+                    if (tab.id === 'male') return t === 'male' || t === '男'
+                    if (tab.id === 'female') return t === 'female' || t === '女'
+                    if (tab.id === 'group') return ['group', 'band', '組合', '樂隊'].includes(t)
+                    return !['male', 'female', 'group', 'band', '男', '女', '組合', '樂隊'].includes(t)
                   }).length})
                 </span>
               </button>
@@ -227,132 +233,107 @@ export default function ArtistsSortPage() {
           </div>
         </div>
 
-        {/* 提示區 */}
-        <div className="flex items-center gap-4 text-sm">
-          <p className="text-gray-500">
-            💡 輸入評分後自動排序，高分顯示在前
-          </p>
+        <div className="flex justify-end">
+          <button
+            onClick={saveChanges}
+            disabled={saving || !hasChanges}
+            className={`px-5 py-2.5 rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2 ${
+              hasChanges ? 'bg-[#FFD700] text-black hover:opacity-90' : 'bg-gray-600 text-gray-300'
+            }`}
+          >
+            {saving ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                儲存中...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                {hasChanges ? (orderChanged ? '儲存 (次序)' : `儲存 (${changedIds.size})`) : '無更改'}
+              </>
+            )}
+          </button>
         </div>
 
-        {/* 歌手列表 */}
         <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
           {loading ? (
-            <div className="p-8 space-y-3">
+            <div className="p-6 space-y-0">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-800 rounded animate-pulse" />
+                <div key={i} className="h-11 bg-gray-800 rounded animate-pulse" />
               ))}
             </div>
           ) : filteredArtists.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <p>找不到符合的歌手</p>
-            </div>
+            <div className="p-8 text-center text-gray-500">找不到符合的歌手</div>
           ) : (
             <div className="divide-y divide-gray-800">
               {filteredArtists.map((artist, index) => {
-                const hasScoreChanges = changedIds.has(artist.id)
-                
+                const type = artist.artistType || artist.gender || 'other'
+                const count = artist.songCount || artist.tabCount || 0
+                const badgeColor =
+                  type === 'male' ? 'bg-blue-600/80 text-white' :
+                  type === 'female' ? 'bg-pink-600/80 text-white' :
+                  type === 'group' ? 'bg-amber-600/80 text-white' : 'bg-gray-600 text-gray-200'
+                const currentTier = artist.tier ?? DEFAULT_TIER
                 return (
                   <div
                     key={artist.id}
-                    className="flex items-center gap-4 p-4 hover:bg-gray-800/30"
+                    className={`flex items-center gap-3 py-2.5 px-4 hover:bg-gray-800/30 ${dragId === artist.id ? 'opacity-60' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDrop={e => handleDrop(e, artist.id)}
                   >
-                    {/* 排名 */}
-                    <span className={`w-8 text-center font-bold ${
-                      index < 3 ? 'text-[#FFD700]' : 'text-gray-500'
-                    }`}>
+                    <div
+                      draggable
+                      onDragStart={e => handleDragStart(e, artist.id)}
+                      onDragEnd={handleDragEnd}
+                      className="shrink-0 p-1 rounded cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none"
+                      title="拖曳改變次序"
+                    >
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+                    <span className={`w-6 text-center text-sm font-bold shrink-0 ${index < 3 ? 'text-[#FFD700]' : 'text-gray-500'}`}>
                       {index + 1}
                     </span>
 
-                    {/* 歌手圖片 */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
                       {artist.photoURL || artist.wikiPhotoURL ? (
-                        <img
-                          src={artist.photoURL || artist.wikiPhotoURL}
-                          alt={artist.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={artist.photoURL || artist.wikiPhotoURL} alt={artist.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg">
-                          🎤
-                        </div>
+                        <div className="w-full h-full flex items-center justify-center text-sm">🎤</div>
                       )}
                     </div>
 
-                    {/* 歌手名 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-white font-medium truncate">{artist.name}</h3>
-                        {artist.artistType && (
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            artist.artistType === 'male' ? 'bg-blue-900/30 text-blue-400' :
-                            artist.artistType === 'female' ? 'bg-pink-900/30 text-pink-400' :
-                            artist.artistType === 'group' ? 'bg-yellow-900/30 text-yellow-400' :
-                            'bg-gray-800 text-gray-400'
-                          }`}>
-                            {artist.artistType === 'male' ? '男' :
-                             artist.artistType === 'female' ? '女' :
-                             artist.artistType === 'group' ? '組合' : '其他'}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        {artist.songCount || artist.tabCount || 0} 首歌曲
-                      </p>
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <h3 className="text-white font-medium truncate text-sm">{artist.name}</h3>
+                      <span className={`min-w-[1.25rem] px-1.5 py-0.5 rounded text-xs font-medium text-center shrink-0 ${badgeColor}`}>
+                        {count}
+                      </span>
                     </div>
 
-                    {/* 評分輸入框 */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">評分:</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="1000"
-                        value={artist.adminScore || 0}
-                        onChange={(e) => handleScoreChange(artist.id, e.target.value)}
-                        className={`w-20 px-2 py-1 bg-black border rounded text-center font-bold transition ${
-                          hasScoreChanges 
-                            ? 'border-[#FFD700] text-[#FFD700]' 
-                            : (artist.adminScore || 0) >= 80 
-                              ? 'border-green-500 text-green-400'
-                              : (artist.adminScore || 0) >= 50 
-                                ? 'border-gray-700 text-gray-300'
-                                : 'border-gray-800 text-gray-500'
-                        }`}
-                      />
+                    <div className="flex items-center gap-1 shrink-0">
+                      {[1, 2, 3, 4, 5].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setTier(artist.id, t)}
+                          className={`w-8 h-7 rounded text-xs font-bold transition ${
+                            currentTier === t
+                              ? 'bg-[#FFD700] text-black'
+                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                          title={`Tier ${t}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )
               })}
             </div>
           )}
-        </div>
-
-        {/* 儲存按鈕（底部） */}
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-          <button
-            onClick={saveChanges}
-            disabled={saving || !hasChanges}
-            className={`px-6 py-3 rounded-full font-medium shadow-lg transition disabled:opacity-50 flex items-center gap-2 ${
-              hasChanges 
-                ? 'bg-[#FFD700] text-black hover:opacity-90' 
-                : 'bg-gray-600 text-gray-300'
-            }`}
-          >
-            {saving ? (
-              <>
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                儲存中...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                {hasChanges ? `儲存更改 (${changedIds.size})` : '無更改'}
-              </>
-            )}
-          </button>
         </div>
       </div>
     </Layout>

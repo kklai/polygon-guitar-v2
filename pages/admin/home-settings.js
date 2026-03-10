@@ -18,10 +18,8 @@ import { getRecentTabs, getHotTabs } from '@/lib/tabs'
 import { getAllPlaylists } from '@/lib/playlists'
 
 const SORT_OPTIONS = [
-  { value: 'viewCount', label: '總瀏覽量', desc: '按歌手所有歌曲瀏覽總和排序' },
-  { value: 'tabCount', label: '譜數目', desc: '按歌手歌曲數量排序' },
-  { value: 'adminScore', label: 'Admin 評分', desc: '按 adminScore 分數排序' },
-  { value: 'mixed', label: '混合排序', desc: '瀏覽量(50%) + 譜數(30%) + 評分(20%)' }
+  { value: 'tier', label: 'Tier 等級', desc: 'Tier 1→2→3→4→5，同 Tier 以譜數多→少（推薦）' },
+  { value: 'tabCount', label: '譜數目', desc: '按歌手歌曲數量排序' }
 ]
 
 const TAB_SORT_OPTIONS = [
@@ -52,7 +50,7 @@ function HomeSettings() {
   const [settings, setSettings] = useState({
     // 改為單一個熱門歌手揀選列表（混合男/女/組合）
     manualSelection: [],
-    hotArtistSortBy: 'viewCount',
+    hotArtistSortBy: 'tier',
     displayCount: 20,
     hotTabs: {
       manualSelection: [],

@@ -92,13 +92,21 @@ function ArtistCircle({ artist, href }) {
   )
 }
 
-// 將歌手按評分排序後，每3個一組分成columns（垂直排列）
+// 排序：與後台 artists-sort 一致 — Tier → displayOrder → 譜數
+const DEFAULT_TIER = 5
+const ORDER_LAST = 999999
 function distributeToColumns(artists) {
-  // 按評分排序（adminScore > viewCount > tabCount）
   const sorted = [...artists].sort((a, b) => {
-    const scoreA = a.adminScore || a.viewCount || a.tabCount || 0
-    const scoreB = b.adminScore || b.viewCount || b.tabCount || 0
-    return scoreB - scoreA
+    const ta = a.tier ?? DEFAULT_TIER
+    const tb = b.tier ?? DEFAULT_TIER
+    if (ta !== tb) return ta - tb
+    const oa = a.displayOrder ?? ORDER_LAST
+    const ob = b.displayOrder ?? ORDER_LAST
+    if (oa !== ob) return oa - ob
+    const ca = a.tabCount ?? 0
+    const cb = b.tabCount ?? 0
+    if (cb !== ca) return cb - ca
+    return (a.name || '').localeCompare(b.name || '')
   })
   
   // 每3個一組：[1,2,3], [4,5,6], [7,8,9]...

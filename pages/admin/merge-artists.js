@@ -392,7 +392,7 @@ export default function MergeArtistsPage() {
                                     )}
                                   </div>
                                   <p className="text-[#B3B3B3] text-sm mt-2">
-                                    譜數: {artist.tabCount || 0} | 瀏覽: {artist.viewCount || 0}
+                                    譜數: {artist.tabCount || 0}
                                   </p>
                                 </div>
                               </div>

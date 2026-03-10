@@ -666,7 +666,7 @@ export default function ArtistsV2Page() {
                       </div>
                       <div className="text-gray-500 text-xs space-y-0.5">
                         <p>ID: {artist.id}</p>
-                        <p>譜數: {artist.tabCount || 0} | 瀏覽: {artist.viewCount || 0}</p>
+                        <p>譜數: {artist.tabCount || 0}</p>
                         <div className="flex gap-2 mt-1">
                           {getArtistPhoto(artist) && (
                             <span className="text-blue-400">● 照片</span>

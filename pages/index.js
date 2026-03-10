@@ -87,7 +87,7 @@ function getInitialHomeState() {
     homeSettings: {
       manualSelection: { male: [], female: [], group: [] },
       useManualSelection: { male: false, female: false, group: false },
-      hotArtistSortBy: 'viewCount',
+      hotArtistSortBy: 'tier',
       displayCount: 20,
       sectionOrder: DEFAULT_SECTION_ORDER
     },
@@ -304,7 +304,7 @@ function mergeInitialHomeSettings(initialHomeSettings = {}) {
   return {
     manualSelection: _initialHomeState.homeSettings.manualSelection,
     useManualSelection: _initialHomeState.homeSettings.useManualSelection,
-    hotArtistSortBy: 'viewCount',
+    hotArtistSortBy: 'tier',
     displayCount: 20,
     sectionOrder,
     customPlaylistSections,

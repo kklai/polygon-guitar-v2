@@ -31,7 +31,6 @@ export default async function handler(req, res) {
       gender: d.gender || null,
       region: d.region || null,
       regions: d.regions || [],
-      adminScore: d.adminScore || 0,
       totalViewCount: d.totalViewCount || 0,
       viewCount: d.viewCount || 0,
       songCount: count,

@@ -66,17 +66,9 @@ export default function AdminIndex() {
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
-      href: '/admin/artists-score',
-      title: '歌手評分管理',
-      description: '設定歌手推薦分數（0-1000），控制排序優先級',
-      icon: '',
-      color: 'bg-yellow-600',
-      roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
-    },
-    {
       href: '/admin/artists-sort',
       title: '歌手排序',
-      description: '拖放調整歌手顯示次序，設定評分',
+      description: '設定歌手 Tier 1/2/3/4/5，控制顯示次序',
       icon: '',
       color: 'bg-lime-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]

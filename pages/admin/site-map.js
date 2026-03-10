@@ -669,7 +669,6 @@ function AdminSection() {
             title="📊 數據統計"
             tools={[
               { name: "瀏覽統計", path: "/admin/analytics", desc: "全站瀏覽數據（類似 Google Analytics）" },
-              { name: "歌手評分", path: "/admin/artists-score", desc: "給歌手評分影響排序" },
               { name: "歌手地區", path: "/admin/artists-region", desc: "設置歌手地區（香港/台灣/中國/國際）" },
             ]}
           />

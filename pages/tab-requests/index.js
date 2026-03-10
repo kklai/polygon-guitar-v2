@@ -98,6 +98,13 @@ export default function TabRequestsPage() {
         ...r,
         createdAt: r.createdAt != null ? new Date(r.createdAt) : new Date(),
       }))
+      // 在客戶端進行二次排序：先按 voteCount，再按 createdAt（舊→新）
+      data.sort((a, b) => {
+        if (b.voteCount !== a.voteCount) {
+          return b.voteCount - a.voteCount
+        }
+        return a.createdAt - b.createdAt
+      })
       setRequests(data)
       // If API returned empty (e.g. cache not built, Admin not configured), load from Firestore
       if (data.length === 0) {
@@ -449,8 +456,13 @@ export default function TabRequestsPage() {
         }
         return r
       })
-      // 按 voteCount 重新排序
-      updatedRequests.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+      // 按 voteCount 再按 createdAt（舊→新）重新排序
+      updatedRequests.sort((a, b) => {
+        if ((b.voteCount || 0) !== (a.voteCount || 0)) return (b.voteCount || 0) - (a.voteCount || 0)
+        const tA = a.createdAt?.toDate?.() || a.createdAt || 0
+        const tB = b.createdAt?.toDate?.() || b.createdAt || 0
+        return tA - tB
+      })
       setRequests(updatedRequests)
       
       // 然後更新 Firestore
