@@ -2,7 +2,7 @@ import '@/styles/globals.css'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import Head from 'next/head'
 import { siteConfig } from '@/lib/seo'
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { recordPageView, getPageType } from '@/lib/analytics'
 import { recordView } from '@/lib/libraryRecentViews'
@@ -168,9 +168,75 @@ function ScrollRestoration() {
   return null
 }
 
+// 預先載入底部導航 5 個 route 的 JS chunk，撳下去即時切換 URL + 頁面 shell，再喺頁內做 data loading
+const BOTTOM_NAV_ROUTES = ['/', '/search', '/artists', '/library', '/tab-requests']
+
+function PrefetchNavRoutes() {
+  const router = useRouter()
+  useEffect(() => {
+    const t = setTimeout(() => {
+      BOTTOM_NAV_ROUTES.forEach((href) => {
+        if (href !== router.asPath.split('?')[0]) router.prefetch(href)
+      })
+    }, 500) // 等首屏穩定後先 prefetch，唔同首屏搶
+    return () => clearTimeout(t)
+  }, [router])
+  return null
+}
+
+// 底部導航點擊後即時顯示，避免「撳咗幾秒都冇反應」的感覺
+const NAV_PROGRESS_DELAY_MS = 100  // 超過 100ms 先顯示 bar，避免快速切換閃一下
+
+function RouteChangeIndicator() {
+  const router = useRouter()
+  const [showBar, setShowBar] = useState(false)
+  const delayRef = useRef(null)
+
+  useEffect(() => {
+    const handleStart = () => {
+      const t = setTimeout(() => setShowBar(true), NAV_PROGRESS_DELAY_MS)
+      delayRef.current = t
+    }
+    const handleComplete = () => {
+      if (delayRef.current) clearTimeout(delayRef.current)
+      delayRef.current = null
+      setShowBar(false)
+    }
+    const handleError = () => {
+      if (delayRef.current) clearTimeout(delayRef.current)
+      delayRef.current = null
+      setShowBar(false)
+    }
+
+    router.events.on('routeChangeStart', handleStart)
+    router.events.on('routeChangeComplete', handleComplete)
+    router.events.on('routeChangeError', handleError)
+    return () => {
+      router.events.off('routeChangeStart', handleStart)
+      router.events.off('routeChangeComplete', handleComplete)
+      router.events.off('routeChangeError', handleError)
+    }
+  }, [router])
+
+  if (!showBar) return null
+
+  return (
+    <div
+      role="progressbar"
+      aria-hidden="true"
+      className="fixed top-0 left-0 right-0 h-1 bg-[#FFD700]/80 z-[100] animate-pulse"
+      style={{
+        boxShadow: '0 0 8px rgba(255,215,0,0.5)',
+      }}
+    />
+  )
+}
+
 export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
+      <PrefetchNavRoutes />
+      <RouteChangeIndicator />
       <ScrollRestoration />
       <PageTracker />
       <Head>
