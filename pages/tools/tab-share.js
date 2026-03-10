@@ -120,13 +120,17 @@ export default function TabShareTool() {
       const tabDoc = await getDoc(doc(db, 'tabs', tab.id))
       if (tabDoc.exists()) {
         const data = tabDoc.data()
-        let artistPhoto = null
-        if (data.artistId) {
+        // Use denormalized tab.artistPhoto first (1 read). Fallback: search-data cache (no extra Firestore read).
+        let artistPhoto = data.artistPhoto || null
+        if (!artistPhoto && (data.artistId || data.artist)) {
           try {
-            const artistDoc = await getDoc(doc(db, 'artists', data.artistId))
-            if (artistDoc.exists()) {
-              const a = artistDoc.data()
-              artistPhoto = a.photoURL || a.wikiPhotoURL || null
+            const res = await fetch('/api/search-data?only=artists')
+            if (res.ok) {
+              const payload = await res.json()
+              const artists = payload?.artists || []
+              const aid = data.artistId || (data.artist || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-\u4e00-\u9fa5]/g, '')
+              const artist = artists.find(a => a.id === aid) || artists.find(a => (a.name || '').toLowerCase() === (data.artist || '').toLowerCase())
+              artistPhoto = artist?.photo || null
             }
           } catch (e) {}
         }
