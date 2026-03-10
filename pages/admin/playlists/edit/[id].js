@@ -4,10 +4,8 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-import { getAllTabs } from '@/lib/tabs'
 import { getPlaylist, updatePlaylist } from '@/lib/playlists'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import { getSongThumbnail } from '@/lib/getSongThumbnail'
 
 function EditPlaylist() {
   const router = useRouter()
@@ -60,17 +58,18 @@ function EditPlaylist() {
         title: playlist.title || '',
         description: playlist.description || '',
         manualType: playlist.manualType || 'theme',
-        curatedBy: playlist.curatedBy || user?.displayName || '',
+        curatedBy: playlist.curatedBy || '',
         coverImage: playlist.coverImage || '',
         viewMode: playlist.viewMode || 'list'
       })
-      
-      // 載入所有歌曲
-      const songs = await getAllTabs()
+
+      const res = await fetch('/api/search-data?only=tabs')
+      if (!res.ok) throw new Error('Failed to load songs')
+      const { tabs } = await res.json()
+      const songs = tabs || []
       setAllSongs(songs)
       setSearchResults(songs.slice(0, 10))
-      
-      // 載入已選歌曲的完整資料
+
       if (playlist.songIds && playlist.songIds.length > 0) {
         const selected = playlist.songIds
           .map(songId => songs.find(s => s.id === songId))
@@ -396,23 +395,10 @@ function EditPlaylist() {
                       className="flex items-center gap-3 p-3 bg-black rounded-lg group"
                     >
                       <span className="text-gray-600 w-6 text-center">{index + 1}</span>
-                      <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
-                        {getSongThumbnail(song) ? (
-                          <img
-                            src={getSongThumbnail(song)}
-                            alt={song.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-lg">🎵</div>
-                        )}
-                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{song.title}</p>
                         <p className="text-gray-500 text-xs truncate">{song.artist}</p>
                       </div>
-                      <span className="text-xs text-[#FFD700]">{song.originalKey || 'C'}</span>
-                      
                       {/* Reorder & Remove Buttons */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         <button
@@ -491,17 +477,6 @@ function EditPlaylist() {
                             : 'bg-black hover:bg-gray-800'
                         }`}
                       >
-                        <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
-                          {getSongThumbnail(song) ? (
-                            <img
-                              src={getSongThumbnail(song)}
-                              alt={song.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg">🎵</div>
-                          )}
-                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium truncate">{song.title}</p>
                           <p className="text-gray-500 text-xs truncate">{song.artist}</p>
