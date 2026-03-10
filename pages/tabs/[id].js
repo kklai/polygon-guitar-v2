@@ -3,8 +3,6 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import LikeButton from '@/components/LikeButton'
 import TabContent from '@/components/TabContent'
@@ -62,7 +60,6 @@ export default function TabDetail({ initialTab }) {
   const [tab, setTab] = useState(initialTab || null)
   const [isLoading, setIsLoading] = useState(!initialTab)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [uploaderName, setUploaderName] = useState('')
   const [uploaderId, setUploaderId] = useState('')
   const [currentKey, setCurrentKey] = useState(null)
   const [showInfo, setShowInfo] = useState(false)
@@ -83,6 +80,8 @@ export default function TabDetail({ initialTab }) {
 
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
+  // Fallback: when tab has no artistPhoto, get from search-data API (cache, no extra Firestore reads). Remove after backfill.
+  const [fallbackArtistPhoto, setFallbackArtistPhoto] = useState(null)
 
   // Render-phase cache check — runs before paint so no skeleton flash on cache hit
   // 若有 ?updated=1 唔用 initialTab/cache，強制之後 useEffect 從 Firestore 重載
@@ -180,6 +179,7 @@ export default function TabDetail({ initialTab }) {
   }
 
   const fireSideEffects = (data) => {
+    setFallbackArtistPhoto(null)
     const effects = []
     effects.push(incrementViewCount(id))
     recordTabView(id) // 收藏頁「最近瀏覽」結他譜（localStorage，最多 20 份）
@@ -192,16 +192,19 @@ export default function TabDetail({ initialTab }) {
         thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
       }, user?.uid || null)
     )
-    if (data.createdBy) {
-      effects.push(
-        getDoc(doc(db, 'users', data.createdBy)).then(userDoc => {
-          if (userDoc.exists()) {
-            const userData = userDoc.data()
-            setUploaderName(userData.displayName || userData.name || '未知用戶')
-            setUploaderId(data.createdBy || '')
-          }
+    if (data.createdBy) setUploaderId(data.createdBy)
+    // Cover fallback: search-data API (1 cache read). Remove after backfill has run.
+    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && (data.artistId || data.artist)
+    if (needsArtistPhoto) {
+      fetch('/api/search-data?only=artists')
+        .then(r => r.ok ? r.json() : null)
+        .then(payload => {
+          const artists = payload?.artists || []
+          const artistId = data.artistId || (data.artist || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-\u4e00-\u9fa5]/g, '')
+          const artist = artists.find(a => a.id === artistId) || artists.find(a => (a.name || '').toLowerCase() === (data.artist || '').toLowerCase())
+          if (artist?.photo) setFallbackArtistPhoto(artist.photo)
         })
-      )
+        .catch(() => {})
     }
     Promise.all(effects).catch(err => console.error('Side-effect error:', err))
   }
@@ -214,18 +217,7 @@ export default function TabDetail({ initialTab }) {
           data.youtubeVideoId = extractYouTubeId(data.youtubeUrl)
         }
 
-        if (!data.coverImage && !data.albumImage && !data.thumbnail && data.artist) {
-          try {
-            const artistId = data.artistId || data.artist.toLowerCase().replace(/\s+/g, '-')
-            const artistSnap = await getDoc(doc(db, 'artists', artistId))
-            if (artistSnap.exists()) {
-              const artistData = artistSnap.data()
-              data.artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || null
-            }
-          } catch (artistError) {
-            console.log('獲取歌手照片失敗:', artistError)
-          }
-        }
+        // Cover: use only denormalized tab.artistPhoto (no artists read). New/edit saves artistPhoto.
         setTabCache(id, data)
 
         setTab(data)
@@ -400,6 +392,8 @@ export default function TabDetail({ initialTab }) {
 
   if (!tab) return null
 
+  const effectiveArtistPhoto = tab.artistPhoto || fallbackArtistPhoto
+
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
 
   // SEO 配置
@@ -408,7 +402,7 @@ export default function TabDetail({ initialTab }) {
   const seoUrl = `${siteConfig.url}/tabs/${tab.id}`
   
   // 結構化數據
-  const tabSchema = generateTabSchema(tab, { name: tab.artist, photoURL: tab.thumbnail || tab.artistPhoto })
+  const tabSchema = generateTabSchema(tab, { name: tab.artist, photoURL: tab.thumbnail || effectiveArtistPhoto })
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
     { name: tab.artist, url: `${siteConfig.url}/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}` },
@@ -429,7 +423,7 @@ export default function TabDetail({ initialTab }) {
         <meta property="og:site_name" content={siteConfig.name} />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
-        <meta property="og:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto)} />
+        <meta property="og:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || effectiveArtistPhoto)} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
@@ -441,7 +435,7 @@ export default function TabDetail({ initialTab }) {
         <meta name="twitter:site" content={siteConfig.twitter} />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || tab.artistPhoto)} />
+        <meta name="twitter:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || effectiveArtistPhoto)} />
         <meta name="twitter:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
         
         {/* 結構化數據 JSON-LD */}
@@ -461,10 +455,10 @@ export default function TabDetail({ initialTab }) {
           <div className="flex items-center gap-4 md:gap-6">
             {/* 封面圖片 */}
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
-              {/* 統一封面優先順序：coverImage > albumImage > youtubeVideoId > thumbnail > artistPhoto */}
+              {/* 統一封面優先順序：coverImage > albumImage > youtubeVideoId > thumbnail > artistPhoto (incl. search-data fallback) */}
               {(() => {
                 const videoId = tab.youtubeVideoId || tab.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
-                return tab.coverImage || tab.albumImage || videoId || tab.thumbnail || tab.artistPhoto
+                return tab.coverImage || tab.albumImage || videoId || tab.thumbnail || effectiveArtistPhoto
               })() ? (
                 <img 
                   src={(() => {
@@ -473,7 +467,7 @@ export default function TabDetail({ initialTab }) {
                     const videoId = tab.youtubeVideoId || tab.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
                     if (videoId) return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
                     if (tab.thumbnail) return tab.thumbnail
-                    return tab.artistPhoto
+                    return effectiveArtistPhoto
                   })()}
                   alt={tab.title}
                   className="w-full h-full object-cover"
@@ -805,16 +799,15 @@ export async function getStaticProps({ params }) {
       const m = data.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
       if (m) data.youtubeVideoId = m[1]
     }
-    if (!data.coverImage && !data.albumImage && !data.thumbnail && data.artist) {
+    // Cover fallback from search-data cache (1 read). Remove after backfill.
+    if (!data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && (data.artistId || data.artist)) {
       try {
-        const { doc, getDoc } = await import('firebase/firestore')
-        const { db } = await import('@/lib/firebase')
-        const artistId = data.artistId || data.artist.toLowerCase().replace(/\s+/g, '-')
-        const artistSnap = await getDoc(doc(db, 'artists', artistId))
-        if (artistSnap.exists()) {
-          const artistData = artistSnap.data()
-          data.artistPhoto = artistData.photoURL || artistData.wikiPhotoURL || null
-        }
+        const { getSearchData } = await import('@/lib/searchData')
+        const payload = await getSearchData()
+        const artists = payload?.artists || []
+        const artistId = data.artistId || (data.artist || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-\u4e00-\u9fa5]/g, '')
+        const artist = artists.find(a => a.id === artistId) || artists.find(a => (a.name || '').toLowerCase() === (data.artist || '').toLowerCase())
+        if (artist?.photo) data.artistPhoto = artist.photo
       } catch (_) {}
     }
     return { props: { initialTab: serializeTab(data) }, revalidate: 300 }

@@ -502,6 +502,7 @@ text-white / text-[#B3B3B3] / text-[#FFD700]
 | `scripts/import-30-tabs.js` | 最初測試用，導入前 30 篇 |
 | `scripts/import-100-tabs.js` | 導入第 31-130 篇（已執行） |
 | `scripts/fix-migrated-tabs.js` | 修復已導入但缺少 artistId 的 tabs |
+| `scripts/backfill-tab-artist-photo.js` | 為缺少封面的樂譜寫入 tab.artistPhoto（從 artists）。預設每次最多 200 次寫入以免超 quota；`--limit=N` 自訂；`--all` 不設上限：`node scripts/backfill-tab-artist-photo.js [--dry-run] [--limit=200] [--all]` |
 | `scripts/fix-all-artist-names.js` | 修復雙語歌手名 + 合併重複歌手（命令列工具） |
 | `scripts/fill-playlist-by-lyricist.js` | 按填詞人（如林夕）將符合嘅歌寫入指定 playlist：`node scripts/fill-playlist-by-lyricist.js 林夕 <playlistId>` |
 | `pages/admin/import-tabs.js` | 後台手動導入頁面（單首/CSV 批量） |
