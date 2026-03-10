@@ -19,14 +19,15 @@ const RELATION_OPTIONS = [
   { value: 'with', label: 'with', separator: ' with ' }
 ]
 
-// 單個歌手欄位組件
+// 單個歌手欄位組件。若傳入 allArtists（來自 search-data），則純客戶端過濾，不讀 Firestore
 function ArtistFieldRow({ 
   index,
   artist,
   onChange,
   onRemove,
   canRemove,
-  excludeIds = []
+  excludeIds = [],
+  allArtists = []
 }) {
   const [inputValue, setInputValue] = useState(artist?.name || '')
   const [suggestions, setSuggestions] = useState([])
@@ -53,7 +54,7 @@ function ArtistFieldRow({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // 搜尋歌手
+  // 搜尋歌手。有 allArtists 時純客戶端過濾（用 search-data，0 Firestore reads）；否則走 Firestore
   const searchArtists = useCallback(async (queryText) => {
     const trimmed = typeof queryText === 'string' ? queryText.trim() : ''
     if (!trimmed) {
@@ -66,9 +67,59 @@ function ArtistFieldRow({
       const results = []
       const seenIds = new Set(excludeIds)
       const lowerQuery = trimmed.toLowerCase()
-
-      // 1. 精確 ID 匹配
       const exactId = lowerQuery.replace(/\s+/g, '-')
+
+      if (allArtists && allArtists.length > 0) {
+        // 使用 search-data 列表，客戶端過濾，不讀 Firestore
+        const normQuery = lowerQuery.replace(/\s+/g, '')
+        const prefixMatches = []
+        const containsMatches = []
+        for (const a of allArtists) {
+          if (seenIds.has(a.id)) continue
+          const name = (a.name || '').toLowerCase().trim()
+          const normalized = name.replace(/\s+/g, '')
+          const idMatch = a.id === exactId
+          const prefixMatch = normalized.startsWith(normQuery) || normalized.startsWith(lowerQuery)
+          const containsMatch = name.includes(lowerQuery) || (trimmed.length <= 2 && name.includes(normQuery))
+          if (idMatch) {
+            results.push({ ...a, photoURL: a.photoURL || a.photo, wikiPhotoURL: a.wikiPhotoURL || a.photo })
+            seenIds.add(a.id)
+          } else if (prefixMatch) {
+            prefixMatches.push({ ...a, photoURL: a.photoURL || a.photo, wikiPhotoURL: a.wikiPhotoURL || a.photo })
+          } else if (containsMatch) {
+            containsMatches.push({ ...a, photoURL: a.photoURL || a.photo, wikiPhotoURL: a.wikiPhotoURL || a.photo })
+          }
+        }
+        const byCount = (x, y) => (y.tabCount || y.songCount || 0) - (x.tabCount || x.songCount || 0)
+        prefixMatches.sort(byCount)
+        containsMatches.sort(byCount)
+        for (const item of prefixMatches) {
+          if (results.length >= 5) break
+          if (!seenIds.has(item.id)) {
+            results.push(item)
+            seenIds.add(item.id)
+          }
+        }
+        for (const item of containsMatches) {
+          if (results.length >= 5) break
+          if (!seenIds.has(item.id)) {
+            results.push(item)
+            seenIds.add(item.id)
+          }
+        }
+        const exactMatch = results.find(r => r.id === exactId)
+        const rest = exactMatch ? results.filter(r => r.id !== exactId) : results
+        rest.sort(byCount)
+        const topRest = rest.slice(0, exactMatch ? 4 : 5)
+        const final = exactMatch ? [exactMatch, ...topRest] : topRest
+        setSuggestions(final)
+        setShowDropdown(final.length > 0)
+        setSelectedIndex(-1)
+        setIsLoading(false)
+        return
+      }
+
+      // 無 allArtists：原有 Firestore 邏輯
       if (!seenIds.has(exactId)) {
         try {
           const docSnap = await getDoc(doc(db, 'artists', exactId))
@@ -79,7 +130,6 @@ function ArtistFieldRow({
         } catch (e) {}
       }
 
-      // 2. 名稱前綴搜尋
       try {
         const q = query(
           collection(db, 'artists'),
@@ -96,7 +146,6 @@ function ArtistFieldRow({
         })
       } catch (e) {}
 
-      // 3. 包含搜尋（按 name 包含查詢）。結果不足 5 個時必做；查詢很短（<=2 字）時也做，以便搵到「歌手名有陳但 normalizedName 唔係陳開頭」嘅歌手（如 陳奕迅）
       const shouldRunContains = results.length < 5 || trimmed.length <= 2
       if (shouldRunContains) {
         try {
@@ -115,7 +164,6 @@ function ArtistFieldRow({
           })
           containsMatches.sort((a, b) => (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0))
           if (trimmed.length <= 2) {
-            // 短查詢：合併前綴結果 + 包含結果（按 name 搵到嘅全部合併），之後會再按譜數取頭 5
             const mergedIds = new Set(results.map(r => r.id))
             for (const item of containsMatches) {
               if (!mergedIds.has(item.id)) {
@@ -135,7 +183,6 @@ function ArtistFieldRow({
         } catch (e) {}
       }
 
-      // 最終排序：精確 match 排第一，其餘按譜數多寡，最多顯示 5 個
       const exactMatch = results.find(r => r.id === exactId)
       const rest = exactMatch ? results.filter(r => r.id !== exactId) : results
       rest.sort((a, b) => (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0))
@@ -149,7 +196,7 @@ function ArtistFieldRow({
     } finally {
       setIsLoading(false)
     }
-  }, [excludeIds])
+  }, [excludeIds, allArtists])
 
   // Debounce 搜尋 - 只有未確認時才搜尋
   useEffect(() => {
@@ -182,7 +229,7 @@ function ArtistFieldRow({
       ...artist,
       name: selectedArtist.name,
       id: selectedArtist.id,
-      photo: selectedArtist.photoURL || selectedArtist.wikiPhotoURL,
+      photo: selectedArtist.photoURL || selectedArtist.wikiPhotoURL || selectedArtist.photo,
       isNew: false
     })
   }
@@ -333,9 +380,9 @@ function ArtistFieldRow({
             >
               {/* 歌手圖片 */}
               <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
-                {suggestion.photoURL || suggestion.wikiPhotoURL ? (
+                {suggestion.photoURL || suggestion.wikiPhotoURL || suggestion.photo ? (
                   <img 
-                    src={suggestion.photoURL || suggestion.wikiPhotoURL} 
+                    src={suggestion.photoURL || suggestion.wikiPhotoURL || suggestion.photo} 
                     alt={suggestion.name}
                     className="w-full h-full object-cover"
                   />
@@ -390,10 +437,25 @@ function ArtistFieldRow({
   )
 }
 
-// 主組件
+// 主組件。內部載入 search-data 歌手列表，下拉用客戶端過濾（0 Firestore reads）
 export default function ArtistInputSimple({ value, onChange }) {
   // value 格式: { artists: [{ name, id, relation, isNew }], displayName: '' }
   const [artists, setArtists] = useState(value?.artists || [{ name: '', id: null, relation: null }])
+  const [allArtists, setAllArtists] = useState([])
+
+  // 載入歌手列表（search-data API，1 cache read），供下拉建議用
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/api/search-data?only=artists')
+        const data = await res.json()
+        if (!cancelled) setAllArtists(data?.artists || [])
+      } catch (e) {}
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   // 同步外部變化
   useEffect(() => {
@@ -476,6 +538,7 @@ export default function ArtistInputSimple({ value, onChange }) {
             onRemove={handleRemoveArtist}
             canRemove={artists.length > 1}
             excludeIds={usedIds.filter(id => id !== artist.id)}
+            allArtists={allArtists}
           />
         ))}
       </div>
