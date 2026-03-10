@@ -1130,8 +1130,13 @@ export async function getStaticProps({ params }) {
   const id = params?.id;
   if (!id) return { notFound: true };
   try {
-    const artistDoc = await getDoc(doc(db, 'artists', id));
-    if (!artistDoc.exists()) return { notFound: true };
+    let artistDoc = await getDoc(doc(db, 'artists', id));
+    // URL may be normalizedName (slug) after edit-page save; resolve by slug if doc id not found
+    if (!artistDoc.exists()) {
+      const bySlug = await getArtistBySlug(id);
+      if (!bySlug) return { notFound: true };
+      artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) };
+    }
     const artistData = { id: artistDoc.id, ...artistDoc.data() };
     const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
