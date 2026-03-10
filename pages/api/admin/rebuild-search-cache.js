@@ -1,6 +1,6 @@
 /**
  * Rebuild the search page Firestore cache (cache/searchData).
- * After rebuild, each search-data API call uses 1 read until the cache expires (10 min) or is bust again.
+ * After rebuild, each search-data API call uses 1 read until the cache expires (24h) or is bust again.
  *
  * Auth: Bearer <idToken> (admin) or x-cron-secret header (cron job).
  */

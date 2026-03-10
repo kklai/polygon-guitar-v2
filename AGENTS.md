@@ -374,7 +374,7 @@ const capo = (originalIndex - targetIndex + 12) % 12;
 
 ### 首頁與搜尋快取（Firestore 讀取優化）
 - **首頁**：完整數據存於 **`cache/homePage`**，每 6 小時過期；每次首頁訪問僅 **1 次 Firestore 讀取**（當快取有效時）。重建：後台 首頁設置 → 「🔄 重建首頁快取」；或 `POST /api/admin/rebuild-home-cache`（Bearer token 或 `x-cron-secret`）。
-- **搜尋頁**：完整數據存於 **`cache/searchData`**，每 10 分鐘過期；每次 `/api/search-data` 僅 **1 次讀取**（或 0 若 in-memory 命中）。重建：`POST /api/admin/rebuild-search-cache`（同上 auth）。
+- **搜尋頁**：完整數據存於 **`cache/searchData`**，每 **24 小時**過期；每次 `/api/search-data` 僅 **1 次讀取**。重建/打破快取：後台 首頁設置 → 「🔄 重建搜尋快取」；或 `POST /api/admin/rebuild-search-cache`（同上 auth）。
 - 可選：用 cron 定期呼叫上述 API（帶 `CRON_SECRET`）以保持快取常暖。Firestore 規則：`cache` 集合只讀、寫入僅透過 Firebase Admin。
 
 ### 環境變數

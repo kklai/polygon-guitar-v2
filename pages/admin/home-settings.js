@@ -118,6 +118,7 @@ function HomeSettings() {
 
   // 首頁快取重建
   const [rebuildingCache, setRebuildingCache] = useState(false)
+  const [rebuildingSearchCache, setRebuildingSearchCache] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -273,6 +274,33 @@ function HomeSettings() {
       setMessage('❌ 重建快取失敗')
     } finally {
       setRebuildingCache(false)
+    }
+  }
+
+  const rebuildSearchCache = async () => {
+    setRebuildingSearchCache(true)
+    try {
+      const token = await auth.currentUser?.getIdToken?.()
+      if (!token) {
+        setMessage('❌ 請先登入')
+        return
+      }
+      const res = await fetch('/api/admin/rebuild-search-cache', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessage(data.error || '❌ 重建搜尋快取失敗')
+        return
+      }
+      setMessage('✅ 搜尋快取已重建，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取')
+      setTimeout(() => setMessage(''), 5000)
+    } catch (err) {
+      console.error(err)
+      setMessage('❌ 重建搜尋快取失敗')
+    } finally {
+      setRebuildingSearchCache(false)
     }
   }
 
@@ -1354,6 +1382,14 @@ function HomeSettings() {
             title="重建首頁快取後，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取"
           >
             {rebuildingCache ? '重建中...' : '🔄 重建首頁快取'}
+          </button>
+          <button
+            onClick={rebuildSearchCache}
+            disabled={rebuildingSearchCache}
+            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50"
+            title="重建搜尋快取後，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取；可隨時按此打破快取"
+          >
+            {rebuildingSearchCache ? '重建中...' : '🔄 重建搜尋快取'}
           </button>
           <button
             onClick={() => router.push('/')}
