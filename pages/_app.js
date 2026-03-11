@@ -118,7 +118,7 @@ function FirestoreReadReport() {
       const n = getFirestoreReadCount()
       if (typeof console !== 'undefined' && n > 0) {
         const page = router.asPath || router.pathname || '(unknown)'
-        console.log(`[Firestore] reads this page load (${page}): ${n}`)
+        console.log(`[Firestore] payload ${page}: ${n}`)
         const breakdown = getFirestoreReadBreakdown()
         const maxLines = 25
         breakdown.slice(0, maxLines).forEach(({ caller, count }) => {
