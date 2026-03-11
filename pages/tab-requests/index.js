@@ -1272,7 +1272,7 @@ export default function TabRequestsPage() {
                   onChange={(e) => setPastedLink(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && checkPasteLinkAndConfirm()}
                   placeholder="https://polygon.guitars/tabs/..."
-                  className="flex-1 bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none text-sm"
+                  className="flex-1 bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none text-base"
                 />
                 <button
                   type="button"
