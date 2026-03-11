@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from '@/lib/firestore-tracked'
 import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from '@/components/Link'
@@ -265,7 +265,7 @@ export default function PublicProfile() {
     if (currentUser.uid === id) return
     
     try {
-      const { doc, setDoc, deleteDoc, increment, updateDoc } = await import('firebase/firestore')
+      const { doc, setDoc, deleteDoc, increment, updateDoc } = await import('@/lib/firestore-tracked')
       
       if (isFollowing) {
         await deleteDoc(doc(db, 'users', id, 'followers', currentUser.uid))

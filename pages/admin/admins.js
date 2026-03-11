@@ -10,7 +10,7 @@ import {
   getDocs, 
   doc, 
   updateDoc
-} from 'firebase/firestore'
+} from '@/lib/firestore-tracked'
 import Link from '@/components/Link'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getRoleLabel, getRoleColor } from '@/lib/roles'
 

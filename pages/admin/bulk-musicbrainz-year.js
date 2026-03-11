@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { getAllTabs } from '@/lib/tabs'
-import { updateDoc, doc } from 'firebase/firestore'
+import { updateDoc, doc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 
 function BulkMusicBrainzYearPage() {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, writeBatch, doc, updateDoc, deleteDoc, query, where, getDocs as getDocsQuery } from 'firebase/firestore'
+import { collection, getDocs, writeBatch, doc, updateDoc, deleteDoc, query, where, getDocs as getDocsQuery } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import { invalidateArtistCaches } from '@/lib/tabs'
 import Layout from '@/components/Layout'

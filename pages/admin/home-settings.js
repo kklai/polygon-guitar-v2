@@ -13,7 +13,7 @@ import {
   query,
   orderBy,
   limit
-} from 'firebase/firestore'
+} from '@/lib/firestore-tracked'
 import { getHotTabs } from '@/lib/tabs'
 import { getAllPlaylists } from '@/lib/playlists'
 

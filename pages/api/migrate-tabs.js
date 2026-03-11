@@ -6,7 +6,7 @@ import {
   setDoc,
   getDoc,
   increment
-} from 'firebase/firestore'
+} from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 
 // 生成 artistId

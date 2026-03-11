@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { getAllTabs, getAllArtists } from '@/lib/tabs'
-import { updateDoc, doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore'
+import { updateDoc, doc, setDoc, getDoc, deleteDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 
 // 常見錯誤歌手名對照表

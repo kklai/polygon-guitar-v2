@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { getAllArtists, getAllTabs } from '@/lib/tabs'
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { deleteDoc, doc, updateDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 
 // 可疑模式定義

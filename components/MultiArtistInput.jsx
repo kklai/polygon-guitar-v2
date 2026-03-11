@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, getDoc, limit } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 
 // 關係類型選項

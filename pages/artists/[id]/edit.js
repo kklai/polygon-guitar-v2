@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, query, getDocs, orderBy } from 'firebase/firestore'
+import { collection, query, getDocs, orderBy } from '@/lib/firestore-tracked'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 export default function ArtistReport() {

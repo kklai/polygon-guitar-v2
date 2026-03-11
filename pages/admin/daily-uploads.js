@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
-import { collection, query, orderBy, getDocs, where, doc, getDoc } from 'firebase/firestore'
+import { collection, query, orderBy, getDocs, where, doc, getDoc } from '@/lib/firestore-tracked'
 import { format, startOfDay, endOfDay, subDays } from 'date-fns'
 
 export default function DailyUploads() {

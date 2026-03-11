@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { extractChords, ChordDiagramModal, SingleChordDiagram, ChordWithHover, ChordLineWithHover } from './ChordDiagram';
 import GpSegmentPlayer from './GpSegmentPlayer';
 
@@ -1396,7 +1396,8 @@ function ChordLyricBlockWithWrap({ pair, result, processPair, renderBlock, pairM
   const firstLineRef = useRef(null);
   const [splitPairs, setSplitPairs] = useState(null);
 
-  useLayoutEffect(() => {
+  // Use useEffect (not useLayoutEffect) so SSR and client initial render match; wrap-split runs after paint on client.
+  useEffect(() => {
     if (splitPairs) return;
     if (!containerRef.current || !firstLineRef.current) return;
     const containerHeight = containerRef.current.offsetHeight;

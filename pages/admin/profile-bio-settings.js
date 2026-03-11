@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from '@/lib/firestore-tracked'
 import { Save, RotateCcw, Plus, Trash2, AlertCircle, Copy, Eye } from 'lucide-react'
 
 // 多風格默認配置

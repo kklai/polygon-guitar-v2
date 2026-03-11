@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, serverTimestamp } from '@/lib/firestore-tracked';
 import { Plus, Heart, Music, X, User, ArrowUpDown, Clock } from 'lucide-react';
 import { getUserPlaylists, getUserLikedSongs, getSavedPlaylistsWithMeta, getSavedArtistsWithMeta } from '../lib/playlistApi';
 import { getLastViewedAt, getRecentTabIds } from '../lib/libraryRecentViews';

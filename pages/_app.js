@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { recordPageView, getPageType } from '@/lib/analytics'
 import { recordView } from '@/lib/libraryRecentViews'
+import { getFirestoreReadCount, getFirestoreReadBreakdown, resetFirestoreReadCount } from '@/lib/firestore-tracked'
 
 const SCROLL_STORAGE_KEY = 'pg_scroll'
 
@@ -107,6 +108,36 @@ function useScrollRestoration() {
       if (typeof cancel === 'function') cancel()
     }
   }, [router])
+}
+
+// Console report: Firestore read count per page (resets after each navigation)
+function FirestoreReadReport() {
+  const router = useRouter()
+  useEffect(() => {
+    const handleComplete = () => {
+      const n = getFirestoreReadCount()
+      if (typeof console !== 'undefined' && n > 0) {
+        console.log(`[Firestore] reads this page load: ${n}`)
+        const breakdown = getFirestoreReadBreakdown()
+        const maxLines = 25
+        breakdown.slice(0, maxLines).forEach(({ caller, count }) => {
+          console.log(`  ${count} ← ${caller}`)
+        })
+        if (breakdown.length > maxLines) {
+          console.log(`  ... and ${breakdown.length - maxLines} more call sites`)
+        }
+      }
+      resetFirestoreReadCount()
+    }
+    router.events.on('routeChangeComplete', handleComplete)
+    // Report for initial page after data has had time to load
+    const initialTimer = setTimeout(handleComplete, 2000)
+    return () => {
+      clearTimeout(initialTimer)
+      router.events.off('routeChangeComplete', handleComplete)
+    }
+  }, [router])
+  return null
 }
 
 // 頁面追蹤組件（在 AuthProvider 內部，可以獲取用戶ID）
@@ -239,6 +270,7 @@ export default function App({ Component, pageProps }) {
       <RouteChangeIndicator />
       <ScrollRestoration />
       <PageTracker />
+      <FirestoreReadReport />
       <Head>
         {/* 預設 Meta Tags */}
         <title>Polygon Guitar - 香港最大結他譜庫 | 3000+ 結他譜</title>

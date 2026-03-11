@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc } from '@/lib/firestore-tracked'
 import { Download, RefreshCw, ArrowLeft } from 'lucide-react'
 
 const splitLyricLine = (lyric, maxLen) => {

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from '@/components/Link';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from '@/lib/firestore-tracked';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
 import { getTabsByArtist, getArtistBySlug } from '../../lib/tabs';
@@ -129,7 +129,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     }
 
     try {
-      const artistDoc = await getDoc(doc(db, 'artists', id));
+      let artistDoc = await getDoc(doc(db, 'artists', id));
       // 若用 doc id 搵唔到（例如改名後用新 slug 入嚟），改用 normalizedName 查
       if (!artistDoc.exists()) {
         const bySlug = await getArtistBySlug(id);

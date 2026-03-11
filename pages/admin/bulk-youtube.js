@@ -136,7 +136,7 @@ function BulkYouTubePage() {
         }
 
         // 更新數據庫
-        const { updateDoc, doc, getFirestore } = await import('firebase/firestore')
+        const { updateDoc, doc, getFirestore } = await import('@/lib/firestore-tracked')
         const { db } = await import('@/lib/firebase')
         
         await updateDoc(doc(db, 'tabs', tab.id), {

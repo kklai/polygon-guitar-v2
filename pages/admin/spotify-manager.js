@@ -89,7 +89,7 @@ function SpotifyManager() {
         
         if (result && result.images && result.images.length > 0) {
           // 更新歌手資料
-          const { updateDoc, doc, getFirestore } = await import('firebase/firestore')
+          const { updateDoc, doc, getFirestore } = await import('@/lib/firestore-tracked')
           const { db } = await import('@/lib/firebase')
           
           await updateDoc(doc(db, 'artists', artist.id), {

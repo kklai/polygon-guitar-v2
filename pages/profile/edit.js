@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import Link from '@/components/Link'
 import { useRouter } from 'next/router'
@@ -85,7 +85,7 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const { doc, getDoc } = await import('firebase/firestore')
+        const { doc, getDoc } = await import('@/lib/firestore-tracked')
         const { db } = await import('@/lib/firebase')
         const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
         if (bioDoc.exists()) {

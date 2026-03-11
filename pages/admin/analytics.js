@@ -15,7 +15,7 @@ import {
   doc,
   getDoc,
   getCountFromServer
-} from 'firebase/firestore'
+} from '@/lib/firestore-tracked'
 
 function AnalyticsDashboard() {
   const router = useRouter()

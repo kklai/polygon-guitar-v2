@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from '@/components/Link';
 import { db } from '../../../lib/firebase';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from '@/lib/firestore-tracked';
 import { getTabsByIds } from '../../../lib/tabs';
 import { Music, Share, Heart, Plus, ListMusic, ArrowUpDown, Pencil, X, Search, User, Copy, ArrowLeft } from 'lucide-react';
 import Layout from '../../../components/Layout';

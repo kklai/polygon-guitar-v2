@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from '@/components/Link';
 import { auth, db } from '../../lib/firebase';
-import { collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc } from '@/lib/firestore-tracked';
 import { getTabsByIds } from '../../lib/tabs';
 import { Heart, Share, Music, Plus, Copy, ArrowLeft } from 'lucide-react';
 import { getSongThumbnail } from '../../lib/getSongThumbnail';

@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:lan": "next dev --hostname 0.0.0.0",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "dev:lan": "next dev --hostname 0.0.0.0 --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "deploy:rules": "firebase deploy --only firestore:rules"

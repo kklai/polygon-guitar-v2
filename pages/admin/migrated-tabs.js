@@ -15,7 +15,7 @@ import {
   increment,
   limit,
   orderBy
-} from 'firebase/firestore'
+} from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import { ArrowLeft } from 'lucide-react'

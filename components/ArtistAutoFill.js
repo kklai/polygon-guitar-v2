@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { searchArtistFromWikipedia } from '@/lib/wikipedia';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from '@/lib/firestore-tracked';
 import { db } from '@/lib/firebase';
 
 export default function ArtistAutoFill({ 

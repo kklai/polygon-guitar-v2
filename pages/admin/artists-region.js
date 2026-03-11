@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs, writeBatch, doc, updateDoc } from 'firebase/firestore'
+import { collection, getDocs, writeBatch, doc, updateDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'

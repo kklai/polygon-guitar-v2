@@ -7,7 +7,7 @@ import {
   getRedirectResult
 } from 'firebase/auth'
 import { auth, googleProvider, db } from '@/lib/firebase'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc } from '@/lib/firestore-tracked'
 
 const AuthContext = createContext()
 

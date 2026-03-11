@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getAllArtists } from '@/lib/tabs'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import Link from '@/components/Link'

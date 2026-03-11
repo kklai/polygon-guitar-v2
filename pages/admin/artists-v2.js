@@ -13,7 +13,7 @@ import {
   deleteDoc,
   getDoc,
   writeBatch
-} from 'firebase/firestore'
+} from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'

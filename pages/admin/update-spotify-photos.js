@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
-import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, doc, updateDoc, query, orderBy } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Link from '@/components/Link'
 
