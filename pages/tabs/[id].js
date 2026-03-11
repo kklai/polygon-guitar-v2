@@ -663,7 +663,7 @@ export default function TabDetail({ initialTab }) {
                 </button>
                 
                 <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
+                  <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterlimit={10} aria-hidden>
                     <circle cx="4.4" cy="4.4" r="4" />
                     <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
                     <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />

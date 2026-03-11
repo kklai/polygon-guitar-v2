@@ -812,7 +812,7 @@ export default function UserPlaylistDetail() {
                     <span className="text-white">{selectedSongLiked ? '取消喜愛' : '加入喜愛結他譜'}</span>
                   </button>
                   <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">
-                    <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterLimit={10} aria-hidden>
+                    <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterlimit={10} aria-hidden>
                       <circle cx="4.4" cy="4.4" r="4" />
                       <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
                       <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
@@ -1047,7 +1047,7 @@ export default function UserPlaylistDetail() {
                               {isAdding ? (
                                 <div className="w-5 h-5 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
                               ) : (
-                                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
+                                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterlimit="10">
                                   <circle cx="4.36" cy="4.36" r="3.99" />
                                   <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
                                   <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />

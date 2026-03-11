@@ -645,12 +645,12 @@ export default function PlaylistDetail({
               } ${isSavingPlaylist ? 'opacity-50' : ''}`}
             >
               {isSavedToLibrary ? (
-                <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
+                <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterlimit="10">
                   <circle cx="4.36" cy="4.36" r="3.99" />
                   <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
                 </svg>
               ) : (
-                <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10">
+                <svg className="w-6 h-6 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterlimit="10">
                   <circle cx="4.36" cy="4.36" r="3.99" />
                   <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
                   <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
@@ -666,10 +666,11 @@ export default function PlaylistDetail({
         {songs.length > 0 && (
           <div style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             {sortedSongs.map((song) => (
-              <div key={song.id} className="group">
+              <div key={song.id} className="group flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition">
                 <button
+                  type="button"
                   onClick={() => handleSongClick(song.id)}
-                  className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
+                  className="flex-1 flex items-center gap-3 py-0 pl-0 pr-0 rounded-[7px] min-w-0 text-left bg-transparent border-0 cursor-pointer"
                 >
                   <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
@@ -695,16 +696,17 @@ export default function PlaylistDetail({
                       {(song.viewCount || 0).toLocaleString('zh-HK')} 瀏覽
                     </span>
                   )}
-                  <button
-                    onClick={(e) => handleMoreClick(e, song)}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 text-[#999] hover:text-white transition -my-1"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
-                      <circle cx="1.27" cy="1.27" r="1.27" />
-                      <circle cx="7.48" cy="1.27" r="1.27" />
-                      <circle cx="13.69" cy="1.27" r="1.27" />
-                    </svg>
-                  </button>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleMoreClick(e, song)}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 text-[#999] hover:text-white transition -my-1"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 14.96 2.54" fill="currentColor" aria-hidden>
+                    <circle cx="1.27" cy="1.27" r="1.27" />
+                    <circle cx="7.48" cy="1.27" r="1.27" />
+                    <circle cx="13.69" cy="1.27" r="1.27" />
+                  </svg>
                 </button>
               </div>
             ))}
@@ -877,12 +879,12 @@ export default function PlaylistDetail({
                 >
                   <span className="flex items-center gap-3">
                     {isSavedToLibrary ? (
-                      <svg className="w-5 h-5 flex-shrink-0 text-[#FFD700]" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10" aria-hidden>
+                      <svg className="w-5 h-5 flex-shrink-0 text-[#FFD700]" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterlimit="10" aria-hidden>
                         <circle cx="4.36" cy="4.36" r="3.99" />
                         <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 flex-shrink-0 text-[#B3B3B3]" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterLimit="10" aria-hidden>
+                      <svg className="w-5 h-5 flex-shrink-0 text-[#B3B3B3]" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterlimit="10" aria-hidden>
                         <circle cx="4.36" cy="4.36" r="3.99" />
                         <line x1="2.22" y1="4.36" x2="6.51" y2="4.36" />
                         <line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
