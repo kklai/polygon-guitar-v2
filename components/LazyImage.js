@@ -1,5 +1,5 @@
 import { useState, useContext } from 'react'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import Skeleton from './Skeleton'
 import { HomeSectionImageContext } from './HomeSectionImageContext'
 

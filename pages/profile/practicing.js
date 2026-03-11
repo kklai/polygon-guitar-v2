@@ -4,7 +4,7 @@ import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { searchTabs } from '@/lib/tabs'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/router'
 

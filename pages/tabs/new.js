@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { createTab, parseCollaborators } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'

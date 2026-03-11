@@ -6,7 +6,7 @@ import {
   collection, query, orderBy, getDocs, addDoc, updateDoc, doc,
   arrayUnion, arrayRemove, serverTimestamp, where, deleteDoc
 } from 'firebase/firestore'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import Image from 'next/image'
 
 export default function TabRequestsPage() {

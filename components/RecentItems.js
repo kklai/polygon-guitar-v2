@@ -1,5 +1,5 @@
 // components/RecentItems.js
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 

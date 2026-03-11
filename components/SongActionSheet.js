@@ -8,7 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Copy, Share, Heart, User } from 'lucide-react';
 
 const DRAG_CLOSE_THRESHOLD = 80;

@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, hasPermission } from '@/lib/roles'

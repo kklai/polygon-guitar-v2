@@ -3,7 +3,7 @@ import { getAllArtists } from '@/lib/tabs'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import AdminGuard from '@/components/AdminGuard'
 
 function HeroPhotosAdmin() {

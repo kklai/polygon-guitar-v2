@@ -1,7 +1,7 @@
 // pages/artists/[id].js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from 'firebase/firestore';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
@@ -18,17 +18,7 @@ import Head from 'next/head';
 import { generateArtistTitle, generateArtistDescription, generateArtistSchema, generateBreadcrumbSchema, siteConfig, getAbsoluteOgImage } from '../../lib/seo';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Prefetch: start loading artist data at module parse time
-let _prefetchId = null
-let _prefetchPromise = null
-
-if (typeof window !== 'undefined') {
-  const match = window.location.pathname.match(/^\/artists\/(.+)$/)
-  if (match) {
-    _prefetchId = decodeURIComponent(match[1])
-    _prefetchPromise = getDoc(doc(db, 'artists', _prefetchId))
-  }
-}
+// No module-level Firestore: prefetch only loads the route chunk; data loads in useEffect after navigation.
 
 const ARTIST_CACHE_TTL = 10 * 60 * 1000; // 10 min max age
 const ARTIST_CACHE_FRESH = 2 * 60 * 1000; // 2 min = skip fetch entirely
@@ -139,11 +129,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     }
 
     try {
-      let artistDoc = (_prefetchId === id && _prefetchPromise)
-        ? await _prefetchPromise
-        : await getDoc(doc(db, 'artists', id));
-      _prefetchPromise = null;
-      _prefetchId = null;
+      const artistDoc = await getDoc(doc(db, 'artists', id));
       // 若用 doc id 搵唔到（例如改名後用新 slug 入嚟），改用 normalizedName 查
       if (!artistDoc.exists()) {
         const bySlug = await getArtistBySlug(id);

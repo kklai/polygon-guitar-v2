@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import Link from 'next/link'
+import Link from '@/components/Link'
 
 export default function UpdateSpotifyPhotos() {
   const { user, isAdmin } = useAuth()

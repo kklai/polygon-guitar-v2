@@ -7,7 +7,7 @@ import { getPlaylistPageCache, setPlaylistPageCache } from '@/lib/playlistPageCa
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import SongActionSheet from '@/components/SongActionSheet'
 import Layout from '@/components/Layout'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { recordPlaylistView } from '@/lib/recentViews'
 import { useAuth } from '@/contexts/AuthContext'
 import { Share, Heart, Music, User, Plus, Copy, ArrowLeft } from 'lucide-react'

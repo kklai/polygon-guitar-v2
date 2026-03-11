@@ -11,7 +11,7 @@ import {
   doc, 
   updateDoc
 } from 'firebase/firestore'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getRoleLabel, getRoleColor } from '@/lib/roles'
 
 function RoleSettings() {

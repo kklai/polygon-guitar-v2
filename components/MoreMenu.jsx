@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function MoreMenu({ isOpen, onClose }) {

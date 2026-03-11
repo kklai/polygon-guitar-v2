@@ -4,7 +4,7 @@ import AdminGuard from '@/components/AdminGuard'
 import { useAuth } from '@/contexts/AuthContext'
 import { collection, getDocs, doc, writeBatch } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { Save, GripVertical } from 'lucide-react'
 
 const DEFAULT_TIER = 5

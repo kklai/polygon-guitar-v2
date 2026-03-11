@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import Layout from '@/components/Layout'
 import { SongCard } from '@/components/LazyImage'
 import { addSongToPlaylist } from '@/lib/playlistApi'

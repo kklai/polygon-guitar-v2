@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { db } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getTabsByIds } from '../../../lib/tabs';

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import AdminGuard from '@/components/AdminGuard'
 import CoverGenerator from '@/components/CoverGenerator'
 import { 

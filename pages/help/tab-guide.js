@@ -1,5 +1,5 @@
 import Layout from '@/components/Layout'
-import Link from 'next/link'
+import Link from '@/components/Link'
 
 export default function TabGuide() {
   return (

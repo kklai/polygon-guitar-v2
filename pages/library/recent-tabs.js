@@ -1,7 +1,7 @@
 // pages/library/recent-tabs.js - 最近瀏覽的結他譜（最多 20 份，localStorage）
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { auth } from '../../lib/firebase';
 import { getRecentTabIds } from '../../lib/libraryRecentViews';
 import { getTabsByIds } from '../../lib/tabs';

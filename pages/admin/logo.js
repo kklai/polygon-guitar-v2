@@ -3,7 +3,7 @@ import { updateGlobalSettings } from '@/lib/tabs'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import AdminGuard from '@/components/AdminGuard'
 
 // Match hardcoded values used on the live site (no Firebase read on page load)

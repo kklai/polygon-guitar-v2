@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
 import { navIcons } from '@/lib/navIcons'

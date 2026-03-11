@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { auth, db } from '../../lib/firebase';
 import { collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { getTabsByIds } from '../../lib/tabs';

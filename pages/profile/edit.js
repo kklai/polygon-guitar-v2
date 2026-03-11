@@ -4,7 +4,7 @@ import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { useRouter } from 'next/router'
 
 // 默認選項（會從資料庫覆蓋）
