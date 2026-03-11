@@ -397,12 +397,13 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
   const [recentItems, setRecentItems] = useState([])
   const [hasSectionData, setHasSectionData] = useState(!!fromServer)
 
-  // Freeze layout from first paint so no later setState (cache, Firestore) can replace it — prevents section appearing, disappearing, then reappearing
+  // Freeze layout only when we have section data from the server (not the client-side default), so home-settings sections show after fetch
   const layoutFrozenRef = useRef(null)
-  if (layoutFrozenRef.current === null && (homeSettings.sectionOrder?.length || homeSettings.customPlaylistSections?.length)) {
+  const hasServerSectionData = initialHomeData?.homeSettings?.sectionOrder?.length || initialHomeData?.homeSettings?.customPlaylistSections?.length
+  if (layoutFrozenRef.current === null && hasServerSectionData) {
     layoutFrozenRef.current = {
-      sectionOrder: homeSettings.sectionOrder,
-      customPlaylistSections: homeSettings.customPlaylistSections || []
+      sectionOrder: initialHomeData.homeSettings.sectionOrder || DEFAULT_SECTION_ORDER,
+      customPlaylistSections: initialHomeData.homeSettings.customPlaylistSections || []
     }
   }
   const frozenLayout = layoutFrozenRef.current
@@ -776,11 +777,18 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
   function applyHomeDataToState(data) {
     const d = data || {}
     const settings = d.homeSettings || {}
+    // First time we get section data from API: freeze layout so it doesn't jump later
+    if (!layoutFrozenRef.current && (settings.sectionOrder?.length || settings.customPlaylistSections?.length)) {
+      layoutFrozenRef.current = {
+        sectionOrder: settings.sectionOrder || DEFAULT_SECTION_ORDER,
+        customPlaylistSections: settings.customPlaylistSections || []
+      }
+    }
     setHomeSettings(prev => ({
       ...prev,
       ...settings,
-      sectionOrder: layoutFrozenRef.current?.sectionOrder ?? settings.sectionOrder ?? prev.sectionOrder,
-      customPlaylistSections: layoutFrozenRef.current?.customPlaylistSections ?? settings.customPlaylistSections ?? prev.customPlaylistSections
+      sectionOrder: settings.sectionOrder ?? prev.sectionOrder,
+      customPlaylistSections: settings.customPlaylistSections ?? prev.customPlaylistSections
     }))
     setArtists(d.hotArtists?.all?.slice(0, 10) ?? [])
     setLatestSongs(d.latestSongs ?? [])
