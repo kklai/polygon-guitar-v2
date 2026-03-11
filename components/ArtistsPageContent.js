@@ -408,7 +408,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
               暫時冇歌手
             </h3>
             <p className="text-[#B3B3B3]">
-              {searchQuery ? '試下其他關鍵字' : '上傳第一個譜就會自動建立歌手分類'}
+              {searchQuery ? '試下其他關鍵字' : '出第一個譜就會自動建立歌手分類'}
             </p>
           </div>
         )}

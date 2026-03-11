@@ -33,7 +33,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
       { path: '/artists', label: '歌手', icon: 'artists' },
       { path: '/library', label: '收藏', icon: 'library' },
       { path: '/tab-requests', label: '求譜', icon: 'hand' },
-      { path: '/tabs/new', label: '上傳', icon: 'upload' },
+      { path: '/tabs/new', label: '出譜', icon: 'upload' },
     ]
     
     // 只有 Admin 先顯示管理項目

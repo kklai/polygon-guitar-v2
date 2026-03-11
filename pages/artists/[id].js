@@ -445,13 +445,37 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
         if (!arr.includes(tab)) arr.push(tab);
       });
     });
+    // 只合併「同一首歌嘅空格變體」：兩組共享 tab 且其中一個 key = 該 tab 嘅 no-space 歌名（唔合併組合歌兩邊）
+    const noSpace = (t) => (t.title || '').replace(/\s+/g, '');
+    const keyParents = new Map();
+    const getKeyRoot = (key) => {
+      if (!keyParents.has(key)) keyParents.set(key, key);
+      const p = keyParents.get(key);
+      return p === key ? key : (keyParents.set(key, getKeyRoot(p)), keyParents.get(key));
+    };
+    const mergeKeys = (k1, k2) => { keyParents.set(getKeyRoot(k1), getKeyRoot(k2)); };
+    map.forEach((group, key) => {
+      group.forEach(tab => {
+        const ns = noSpace(tab);
+        if (ns && ns !== key && map.has(ns) && map.get(ns).includes(tab)) mergeKeys(key, ns);
+      });
+    });
+    const rootToGroups = new Map(); // rootKey -> { keys, tabs }
+    map.forEach((group, key) => {
+      const root = getKeyRoot(key);
+      if (!rootToGroups.has(root)) rootToGroups.set(root, { keys: [], tabs: [] });
+      const r = rootToGroups.get(root);
+      if (!r.keys.includes(key)) r.keys.push(key);
+      group.forEach(tab => { if (!r.tabs.includes(tab)) r.tabs.push(tab); });
+    });
     const result = [];
-    map.forEach((group, groupKey) => {
-      if (group.length === 1) {
-        result.push({ type: 'single', tab: group[0] });
+    rootToGroups.forEach(({ tabs }) => {
+      const sorted = [...tabs].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+      const displayKey = sorted[0].title.replace(/\s+/g, '') || sorted[0].title;
+      if (tabs.length === 1) {
+        result.push({ type: 'single', tab: tabs[0] });
       } else {
-        const sorted = [...group].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-        result.push({ type: 'group', title: groupKey, representative: sorted[0], versions: sorted });
+        result.push({ type: 'group', title: displayKey, representative: sorted[0], versions: sorted });
       }
     });
     return result;

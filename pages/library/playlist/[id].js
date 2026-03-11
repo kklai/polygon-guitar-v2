@@ -7,7 +7,15 @@ import Link from '@/components/Link';
 import { db } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from '@/lib/firestore-tracked';
 import { getTabsByIds } from '../../../lib/tabs';
-import { Music, Share, Heart, Plus, ListMusic, ArrowUpDown, Pencil, X, Search, User, Copy, ArrowLeft } from 'lucide-react';
+import { Music, Heart, Plus, ListMusic, ArrowUpDown, Pencil, X, Search, User, Copy, ArrowLeft } from 'lucide-react';
+
+const InstagramIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+  </svg>
+);
 import Layout from '../../../components/Layout';
 import { getSongThumbnail } from '../../../lib/getSongThumbnail';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist } from '../../../lib/playlistApi';
@@ -804,7 +812,7 @@ export default function UserPlaylistDetail() {
                     <span className="text-white">複製分享連結</span>
                   </button>
                   <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">
-                    <Share className="w-5 h-5 text-[#B3B3B3]" />
+                    <InstagramIcon className="w-5 h-5 text-[#B3B3B3] shrink-0" />
                     <span className="text-white">選取歌詞分享</span>
                   </button>
                   <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 py-3 pl-0 pr-4 hover:bg-[#1a1a1a] rounded-lg text-left">

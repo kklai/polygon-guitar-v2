@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
@@ -6,10 +7,42 @@ import {
   collection, query, orderBy, getDocs, addDoc, updateDoc, doc,
   arrayUnion, arrayRemove, serverTimestamp, where, deleteDoc
 } from 'firebase/firestore'
-import Link from '@/components/Link'
+import { getTab } from '@/lib/tabs'
+import { getGroupKeys, normalizeTitleForGrouping } from '@/lib/tabGrouping'
 import Image from 'next/image'
 
+// 求譜列表排序：fulfilled 最底；其餘 自己嘅求譜（新至舊）最頂 → 我投過 → voteCount、createdAt
+function compareTabRequests(a, b, uid) {
+  const aDone = a.status === 'fulfilled'
+  const bDone = b.status === 'fulfilled'
+  if (aDone && !bDone) return 1
+  if (!aDone && bDone) return -1
+  if (aDone && bDone) {
+    const tA = a.fulfilledAt?.getTime?.() ?? a.fulfilledAt ?? 0
+    const tB = b.fulfilledAt?.getTime?.() ?? b.fulfilledAt ?? 0
+    return tB - tA
+  }
+  const aOwn = uid && a.requestedBy === uid
+  const bOwn = uid && b.requestedBy === uid
+  if (aOwn && !bOwn) return -1
+  if (bOwn && !aOwn) return 1
+  if (aOwn && bOwn) {
+    const tA = a.createdAt?.getTime?.() ?? a.createdAt ?? 0
+    const tB = b.createdAt?.getTime?.() ?? b.createdAt ?? 0
+    return tB - tA
+  }
+  const aMine = uid && a.voters?.includes(uid)
+  const bMine = uid && b.voters?.includes(uid)
+  if (aMine && !bMine) return -1
+  if (bMine && !aMine) return 1
+  if ((b.voteCount || 0) !== (a.voteCount || 0)) return (b.voteCount || 0) - (a.voteCount || 0)
+  const tA = a.createdAt?.getTime?.() ?? a.createdAt ?? 0
+  const tB = b.createdAt?.getTime?.() ?? b.createdAt ?? 0
+  return tA - tB
+}
+
 export default function TabRequestsPage() {
+  const router = useRouter()
   const { user, isAdmin, signInWithGoogle } = useAuth()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,35 +64,50 @@ export default function TabRequestsPage() {
   const [searchSource, setSearchSource] = useState(null) // 'spotify', 'youtube', 'manual', 'multiple'
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   
-  // 未登入按「我也需要」時顯示登入提示
+  // 未登入按「我要求譜」時顯示登入提示
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [loginPromptLoading, setLoginPromptLoading] = useState(false)
+  // 刪除確認（用自訂 Modal 取代 confirm()，手機版較穩定）
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  // 出譜彈窗：請貼上結他譜連結（與刪除確認同 style）
+  const [pasteLinkModalRequest, setPasteLinkModalRequest] = useState(null)
+  const [pastedLink, setPastedLink] = useState('')
+  const pasteLinkInputRef = useRef(null)
+  const pasteCheckDebounceRef = useRef(null)
+  const [pasteMessage, setPasteMessage] = useState('') // 貼上失敗時提示
+  // 剛撳「我要求譜」：樂觀更新 state 即時顯示 tick；pendingVoteId(ref+state) 令卡片 1s 內留喺「其他」再移
+  const [justVotedId, setJustVotedId] = useState(null)
+  const justVotedTimerRef = useRef(null)
+  const [pendingVoteId, setPendingVoteId] = useState(null)
+  const pendingVoteIdRef = useRef(null)
+  // 取消求譜：先顯示「已取消求譜」+ transition；然後按鈕變回「我要求譜」，再延遲後卡片先移動
+  const [justCancelledId, setJustCancelledId] = useState(null)
+  const justCancelledTimerRef = useRef(null)
+  const [displayAsUnvotedId, setDisplayAsUnvotedId] = useState(null)
+  const displayAsUnvotedTimerRef = useRef(null)
   const scrollPositionRef = useRef(0)
-  const modalOpen = showForm || showLoginPrompt
+  const modalOpen = showForm || showLoginPrompt || deleteConfirmId || pasteLinkModalRequest
 
   // 載入求譜列表
   useEffect(() => {
     loadRequests()
   }, [])
 
-  // 彈出視窗打開時鎖住背景，唔俾頁面 scroll（含 iOS Safari）
+  // 彈出視窗打開時鎖住背景 scroll（只改 overflow，唔用 body position:fixed，避免手機 touch 坐標偏移）
   useEffect(() => {
     if (modalOpen) {
       scrollPositionRef.current = typeof window !== 'undefined' ? window.scrollY : 0
-      const scrollY = scrollPositionRef.current
       document.body.setAttribute('data-modal-open', 'true')
       document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.left = '0'
-      document.body.style.right = '0'
+      if (typeof document.documentElement !== 'undefined') {
+        document.documentElement.style.overflow = 'hidden'
+      }
     } else {
       document.body.removeAttribute('data-modal-open')
       document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.left = ''
-      document.body.style.right = ''
+      if (typeof document.documentElement !== 'undefined') {
+        document.documentElement.style.overflow = ''
+      }
       if (typeof window !== 'undefined') {
         window.scrollTo(0, scrollPositionRef.current)
       }
@@ -67,15 +115,36 @@ export default function TabRequestsPage() {
     return () => {
       document.body.removeAttribute('data-modal-open')
       document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.left = ''
-      document.body.style.right = ''
+      if (typeof document.documentElement !== 'undefined') {
+        document.documentElement.style.overflow = ''
+      }
       if (typeof window !== 'undefined') {
         window.scrollTo(0, scrollPositionRef.current)
       }
     }
   }, [modalOpen])
+
+  useEffect(() => {
+    return () => {
+      if (justVotedTimerRef.current) clearTimeout(justVotedTimerRef.current)
+      if (justCancelledTimerRef.current) clearTimeout(justCancelledTimerRef.current)
+      if (displayAsUnvotedTimerRef.current) clearTimeout(displayAsUnvotedTimerRef.current)
+    }
+  }, [])
+
+  // 輸入連結後自動檢查（debounce 800ms）
+  useEffect(() => {
+    if (!pasteLinkModalRequest || !pastedLink.trim()) return
+    if (pasteCheckDebounceRef.current) clearTimeout(pasteCheckDebounceRef.current)
+    if (!parsePolygonTabLink(pastedLink)) return
+    pasteCheckDebounceRef.current = setTimeout(() => {
+      pasteCheckDebounceRef.current = null
+      checkPasteLinkAndConfirm()
+    }, 800)
+    return () => {
+      if (pasteCheckDebounceRef.current) clearTimeout(pasteCheckDebounceRef.current)
+    }
+  }, [pastedLink, pasteLinkModalRequest])
 
   // 關閉「提交求譜」視窗時清空歌曲選單、搜尋狀態與輸入欄，下次打開係全新
   useEffect(() => {
@@ -98,13 +167,7 @@ export default function TabRequestsPage() {
         ...r,
         createdAt: r.createdAt != null ? new Date(r.createdAt) : new Date(),
       }))
-      // 在客戶端進行二次排序：先按 voteCount，再按 createdAt（舊→新）
-      data.sort((a, b) => {
-        if (b.voteCount !== a.voteCount) {
-          return b.voteCount - a.voteCount
-        }
-        return a.createdAt - b.createdAt
-      })
+      data.sort((a, b) => compareTabRequests(a, b, user?.uid))
       setRequests(data)
       // If API returned empty (e.g. cache not built, Admin not configured), load from Firestore
       if (data.length === 0) {
@@ -118,10 +181,7 @@ export default function TabRequestsPage() {
           ...docSnap.data(),
           createdAt: docSnap.data().createdAt?.toDate?.() || new Date(),
         }))
-        fallback.sort((a, b) => {
-          if (b.voteCount !== a.voteCount) return b.voteCount - a.voteCount
-          return b.createdAt - a.createdAt
-        })
+        fallback.sort((a, b) => compareTabRequests(a, b, user?.uid))
         if (fallback.length > 0) setRequests(fallback)
       }
     } catch (error) {
@@ -342,7 +402,7 @@ export default function TabRequestsPage() {
           const next = prev.map((r) =>
             r.id === requestId ? { ...r, voteCount: newVoteCount, voters: newVoters } : r
           )
-          next.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0) || ((b.createdAt?.getTime?.() ?? b.createdAt) - (a.createdAt?.getTime?.() ?? a.createdAt)))
+          next.sort(compareRequests)
           return next
         })
         refreshCache({ action: 'vote', id: requestId, voteCount: newVoteCount, voters: newVoters })
@@ -389,7 +449,7 @@ export default function TabRequestsPage() {
         }
         setRequests((prev) => {
           const next = [newRequest, ...prev]
-          next.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0) || ((b.createdAt?.getTime?.() ?? b.createdAt) - (a.createdAt?.getTime?.() ?? a.createdAt)))
+          next.sort(compareRequests)
           return next
         })
         refreshCache({
@@ -431,55 +491,83 @@ export default function TabRequestsPage() {
     }
   }
 
-  // 投票（舉手）
+  // 投票（舉手）／取消求譜
   const voteForRequest = async (requestId) => {
     if (!user) {
       setShowLoginPrompt(true)
       return
     }
+    if (justCancelledId === requestId || displayAsUnvotedId === requestId || justVotedId === requestId || pendingVoteId === requestId) return
 
-    try {
-      const requestRef = doc(db, 'tabRequests', requestId)
-      const request = requests.find(r => r.id === requestId)
-      
-      // 先更新本地 state 讓用戶立即看到變化
-      const hasUserVoted = request.voters?.includes(user.uid)
-      const updatedRequests = requests.map(r => {
-        if (r.id === requestId) {
-          return {
-            ...r,
-            voteCount: hasUserVoted ? (r.voteCount || 1) - 1 : (r.voteCount || 0) + 1,
-            voters: hasUserVoted 
-              ? (r.voters || []).filter(id => id !== user.uid)
-              : [...(r.voters || []), user.uid]
-          }
+    const request = requests.find(r => r.id === requestId)
+    const hasUserVoted = request?.voters?.includes(user.uid)
+
+    // 取消求譜：先顯示「已取消求譜」→ 按鈕變回「我要求譜」→ 再延遲後卡片移動
+    if (hasUserVoted) {
+      if (justCancelledTimerRef.current) clearTimeout(justCancelledTimerRef.current)
+      if (displayAsUnvotedTimerRef.current) clearTimeout(displayAsUnvotedTimerRef.current)
+      setJustCancelledId(requestId)
+      justCancelledTimerRef.current = setTimeout(async () => {
+        justCancelledTimerRef.current = null
+        setJustCancelledId(null)
+        try {
+          const requestRef = doc(db, 'tabRequests', requestId)
+          await updateDoc(requestRef, {
+            voteCount: (request.voteCount || 1) - 1,
+            voters: arrayRemove(user.uid)
+          })
+          const newVoters = (request.voters || []).filter((id) => id !== user.uid)
+          const newCount = (request.voteCount || 1) - 1
+          setDisplayAsUnvotedId(requestId)
+          displayAsUnvotedTimerRef.current = setTimeout(() => {
+            displayAsUnvotedTimerRef.current = null
+            setDisplayAsUnvotedId(null)
+            setRequests((prev) => {
+              const next = prev.map((r) =>
+                r.id === requestId ? { ...r, voteCount: newCount, voters: newVoters } : r
+              )
+              next.sort(compareRequests)
+              return next
+            })
+            refreshCache({ action: 'vote', id: requestId, voteCount: newCount, voters: newVoters })
+          }, 1000)
+        } catch (error) {
+          console.error('Error cancelling vote:', error)
+          setDisplayAsUnvotedId(null)
+          loadRequests()
         }
-        return r
-      })
-      // 按 voteCount 再按 createdAt（舊→新）重新排序
-      updatedRequests.sort((a, b) => {
-        if ((b.voteCount || 0) !== (a.voteCount || 0)) return (b.voteCount || 0) - (a.voteCount || 0)
-        const tA = a.createdAt?.toDate?.() || a.createdAt || 0
-        const tB = b.createdAt?.toDate?.() || b.createdAt || 0
-        return tA - tB
-      })
-      setRequests(updatedRequests)
-      
-      // 然後更新 Firestore
-      if (hasUserVoted) {
-        await updateDoc(requestRef, {
-          voteCount: (request.voteCount || 1) - 1,
-          voters: arrayRemove(user.uid)
-        })
-      } else {
-        await updateDoc(requestRef, {
-          voteCount: (request.voteCount || 0) + 1,
-          voters: arrayUnion(user.uid)
-        })
-      }
-      const newCount = hasUserVoted ? (request.voteCount || 1) - 1 : (request.voteCount || 0) + 1
-      const newVoters = hasUserVoted ? (request.voters || []).filter((id) => id !== user.uid) : [...(request.voters || []), user.uid]
-      refreshCache({ action: 'vote', id: requestId, voteCount: newCount, voters: newVoters })
+      }, 1500)
+      return
+    }
+
+    // 我要求譜：先同步設 ref 再更新 state，分組時讀 ref 令卡留喺「其他」；1s 後清 ref+state 卡先移
+    try {
+      if (justVotedTimerRef.current) clearTimeout(justVotedTimerRef.current)
+      const newCount = (request.voteCount || 0) + 1
+      const newVoters = [...(request.voters || []), user.uid]
+      pendingVoteIdRef.current = requestId
+      setPendingVoteId(requestId)
+      setJustVotedId(requestId)
+      setRequests((prev) =>
+        prev.map((r) => (r.id === requestId ? { ...r, voteCount: newCount, voters: newVoters } : r))
+      )
+      justVotedTimerRef.current = setTimeout(async () => {
+        justVotedTimerRef.current = null
+        pendingVoteIdRef.current = null
+        setJustVotedId(null)
+        setPendingVoteId(null)
+        try {
+          const requestRef = doc(db, 'tabRequests', requestId)
+          await updateDoc(requestRef, {
+            voteCount: newCount,
+            voters: arrayUnion(user.uid)
+          })
+          refreshCache({ action: 'vote', id: requestId, voteCount: newCount, voters: newVoters })
+        } catch (err) {
+          console.error('Error voting:', err)
+          loadRequests()
+        }
+      }, 1000)
     } catch (error) {
       console.error('Error voting:', error)
       loadRequests()
@@ -491,19 +579,324 @@ export default function TabRequestsPage() {
     return request.voters?.includes(user?.uid)
   }
 
-  // Admin 刪除求譜
-  const deleteRequest = async (requestId) => {
-    if (!isAdmin) return
-    
-    if (!confirm('確定要刪除這個求譜嗎？此操作無法復原。')) return
-    
+  const compareRequests = (a, b) => compareTabRequests(a, b, user?.uid)
+
+  // 分組：「你的求譜」= 你發起或你投過；pendingVoteId 嘅卡 1s 內仍當「其他」唔移（用 ref 確保同步）
+  const { myRequests, otherRequests } = useMemo(() => {
+    const uid = user?.uid
+    const pending = pendingVoteIdRef.current ?? pendingVoteId
+    const isMine = (r) => r.id !== pending && uid && (r.requestedBy === uid || r.voters?.includes(uid))
+    const mine = requests.filter(isMine)
+    const other = requests.filter((r) => !isMine(r))
+    const sortMine = [...mine].sort((a, b) => {
+      const aDone = a.status === 'fulfilled'
+      const bDone = b.status === 'fulfilled'
+      if (aDone && !bDone) return 1
+      if (!aDone && bDone) return -1
+      if (aDone && bDone) {
+        const tA = a.fulfilledAt?.getTime?.() ?? a.fulfilledAt ?? 0
+        const tB = b.fulfilledAt?.getTime?.() ?? b.fulfilledAt ?? 0
+        return tB - tA
+      }
+      const aOwn = uid && a.requestedBy === uid
+      const bOwn = uid && b.requestedBy === uid
+      if (aOwn && !bOwn) return -1
+      if (!aOwn && bOwn) return 1
+      const tA = a.createdAt?.getTime?.() ?? a.createdAt ?? 0
+      const tB = b.createdAt?.getTime?.() ?? b.createdAt ?? 0
+      return tB - tA
+    })
+    const sortOther = [...other].sort((a, b) => compareTabRequests(a, b, uid))
+    return { myRequests: sortMine, otherRequests: sortOther }
+  }, [requests, user?.uid, pendingVoteId])
+
+  const renderRequestCard = (request) => (
+    <div
+      key={request.id}
+      className="bg-[#121212] rounded-xl p-3 flex items-center gap-3 relative"
+    >
+      {(isAdmin || (user?.uid && request.requestedBy === user.uid && (request.voteCount || 0) <= 1)) && (
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteConfirmId(request.id); }}
+          className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow-md border-2 border-[#121212] transition touch-manipulation"
+          title="刪除"
+          aria-label="刪除此求譜"
+        >
+          <span className="block w-2.5 h-0.5 bg-current rounded-full" aria-hidden />
+        </button>
+      )}
+      <div className="w-12 h-12 bg-[#1a1a1a] rounded-lg overflow-hidden flex-shrink-0">
+        {request.albumImage ? (
+          <img src={request.albumImage} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+            </svg>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        {editingRequest?.id === request.id ? (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={editFormData.songTitle}
+              onChange={(e) => setEditFormData({ ...editFormData, songTitle: e.target.value })}
+              className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-white text-sm"
+              placeholder="歌名"
+            />
+            <input
+              type="text"
+              value={editFormData.artistName}
+              onChange={(e) => setEditFormData({ ...editFormData, artistName: e.target.value })}
+              className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-gray-300 text-sm"
+              placeholder="歌手"
+            />
+            <div className="flex gap-2">
+              <button onClick={saveEdit} className="px-2 py-1 bg-[#FFD700] text-black rounded text-xs font-medium">保存</button>
+              <button onClick={cancelEdit} className="px-2 py-1 bg-[#282828] text-gray-400 rounded text-xs">取消</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <div className={`font-medium truncate ${request.status === 'fulfilled' ? 'text-green-400' : 'text-white'}`}>
+                {request.songTitle}
+              </div>
+            </div>
+            <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
+            <div className="text-[#FFD700] text-xs mt-0.5 flex items-center gap-2 min-w-0">
+              {request.status === 'fulfilled' ? (
+                <span className="text-green-400 truncate min-w-0">感謝 {request.fulfilledByName || '結他友'} 出譜</span>
+              ) : (
+                <span>{request.voteCount}人求譜</span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => voteForRequest(request.id)}
+          className={`rounded-full flex items-center justify-center gap-1.5 h-9 transition-all duration-300 ease-out ${
+            justCancelledId === request.id
+              ? 'bg-[#282828] text-gray-400 cursor-default px-3 py-2 min-w-[2.5rem] w-28'
+              : displayAsUnvotedId === request.id
+                ? 'w-9 bg-[#FFD700] text-black cursor-default'
+                : hasVoted(request)
+                  ? justVotedId === request.id
+                    ? 'bg-[#282828] text-green-500 opacity-90 cursor-default px-3 py-1.5 min-w-[2.5rem] w-24'
+                    : 'w-9 bg-[#282828] text-green-500 opacity-90 cursor-default'
+                  : 'w-9 bg-[#FFD700] text-black hover:opacity-90'
+          }`}
+          title={justCancelledId === request.id ? '已取消求譜' : displayAsUnvotedId === request.id ? '我要求譜' : hasVoted(request) ? '取消求譜' : '我要求譜'}
+        >
+          {justCancelledId === request.id ? (
+            <span className="text-gray-400 text-sm whitespace-nowrap">已取消求譜</span>
+          ) : displayAsUnvotedId === request.id ? (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
+              <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
+              <path d="M599.4,454v119.1c0,174.8-109.6,295.3-282,295.3" />
+              <path d="M261,394.5v-245.7c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v269.2" />
+              <path d="M373.8,315.1V94c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v221.1" />
+              <path d="M486.6,343.3V122.2c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v267.1" />
+              <path d="M148.2,399.7h0c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4h0v140.8" />
+              <path d="M263.7,681.3" />
+              <path d="M599.4,540.5V238.4c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v179.6" />
+              <path d="M263.7,681.3c0-45.7,5-155.3-115.6-155.3v-126.2" />
+            </svg>
+          ) : hasVoted(request) ? (
+            <>
+              <svg className="w-5 h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+              {justVotedId === request.id && <span className="text-green-500 text-sm whitespace-nowrap">已求譜</span>}
+            </>
+          ) : (
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
+              <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
+              <path d="M599.4,454v119.1c0,174.8-109.6,295.3-282,295.3" />
+              <path d="M261,394.5v-245.7c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v269.2" />
+              <path d="M373.8,315.1V94c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v221.1" />
+              <path d="M486.6,343.3V122.2c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v267.1" />
+              <path d="M148.2,399.7h0c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4h0v140.8" />
+              <path d="M263.7,681.3" />
+              <path d="M599.4,540.5V238.4c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v179.6" />
+              <path d="M263.7,681.3c0-45.7,5-155.3-115.6-155.3v-126.2" />
+            </svg>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => openPasteLinkModal(request)}
+          className="h-9 px-3 py-1.5 rounded-full bg-[#282828] text-[#FFD700] flex items-center justify-center hover:bg-[#FFD700] hover:text-black transition text-sm font-medium"
+          title="出譜"
+        >
+          出譜
+        </button>
+      </div>
+    </div>
+  )
+
+  // 刪除求譜：Admin 可刪任何；發起者只能刪「冇其他人投票」嘅（voteCount <= 1）
+  const executeDeleteRequest = async (requestId) => {
+    if (!requestId) return
+    const req = requests.find((r) => r.id === requestId)
+    const canDelete = isAdmin || (user?.uid && req?.requestedBy === user.uid && (req?.voteCount || 0) <= 1)
+    if (!canDelete) {
+      setDeleteConfirmId(null)
+      if (req?.voteCount > 1) alert('已有其他人求譜，無法刪除')
+      return
+    }
     try {
       await deleteDoc(doc(db, 'tabRequests', requestId))
-      setRequests(requests.filter(r => r.id !== requestId))
+      setRequests((prev) => prev.filter((r) => r.id !== requestId))
       refreshCache({ action: 'delete', id: requestId })
+      setDeleteConfirmId(null)
     } catch (error) {
       console.error('Error deleting request:', error)
       alert('刪除失敗，請重試')
+    }
+  }
+
+  // 出譜彈窗：打開時不預填
+  const openPasteLinkModal = (request) => {
+    setPasteLinkModalRequest(request)
+    setPastedLink('')
+    setPasteMessage('')
+  }
+
+  const handlePasteLink = (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setPasteMessage('讀取中…')
+    const run = async () => {
+      try {
+        const clip = typeof navigator !== 'undefined' && navigator.clipboard
+        if (!clip) throw new Error('no clipboard')
+        let text = ''
+        if (clip.readText) {
+          text = await clip.readText()
+        } else if (clip.read) {
+          const items = await clip.read()
+          const item = items.find((i) => i.types?.includes('text/plain')) || items[0]
+          if (item) text = await item.getType('text/plain').then((b) => b.text())
+        }
+        text = (text || '').trim()
+        if (text) {
+          setPastedLink(text)
+          setPasteMessage('已貼上')
+          setTimeout(() => setPasteMessage(''), 1500)
+          setTimeout(() => checkPasteLinkAndConfirm(text), 350)
+        } else {
+          setPasteMessage('剪貼簿無文字，請先複製連結')
+          setTimeout(() => setPasteMessage(''), 2500)
+        }
+        return
+      } catch (err) {
+        console.error('Read clipboard failed:', err)
+      }
+      pasteLinkInputRef.current?.focus()
+      setPasteMessage('無法讀取剪貼簿，請自行在輸入欄內貼上')
+      setTimeout(() => setPasteMessage(''), 3000)
+    }
+    run()
+  }
+
+  // 驗證是否為 POLYGON 結他譜連結，並取出 tab ID（支援 polygon.guitars 或本機）
+  const parsePolygonTabLink = (url) => {
+    const s = (url || '').trim()
+    if (!s) return null
+    try {
+      const u = new URL(s)
+      const pathMatch = u.pathname.match(/^\/tabs\/([a-zA-Z0-9_-]+)$/)
+      if (!pathMatch) return null
+      const host = u.hostname.toLowerCase()
+      if (host === 'polygon.guitars' || host.endsWith('.polygon.guitars') || host === 'localhost' || host.startsWith('192.168.') || host.startsWith('127.0.0.1')) {
+        return pathMatch[1]
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  // 檢查連結：用歌手頁合併歌邏輯核對（與 artist 頁一致，唔使 100% 字串吻合）
+  const checkPasteLinkAndConfirm = async (linkOverride) => {
+    if (!pasteLinkModalRequest) return
+    const linkToCheck = linkOverride !== undefined ? linkOverride : pastedLink
+    const tabId = parsePolygonTabLink(linkToCheck)
+    if (!tabId) {
+      setPasteMessage('請貼上 POLYGON 結他譜連結，例如 https://polygon.guitars/tabs/...')
+      setTimeout(() => setPasteMessage(''), 3000)
+      return
+    }
+    setPasteMessage('檢查中…')
+    try {
+      const tab = await getTab(tabId)
+      if (!tab) {
+        setPasteMessage('出譜失敗，找不到該結他譜')
+        setTimeout(() => setPasteMessage(''), 3000)
+        return
+      }
+      const cardTitle = (pasteLinkModalRequest.songTitle || '').trim()
+      const tabTitleRaw = (tab.title || '').trim()
+      const cardKey = normalizeTitleForGrouping(cardTitle) || cardTitle
+      const tabKeys = getGroupKeys(tabTitleRaw, tab.id)
+      const matchByGrouping = cardKey && tabKeys.includes(cardKey)
+      const matchByNoSpace = (cardTitle.replace(/\s+/g, '') === tabTitleRaw.replace(/\s+/g, ''))
+      const titleMatch = matchByGrouping || matchByNoSpace
+      if (titleMatch) {
+        const requestId = pasteLinkModalRequest.id
+        const fulfilledByName = user?.displayName || user?.email || '結他友'
+        try {
+          await updateDoc(doc(db, 'tabRequests', requestId), {
+            status: 'fulfilled',
+            fulfilledBy: user?.uid || null,
+            fulfilledByName,
+            fulfilledAt: serverTimestamp(),
+            tabId
+          })
+          setRequests((prev) =>
+            prev.map((r) =>
+              r.id === requestId
+                ? { ...r, status: 'fulfilled', fulfilledBy: user?.uid ?? null, fulfilledByName, fulfilledAt: new Date(), tabId }
+                : r
+            )
+          )
+          refreshCache({
+            action: 'fulfill',
+            id: requestId,
+            status: 'fulfilled',
+            fulfilledBy: user?.uid ?? null,
+            fulfilledByName,
+            fulfilledAt: Date.now(),
+            tabId
+          })
+        } catch (err) {
+          console.error('Error marking request fulfilled:', err)
+          setPasteMessage('出譜失敗，無法驗證連結')
+          setTimeout(() => setPasteMessage(''), 3000)
+          return
+        }
+        setPasteMessage('成功，感謝幫手出譜')
+        setTimeout(() => {
+          setPasteLinkModalRequest(null)
+          setPastedLink('')
+          setPasteMessage('')
+        }, 1500)
+      } else {
+        setPasteMessage('出譜失敗，歌名與求譜不一致')
+        setTimeout(() => setPasteMessage(''), 3000)
+      }
+    } catch (err) {
+      console.error('Check tab link failed:', err)
+      setPasteMessage('出譜失敗，無法驗證連結')
+      setTimeout(() => setPasteMessage(''), 3000)
     }
   }
 
@@ -633,13 +1026,14 @@ export default function TabRequestsPage() {
                   </button>
                 </div>
 
-                {/* 多結果選擇 - 當找到多首歌曲時 */}
+                {/* 多結果選擇 - 當找到多首歌曲時（touch-manipulation + overflow 修復手機 touch 偏移） */}
                 {multipleResults.length > 0 && searchSource === 'multiple' && (
                   <div className="bg-[#1a1a1a] rounded-xl p-4">
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-64 overflow-y-auto overflow-x-hidden overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
                       {multipleResults.map((track, idx) => (
                         <button
                           key={track.id}
+                          type="button"
                           onClick={() => {
                             setSearchResults({
                               title: track.name,
@@ -652,7 +1046,7 @@ export default function TabRequestsPage() {
                             setSearchSource('spotify')
                             setMultipleResults([])
                           }}
-                          className="w-full flex items-center gap-2 py-2 px-2.5 bg-[#282828] hover:bg-[#333] rounded-lg transition text-left"
+                          className="w-full flex items-center gap-2 py-3 px-2.5 bg-[#282828] hover:bg-[#333] rounded-lg transition text-left touch-manipulation min-h-[3.5rem]"
                         >
                           <div className="w-10 h-10 bg-[#1a1a1a] rounded overflow-hidden flex-shrink-0">
                             {track.albumImage ? (
@@ -783,7 +1177,7 @@ export default function TabRequestsPage() {
           </div>
         )}
 
-        {/* 未登入按「我也需要」提示 — 登入 Modal */}
+        {/* 未登入按「我要求譜」提示 — 登入 Modal */}
         {showLoginPrompt && (
           <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4 pointer-events-auto">
             <div className="bg-[#121212] rounded-2xl w-full max-w-sm overflow-hidden border border-gray-800">
@@ -829,6 +1223,78 @@ export default function TabRequestsPage() {
           </div>
         )}
 
+        {/* 刪除確認 Modal（取代 confirm()，手機版可正常彈出；pointer-events-auto 避免被外層 pointer-events-none 擋住） */}
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 pointer-events-auto">
+            <div className="bg-[#121212] rounded-3xl p-6 w-full max-w-sm shadow-xl border border-[#282828]">
+              <p className="text-white text-center mb-6">確定要刪除這個求譜嗎？此操作無法復原。</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 py-3 rounded-full bg-[#282828] text-gray-300 font-medium touch-manipulation"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => executeDeleteRequest(deleteConfirmId)}
+                  className="flex-1 py-3 rounded-full bg-red-500/20 text-red-400 font-medium touch-manipulation"
+                >
+                  確定刪除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 出譜彈窗：請貼上 POLYGON 結他譜連結（撳遮罩關閉） */}
+        {pasteLinkModalRequest && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 pointer-events-auto"
+            onClick={() => { setPasteLinkModalRequest(null); setPastedLink(''); setPasteMessage(''); }}
+            role="button"
+            tabIndex={0}
+            aria-label="關閉"
+            onKeyDown={(e) => { if (e.key === 'Escape') { setPasteLinkModalRequest(null); setPastedLink(''); setPasteMessage(''); } }}
+          >
+            <div
+              className="bg-[#121212] rounded-3xl p-6 w-full max-w-sm shadow-xl border border-[#282828]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-white text-center mb-1">請貼上結他譜連結</p>
+              <p className="text-gray-500 text-xs text-center mb-4">必須為 POLYGON 結他譜連結</p>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  ref={pasteLinkInputRef}
+                  type="url"
+                  value={pastedLink}
+                  onChange={(e) => setPastedLink(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && checkPasteLinkAndConfirm()}
+                  placeholder="https://polygon.guitars/tabs/..."
+                  className="flex-1 bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePasteLink(e); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="w-12 h-12 rounded-full bg-[#282828] text-[#FFD700] flex items-center justify-center hover:bg-[#3E3E3E] transition touch-manipulation flex-shrink-0 active:scale-95 select-none"
+                  title="貼上（讀取剪貼簿）"
+                  aria-label="貼上"
+                >
+                  <svg className="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                    <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  </svg>
+                </button>
+              </div>
+              {pasteMessage && (
+                <p className="text-[#FFD700] text-xs text-center mb-3">{pasteMessage}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 求譜列表 */}
         {loading ? (
           <div className="text-center py-12">
@@ -845,160 +1311,34 @@ export default function TabRequestsPage() {
             <p className="text-gray-600 text-sm mt-1">成為第一個求譜的人吧！</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {requests.map((request) => (
-              <div 
-                key={request.id}
-                className="bg-[#121212] rounded-xl p-4 flex items-center gap-4"
-              >
-                {/* 專輯封面 */}
-                <div className="w-14 h-14 bg-[#1a1a1a] rounded-lg overflow-hidden flex-shrink-0">
-                  {request.albumImage ? (
-                    <img 
-                      src={request.albumImage} 
-                      alt="" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+          <div className="space-y-4">
+            {/* 你的求譜：登入後顯示，新至舊 */}
+            {user && (
+              <section>
+                <h2 className="text-[#FFD700] font-medium text-sm mb-3 px-0.5">你的求譜</h2>
+                {myRequests.length === 0 ? (
+                  <p className="text-gray-500 text-sm py-2">你尚未發起求譜</p>
+                ) : (
+                  <div className="space-y-3">
+                    {myRequests.map((request) => renderRequestCard(request))}
+                  </div>
+                )}
+              </section>
+            )}
 
-                {/* 歌曲資訊 */}
-                <div className="flex-1 min-w-0">
-                  {editingRequest?.id === request.id ? (
-                    // 編輯模式
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={editFormData.songTitle}
-                        onChange={(e) => setEditFormData({...editFormData, songTitle: e.target.value})}
-                        className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-white text-sm"
-                        placeholder="歌名"
-                      />
-                      <input
-                        type="text"
-                        value={editFormData.artistName}
-                        onChange={(e) => setEditFormData({...editFormData, artistName: e.target.value})}
-                        className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-gray-300 text-sm"
-                        placeholder="歌手"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={saveEdit}
-                          className="px-2 py-1 bg-[#FFD700] text-black rounded text-xs font-medium"
-                        >
-                          保存
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="px-2 py-1 bg-[#282828] text-gray-400 rounded text-xs"
-                        >
-                          取消
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    // 顯示模式
-                    <>
-                      <div className="flex items-center gap-2">
-                        <div className={`font-medium truncate ${request.status === 'fulfilled' ? 'text-green-400' : 'text-white'}`}>
-                          {request.songTitle}
-                        </div>
-                        {request.status === 'fulfilled' && (
-                          <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded flex-shrink-0">
-                            已完成
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
-                      <div className="text-[#FFD700] text-xs mt-1">
-                        {request.status === 'fulfilled' ? (
-                          <span className="text-green-400">
-                            ✓ 已由 {request.fulfilledByName || '結他友'} 出譜
-                          </span>
-                        ) : (
-                          <span>{request.voteCount}人求譜</span>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
+            {user && myRequests.length > 0 && otherRequests.length > 0 && (
+              <hr className="border-[#282828]" />
+            )}
 
-                {/* 操作按鈕 */}
-                <div className="flex items-center gap-2">
-                  {/* Admin 編輯按鈕 */}
-                  {isAdmin && editingRequest?.id !== request.id && (
-                    <button
-                      onClick={() => startEdit(request)}
-                      className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500/30 transition"
-                      title="編輯"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                  )}
-
-                  {/* Admin 刪除按鈕 */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => deleteRequest(request.id)}
-                      className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/30 transition"
-                      title="刪除"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
-
-                  {/* 舉手按鈕 */}
-                  <button
-                    onClick={() => voteForRequest(request.id)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition ${
-                      hasVoted(request) 
-                        ? 'bg-[#282828] text-green-500 opacity-90 cursor-default' 
-                        : 'bg-[#FFD700] text-black hover:opacity-90'
-                    }`}
-                    title={hasVoted(request) ? '取消求譜' : '我也需要'}
-                  >
-                    {hasVoted(request) ? (
-                      <svg className="w-5 h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} viewBox="0 0 24 24">
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
-                        <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
-                        <path d="M599.4,454v119.1c0,174.8-109.6,295.3-282,295.3" />
-                        <path d="M261,394.5v-245.7c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v269.2" />
-                        <path d="M373.8,315.1V94c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v221.1" />
-                        <path d="M486.6,343.3V122.2c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v267.1" />
-                        <path d="M148.2,399.7h0c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4h0v140.8" />
-                        <path d="M263.7,681.3" />
-                        <path d="M599.4,540.5V238.4c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v179.6" />
-                        <path d="M263.7,681.3c0-45.7,5-155.3-115.6-155.3v-126.2" />
-                      </svg>
-                    )}
-                  </button>
-
-                  {/* 出譜按鈕 */}
-                  <Link
-                    href={`/tabs/new?title=${encodeURIComponent(request.songTitle)}&artist=${encodeURIComponent(request.artistName)}${request.youtubeUrl ? `&youtube=${encodeURIComponent(request.youtubeUrl)}` : ''}`}
-                    className="w-10 h-10 rounded-full bg-[#1a1a1a] text-[#FFD700] flex items-center justify-center hover:bg-[#FFD700] hover:text-black transition"
-                    title="我要出譜"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
-                      <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                  </Link>
-                </div>
+            {otherRequests.length === 0 && !user ? (
+              <p className="text-gray-500 text-sm py-2">暫時未有求譜</p>
+            ) : otherRequests.length === 0 ? (
+              <p className="text-gray-500 text-sm py-2">暫無其他求譜</p>
+            ) : (
+              <div className="space-y-3">
+                {otherRequests.map((request) => renderRequestCard(request))}
               </div>
-            ))}
+            )}
           </div>
         )}
 

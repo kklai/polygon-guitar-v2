@@ -9,7 +9,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from '@/components/Link';
-import { Copy, Share, Heart, User } from 'lucide-react';
+import { Copy, Heart, User } from 'lucide-react';
+
+const InstagramIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+  </svg>
+);
 
 const DRAG_CLOSE_THRESHOLD = 80;
 const getClientY = (e) => e.touches?.[0]?.clientY ?? e.clientY;
@@ -112,7 +120,7 @@ export default function SongActionSheet({
           </button>
           <button type="button" onClick={onSelectLyricsShare} className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white">
             <span className="flex items-center gap-3">
-              <Share className="w-5 h-5 text-[#B3B3B3]" />
+              <InstagramIcon className="w-5 h-5 text-[#B3B3B3] shrink-0" />
               選取歌詞分享
             </span>
           </button>

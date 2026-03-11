@@ -1,7 +1,7 @@
 /**
  * POST /api/tab-requests/refresh
  * Updates the tab-requests cache after a client-side write (add/vote/delete/edit). 1 read + 1 write.
- * Body: { action: 'add'|'vote'|'delete'|'edit', id?, doc?, voteCount?, voters?, songTitle?, artistName? }
+ * Body: { action: 'add'|'vote'|'delete'|'edit'|'fulfill', id?, doc?, voteCount?, voters?, songTitle?, artistName?, status?, fulfilledBy?, fulfilledByName?, fulfilledAt?, tabId? }
  */
 import { mergeTabRequestsCache } from '@/lib/tabRequestsCache'
 
@@ -12,13 +12,13 @@ export default async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
     const { action, id, doc: docData, voteCount, voters, songTitle, artistName } = body
-    if (!action || !['add', 'vote', 'delete', 'edit'].includes(action)) {
+    if (!action || !['add', 'vote', 'delete', 'edit', 'fulfill'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action' })
     }
     if (action === 'add' && !docData) {
       return res.status(400).json({ error: 'Missing doc for add' })
     }
-    if ((action === 'vote' || action === 'delete' || action === 'edit') && !id) {
+    if ((action === 'vote' || action === 'delete' || action === 'edit' || action === 'fulfill') && !id) {
       return res.status(400).json({ error: 'Missing id' })
     }
     await mergeTabRequestsCache(body)

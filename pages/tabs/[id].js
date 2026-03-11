@@ -13,6 +13,14 @@ import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
 import { recordTabView } from '@/lib/libraryRecentViews'
 import { MoreVertical, Share, Heart, Music, Plus, Copy } from 'lucide-react'
+
+const InstagramIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
+  </svg>
+)
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '@/lib/playlistApi'
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema, getAbsoluteOgImage } from '@/lib/seo'
@@ -77,6 +85,7 @@ export default function TabDetail({ initialTab }) {
   const [addToPlaylistInitialIds, setAddToPlaylistInitialIds] = useState([])
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
+  const [toastMessage, setToastMessage] = useState(null)
 
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
@@ -266,13 +275,47 @@ export default function TabDetail({ initialTab }) {
     setShowActionMenu(true);
   };
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+  };
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(t);
+  }, [toastMessage]);
+
+  const copyToClipboard = (text) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.setAttribute('readonly', '');
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (ok) resolve();
+        else reject(new Error('execCommand copy failed'));
+      } catch (e) {
+        document.body.removeChild(textarea);
+        reject(e);
+      }
+    });
+  };
+
   const handleCopyShareLink = async () => {
-    const url = `${window.location.origin}/tabs/${tab.id}`;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/tabs/${tab.id}`;
     try {
-      await navigator.clipboard.writeText(url);
-      alert('已複製連結');
+      await copyToClipboard(url);
+      showToast('已複製連結');
     } catch (err) {
-      alert('複製失敗');
+      showToast('複製失敗');
     }
   };
 
@@ -284,14 +327,22 @@ export default function TabDetail({ initialTab }) {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/tabs/${tab.id}`;
-    if (navigator.share) {
-      await navigator.share({
-        title: `${tab.title} - ${tab.artist}`,
-        url
-      });
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${tab.title} - ${tab.artist}`,
+          url
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') showToast('分享失敗');
+      }
     } else {
-      navigator.clipboard.writeText(url);
-      alert('連結已複製到剪貼簿');
+      try {
+        await copyToClipboard(url);
+        showToast('連結已複製到剪貼簿');
+      } catch {
+        showToast('複製失敗');
+      }
     }
     setShowActionMenu(false);
   };
@@ -652,7 +703,7 @@ export default function TabDetail({ initialTab }) {
                   <span className="text-white">複製分享連結</span>
                 </button>
                 <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Share className="w-5 h-5 text-[#B3B3B3]" />
+                  <InstagramIcon className="w-5 h-5 text-[#B3B3B3] shrink-0" />
                   <span className="text-white">選取歌詞分享</span>
                 </button>
 
@@ -674,6 +725,17 @@ export default function TabDetail({ initialTab }) {
               </div>
             </div>
           </>
+        )}
+
+        {/* 自動消失 Toast（複製連結等） */}
+        {toastMessage && (
+          <div
+            className="fixed bottom-24 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:max-w-sm z-[100] px-4 py-3 rounded-xl bg-[#282828] text-white text-center shadow-lg animate-fade-in"
+            role="status"
+            aria-live="polite"
+          >
+            {toastMessage}
+          </div>
         )}
 
         {/* 加入歌單 Modal */}

@@ -19,7 +19,7 @@ export default function TabGuide() {
         <div className="bg-[#121212] rounded-xl border border-[#FFD700]/30 p-6 mb-6">
           <h2 className="text-lg font-bold text-[#FFD700] mb-4">🚀 快速開始</h2>
           <div className="space-y-3 text-gray-300">
-            <p>1. <Link href="/tabs/new" className="text-[#FFD700] hover:underline">點擊這裡上傳新譜</Link></p>
+            <p>1. <Link href="/tabs/new" className="text-[#FFD700] hover:underline">點擊這裡出譜</Link></p>
             <p>2. 確保你已登入（支援 Google 帳號）</p>
             <p>3. 填好歌名、歌手、原調</p>
             <p>4. 貼上譜內容，系統會自動對齊</p>
@@ -206,7 +206,7 @@ export default function TabGuide() {
             </div>
             <div className="flex items-start gap-2">
               <span className="text-[#FFD700]">•</span>
-              <p>上傳後可以用「編輯」功能修改任何資料</p>
+              <p>出譜後可以用「編輯」功能修改任何資料</p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-[#FFD700]">•</span>

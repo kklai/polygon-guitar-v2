@@ -1,6 +1,6 @@
 import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 
 // Hardcoded so we don't hit Firebase on every page visit
@@ -8,10 +8,47 @@ const SITE_LOGO_URL = 'https://res.cloudinary.com/drld2cjpo/image/upload/v177150
 const SITE_NAME = 'Polygon 結他譜'
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated, isAdmin } = useAuth()
+  const { user, logout, isAuthenticated, isAdmin, loading: authLoading } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
+  const menuRef = useRef(null)
+
+  // 只喺 desktop 點擊外部關閉選單（手機唔用，避免撳 icon 後選單被誤關）
+  useEffect(() => {
+    if (!isMenuOpen) return
+    const isDesktop = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+    const handleClickOutside = (e) => {
+      if (!isDesktop()) return
+      if (menuRef.current && !menuRef.current.contains(e.target)) setIsMenuOpen(false)
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [isMenuOpen])
+
+  // iPhone Safari：選單打開時鎖 body，防止背景收到 touch/scroll
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const isMobile = () => window.matchMedia('(max-width: 767px)').matches
+    if (isMenuOpen && isMobile()) {
+      const scrollY = window.scrollY
+      document.body.setAttribute('data-nav-menu-open', 'true')
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.left = '0'
+      document.body.style.right = '0'
+      return () => {
+        document.body.removeAttribute('data-nav-menu-open')
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.left = ''
+        document.body.style.right = ''
+        window.scrollTo(0, scrollY)
+      }
+    }
+  }, [isMenuOpen])
 
   useEffect(() => {
     const onScroll = () => {
@@ -42,9 +79,12 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-[#FFD700] fixed top-0 left-0 right-0 z-[100] will-change-transform" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <nav
+      className={`bg-[#FFD700] fixed top-0 left-0 right-0 will-change-transform ${isMenuOpen ? 'z-[10000]' : 'z-[100]'}`}
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between" style={{ height: scrolled ? '2.5rem' : '4.4rem' }}>
+        <div className="flex justify-between relative z-10 bg-[#FFD700]" style={{ height: scrolled ? '2.5rem' : '4.4rem' }}>
           {/* Logo + 副標題 */}
           <div className="flex flex-col justify-end">
             <Link href="/" className="flex flex-col">
@@ -63,125 +103,168 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link 
-              href="/" 
-              className="text-black/70 hover:text-black px-3 py-2 rounded-md font-medium transition"
+          {/* Desktop：出譜掣 + 頭像/icon，點擊開選單 */}
+          <div className="hidden md:flex md:relative items-center gap-2" ref={menuRef}>
+            <Link
+              href="/tabs/new"
+              className={`flex items-center justify-center rounded-full bg-black/10 text-black/70 flex-shrink-0 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+              aria-label="出譜"
             >
-              所有譜
+              <svg className={scrolled ? 'w-5 h-5' : 'w-6 h-6'} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
             </Link>
-            <Link 
-              href="/artists" 
-              className="text-black/70 hover:text-black px-3 py-2 rounded-md font-medium transition"
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
+              className="text-black/70 p-1 rounded-full focus:outline-none"
+              aria-label={isMenuOpen ? '關閉選單' : '開啟選單'}
             >
-              歌手分類
-            </Link>
-            {isAuthenticated && (
-              <Link 
-                href="/tabs/new" 
-                className="bg-[#FFD700] text-black px-4 py-2 rounded-md font-medium hover:opacity-90 transition"
-              >
-                上傳譜
-              </Link>
-            )}
-          </div>
-
-          {/* User Section */}
-          <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <Link 
-                  href={`/profile/${user.uid}`}
-                  className="flex items-center space-x-2 hover:opacity-80 transition"
-                >
-                  {user.photoURL && (
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-8 h-8 rounded-full border-2 border-[#FFD700]"
-                    />
-                  )}
-                  <span className="text-black font-medium">
-                    {user.displayName}
-                  </span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="text-black/70 hover:text-black font-medium transition"
-                >
-                  登出
-                </button>
+              {isAuthenticated && user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || '用戶'}
+                  className={`rounded-full object-cover select-none ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              ) : (
+                <span className={`flex items-center justify-center rounded-full bg-black/10 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}>
+                  <svg className={scrolled ? 'w-4 h-4' : 'w-5 h-5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </span>
+              )}
+            </button>
+            {/* Desktop 下拉選單 */}
+            {isMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 py-2 w-56 bg-[#FFD700] border border-black/10 rounded-lg shadow-lg z-[101]">
+                {isAuthenticated && (
+                  <>
+                    <Link href="/tabs/new" className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium" onClick={() => setIsMenuOpen(false)}>
+                      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      出譜
+                    </Link>
+                    <Link href={`/profile/${user.uid}`} className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium" onClick={() => setIsMenuOpen(false)}>
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 select-none" draggable={false} loading="lazy" decoding="async" onContextMenu={(e) => e.preventDefault()} />
+                      ) : (
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
+                      我的主頁
+                    </Link>
+                  </>
+                )}
+                {isAdmin && (
+                  <Link href="/admin" className="block text-black/70 px-4 py-2 font-medium border-t border-black/10 mt-1 pt-2" onClick={() => setIsMenuOpen(false)}>管理後台</Link>
+                )}
+                {isAuthenticated ? (
+                  <button type="button" onClick={() => { handleLogout(); setIsMenuOpen(false) }} className="block w-full text-left text-black/70 font-medium px-4 py-2 border-t border-black/10 mt-1 pt-2">登出</button>
+                ) : (
+                  <Link href="/login" className="block text-black font-bold px-4 py-2 border-t border-black/10 mt-1 pt-2" onClick={() => setIsMenuOpen(false)}>登入</Link>
+                )}
               </div>
-            ) : (
-              <Link 
-                href="/login" 
-                className="bg-[#FFD700] text-black px-4 py-2 rounded-md font-medium hover:opacity-90 transition"
-              >
-                登入
-              </Link>
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile：出譜掣 + 頭像/選單 icon（collapse 時隱藏出譜 icon） */}
+          <div className="md:hidden flex items-center gap-1">
+            <Link
+              href="/tabs/new"
+              className={`flex items-center justify-center rounded-full bg-black/10 text-black/70 flex-shrink-0 ${scrolled ? 'hidden' : 'w-[42px] h-[42px]'}`}
+              aria-label="出譜"
+            >
+              <svg className={scrolled ? 'w-5 h-5' : 'w-6 h-6'} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </Link>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-black/70 hover:text-black p-2"
+              className="text-black/70 p-1 rounded-full focus:outline-none"
+              aria-label={isMenuOpen ? '關閉選單' : '開啟選單'}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isMenuOpen ? (
+              {isMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+                </svg>
+              ) : isAuthenticated && user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || '用戶'}
+                  className={`rounded-full object-cover select-none ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              ) : (
+                <span className={`flex items-center justify-center rounded-full bg-black/10 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}>
+                  <svg className={scrolled ? 'w-4 h-4' : 'w-5 h-5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </span>
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile：點擊外部關閉 + 遮罩阻擋背景點擊（全屏、阻擋 touch/click 穿透） */}
       {isMenuOpen && (
-        <div className="md:hidden bg-[#FFD700] border-t border-yellow-600">
+        <>
+          <div
+            className="md:hidden fixed inset-0"
+            style={{
+              top: 0, left: 0, right: 0, bottom: 0,
+              zIndex: 1,
+              pointerEvents: 'auto',
+              touchAction: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              cursor: 'pointer',
+              minHeight: '100dvh',
+              background: 'transparent',
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="關閉選單"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(false) }}
+            onTouchEnd={(e) => { e.preventDefault(); setIsMenuOpen(false) }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === 'Enter' && setIsMenuOpen(false)}
+          />
+          <div className="md:hidden relative z-[2] bg-[#FFD700] border-t border-yellow-600">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link 
-              href="/" 
-              className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              所有譜
-            </Link>
-            <Link 
-              href="/artists" 
-              className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              歌手分類
-            </Link>
-            <Link 
-              href="/tab-requests" 
-              className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              求譜區
-            </Link>
             {isAuthenticated && (
               <>
                 <Link 
                   href="/tabs/new" 
-                  className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 rounded-md font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  上傳譜
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  出譜
                 </Link>
-                <Link 
+                <Link
                   href={`/profile/${user.uid}`}
-                  className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium"
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 rounded-md font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 select-none" draggable={false} loading="lazy" decoding="async" onContextMenu={(e) => e.preventDefault()} />
+                  ) : (
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                      <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
                   我的主頁
                 </Link>
               </>
@@ -190,7 +273,7 @@ export default function Navbar() {
             {isAdmin && (
               <Link 
                 href="/admin" 
-                className="block text-black/70 hover:text-black px-3 py-2 rounded-md font-medium border-t border-yellow-600 mt-2 pt-2"
+                className="block text-black/70 px-3 py-2 font-medium border-t border-yellow-600 mt-2 pt-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <span className="flex items-center gap-2">
@@ -208,21 +291,22 @@ export default function Navbar() {
                   handleLogout()
                   setIsMenuOpen(false)
                 }}
-                className="block w-full text-left text-black/70 hover:text-black font-medium px-3 py-2 border-t border-yellow-600 mt-2 pt-2"
+                className="block w-full text-left text-black/70 font-medium px-3 py-2 border-t border-yellow-600 mt-2 pt-2 rounded-none"
               >
                 登出
               </button>
             ) : (
               <Link 
                 href="/login" 
-                className="block text-black font-bold px-3 py-2 border-t border-yellow-600 mt-2 pt-2"
+                className="block text-black font-bold px-3 py-2 rounded-none border-t border-yellow-600 mt-2 pt-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 登入
               </Link>
             )}
           </div>
-        </div>
+          </div>
+        </>
       )}
     </nav>
   )

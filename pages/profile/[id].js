@@ -57,6 +57,12 @@ const DEFAULT_BIO_CONFIG = {
   }
 }
 
+// 由 DEFAULT_BIO_CONFIG 衍生的 label 對照（供 generateBioSentence 使用）
+const EXPERIENCE_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.experience.options.map(o => [o.value, o.sentence]))
+const STYLE_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.style.options.map(o => [o.value, o.sentence]))
+const LOCATION_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.location.options.map(o => [o.value, o.sentence]))
+const CHORDS_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.chords.options.map(o => [o.value, o.sentence]))
+
 // 社交媒體圖標組件
 const SocialIcon = ({ platform, url }) => {
   if (!url) return null
@@ -98,8 +104,9 @@ const SocialIcon = ({ platform, url }) => {
       </svg>
     ),
     threads: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.59 12c.025 3.086.718 5.496 2.057 7.164 1.432 1.781 3.632 2.695 6.54 2.717 2.623-.02 4.358-.631 5.8-1.845 1.647-1.396 2.461-3.432 2.461-6.093v-1.386h-6.55v-2.09h8.64v1.668c0 2.324-.551 4.402-1.594 6.087-1.165 1.87-2.907 3.146-5.18 3.788l-.068.019c-.926.252-1.936.39-3.01.39z"/>
+      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 960 960" role="img" aria-label="Threads">
+        {/* Official Threads (Meta) logo - G/a symbol from Wikimedia Commons */}
+        <path d="M404.63 392.13c-11.92-7.93-51.53-35.49-51.53-35.49 33.4-47.88 77.46-66.52 138.36-66.52 43.07 0 79.64 14.52 105.75 42 26.12 27.49 41.02 66.8 44.41 117.07 14.48 6.07 27.85 13.22 39.99 21.4 48.96 33 75.92 82.34 75.92 138.91 0 120.23-98.34 224.67-276.35 224.67-152.84 0-311.63-89.11-311.63-354.45 0-263.83 153.81-353.92 311.2-353.92 72.68 0 243.16 10.76 307.27 222.94l-60.12 15.63C678.33 213.2 574.4 189.14 479.11 189.14c-157.52 0-246.62 96.13-246.62 300.65 0 183.38 99.59 280.8 248.71 280.8 122.68 0 214.15-63.9 214.15-157.44 0-63.66-53.37-94.14-56.1-94.14-10.42 54.62-38.36 146.5-161.01 146.5-71.46 0-133.07-49.47-133.07-114.29 0-92.56 87.61-126.06 156.8-126.06 25.91 0 57.18 1.75 73.46 5.07 0-28.21-23.81-76.49-83.96-76.49-55.15-.01-69.14 17.92-86.84 38.39zm105.8 96.25c-90.13 0-101.79 38.51-101.79 62.7 0 38.86 46.07 51.74 70.65 51.74 45.06 0 91.35-12.52 98.63-107.31-22.85-5.14-39.88-7.13-67.49-7.13z" />
       </svg>
     )
   }
@@ -144,19 +151,19 @@ const generateBioSentence = (profile) => {
   const parts = []
   
   if (profile.guitarExperience && EXPERIENCE_LABELS[profile.guitarExperience]) {
-    parts.push(EXPERIENCE_LABELS[profile.guitarExperience] + '結他手')
+    parts.push(EXPERIENCE_LABELS[profile.guitarExperience])
   }
   
   if (profile.playingStyle && STYLE_LABELS[profile.playingStyle]) {
-    parts.push('鍾意' + STYLE_LABELS[profile.playingStyle])
+    parts.push(STYLE_LABELS[profile.playingStyle])
   }
   
   if (profile.practiceLocation && LOCATION_LABELS[profile.practiceLocation]) {
-    parts.push('平時喺' + LOCATION_LABELS[profile.practiceLocation] + '練習')
+    parts.push(LOCATION_LABELS[profile.practiceLocation])
   }
   
   if (profile.favoriteChords && CHORDS_LABELS[profile.favoriteChords]) {
-    parts.push('最愛用' + CHORDS_LABELS[profile.favoriteChords])
+    parts.push(CHORDS_LABELS[profile.favoriteChords])
   }
   
   if (parts.length === 0) return ''
@@ -324,7 +331,7 @@ export default function PublicProfile() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-black pb-24">
+      <div className="min-h-screen bg-black pb-24 pl-4">
 
         {/* Profile Header - 參考設計布局 */}
         <div className="py-6">

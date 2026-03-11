@@ -23,7 +23,7 @@ export default function MoreMenu({ isOpen, onClose }) {
 
   const menuItems = [
     { path: '/tab-requests', label: '求譜區', icon: 'hand', desc: '搵人幫手出譜' },
-    { path: '/tabs/new', label: '上傳譜', icon: 'upload', desc: '分享你嘅結他譜' },
+    { path: '/tabs/new', label: '出譜', icon: 'upload', desc: '分享你嘅結他譜' },
     ...(isAdmin ? [{ path: '/admin', label: '管理後台', icon: 'admin', desc: '網站管理' }] : []),
     ...(user ? [{ path: `/profile/${user.uid}`, label: '個人檔案', icon: 'profile', desc: '你嘅主頁' }] : []),
   ]

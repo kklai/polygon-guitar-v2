@@ -11,7 +11,7 @@ import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
-import { collection, getDocs, doc, getDoc, query, where, updateDoc } from '@/lib/firestore-tracked'
+import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { ArrowLeft } from 'lucide-react'
@@ -361,7 +361,7 @@ export default function NewTab() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <h1 className="text-xl font-bold text-white mb-2">請先登入</h1>
-            <p className="text-gray-400 mb-6">上傳樂譜需要先登入帳戶</p>
+            <p className="text-gray-400 mb-6">出譜需要先登入帳戶</p>
             <Link 
               href="/login?redirect=/tabs/new" 
               className="inline-block bg-[#FFD700] text-black px-6 py-3 rounded-lg font-medium hover:bg-yellow-400 transition"
@@ -435,49 +435,12 @@ export default function NewTab() {
         uploaderPenName: (formData.uploaderPenName || '').trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
-      
-      // 標記相關求譜為已完成
-      await fulfillTabRequests(submitData, newTab.id, user)
-      
       router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)
       alert('上傳失敗，請重試')
     } finally {
       setIsSubmitting(false)
-    }
-  }
-  
-  // 標記相關求譜為已完成
-  const fulfillTabRequests = async (submitData, tabId, user) => {
-    try {
-      // 查找相同歌名和歌手的待處理求譜
-      const requestsQuery = query(
-        collection(db, 'tabRequests'),
-        where('songTitle', '==', submitData.title),
-        where('artistName', '==', submitData.artist),
-        where('status', '==', 'pending')
-      )
-      
-      const requestsSnap = await getDocs(requestsQuery)
-      
-      if (!requestsSnap.empty) {
-        const updatePromises = requestsSnap.docs.map(async (requestDoc) => {
-          await updateDoc(doc(db, 'tabRequests', requestDoc.id), {
-            status: 'fulfilled',
-            fulfilledBy: user.uid,
-            fulfilledByName: user.displayName || user.email || '匿名用戶',
-            fulfilledAt: new Date(),
-            tabId: tabId
-          })
-        })
-        
-        await Promise.all(updatePromises)
-        console.log(`已標記 ${requestsSnap.docs.length} 個求譜為已完成`)
-      }
-    } catch (error) {
-      console.error('Error fulfilling tab requests:', error)
-      // 不影響主流程，只是記錄錯誤
     }
   }
 
@@ -1304,7 +1267,7 @@ E|----------------------------------------------------------------|
           <Link href="/" className="inline-flex items-center text-gray-400 hover:text-white mr-4 transition" aria-label="返回">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">上傳新譜</h1>
+          <h1 className="text-2xl font-bold text-white">出譜</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -1344,7 +1307,7 @@ E|----------------------------------------------------------------|
           <div className="flex items-center space-x-4 pt-4">
             <button type="submit" disabled={isSubmitting}
               className="flex-1 bg-[#FFD700] text-black py-3 px-6 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50">
-              {isSubmitting ? '上傳中...' : '上傳譜'}
+              {isSubmitting ? '出譜中...' : '出譜'}
             </button>
             <Link href="/" className="px-6 py-3 border border-gray-700 rounded-lg font-medium text-gray-400 hover:text-white hover:border-[#FFD700] transition">
               取消
