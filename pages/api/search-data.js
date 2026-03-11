@@ -1,20 +1,20 @@
-import { getSearchData } from '@/lib/searchData'
+import { getSearchDataCached, bustSearchDataApiCache } from '@/lib/searchData'
 
 /**
  * Search data API: reads from Firestore cache/searchData (1 read when fresh).
- * Cache TTL 24h; full query at most once per day. Use admin "Rebuild search cache" to break cache.
+ * In-memory cache 10min; use ?bust=1 to clear. Use admin "Rebuild search cache" to refresh Firestore cache.
  */
 export default async function handler(req, res) {
+  if (req.query.bust === '1' || req.query.bust === 'true') {
+    bustSearchDataApiCache()
+  }
+
   try {
-    const result = await getSearchData({ includeCacheStatus: true })
-    const data = result.data ?? result
-    const cacheStatus = result.cacheStatus || (result.data ? 'hit' : null)
+    const data = await getSearchDataCached()
 
     // Optional: return only tabs or only artists to reduce payload for single-purpose callers (same 1 read)
     const only = req.query.only === 'artists' ? 'artists' : req.query.only === 'tabs' ? 'tabs' : null
     const body = only === 'artists' ? { artists: data.artists } : only === 'tabs' ? { tabs: data.tabs } : data
-
-    if (cacheStatus) res.setHeader('X-Search-Cache', cacheStatus)
     res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')
     return res.json(body)
   } catch (err) {

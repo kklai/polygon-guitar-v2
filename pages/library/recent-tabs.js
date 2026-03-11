@@ -15,6 +15,9 @@ import { Clock, ArrowLeft, Copy, Share, Heart, Music, User, Plus } from 'lucide-
 
 export default function RecentTabs() {
   const router = useRouter();
+  const fromHome = router.query.from === 'home';
+  const backHref = fromHome ? '/' : '/library';
+  const backLabel = fromHome ? '返回首頁' : '返回收藏';
   const { user } = useAuth();
   const [tabs, setTabs] = useState([]);
   const [authUser, setAuthUser] = useState(null);
@@ -199,9 +202,9 @@ export default function RecentTabs() {
       <div className="relative z-10 min-h-screen pb-24 bg-black" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="relative pt-4 pb-1" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
           <Link
-            href="/library"
+            href={backHref}
             className="inline-flex items-center text-white hover:text-white/90 transition p-1.5 -ml-1.5"
-            aria-label="返回"
+            aria-label={backLabel}
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
@@ -264,10 +267,10 @@ export default function RecentTabs() {
             <h3 className="text-xl text-white mb-2">未有最近瀏覽</h3>
             <p className="text-gray-500 mb-6">打開過嘅結他譜會顯示喺呢度（最多 20 份）</p>
             <Link
-              href="/library"
+              href={backHref}
               className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
             >
-              返回收藏
+              {backLabel}
             </Link>
           </div>
         )}

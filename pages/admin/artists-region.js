@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, writeBatch, doc, updateDoc } from '@/lib/firestore-tracked'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { X, Plus, MapPin } from 'lucide-react'
@@ -132,7 +132,11 @@ export default function ArtistsRegion() {
       
       if (updateCount > 0) {
         await batch.commit()
-        showMessage(`已儲存 ${updateCount} 位歌手的更改`)
+        try {
+          const token = await auth.currentUser?.getIdToken?.()
+          if (token) await fetch('/api/admin/rebuild-search-cache', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+        } catch (_) {}
+        showMessage(`已儲存 ${updateCount} 位歌手的更改，歌手頁地區篩選已更新`)
       } else {
         showMessage('沒有變更需要儲存')
       }
@@ -164,8 +168,11 @@ export default function ArtistsRegion() {
         regions: newRegions,
         region: newRegions[0] || null
       } : a))
-      
-      showMessage('儲存成功')
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) await fetch('/api/admin/rebuild-search-cache', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      } catch (_) {}
+      showMessage('儲存成功，歌手頁地區篩選已更新')
     } catch (error) {
       console.error('Error saving individual:', error)
       showMessage('儲存失敗', 'error')

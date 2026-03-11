@@ -24,7 +24,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
       <div className="flex justify-between items-end mb-2 pr-6" style={{ paddingLeft: '1rem' }}>
         <h2 className="text-white font-bold" style={{ fontSize: '1.375rem' }}>{title}</h2>
         <Link 
-          href="/history"
+          href="/library/recent-tabs?from=home"
           className="text-[#B3B3B3] text-sm hover:text-white"
         >
           瀏覽全部

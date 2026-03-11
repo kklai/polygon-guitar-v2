@@ -6,7 +6,7 @@
  */
 
 import { verifyAdmin } from '@/lib/firebase-admin'
-import { buildSearchDataPayload, setSearchCache } from '@/lib/searchData'
+import { buildSearchDataPayload, setSearchCache, bustSearchDataApiCache } from '@/lib/searchData'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
@@ -32,6 +32,7 @@ export default async function handler(req, res) {
   try {
     const payload = await buildSearchDataPayload()
     await setSearchCache(payload)
+    bustSearchDataApiCache()
     return res.status(200).json({
       ok: true,
       message: 'Search cache rebuilt',
