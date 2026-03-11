@@ -1,50 +1,23 @@
-import { useState, useEffect } from 'react'
-import { getGlobalSettings, updateGlobalSettings } from '@/lib/tabs'
+import { useState } from 'react'
+import { updateGlobalSettings } from '@/lib/tabs'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
 
+// Match hardcoded values used on the live site (no Firebase read on page load)
+const LIVE_LOGO_URL = 'https://res.cloudinary.com/drld2cjpo/image/upload/v1771502138/artists/site_logo_1771502138235.png'
+const LIVE_SITE_NAME = 'Polygon 結他譜'
+
 function LogoSettings() {
-  const { user, isAdmin } = useAuth()
-  const [settings, setSettings] = useState({
-    logoUrl: null,
-    siteName: 'Polygon 結他譜',
-    appIconUrl: null
-  })
-  const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth()
   const [isUploading, setIsUploading] = useState(false)
   const [message, setMessage] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
-
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
+  const [previewUrl, setPreviewUrl] = useState(LIVE_LOGO_URL)
   const [appIconPreview, setAppIconPreview] = useState(null)
-
-  const loadSettings = async () => {
-    try {
-      const data = await getGlobalSettings()
-      setSettings({
-        logoUrl: data.logoUrl || null,
-        siteName: data.siteName || 'Polygon 結他譜',
-        appIconUrl: data.appIconUrl || null
-      })
-      if (data.logoUrl) {
-        setPreviewUrl(data.logoUrl)
-      }
-      if (data.appIconUrl) {
-        setAppIconPreview(data.appIconUrl)
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error)
-      showMessage('載入設定失敗：' + error.message, 'error')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const [lastUploadedLogoUrl, setLastUploadedLogoUrl] = useState(null)
+  const [lastUploadedAppIconUrl, setLastUploadedAppIconUrl] = useState(null)
 
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type })
@@ -54,36 +27,22 @@ function LogoSettings() {
   const handleFileSelect = async (file) => {
     if (!file) return
 
-    // 驗證檔案
     const validation = validateImageFile(file)
     if (!validation.valid) {
       showMessage(validation.error, 'error')
       return
     }
 
-    // 顯示預覽
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setPreviewUrl(reader.result)
-    }
+    reader.onloadend = () => setPreviewUrl(reader.result)
     reader.readAsDataURL(file)
 
     setIsUploading(true)
-
     try {
-      // 上傳到 Cloudinary
       const result = await uploadToCloudinary(file, 'site-logo')
-
-      // 更新 Firestore
-      await updateGlobalSettings({
-        logoUrl: result.url
-      }, user?.uid)
-
-      setSettings(prev => ({
-        ...prev,
-        logoUrl: result.url
-      }))
-
+      await updateGlobalSettings({ logoUrl: result.url }, user?.uid)
+      setPreviewUrl(result.url)
+      setLastUploadedLogoUrl(result.url)
       showMessage(
         `Logo 上傳成功！${result.width}×${result.height} · ${formatFileSize(result.bytes)}`,
         'success'
@@ -91,109 +50,62 @@ function LogoSettings() {
     } catch (error) {
       console.error('Upload error:', error)
       showMessage('上傳失敗：' + error.message, 'error')
-      // 還原預覽
-      setPreviewUrl(settings.logoUrl)
+      setPreviewUrl(lastUploadedLogoUrl || LIVE_LOGO_URL)
     } finally {
       setIsUploading(false)
     }
   }
 
   const handleRemoveLogo = async () => {
-    if (!confirm('確定要移除 Logo 嗎？')) return
-
+    if (!confirm('確定要從資料庫移除 Logo 記錄嗎？（網站仍會顯示程式碼內的 hardcoded logo）')) return
     try {
-      await updateGlobalSettings({
-        logoUrl: null
-      }, user?.uid)
-
-      setSettings(prev => ({
-        ...prev,
-        logoUrl: null
-      }))
-      setPreviewUrl(null)
-
-      showMessage('Logo 已移除', 'success')
+      await updateGlobalSettings({ logoUrl: null }, user?.uid)
+      setPreviewUrl(LIVE_LOGO_URL)
+      setLastUploadedLogoUrl(null)
+      showMessage('Logo 記錄已移除', 'success')
     } catch (error) {
       console.error('Remove error:', error)
       showMessage('移除失敗：' + error.message, 'error')
     }
   }
 
-  // App Icon 上傳處理
   const handleAppIconSelect = async (file) => {
     if (!file) return
-
     const validation = validateImageFile(file)
     if (!validation.valid) {
       showMessage(validation.error, 'error')
       return
     }
-
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setAppIconPreview(reader.result)
-    }
+    reader.onloadend = () => setAppIconPreview(reader.result)
     reader.readAsDataURL(file)
-
     setIsUploading(true)
-
     try {
       const result = await uploadToCloudinary(file, 'app-icon')
-      
-      await updateGlobalSettings({
-        appIconUrl: result.url
-      }, user?.uid)
-
-      setSettings(prev => ({
-        ...prev,
-        appIconUrl: result.url
-      }))
-
-      showMessage(
-        `App Icon 上傳成功！${result.width}×${result.height}`,
-        'success'
-      )
+      await updateGlobalSettings({ appIconUrl: result.url }, user?.uid)
+      setAppIconPreview(result.url)
+      setLastUploadedAppIconUrl(result.url)
+      showMessage(`App Icon 上傳成功！${result.width}×${result.height}`, 'success')
     } catch (error) {
       console.error('Upload error:', error)
       showMessage('上傳失敗：' + error.message, 'error')
-      setAppIconPreview(settings.appIconUrl)
+      setAppIconPreview(lastUploadedAppIconUrl)
     } finally {
       setIsUploading(false)
     }
   }
 
   const handleRemoveAppIcon = async () => {
-    if (!confirm('確定要移除 App Icon 嗎？')) return
-
+    if (!confirm('確定要從資料庫移除 App Icon 記錄嗎？')) return
     try {
-      await updateGlobalSettings({
-        appIconUrl: null
-      }, user?.uid)
-
-      setSettings(prev => ({
-        ...prev,
-        appIconUrl: null
-      }))
+      await updateGlobalSettings({ appIconUrl: null }, user?.uid)
       setAppIconPreview(null)
-
-      showMessage('App Icon 已移除', 'success')
+      setLastUploadedAppIconUrl(null)
+      showMessage('App Icon 記錄已移除', 'success')
     } catch (error) {
       console.error('Remove error:', error)
       showMessage('移除失敗：' + error.message, 'error')
     }
-  }
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-800 rounded w-1/4"></div>
-            <div className="bg-[#121212] rounded-xl h-64"></div>
-          </div>
-        </div>
-      </Layout>
-    )
   }
 
   return (
@@ -231,22 +143,16 @@ function LogoSettings() {
           {/* Preview Area */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-400 mb-3">
-              目前 Logo
+              目前預覽（上傳後會更新）
             </label>
             <div className="bg-black rounded-lg p-8 flex items-center justify-center border border-gray-800">
-              {previewUrl ? (
-                <img 
-                  src={previewUrl} 
-                  alt="Site Logo"
-                  className="max-h-32 max-w-full object-contain"
-                />
-              ) : (
-                <div className="text-center">
-                  <span className="text-6xl">🎸</span>
-                  <p className="text-gray-500 mt-2">尚未設定 Logo</p>
-                </div>
-              )}
+              <img
+                src={previewUrl}
+                alt="Site Logo"
+                className="max-h-32 max-w-full object-contain"
+              />
             </div>
+            <p className="text-gray-500 text-xs mt-2">網站實際顯示的 Logo 來自程式碼內 hardcoded 設定，見下方說明。</p>
           </div>
 
           {/* Upload Area */}
@@ -289,15 +195,24 @@ function LogoSettings() {
             </div>
           </div>
 
-          {/* Remove Button */}
-          {settings.logoUrl && (
+          {lastUploadedLogoUrl && (
             <div className="flex justify-end">
               <button
                 onClick={handleRemoveLogo}
                 className="px-4 py-2 text-red-400 border border-red-700 rounded-lg hover:bg-red-900/20 transition"
               >
-                移除 Logo
+                從資料庫移除 Logo 記錄
               </button>
+            </div>
+          )}
+
+          {lastUploadedLogoUrl && (
+            <div className="mt-4 p-4 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-sm">
+              <p className="font-medium mb-2">✓ 上傳完成。要讓網站顯示這個 Logo，請更新程式碼後重新部署：</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-300">
+                <li><strong>components/Navbar.js</strong> — 將 <code className="bg-black/30 px-1 rounded">SITE_LOGO_URL</code> 改為：<br /><code className="block mt-1 break-all bg-black/50 p-2 rounded text-xs">{lastUploadedLogoUrl}</code></li>
+                <li>儲存後執行 <code className="bg-black/30 px-1 rounded">vercel --prod</code> 或推送到 Git 觸發部署。</li>
+              </ul>
             </div>
           )}
         </div>
@@ -374,15 +289,22 @@ function LogoSettings() {
             </div>
           </div>
 
-          {/* Remove Button */}
-          {settings.appIconUrl && (
+          {(appIconPreview || lastUploadedAppIconUrl) && (
             <div className="flex justify-end">
               <button
                 onClick={handleRemoveAppIcon}
                 className="px-4 py-2 text-red-400 border border-red-700 rounded-lg hover:bg-red-900/20 transition"
               >
-                移除 App Icon
+                從資料庫移除 App Icon 記錄
               </button>
+            </div>
+          )}
+
+          {lastUploadedAppIconUrl && (
+            <div className="mt-4 p-4 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-sm">
+              <p className="font-medium mb-2">✓ App Icon 已儲存。若要在 PWA 使用此圖示：</p>
+              <p className="text-gray-300">請在 <strong>pages/api/manifest.json.js</strong> 的 <code className="bg-black/30 px-1 rounded">icons</code> 中加入此 URL，然後重新部署。</p>
+              <code className="block mt-2 break-all bg-black/50 p-2 rounded text-xs">{lastUploadedAppIconUrl}</code>
             </div>
           )}
         </div>
@@ -391,10 +313,10 @@ function LogoSettings() {
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
           <h3 className="text-lg font-bold text-white mb-4">使用說明</h3>
           <ul className="space-y-2 text-gray-400 text-sm">
-            <li>• Logo 會顯示在網站導航欄左上角</li>
-            <li>• App Icon 會在用戶加入主屏幕時顯示</li>
-            <li>• 建議使用透明背景的 PNG 格式</li>
-            <li>• 上傳後會自動同步到所有頁面</li>
+            <li>• <strong className="text-gray-300">Logo / 網站名稱</strong> 已改為 hardcoded，不會每次讀取 Firebase。上傳後請依上方黃色提示更新程式碼並重新部署。</li>
+            <li>• <strong>Logo：</strong> 更新 <code className="bg-black/50 px-1 rounded">components/Navbar.js</code> 的 <code className="bg-black/50 px-1 rounded">SITE_LOGO_URL</code>、<code className="bg-black/50 px-1 rounded">SITE_NAME</code>。</li>
+            <li>• <strong>App Icon / PWA 名稱：</strong> 更新 <code className="bg-black/50 px-1 rounded">pages/api/manifest.json.js</code> 的 <code className="bg-black/50 px-1 rounded">name</code>、<code className="bg-black/50 px-1 rounded">short_name</code>、<code className="bg-black/50 px-1 rounded">icons</code>。</li>
+            <li>• 建議使用透明背景的 PNG 格式。</li>
           </ul>
         </div>
       </div>

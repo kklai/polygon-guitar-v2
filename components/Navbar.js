@@ -1,15 +1,15 @@
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect } from 'react'
-import { getGlobalSettings } from '@/lib/tabs'
 import { useRouter } from 'next/router'
+
+// Hardcoded so we don't hit Firebase on every page visit
+const SITE_LOGO_URL = 'https://res.cloudinary.com/drld2cjpo/image/upload/v1771502138/artists/site_logo_1771502138235.png'
+const SITE_NAME = 'Polygon 結他譜'
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, isAdmin } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const DEFAULT_LOGO = 'https://res.cloudinary.com/drld2cjpo/image/upload/v1771502138/artists/site_logo_1771502138235.png'
-  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO)
-  const [siteName, setSiteName] = useState('Polygon Guitar')
   const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
 
@@ -33,30 +33,6 @@ export default function Navbar() {
     }
   }, [])
 
-  useEffect(() => {
-    const cachedLogo = localStorage.getItem('pg_logo_url')
-    if (cachedLogo) setLogoUrl(cachedLogo)
-    const cachedName = localStorage.getItem('pg_site_name')
-    if (cachedName) setSiteName(cachedName)
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
-    try {
-      const settings = await getGlobalSettings()
-      if (settings.logoUrl) {
-        setLogoUrl(settings.logoUrl)
-        localStorage.setItem('pg_logo_url', settings.logoUrl)
-      }
-      if (settings.siteName) {
-        setSiteName(settings.siteName)
-        localStorage.setItem('pg_site_name', settings.siteName)
-      }
-    } catch (error) {
-      console.error('Error loading logo settings:', error)
-    }
-  }
-
   const handleLogout = async () => {
     try {
       await logout()
@@ -72,32 +48,17 @@ export default function Navbar() {
           {/* Logo + 副標題 */}
           <div className="flex flex-col justify-end">
             <Link href="/" className="flex flex-col">
-              {logoUrl ? (
-                <>
-                  <img
-                    src={logoUrl}
-                    alt={siteName}
-                    loading="eager"
-                    decoding="async"
-                    style={scrolled ? { width: 140, paddingBottom: 1 } : { height: 40, maxWidth: 160 }}
-                  />
-                  {!scrolled && (
-                    <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
-                      香港廣東歌結他譜網
-                    </span>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span className={`font-bold text-black ${scrolled ? 'text-base' : 'text-xl'}`}>
-                    Polygon Guitar
-                  </span>
-                  {!scrolled && (
-                    <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
-                      香港廣東歌結他譜網
-                    </span>
-                  )}
-                </>
+              <img
+                src={SITE_LOGO_URL}
+                alt={SITE_NAME}
+                loading="eager"
+                decoding="async"
+                style={scrolled ? { width: 140, paddingBottom: 1 } : { height: 40, maxWidth: 160 }}
+              />
+              {!scrolled && (
+                <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
+                  香港廣東歌結他譜網
+                </span>
               )}
             </Link>
           </div>
