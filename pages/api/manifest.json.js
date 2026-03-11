@@ -1,7 +1,7 @@
 // Hardcoded so we don't hit Firebase on every manifest request
 const MANIFEST = {
-  name: 'Polygon 結他譜 - 香港最大結他譜庫',
-  short_name: 'Polygon 結他譜',
+  name: 'Polygon Guitar - 香港最大結他譜庫',
+  short_name: 'Polygon Guitar',  // ← label under home screen icon (keep short, ~12 chars)
   description: '超過 3000 份香港廣東歌、國語歌結他譜，支援轉調、自動滾動',
   start_url: '/',
   display: 'standalone',
@@ -11,9 +11,11 @@ const MANIFEST = {
   scope: '/',
   lang: 'zh-HK',
   icons: [
+    { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+    { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
     { src: '/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
     { src: '/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-    { src: '/favicon.ico', sizes: '64x64 32x32 24x24 16x16', type: 'image/x-icon' }
+    { src: '/favicon.ico', sizes: '64x64 32x32 24x24 16x16', type: 'image/x-icon', purpose: 'any' }
   ]
 }
 

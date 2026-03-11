@@ -1,4 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" fill="#FFD700" rx="24"/>
-  <text x="96" y="136" font-family="system-ui, -apple-system, sans-serif" font-size="120" font-weight="bold" text-anchor="middle" fill="#000000">P</text>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 192 192">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: gold;
+      }
+
+      .cls-1, .cls-2 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #010101;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <rect class="cls-1" width="192" height="192" rx="24" ry="24"/>
+  <path class="cls-2" d="M143.4,99.3l-7.2,12.5,7.2,11.9h-17.9l8.9-15.5h0l7.2-12.5h0l22.7-39.3h-41.1l7.2,12.5h13.1l-8.3,14.3-8.3-14.3h0l-7.2-12.5h0l-23.2-40.5-21.5,37h14.3l6.6-10.7,8.3,14.3H26.6l20.9,36.4,7.2-12.5-6.6-11.9h17.9l-6.6,11.9h0l-8.9,16.1h0l-22.7,39.3h41.1l-7.2-12.5h-12.5l8.3-14.3,8.3,14.3h0l7.2,12.5h0l23.2,40.5,21.5-37h-14.9l-6.6,10.7-8.3-14.3h77.5l-20.9-36.4h-1.2ZM110.6,123.1h-31l-15.5-26.8,16.1-28h31l16.1,26.8s-16.7,28-16.7,28Z"/>
 </svg>

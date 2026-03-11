@@ -548,9 +548,9 @@ function isNumericNotationLine(line) {
     return true;
   }
   
-  // 舊版兼容：有括號數字模式（半形或全形）
+  // 舊版兼容：有括號數字模式（半形或全形），支援 (7,) 低音等
   if (line.includes('(') || line.includes('（')) {
-    const numericBracketPattern = /[\(（]\d+\.?[\)）]/g;
+    const numericBracketPattern = /[\(（]\d+['#,.]?[\)）]/g;
     const numericBrackets = line.match(numericBracketPattern) || [];
     if (numericBrackets.length >= 1 && (notationCount > 3 || digits > 3) && chineseChars < 3 && otherLetters.length <= digits) {
       return true;
@@ -558,6 +558,25 @@ function isNumericNotationLine(line) {
   }
   
   return false;
+}
+
+// 是否為「僅括號內數字簡譜」行，如 (3) (2) (7,) (1) — 唔好當成歌詞行
+function isBracketsOnlyNumberedNotationLine(line) {
+  if (!line || !/[\(（]/.test(line) || /[\|｜\u2502][\s]*[A-G]/.test(line)) return false;
+  const chineseChars = (line.match(/[\u4e00-\u9fff]/g) || []).length;
+  if (chineseChars >= 2) return false;
+  const bracketContentRegex = /[\(（]([^\)）]*)[\)）]/g;
+  let match;
+  let hasNotation = false;
+  let allNotationOrEmpty = true;
+  while ((match = bracketContentRegex.exec(line)) !== null) {
+    const inner = match[1].trim();
+    if (inner.length > 0) {
+      if (/^\d+['#,.]?$/.test(inner)) hasNotation = true;
+      else allNotationOrEmpty = false;
+    }
+  }
+  return hasNotation && allNotationOrEmpty;
 }
 
 // 從簡譜行提取所有音符（支持 1', 5#, 6, 7, 等格式，逗號表示低音）
@@ -1391,7 +1410,8 @@ function splitPairAtSpaceNearestMiddle(pair, result) {
 }
 
 // Wrapper: after render, if chord/lyric line wraps to two lines, split at space nearest middle and re-render as two lines
-function ChordLyricBlockWithWrap({ pair, result, processPair, renderBlock, pairMarginBottom }) {
+// notationContent: optional React node rendered between chord line and lyric line (簡譜)
+function ChordLyricBlockWithWrap({ pair, result, processPair, renderBlock, pairMarginBottom, notationContent }) {
   const containerRef = useRef(null);
   const firstLineRef = useRef(null);
   const [splitPairs, setSplitPairs] = useState(null);
@@ -1418,13 +1438,13 @@ function ChordLyricBlockWithWrap({ pair, result, processPair, renderBlock, pairM
               marginBottom: idx === 0 ? (pairMarginBottom ?? '0.05em') : 0,
             }}
           >
-            {renderBlock(processPair(p), null)}
+            {renderBlock(processPair(p), null, null)}
           </div>
         ))}
       </>
     );
   }
-  return renderBlock(result, { chordLineContainerRef: containerRef, firstChordSpanRef: firstLineRef });
+  return renderBlock(result, { chordLineContainerRef: containerRef, firstChordSpanRef: firstLineRef }, notationContent);
 }
 
 // ============ 主組件 ============
@@ -1683,7 +1703,7 @@ const TabContent = ({
         if (/^\s*[A-G][#b]?\s*\(?.{0,30}capo.{0,30}\)?$/i.test(line)) {
           return false;
         }
-        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/.test(line);
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*((b|#)\d*)?(\/[A-G][#b]?)?(?=\s|$|\||\b)/.test(line);
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
         return hasChordPattern && !hasChinese;
       };
@@ -1692,7 +1712,7 @@ const TabContent = ({
       const checkIsLyricLine = (line) => {
         if (!line) return false;
         const hasChinese = /[\u4e00-\u9fff]/.test(line);
-        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/.test(line);
+        const hasChordPattern = /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*((b|#)\d*)?(\/[A-G][#b]?)?(?=\s|$|\||\b)/.test(line);
         // 有英文單詞（至少2個字母）
         const hasEnglishWords = /[a-zA-Z]{2,}/.test(line);
         // 歌詞行：有中文字或純英文單詞，且沒有和弦模式
@@ -1926,9 +1946,9 @@ const TabContent = ({
       // 檢查是否有 | 開頭的和弦標記
       const hasChordBar = /[\|｜\u2502][\s]*[A-G]/.test(line);
       
-      // 檢查是否為和弦行（支持組合後綴如 madd9, maj7, add9 等）
-      // 和弦格式：[根音][升降]([m/maj/min/sus/dim/aug])([add/7/9/11/13]數字)?
-      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
+      // 檢查是否為和弦行（支持組合後綴如 madd9, maj7, add9、以及 b5/b9/#9 等延伸）
+      // 和弦格式：[根音][升降]([m/maj/min/sus/dim/aug])([add/7/9/11/13]數字)?((b|#)數字)?(斜線根音)?
+      const strictChordPattern = /\b[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*((b|#)\d*)?(\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
       const chordMatches = line.match(strictChordPattern) || [];
       const validChordMatches = chordMatches.filter(m => /^[A-G]/.test(m.trim()));
       const hasBarLineStart = /^[\s]*[\|｜\u2502]/.test(line);
@@ -1936,12 +1956,12 @@ const TabContent = ({
       const isChordOnlyLine = validChordMatches.length > 0 && line.trim().split(/\s+/).every(part => {
         // 檢查每個部分是否為和弦或小節線（含 Unicode 豎線 │）
         if (!part || part === '|' || part === '｜' || part === '\u2502') return true;
-        // 支援 D/F# 這樣的 slash chord 以及 Dmadd9, Cmaj7 等組合後綴
-        const chordWithSlash = part.match(/^[A-G][#b]?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*(\/[A-G][#b]?)?$/);
+        // 支援 D/F#、Bm7b5、E7b9 等（含 (b|#)數字 延伸）
+        const chordWithSlash = part.match(/^[A-G][#b]?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*((b|#)\d*)?(\/[A-G][#b]?)?$/);
         if (chordWithSlash) return true;
         // 清理後再檢查（處理 |G|、│G 這樣的情況）
         const cleanPart = part.replace(/[\|｜\u2502\/\s]/g, '');
-        return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*$/);
+        return !cleanPart || cleanPart.match(/^[A-G](#|b)?(m|maj|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*((b|#)\d*)?$/);
       });
       const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
       // 排除元數據行：包含 Key/Capo/制譜/編譜/原調/調性 關鍵詞的行
@@ -1972,7 +1992,7 @@ const TabContent = ({
         const lyricParts = processLyricLine(line);
         // 檢查上一行是否為和弦行
         const prevLine = lines[i - 1];
-        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(prevLine);
+        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*((b|#)\d*)?(?=\s|$|\||\b)/.test(prevLine);
         const prevHasChinese = prevLine && /[\u4e00-\u9fff]/.test(prevLine);
         const prevIsChord = prevHasChordPattern && !prevHasChinese;
         const marginTop = prevIsChord ? '0em' : '0';
@@ -2012,12 +2032,12 @@ const TabContent = ({
         const notationParts = processNumericNotationLine(line);
         // 檢查上一行是否為和弦行，如果是則緊貼
         const prevLine = lines[i - 1];
-        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(prevLine);
+        const prevHasChordPattern = prevLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*((b|#)\d*)?(?=\s|$|\||\b)/.test(prevLine);
         const prevHasChinese = prevLine && /[\u4e00-\u9fff]/.test(prevLine);
         const prevIsChord = prevHasChordPattern && !prevHasChinese;
         // 檢查下一行是否為和弦行
         const nextLine = lines[i + 1];
-        const nextHasChordPattern = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(nextLine);
+        const nextHasChordPattern = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*((b|#)\d*)?(?=\s|$|\||\b)/.test(nextLine);
         const nextHasChinese = nextLine && /[\u4e00-\u9fff]/.test(nextLine);
         const nextIsChord = nextHasChordPattern && !nextHasChinese;
         const marginTop = prevIsChord ? '0em' : '0';
@@ -2063,6 +2083,7 @@ const TabContent = ({
         // 收集中間的所有簡譜行，找到最終的歌詞行
         const notationLines = [];
         let targetLyricIndex = i + 1;
+        let lastChordLineIndex = i; // 最後一行的和弦行（可能中間有簡譜行）
         
         while (targetLyricIndex < lines.length) {
           const targetLine = lines[targetLyricIndex];
@@ -2074,14 +2095,26 @@ const TabContent = ({
           const targetDigits = (targetLine.match(/\d/g) || []).length;
           const targetHasBrackets = /[\(（]/.test(targetLine);
           
-          // 如果係歌詞行（有中文字、英文單詞、或有括號），且冇和弦，停止搜索
+          // 如果係「僅括號數字簡譜」行如 (3) (2) (7,) (1)，當簡譜行收集，唔好當歌詞行
           const targetEnglish = (targetLine.match(/[a-zA-Z]+/g) || []).length;
+          if (targetHasBrackets && !targetHasChord && isBracketsOnlyNumberedNotationLine(targetLine)) {
+            notationLines.push({ index: targetLyricIndex, line: targetLine });
+            targetLyricIndex++;
+            continue;
+          }
+          // 如果係歌詞行（有中文字、英文單詞、或有括號），且冇和弦，停止搜索
           if ((targetChinese > 0 || targetEnglish > 0 || targetHasBrackets) && !targetHasChord) {
             break;
           }
           // 如果係簡譜行（無括號），收集並繼續搵
           if (targetDigits > 3 && targetChinese < 3 && !targetHasChord && !targetHasBrackets) {
             notationLines.push({ index: targetLyricIndex, line: targetLine });
+            targetLyricIndex++;
+            continue;
+          }
+          // 中間嘅和弦行（如第二行和弦）跳過，繼續搵歌詞行
+          if (targetHasChord) {
+            lastChordLineIndex = targetLyricIndex;
             targetLyricIndex++;
             continue;
           }
@@ -2102,16 +2135,16 @@ const TabContent = ({
         const hasLyric = lyricLine && (lyricChinese > 0 || (lyricEnglish > 0 && !lyricEnglishIsChords) || lyricHasBrackets);
         
         if (hasLyric) {
-          // 和弦行用「緊貼歌詞嗰行」，唔係第一行（多行和弦時第一行可能係 intro）
-          const chordLineForPair = lines[targetLyricIndex - 1];
+          // 和弦行用最後見到的和弦行（可能中間有簡譜行，唔係 targetLyricIndex - 1）
+          const chordLineForPair = lines[lastChordLineIndex] || '';
           const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForPair);
           
           // 若有多行和弦（e.g. intro 行 + 本段和弦行），先單獨顯示前面嘅和弦行
           const firstChordLineIndex = i;
-          const lastChordLineIndex = targetLyricIndex - 1;
           if (lastChordLineIndex > firstChordLineIndex) {
             for (let chordOnlyIdx = firstChordLineIndex; chordOnlyIdx < lastChordLineIndex; chordOnlyIdx++) {
               const chordOnlyLine = lines[chordOnlyIdx];
+              if (!chordOnlyLine || !/[\|｜\u2502][\s]*[A-G]/.test(chordOnlyLine)) continue; // 只顯示和弦行，跳過中間嘅簡譜行
               const { prefix: p, suffix: s, cleanLine: chordOnlyClean } = extractSectionMarkers(chordOnlyLine);
               const transposedChordOnly = transposeChordLine(chordOnlyClean, transposeSemitones);
               const nextLine = lines[chordOnlyIdx + 1];
@@ -2160,100 +2193,101 @@ const TabContent = ({
               ? "Arial, Helvetica, sans-serif"
               : "'Source Code Pro', monospace";
             const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
-            elements.push(
-              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom }}>
-                {/* Notation lines (before combined chord+lyric) */}
-                {pairIndex === 0 && !hideNotation && notationLines.map(({ index, line: notationLine }) => {
-                  const notationFontSize = getLineFontSize(notationLine);
-                  const aligned = alignNotationWithLyrics(notationLine, lyricLine);
-                  const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
-                  const notationMarginBottom = hasRealLyric ? '2px' : '0em';
-                  
-                  if (aligned) {
-                    return (
-                      <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1', maxWidth: '100%', minWidth: 0 }}>
-                        <div style={{ 
-                          fontSize: `${notationFontSize}px`, 
-                          whiteSpace: 'pre-wrap',
-                          overflowWrap: 'break-word',
-                          fontWeight: displayFont === 'arial' ? 'normal' : 300,
-                          fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
-                          color: colors.numericNotation,
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'flex-end',
-                          maxWidth: '100%',
-                          minWidth: 0
-                        }}>
-                          {aligned.map((item, idx) => {
-                            if (item.type === 'text' || item.type === 'bracket') {
-                              return (
-                                <span key={idx} style={{ visibility: 'hidden', whiteSpace: 'pre' }}>
-                                  {item.content}
-                                </span>
-                              );
-                            } else if (item.type === 'pair') {
-                              const displayLyric = (hideBrackets && item.isInside) 
-                                ? item.lyric.replace(/^[\(（]|[\)）]$/g, '') 
-                                : item.lyric;
-                              return (
-                                <span key={idx} style={{
-                                  display: 'inline-flex',
-                                  justifyContent: 'center',
-                                  minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
-                                  color: colors.numericNotation,
-                                  fontWeight: 'bold'
-                                }}>
-                                  {item.notation}
-                                </span>
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    const notationParts = processNumericNotationLine(notationLine);
-                    const hasRealLyric2 = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
-                    const notationMB = hasRealLyric2 ? '2px' : '0em';
-                    return (
-                      <div key={index} style={{ 
-                        fontSize: `${notationFontSize}px`, 
-                        marginBottom: notationMB,
-                        lineHeight: '1.1',
-                        whiteSpace: 'pre-wrap', 
-                        overflowWrap: 'break-word',
-                        fontWeight: displayFont === 'arial' ? 'normal' : 300,
-                        fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
-                        maxWidth: '100%',
-                        minWidth: 0
-                      }}>
-                        {notationParts.map((part, idx) => {
-                          let content = part.content;
-                          if (hideBrackets && part.type === 'inside') {
-                            content = content.replace(/^[\(（]/, ' ').replace(/[\)）]$/, ' ');
-                          }
+            // 簡譜內容：顯示在和弦行下方、歌詞行上方（chord → notation → lyric）
+            const notationContent = pairIndex === 0 && !hideNotation && notationLines.length > 0 ? notationLines.map(({ index, line: notationLine }) => {
+              const notationFontSize = getLineFontSize(notationLine);
+              const aligned = alignNotationWithLyrics(notationLine, lyricLine);
+              const hasRealLyric = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
+              const notationMarginBottom = hasRealLyric ? '2px' : '0em';
+              if (aligned) {
+                return (
+                  <div key={index} style={{ marginBottom: notationMarginBottom, lineHeight: '1.1', maxWidth: '100%', minWidth: 0 }}>
+                    <div style={{
+                      fontSize: `${notationFontSize}px`,
+                      whiteSpace: 'pre-wrap',
+                      overflowWrap: 'break-word',
+                      fontWeight: displayFont === 'arial' ? 'normal' : 300,
+                      fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
+                      color: colors.numericNotation,
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-end',
+                      maxWidth: '100%',
+                      minWidth: 0
+                    }}>
+                      {aligned.map((item, idx) => {
+                        if (item.type === 'text' || item.type === 'bracket') {
                           return (
-                            <span key={idx} style={{
-                              color: part.type === 'inside' ? colors.lyricInside : colors.numericNotation,
-                              fontWeight: part.type === 'inside' ? 'bold' : 'normal'
-                            }}>
-                              {content}
+                            <span key={idx} style={{ visibility: 'hidden', whiteSpace: 'pre' }}>
+                              {item.content}
                             </span>
                           );
-                        })}
-                      </div>
+                        } else if (item.type === 'pair') {
+                          const displayLyric = (hideBrackets && item.isInside)
+                            ? item.lyric.replace(/^[\(（]|[\)）]$/g, '')
+                            : item.lyric;
+                          return (
+                            <span key={idx} style={{
+                              display: 'inline-flex',
+                              justifyContent: 'center',
+                              minWidth: `${getTextWidth(displayLyric) * (notationFontSize / 2)}px`,
+                              color: colors.numericNotation,
+                              fontWeight: 'bold'
+                            }}>
+                              {item.notation}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+              const notationParts = processNumericNotationLine(notationLine);
+              const hasRealLyric2 = lyricLine && (/[\u4e00-\u9fff]/.test(lyricLine) || /[a-zA-Z]+/.test(lyricLine)) && !isNumericNotationLine(lyricLine);
+              const notationMB = hasRealLyric2 ? '2px' : '0em';
+              return (
+                <div key={index} style={{
+                  fontSize: `${notationFontSize}px`,
+                  marginBottom: notationMB,
+                  lineHeight: '1.1',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word',
+                  fontWeight: displayFont === 'arial' ? 'normal' : 300,
+                  fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace",
+                  maxWidth: '100%',
+                  minWidth: 0
+                }}>
+                  {notationParts.map((part, idx) => {
+                    let content = part.content;
+                    if (hideBrackets && part.type === 'inside') {
+                      content = content.replace(/^[\(（]/, ' ').replace(/[\)）]$/, ' ');
+                    }
+                    const innerOnlyNotation = part.type === 'inside' && /^[\(（]\d+['#,.]?[\)）]$/.test(part.content);
+                    const partColor = innerOnlyNotation ? colors.numericNotation : (part.type === 'inside' ? colors.lyricInside : colors.numericNotation);
+                    return (
+                      <span key={idx} style={{
+                        color: partColor,
+                        fontWeight: part.type === 'inside' ? 'bold' : 'normal'
+                      }}>
+                        {content}
+                      </span>
                     );
-                  }
-                })}
+                  })}
+                </div>
+              );
+            }) : null;
 
+            elements.push(
+              <div key={`${i}-${pairIndex}`} style={{ marginBottom: pairMarginBottom }}>
                 <ChordLyricBlockWithWrap
                   pair={pair}
                   result={result}
                   processPair={(p) => processPair(p.chordLine, p.lyricLine, transposeSemitones, hideBrackets, displayFont)}
                   pairMarginBottom={pairMarginBottom}
-                  renderBlock={(res, refs) => (
+                  notationContent={notationContent}
+                  renderBlock={(res, refs, notationContentBetween) => (
                 <>
                 {/* 和弦行 — grid alignment: overflow into remainder when space allows, expand cell when it doesn't */}
                 {useGridAlignment ? (() => {
@@ -2409,6 +2443,9 @@ const TabContent = ({
                   />
                 ))}
 
+                {/* 簡譜行（和弦下方、歌詞上方） */}
+                {notationContentBetween}
+
                 {/* 歌詞行 */}
                 <div
                   data-clean-text={res.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
@@ -2488,7 +2525,7 @@ const TabContent = ({
           // 檢查下一行是否為歌詞行或簡譜行
           const nextLine = lines[i + 1];
           const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine));
-          const nextHasChordOnly = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*(?=\s|$|\||\b)/.test(nextLine) && !/[\u4e00-\u9fff]/.test(nextLine);
+          const nextHasChordOnly = nextLine && /\b[A-G][#b]?(m|maj|min|sus|dim|aug|add|m7|7|9|11|13)?\d*((b|#)\d*)?(?=\s|$|\||\b)/.test(nextLine) && !/[\u4e00-\u9fff]/.test(nextLine);
           const nextIsNotation = nextLine && isNumericNotationLine(nextLine);
           const isFollowedByLyric = (nextHasLyric && !nextHasChordOnly) || nextIsNotation;
           const chordMarginBottom = isFollowedByLyric ? '0em' : `${lineFontSize * 0.6}px`;
