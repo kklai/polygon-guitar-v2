@@ -41,8 +41,10 @@ export default function Search() {
   const [addingToPlaylist, setAddingToPlaylist] = useState(null)
   const [songs, setSongs] = useState([])
   const [artists, setArtists] = useState([])
+  const [playlists, setPlaylists] = useState([])
   const [filteredSongs, setFilteredSongs] = useState([])
   const [filteredArtists, setFilteredArtists] = useState([])
+  const [filteredPlaylists, setFilteredPlaylists] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchHistory, setSearchHistory] = useState([])
   const [isSearchFocused, setIsSearchFocused] = useState(false)
@@ -52,6 +54,7 @@ export default function Search() {
   const applyData = useCallback((data) => {
     setSongs(data.tabs || [])
     setArtists(data.artists || [])
+    setPlaylists(data.playlists || [])
   }, [])
 
   useEffect(() => {
@@ -87,6 +90,7 @@ export default function Search() {
     if (searchQuery.trim() === '') {
       setFilteredSongs([])
       setFilteredArtists([])
+      setFilteredPlaylists([])
       return
     }
     const q = searchQuery.toLowerCase()
@@ -98,17 +102,29 @@ export default function Search() {
           (song.composer && song.composer.toLowerCase().includes(q)) ||
           (song.lyricist && song.lyricist.toLowerCase().includes(q)) ||
           (song.arranger && song.arranger.toLowerCase().includes(q)) ||
-          (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(q))
+          (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(q)) ||
+          (song.arrangedBy && song.arrangedBy.toLowerCase().includes(q))
       )
     )
     setFilteredArtists(artists.filter((artist) => artist.name?.toLowerCase().includes(q)))
-  }, [searchQuery, songs, artists])
+    setFilteredPlaylists(
+      playlists.filter(
+        (pl) =>
+          pl.title?.toLowerCase().includes(q) ||
+          (pl.description && pl.description.toLowerCase().includes(q))
+      )
+    )
+  }, [searchQuery, songs, artists, playlists])
 
+  // 載入時自動 focus 搜尋欄；iPhone Safari 除外（避免 zoom/自動點擊問題）
+  const isIOSSafari = typeof navigator !== 'undefined' &&
+    /iPhone|iPod/.test(navigator.userAgent) &&
+    !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent)
   useEffect(() => {
-    const fromNav = typeof window !== 'undefined' && sessionStorage.getItem('pg_focus_search')
-    if (fromNav) {
-      try { sessionStorage.removeItem('pg_focus_search') } catch (_) {}
-    }
+    if (typeof window === 'undefined') return
+    try { sessionStorage.removeItem('pg_focus_search') } catch (_) {}
+    const isIOSSafari = /iPhone|iPod/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent)
+    if (isIOSSafari) return
     const id = requestAnimationFrame(() => {
       inputRef.current?.focus()
     })
@@ -202,7 +218,7 @@ export default function Search() {
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setIsSearchFocused(false)}
                 className="w-full pl-11 pr-10 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none transition text-base"
-                autoFocus
+                autoFocus={!isIOSSafari}
               />
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#FFD700]"
@@ -339,12 +355,38 @@ export default function Search() {
         {/* 結果區域：留位俾固定搜尋欄 */}
         {hasResults && (
           <div
-            className="space-y-4 pl-4 pr-4"
+            className="space-y-5 pl-4 pr-4"
             style={{ paddingTop: 'calc(5.5rem + env(safe-area-inset-top, 0px))' }}
           >
+            {filteredPlaylists.length > 0 && (
+              <section>
+                <h2 className="font-bold text-white mb-2 text-[1.3rem]">歌單</h2>
+                <div className="-mx-4">
+                  <div className="flex overflow-x-auto scrollbar-hide gap-3 px-4">
+                    {filteredPlaylists.map((pl) => (
+                      <Link
+                        key={pl.id}
+                        href={`/playlist/${pl.id}`}
+                        className="flex-shrink-0 flex flex-col items-center"
+                      >
+                        <div className="w-20 h-20 rounded-[4px] overflow-hidden bg-gray-800 mb-2">
+                          {pl.coverImage ? (
+                            <img src={pl.coverImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl">📋</div>
+                          )}
+                        </div>
+                        <span className="text-sm text-gray-300 truncate max-w-[80px] text-center">{pl.title}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {filteredArtists.length > 0 && (
               <section>
-                <h2 className="font-bold text-white mb-4 text-[1.3rem]">歌手</h2>
+                <h2 className="font-bold text-white mb-2 text-[1.3rem]">歌手</h2>
                 <div className="-mx-4">
                   <div className="flex overflow-x-auto scrollbar-hide gap-3 px-4">
                   {filteredArtists.map((artist) => (
@@ -416,7 +458,7 @@ export default function Search() {
               </section>
             )}
 
-            {!isLoading && filteredSongs.length === 0 && filteredArtists.length === 0 && (
+            {!isLoading && filteredSongs.length === 0 && filteredArtists.length === 0 && filteredPlaylists.length === 0 && (
               <div className="text-center py-12">
                 <span className="text-4xl mb-4 block">🔍</span>
                 <p className="text-gray-500">找不到「{searchQuery}」的結果</p>

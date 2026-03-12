@@ -961,7 +961,7 @@ export default function TabRequestsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">POLYGON求譜區</h1>
-            <p className="text-gray-500 text-sm mt-1">搵人幫手出譜，或者幫人出譜</p>
+            <p className="text-gray-500 text-sm mt-1">搵人求譜．幫人出譜</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
