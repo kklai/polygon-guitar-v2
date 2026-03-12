@@ -956,7 +956,10 @@ export default function TabRequestsPage() {
 
   return (
     <Layout>
-      <div className={`px-4 ${modalOpen ? 'pointer-events-none' : ''}`}>
+      <div
+        className={`px-4 ${modalOpen ? 'pointer-events-none' : ''}`}
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

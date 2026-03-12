@@ -118,11 +118,10 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
   if (artists.length === 0) return null
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 mb-4 px-1">
-        <div className="w-1 h-6 rounded-full" style={{ backgroundColor: color }}></div>
+    <div className="mb-5">
+      <div className="flex items-center gap-1 mb-4 px-1">
+        <span className="w-1 h-5 rounded-full flex-shrink-0 translate-y-[7px]" style={{ backgroundColor: color }} aria-hidden />
         <h2 className="text-xl font-bold text-white">{title}</h2>
-        <span className="text-sm text-gray-500">({artists.length})</span>
       </div>
 
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
@@ -287,19 +286,31 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
           <div className="relative">
             <input
               type="text"
-              placeholder="搜尋歌手..."
+              placeholder="搜尋歌手"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-[#282828] rounded-full text-white placeholder-[#666] outline-none"
+              className="w-full pl-11 pr-10 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none transition text-base"
             />
             <svg
-              className="absolute left-4 top-3.5 w-5 h-5 text-[#666]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#FFD700]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666] hover:text-white p-1"
+                aria-label="清除"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -353,7 +364,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
             ))}
           </div>
         ) : filteredArtists.length > 0 ? (
-          <div>
+          <div className="mt-0">
             {activeCategory === 'all' ? (
               <>
                 <HorizontalScrollSection

@@ -246,7 +246,7 @@ export default function Library() {
 
   return (
     <Layout fullWidth>
-      <div className="min-h-screen bg-black pb-24" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
+      <div className="bg-black pb-24" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
         {/* Header：左邊頭像+標題，右上角排序 icon */}
         <div className="pt-6 pb-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">

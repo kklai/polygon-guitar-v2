@@ -200,7 +200,7 @@ export default function Search() {
   return (
     <Layout hideHeader>
       <div
-        className={`bg-black pb-24 ${hasResults || searchHistory.length > 0 ? 'min-h-screen' : 'h-screen overflow-hidden'}`}
+        className={`bg-black pb-24 ${!(hasResults || searchHistory.length > 0) ? 'h-screen overflow-hidden' : ''}`}
       >
         {/* 搜尋欄固定喺頂部 */}
         <div
