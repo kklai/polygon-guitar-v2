@@ -6,7 +6,8 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from '@/lib/firestore-tracked';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
-import { getTabsByArtist, getArtistBySlug } from '../../lib/tabs';
+import { getTabsByArtist, getArtistBySlug, slimTabForArtistPage } from '../../lib/tabs';
+import { getArtistPageCache, setArtistPageCache } from '../../lib/artistPageCache';
 import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
 import { recordArtistView } from '../../lib/recentViews';
@@ -129,38 +130,36 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     }
 
     try {
-      let artistDoc = await getDoc(doc(db, 'artists', id));
-      // 若用 doc id 搵唔到（例如改名後用新 slug 入嚟），改用 normalizedName 查
-      if (!artistDoc.exists()) {
-        const bySlug = await getArtistBySlug(id);
-        if (!bySlug) {
-          router.push('/artists');
-          return;
-        }
-        artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) };
+      const res = await fetch(`/api/artist-page?id=${encodeURIComponent(id)}`);
+      if (res.status === 404) {
+        router.push('/artists');
+        return;
       }
-      const artistData = { id: artistDoc.id, ...artistDoc.data() };
+      if (!res.ok) {
+        throw new Error(res.statusText || 'Failed to load');
+      }
+      const data = await res.json();
+      const artistData = data.artist;
+      const hotTabs = data.hotTabs || [];
+      const allTabs = data.allTabs || [];
       setArtist(artistData);
+      setHotTabs(hotTabs);
+      setAllTabs(allTabs);
       setLoading(false);
 
       if (!cached) {
         recordArtistView(user?.uid || null, artistData);
-        recordView('artist', artistDoc.id); // 收藏頁「最近瀏覽」用 document id
-        recordPageView('artist', artistDoc.id, artistData.name, {
+        recordView('artist', artistData.id);
+        recordPageView('artist', artistData.id, artistData.name, {
           pageName: artistData.name,
           photoURL: artistData.photoURL || artistData.wikiPhotoURL
         }, user?.uid || null);
       }
 
-      const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
-      tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-      setHotTabs(tabs.slice(0, 5));
-      setAllTabs(tabs);
-
       saveArtistCache(id, {
         artist: artistData,
-        hotTabs: tabs.slice(0, 5),
-        allTabs: tabs
+        hotTabs,
+        allTabs
       });
     } catch (error) {
       console.error('載入歌手資料失敗:', error);
@@ -1146,14 +1145,36 @@ export async function getStaticProps({ params }) {
       artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) };
     }
     const artistData = { id: artistDoc.id, ...artistDoc.data() };
-    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistData.id);
+    const artistId = artistData.id;
+
+    const cached = await getArtistPageCache(artistId);
+    if (cached?.artist && Array.isArray(cached.allTabs)) {
+      return {
+        props: {
+          initialArtist: serializeForProps(cached.artist),
+          initialHotTabs: serializeForProps(cached.hotTabs || []),
+          initialAllTabs: serializeForProps(cached.allTabs)
+        },
+        revalidate: 300
+      };
+    }
+
+    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId);
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-    const initialHotTabs = tabs.slice(0, 5);
+    const slimTabs = tabs.map(slimTabForArtistPage);
+    const initialHotTabs = slimTabs.slice(0, 5);
+    const payload = {
+      artist: artistData,
+      hotTabs: initialHotTabs,
+      allTabs: slimTabs
+    };
+    await setArtistPageCache(artistId, payload);
+
     return {
       props: {
         initialArtist: serializeForProps(artistData),
         initialHotTabs: serializeForProps(initialHotTabs),
-        initialAllTabs: serializeForProps(tabs)
+        initialAllTabs: serializeForProps(slimTabs)
       },
       revalidate: 300
     };

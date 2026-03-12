@@ -1,0 +1,21 @@
+Where	What	Reads	When	Mitigation
+Artist page artists/[id].js	getTabsByArtist()	Up to 6 × (all matching tabs)	Every artist visit	Add limit(50–100) + "Load more" / pagination
+lib/searchData.js	buildSearchDataPayload()	~3.2k tabs + ~500 artists	Search-data cold only (cache miss or admin rebuild)	Already cached 24h; cold is rare
+lib/playlists.js	generateAutoPlaylist(type) without preload	All tabs	When called without songsPreloaded	Always call via refreshAllAutoPlaylists() which passes preloaded songs
+lib/playlists.js	refreshAllAutoPlaylists()	All tabs (once)	Cron or manual refresh	Acceptable; run infrequently
+lib/playlists.js	getAllActivePlaylists()	All playlists	Home cold, playlist-page cold	5-min in-memory cache; playlist count is small
+lib/tabs.js	getAllTabs()	1 when cache fresh; all tabs on cold	Admin pages (see below)	24h Firestore cache cache/allTabs; cold = rebuild then 1 write
+lib/tabs.js	getAllTabs({ withContent: true })	All tabs (full docs)	data-review, analyze-tabs API	No cache; admin-only. Consider sampling or background job.
+lib/tabs.js	getAllArtists()	All artists	Admin + home cold (buildHomeDataPayload)	5-min in-memory cache only; no Firestore cache
+ArtistInputSimple.jsx	getDocs(collection(db, 'artists'))	All artists	Fallback when prefix search returns <5 and user typed	Prefer loading search-data first so this path is rare
+MultiArtistInput.jsx	getDocs(collection(db, 'artists'))	All artists	Same fallback	Same as above
+pages/admin/migrated-tabs.js	getDocs(collection(db, 'tabs'))	All tabs	Admin: migrated tabs list load	Admin-only; could use getAllTabs() + cache
+pages/admin/merge-artists.js	getDocs(collection(db, 'artists'))	All artists	Admin: merge tool	Admin-only
+pages/admin/artists-v2.js	getDocs(artists orderBy name)	All artists	Admin: singer list	Admin-only
+pages/admin/artists.js	getDocs(collection(db, 'artists'))	All artists	Admin (legacy?)	Admin-only
+pages/admin/artist-report.js	artists + tabs	All artists + all tabs	Admin: report	Admin-only
+pages/admin/artists-region.js	getDocs(collection(db, 'artists'))	All artists	Admin	Admin-only
+pages/admin/categorize-artists.js	getDocs(collection(db, 'artists'))	All artists	Admin	Admin-only
+pages/admin/artists-sort.js	getDocs(collection(db, 'artists'))	All artists	Admin	Admin-only
+pages/admin/update-spotify-photos.js	getDocs(artists orderBy name)	All artists	Admin	Admin-only
+pages/api/migrate-tabs.js	getDocs(collection(db, 'tabs'))	All tabs	Migration API	One-off / internal

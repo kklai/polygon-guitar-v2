@@ -327,10 +327,13 @@ export default function TabDetail({ initialTab }) {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/tabs/${tab.id}`;
+    const shareArtistName = tab.collaborators?.length > 1
+      ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
+      : (tab.artist || '');
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
-          title: `${tab.title} - ${tab.artist}`,
+          title: `${tab.title} - ${shareArtistName}`,
           url
         });
       } catch (err) {
@@ -445,18 +448,23 @@ export default function TabDetail({ initialTab }) {
 
   const effectiveArtistPhoto = tab.artistPhoto || fallbackArtistPhoto
 
+  // Show all collaborators when present; otherwise use tab.artist
+  const artistDisplayName = tab.collaborators?.length > 1
+    ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
+    : (tab.artist || '')
+
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
 
   // SEO 配置
-  const seoTitle = generateTabTitle(tab.title, tab.artist)
-  const seoDescription = generateTabDescription(tab.title, tab.artist, tab.originalKey || 'C')
+  const seoTitle = generateTabTitle(tab.title, artistDisplayName)
+  const seoDescription = generateTabDescription(tab.title, artistDisplayName, tab.originalKey || 'C')
   const seoUrl = `${siteConfig.url}/tabs/${tab.id}`
   
   // 結構化數據
-  const tabSchema = generateTabSchema(tab, { name: tab.artist, photoURL: tab.thumbnail || effectiveArtistPhoto })
+  const tabSchema = generateTabSchema(tab, { name: artistDisplayName, photoURL: tab.thumbnail || effectiveArtistPhoto })
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
-    { name: tab.artist, url: `${siteConfig.url}/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}` },
+    { name: artistDisplayName, url: `${siteConfig.url}/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}` },
     { name: tab.title, url: seoUrl }
   ])
 
@@ -477,7 +485,7 @@ export default function TabDetail({ initialTab }) {
         <meta property="og:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || effectiveArtistPhoto)} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
+        <meta property="og:image:alt" content={`${tab.title} - ${artistDisplayName} 結他譜`} />
         <meta property="article:published_time" content={tab.createdAt} />
         <meta property="article:modified_time" content={tab.updatedAt} />
         
@@ -487,7 +495,7 @@ export default function TabDetail({ initialTab }) {
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content={getAbsoluteOgImage(tab.coverImage || tab.albumImage || tab.thumbnail || effectiveArtistPhoto)} />
-        <meta name="twitter:image:alt" content={`${tab.title} - ${tab.artist} 結他譜`} />
+        <meta name="twitter:image:alt" content={`${tab.title} - ${artistDisplayName} 結他譜`} />
         
         {/* 結構化數據 JSON-LD */}
         <script
@@ -554,7 +562,7 @@ export default function TabDetail({ initialTab }) {
                     href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
                     className="text-gray-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate"
                   >
-                    {tab.artist}
+                    {artistDisplayName}
                   </Link>
                   {/* 合唱/feat 標籤 */}
                   {tab.isCollaboration && (
@@ -693,7 +701,7 @@ export default function TabDetail({ initialTab }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-white font-medium truncate">{tab.title}</h4>
-                  <p className="text-[#B3B3B3] text-sm">{tab.artist}</p>
+                  <p className="text-[#B3B3B3] text-sm">{artistDisplayName}</p>
                 </div>
               </div>
               
