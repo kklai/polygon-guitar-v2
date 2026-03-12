@@ -1,5 +1,4 @@
 import { useRouter } from 'next/router'
-import { useState, useRef, useEffect } from 'react'
 import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from './Navbar'
@@ -9,26 +8,6 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
   const router = useRouter()
   const { isAdmin } = useAuth()
   const currentPath = router.pathname
-
-  // 底 nav 點擊動畫：立即 100(solid) → 50ms 後 90 → 再 110ms 100(solid)
-  const [tappedPath, setTappedPath] = useState(null)
-  const [tapPhase, setTapPhase] = useState(0) // 0=100, 1=85, 2=100
-  const tapTimeoutsRef = useRef([])
-  useEffect(() => () => {
-    tapTimeoutsRef.current.forEach(clearTimeout)
-    tapTimeoutsRef.current = []
-  }, [])
-
-  const handleNavPointerDown = (path) => {
-    tapTimeoutsRef.current.forEach(clearTimeout)
-    tapTimeoutsRef.current = []
-    setTappedPath(path)
-    setTapPhase(0)
-    tapTimeoutsRef.current.push(setTimeout(() => setTapPhase(1), 50))
-    tapTimeoutsRef.current.push(setTimeout(() => setTapPhase(2), 160))
-  }
-
-  const getTapScaleClass = (phase) => (phase === 1 ? 'scale-[0.9]' : 'scale-100')
 
   // 檢查當前頁面是否激活
   const isActive = (path) => {
@@ -107,6 +86,18 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
         </svg>
       )
     }
+    // 求譜：選中時結他實心 SVG，未選中時結他線框 SVG
+    if (name === 'hand') {
+      return (
+        <svg className={`${className} shrink-0 text-inherit transition-colors`} viewBox="0 0 634.7 905.9">
+          {active ? (
+            <path fill="currentColor" d="M543,171c-21.48,0-41.17,7.79-56.4,20.69-15.23-12.9-34.92-20.69-56.4-20.69s-41.17,7.79-56.4,20.69c-15.23-12.9-34.92-20.69-56.4-20.69s-41.17,7.79-56.4,20.69c-15.23-12.9-34.92-20.69-56.4-20.69-48.19,0-87.4,39.21-87.4,87.4v57.67c-8.04-2.45-16.57-3.77-25.4-3.77-48.19,0-87.4,39.21-87.4,87.4v173.4c0,46.77,7.29,90.65,21.67,130.42,14.41,39.86,35.64,74.86,63.12,104.03,27.81,29.53,61.37,52.41,99.75,68.01,38.93,15.82,82.15,23.84,128.46,23.84s89.54-8.02,128.47-23.84c38.38-15.6,71.94-38.48,99.75-68.01,27.48-29.17,48.71-64.17,63.12-104.03,14.38-39.77,21.67-83.65,21.67-130.42v-314.7c0-48.19-39.21-87.4-87.4-87.4ZM543,233c14.01,0,25.4,11.39,25.4,25.4v31.74c-.1,1-.15,2.02-.15,3.04v79.74c0,14.01-11.39,25.4-25.4,25.4-13.08,0-23.88-9.94-25.25-22.67v-117.25c0-14.01,11.39-25.4,25.4-25.4ZM430.2,233c14,0,25.4,11.39,25.4,25.4v31.75c-.1,1-.15,2.01-.15,3.03v79.74c0,.44.01.87.02,1.31-.68,13.4-11.8,24.09-25.37,24.09s-24.19-10.23-25.3-23.22v-116.7c0-14.01,11.39-25.4,25.4-25.4ZM317.4,233c14.01,0,25.4,11.39,25.4,25.4v32.41c-.06.78-.1,1.57-.1,2.37v79.74c0,.44.01.87.02,1.31-.68,13.4-11.8,24.09-25.37,24.09s-24.56-10.58-25.35-23.88v-116.04c0-14.01,11.39-25.4,25.4-25.4ZM179.2,258.4c0-14.01,11.39-25.4,25.4-25.4s25.4,11.39,25.4,25.4v33.06c-.03.57-.05,1.14-.05,1.72v79.74c0,.44.01.87.02,1.31-.68,13.4-11.8,24.09-25.37,24.09s-25.4-11.39-25.4-25.4v-114.52ZM568.4,573.1c0,160.56-98.52,264.3-251,264.3s-251-103.74-251-264.3v-173.4c0-14.01,11.39-25.4,25.4-25.4s24.53,10.55,25.35,23.83c-.03.55-.05,1.11-.05,1.67v126.2c0,17.12,13.88,31,31,31,27.41,0,47.14,6.44,60.33,19.68,24.57,24.66,24.39,71.34,24.28,99.24,0,1.88-.01,3.67-.01,5.38,0,17.12,13.88,31,31,31s31-13.88,31-31c0-1.64,0-3.35.01-5.15.13-35.06.38-100.33-42.36-143.23-18.86-18.93-43.38-30.84-73.16-35.58v-40.79c8.04,2.45,16.57,3.77,25.4,3.77,21.47,0,41.15-7.78,56.38-20.67,15.23,12.89,34.91,20.67,56.38,20.67s41.15-7.78,56.37-20.67c15.23,12.89,34.91,20.67,56.37,20.67s41.15-7.78,56.38-20.67c15.23,12.89,34.91,20.67,56.37,20.67,8.89,0,17.47-1.34,25.55-3.81v116.59Z" />
+          ) : (
+            <path fill="currentColor" d="M543,151c-8.83,0-17.36,1.32-25.4,3.77v-32.57c0-48.19-39.21-87.4-87.4-87.4-14.64,0-28.45,3.63-40.59,10.02-15.75-23.05-42.24-38.22-72.21-38.22-38.64,0-71.49,25.2-83.01,60.03-9.3-3.38-19.34-5.23-29.79-5.23-48.19,0-87.4,39.21-87.4,87.4v167.27c-8.04-2.45-16.57-3.77-25.4-3.77-48.19,0-87.4,39.21-87.4,87.4v173.4c0,46.77,7.29,90.65,21.67,130.42,14.41,39.86,35.64,74.86,63.12,104.03,27.81,29.53,61.37,52.41,99.75,68.01,38.93,15.82,82.15,23.84,128.46,23.84s89.54-8.02,128.47-23.84c38.38-15.6,71.94-38.48,99.75-68.01,27.48-29.17,48.71-64.17,63.12-104.03,14.38-39.77,21.67-83.65,21.67-130.42V238.4c0-48.19-39.21-87.4-87.4-87.4ZM568.4,573.1c0,160.56-98.52,264.3-251,264.3s-251-103.74-251-264.3v-173.4c0-14.01,11.39-25.4,25.4-25.4s24.53,10.55,25.35,23.83c-.03.55-.05,1.11-.05,1.67v126.2c0,17.12,13.88,31,31,31,27.41,0,47.14,6.44,60.33,19.68,24.57,24.66,24.39,71.34,24.28,99.24,0,1.88-.01,3.67-.01,5.38,0,17.12,13.88,31,31,31s31-13.88,31-31c0-1.64,0-3.35.01-5.15.13-35.06.38-100.33-42.36-143.23-18.88-18.95-43.44-30.87-73.26-35.59v-76.95c.06-.79.1-1.58.1-2.38V148.8c0-14.01,11.39-25.4,25.4-25.4s25.4,11.39,25.4,25.4v245.7c0,17.12,13.88,31,31,31s31-13.88,31-31V94c0-14.01,11.39-25.4,25.4-25.4s25.4,11.39,25.4,25.4v295.3c0,17.12,13.88,31,31,31s31-13.88,31-31V122.2c0-14.01,11.39-25.4,25.4-25.4s25.4,11.39,25.4,25.4v295.8c0,17.12,13.88,31,31,31s31-13.88,31-31v-179.6c0-14.01,11.39-25.4,25.4-25.4s25.4,11.39,25.4,25.4v334.7Z" />
+          )}
+        </svg>
+      )
+    }
     // 首頁：一律用自訂 SVG；選中前兩 path（屋+橫線）、選中後單 path（屋實心）
     if (name === 'home') {
       return (
@@ -165,35 +156,30 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
       </main>
       
       {/* 手機版底部導航 - 黃底黑字設計 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 md:hidden" style={{ paddingBottom: 'min(env(safe-area-inset-bottom, 0px), 30px)' }}>
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-[100] md:hidden" style={{ paddingBottom: 'min(env(safe-area-inset-bottom, 0px), 30px)' }}>
         <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
-          {mobileNavItems.map((item) => {
-            const isTapped = tappedPath === item.path
-            const scaleClass = isTapped ? getTapScaleClass(tapPhase) : 'scale-100'
-            return (
-              <Link 
-                key={item.path}
-                href={item.path}
-                onPointerDown={() => handleNavPointerDown(item.path)}
-                className={`flex flex-col items-center transition group transition-transform duration-100 ${scaleClass} ${
-                  isActive(item.path) || isTapped ? 'text-black font-bold' : 'text-black/60 hover:text-black'
-                }`}
-              >
-                <Icon 
-                  name={item.icon} 
-                  iconUrl={navIcons[item.icon]}
-                  label={item.label}
-                  active={isActive(item.path) || isTapped}
-                  className={item.icon === 'hand' ? 'w-[34px] h-[34px] translate-y-[1px]' : 'w-[32px] h-[32px]'}
-                />
-                <span className="text-xs mt-0.5 font-medium">{item.label}</span>
-              </Link>
-            )
-          })}
+          {mobileNavItems.map((item) => (
+            <Link 
+              key={item.path}
+              href={item.path}
+              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] group ${
+                isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
+              }`}
+            >
+              <Icon 
+                name={item.icon} 
+                iconUrl={navIcons[item.icon]}
+                label={item.label}
+                active={isActive(item.path)}
+                className={item.icon === 'hand' ? 'w-[26px] h-[26px] translate-y-[2.1px]' : 'w-[32px] h-[32px]'}
+              />
+              <span className={`text-xs font-medium ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
+            </Link>
+          ))}
         </div>
       </nav>
 
-      {/* 桌面版底部導航 - 黃底黑字設計；唔用 scale 動畫，避免 transition 影響桌面點擊/導航 */}
+      {/* 桌面版底部導航 - 黃底黑字設計 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
@@ -209,16 +195,16 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                     isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
                   }`}
                 >
-                  <div className={`flex items-center justify-center shrink-0 ${item.icon === 'hand' ? 'h-[34px] w-[34px]' : 'h-8 w-8'}`}>
+                  <div className={`flex items-center justify-center shrink-0 ${item.icon === 'hand' ? 'h-[26px] w-[26px]' : 'h-8 w-8'}`}>
                     <Icon 
                       name={item.icon} 
                       iconUrl={navIcons[item.icon]}
                       label={item.label}
                       active={isActive(item.path)}
-                      className={item.icon === 'hand' ? 'w-[34px] h-[34px] translate-y-[1px]' : 'w-[32px] h-[32px]'}
+                      className={item.icon === 'hand' ? 'w-[26px] h-[26px] translate-y-[2.1px]' : 'w-[32px] h-[32px]'}
                     />
                   </div>
-                  <span className="text-xs mt-0.5 font-medium">{item.label}</span>
+                  <span className={`text-xs font-medium ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
                 </Link>
             ))}
           </div>
