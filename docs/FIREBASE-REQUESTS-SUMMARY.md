@@ -80,7 +80,7 @@ TSV: [firebase-full-collection-reads.tsv](./firebase-full-collection-reads.tsv)
 | **Artist page** | 1 (artist doc) + **getTabsByArtist (up to 6 queries × all matching tabs)** + 1 (saved) | **Main hot spot** — no limit on tab queries |
 | **Tab (song) page** | 1 (tab, 5-min cache) + M (comments) | M = comment count |
 | **Playlist page** | **1** (cache/playlist_{id}, 10 min) + 1 if logged in (saved) | Cold: getPlaylist + getPlaylistSongs + getAllActivePlaylists then 1 write |
-| **Library** (logged in) | 4 queries + ceil(P/30) + ceil(A/30) + cover tab docs + 1 recent | P = playlists, A = saved artists; cover tabs = N× getDoc(tabs) — could switch to getTabsByIds |
+| **Library** (logged in) | **1 HTTP** to `/api/me/library` (server: 4 queries + ceil(P/30) + ceil(A/30)) + client getTabsByIds(cover ids) + 1 recent | Single round-trip for user data; cover tabs batched on client. Fallback: direct Firestore if API fails. |
 | **Library – Liked** | N (userLikedSongs) + N (getTabsByIds batched by 10) | 2N total |
 | **Library – Recent** | getTabsByIds(up to 20) | Up to 20 reads (batched) |
 | **Library – User playlist** | 1 (playlist doc) + getTabsByIds(songIds) | Batched by 10 |
@@ -95,6 +95,7 @@ TSV: [firebase-full-collection-reads.tsv](./firebase-full-collection-reads.tsv)
 | `GET /api/home-data` | **1** (cache/homePage) when warm | 6h cache |
 | `GET /api/artists` | **1** (getSearchData) | Same as search-data |
 | `GET /api/playlist-page?id=...` | **1** (playlist page cache) when warm | 10 min cache; cold = getPlaylist + getPlaylistSongs + getAllActivePlaylists |
+| `GET /api/me/library` | 4 queries + ceil(P/30) + ceil(A/30) | Auth: Bearer &lt;idToken&gt;. Returns likedSongIds, playlists, savedPlaylists, savedArtists in one response. |
 | `POST /api/admin/rebuild-all-tabs-cache` | Writes cache only (uses buildAllTabsSlim) | After this, getAllTabs = 1 read for 24h |
 | `POST /api/admin/analyze-tabs` | **getAllTabs({ withContent: true })** | Full tabs read |
 | `pages/api/migrate-tabs.js` | getDocs(collection(tabs)) | Full tabs; migration use |
@@ -109,8 +110,41 @@ TSV: [firebase-full-collection-reads.tsv](./firebase-full-collection-reads.tsv)
 | `cache/searchData` | 24h | Search, artists list, dropdowns, tab cover fallback | 1 |
 | `cache/allTabs` | 24h | getAllTabs() (admin tools) | 1 |
 | `cache/playlist_{id}` | 10 min | Playlist page, GET /api/playlist-page | 1 |
+| `cache/tabRequestsList` | Manual refresh | GET /api/tab-requests | 1 when warm; **full collection** when cold |
 | In-memory (lib/tabs.js) | 5 min | getRecentTabs, getHotTabs, getPopularArtists, getAllArtists | 0 (after first hit per instance) |
 | In-memory (lib/playlists.js) | 5 min | getAllActivePlaylists, getAutoPlaylists, getManualPlaylists | 0 (after first hit) |
+
+---
+
+## 6b. Why `/api/me/library` and tab-requests hit RESOURCE_EXHAUSTED (quota) and other pages don’t
+
+| Path | Reads per request | Uses cache? | SDK |
+|------|-------------------|------------|-----|
+| **Home** (`/api/home-data`) | **1** when warm | ✅ `cache/homePage` | Client SDK (server-side) |
+| **Search** (`/api/search-data`) | **1** when warm | ✅ `cache/searchData` | Client SDK |
+| **Playlist page** | **1** when warm | ✅ `cache/playlist_{id}` | Admin (artist-page cache) / client |
+| **Tab requests** (`getTabRequestsCache`) | **1** when warm; **N** (full collection) when cold | ✅ `cache/tabRequestsList` | **Admin SDK** |
+| **Library** (`/api/me/library`) | **4 + ceil(P/30) + ceil(A/30)** every time | ❌ No cache | **Admin SDK** |
+
+- **Other pages** (home, search, playlist, artist when cached): Do **1 read** when cache is warm (single doc). So many visits = still 1 read each. Quota is rarely hit.
+- **`/api/me/library`**: Has **no cache**. Every library visit does 4+ queries plus batch reads for playlists/artists. Each visit adds a lot of reads; under traffic or on a tight quota this path quickly hits RESOURCE_EXHAUSTED.
+- **Tab requests**: Uses Admin SDK to read **one cache doc** when warm (1 read). When the cache doc is **missing or cold**, the code falls back to **buildTabRequestsPayload()**, which reads the **entire `tabRequests` collection** (N reads). So cold tab-requests also adds many reads. If quota is already stressed, even the single cache read can return RESOURCE_EXHAUSTED.
+
+**Takeaway:** Paths that hit quota either (1) have **no cache** and do many reads every time (api/me/library), or (2) use **Admin SDK** and when cache is cold do a full collection read (tab requests). To reduce quota errors: add a short-lived cache or Firestore cache doc for library (e.g. `cache/userLibrary/{uid}` or in-memory TTL), and ensure tab-requests cache is warmed (e.g. cron or manual rebuild after deploy) so cold builds are rare.
+
+---
+
+## 6c. Admin SDK vs Client SDK — can these two use Client SDK?
+
+| | **Client SDK** (e.g. `lib/firebase` + `firestore-tracked`) | **Admin SDK** (`firebase-admin`) |
+|--|----------------------------------------------------------------|----------------------------------|
+| **Runs in** | Browser or Node (e.g. API route) | Node only (API routes, scripts) |
+| **Auth** | Uses Firebase Auth in the app (user or anonymous). In Node there is no `request.auth` unless you sign in. | Uses a **service account**; **bypasses Firestore Rules**. Can read/write anything. |
+| **Rules** | All requests checked against **Firestore Security Rules** (e.g. “read if request.auth.uid == userId”). | Rules are **not** applied; full access. |
+| **Quota** | Same Firestore project quota as Admin. Switching SDK does **not** change total reads/writes. |
+
+- **Tab-requests:** `cache/` and `tabRequests/` have **allow read: if true** in rules. So the server can read them with the **client SDK** (no signed-in user) the same way home-data reads `cache/homePage`. So **yes**, tab-requests can use the client SDK for the read path (1 read when warm; N reads when cold). Same number of reads, but no Admin SDK needed for reads.
+- **Library (api/me/library):** userLikedSongs, userPlaylists, userSavedPlaylists, userSavedArtists require **request.auth.uid** to match the doc’s userId. In an API route the client SDK has **no user** (request.auth is null), so the server **cannot** read those collections with the client SDK. So **library data must either** (1) be read with **Admin SDK** on the server (after verifying the ID token), or (2) be read **in the browser** with the client SDK where the user is signed in — i.e. the existing **fetchLibraryDataLegacy** path. So the library *page* can use only the client SDK by not calling the API and always using the legacy client-side fetcher; the API itself cannot use the client SDK for user data.
 
 ---
 

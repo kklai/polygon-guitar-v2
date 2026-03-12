@@ -6,12 +6,13 @@ import { auth, db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, serverTimestamp } from '@/lib/firestore-tracked';
 import { Plus, Heart, Music, X, User, ArrowUpDown, Clock } from 'lucide-react';
 import { getUserPlaylists, getUserLikedSongs, getSavedPlaylistsWithMeta, getSavedArtistsWithMeta } from '../lib/playlistApi';
+import { getTabsByIds } from '../lib/tabs';
 import { getLastViewedAt, getRecentTabIds } from '../lib/libraryRecentViews';
 import { getSongThumbnail } from '../lib/getSongThumbnail';
 import Layout from '../components/Layout';
 
-/** 一次過攞收藏頁所需數據，供 SWR 做 cache */
-async function fetchLibraryData(userId) {
+/** 後備：直接 Firestore 查詢（當 API 唔可用時） */
+async function fetchLibraryDataLegacy(userId) {
   const [userPlaylists, savedList, artistsList, likedSongs] = await Promise.all([
     getUserPlaylists(userId),
     getSavedPlaylistsWithMeta(userId),
@@ -29,19 +30,59 @@ async function fetchLibraryData(userId) {
       }
     }
   }
-  const tabSnaps = tabIdsToFetch.length
-    ? await Promise.all(tabIdsToFetch.map((tabId) => getDoc(doc(db, 'tabs', tabId))))
-    : [];
-  const tabMap = new Map();
-  tabSnaps.forEach((snap, i) => {
-    if (snap.exists()) tabMap.set(tabIdsToFetch[i], { id: snap.id, ...snap.data() });
-  });
+  const tabList = tabIdsToFetch.length ? await getTabsByIds(tabIdsToFetch) : [];
+  const tabMap = new Map(tabList.map((t) => [t.id, t]));
   const playlists = userPlaylists.map((pl) => {
     const ids = (pl.songIds || []).slice(0, 4);
     const coverSongs = ids.map((id) => tabMap.get(id)).filter(Boolean);
     return { ...pl, coverSongs };
   });
   return { playlists, savedPlaylists: savedList, savedArtists: artistsList, likedCount: likedSongs.length };
+}
+
+/**
+ * 一次過攞收藏頁所需數據：優先用 /api/me/library（一個 request 攞齊 liked / playlists / saved playlists / saved artists），
+ * 然後 client 只係 fetch cover tabs。失敗或無 token 時用後備 Firestore 查詢。
+ */
+async function fetchLibraryData(userId) {
+  try {
+    const token = await auth.currentUser?.getIdToken?.();
+    if (token) {
+      const res = await fetch('/api/me/library', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const userPlaylists = data.playlists ?? [];
+        const tabIdsToFetch = [];
+        const seen = new Set();
+        for (const pl of userPlaylists) {
+          for (const id of (pl.songIds || []).slice(0, 4)) {
+            if (!seen.has(id)) {
+              seen.add(id);
+              tabIdsToFetch.push(id);
+            }
+          }
+        }
+        const tabList = tabIdsToFetch.length ? await getTabsByIds(tabIdsToFetch) : [];
+        const tabMap = new Map(tabList.map((t) => [t.id, t]));
+        const playlists = userPlaylists.map((pl) => {
+          const ids = (pl.songIds || []).slice(0, 4);
+          const coverSongs = ids.map((id) => tabMap.get(id)).filter(Boolean);
+          return { ...pl, coverSongs };
+        });
+        return {
+          playlists,
+          savedPlaylists: data.savedPlaylists ?? [],
+          savedArtists: data.savedArtists ?? [],
+          likedCount: (data.likedSongIds ?? []).length
+        };
+      }
+    }
+  } catch (_) {
+    // fall through to legacy
+  }
+  return fetchLibraryDataLegacy(userId);
 }
 
 export default function Library() {

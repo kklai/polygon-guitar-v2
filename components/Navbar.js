@@ -13,6 +13,15 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
   const menuRef = useRef(null)
+  // Desktop: 避免「點擊 Link」被誤判為點擊外部；mousedown 在 menu 內設 true，document click 時見 true 就不關閉
+  const clickedInsideMenuRef = useRef(false)
+
+  // 路由變化時關閉選單，避免點擊 Link 時先關閉導致導航被取消
+  useEffect(() => {
+    const handleRouteChange = () => setIsMenuOpen(false)
+    router.events.on('routeChangeStart', handleRouteChange)
+    return () => router.events.off('routeChangeStart', handleRouteChange)
+  }, [router.events])
 
   // 只喺 desktop 點擊外部關閉選單（手機唔用，避免撳 icon 後選單被誤關）
   useEffect(() => {
@@ -20,6 +29,10 @@ export default function Navbar() {
     const isDesktop = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
     const handleClickOutside = (e) => {
       if (!isDesktop()) return
+      if (clickedInsideMenuRef.current) {
+        clickedInsideMenuRef.current = false
+        return
+      }
       if (menuRef.current && !menuRef.current.contains(e.target)) setIsMenuOpen(false)
     }
     document.addEventListener('click', handleClickOutside)
@@ -128,16 +141,27 @@ export default function Navbar() {
             </button>
             {/* Desktop 下拉選單 */}
             {isMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 py-2 w-56 bg-[#FFD700] border border-black/10 rounded-lg shadow-lg z-[101]">
+              <div
+                className="absolute right-0 top-full mt-1 py-2 w-56 bg-[#FFD700] border border-black/10 rounded-lg shadow-lg z-[101]"
+                onMouseDown={() => { clickedInsideMenuRef.current = true }}
+              >
                 {isAuthenticated && (
                   <>
-                    <Link href="/tabs/new" className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium" onClick={() => setIsMenuOpen(false)}>
+                    <Link
+                      href="/tabs/new"
+                      className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium"
+                      onClick={(e) => { e.preventDefault(); router.push('/tabs/new') }}
+                    >
                       <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
                         <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                       </svg>
                       出譜
                     </Link>
-                    <Link href={`/profile/${user.uid}`} className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium" onClick={() => setIsMenuOpen(false)}>
+                    <Link
+                      href={`/profile/${user.uid}`}
+                      className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium"
+                      onClick={(e) => { e.preventDefault(); router.push(`/profile/${user.uid}`) }}
+                    >
                       {user?.photoURL ? (
                         <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
                       ) : (
@@ -150,12 +174,24 @@ export default function Navbar() {
                   </>
                 )}
                 {isAdmin && (
-                  <Link href="/admin" className="block text-black/70 px-4 py-2 font-medium border-t border-black/10 mt-1 pt-2" onClick={() => setIsMenuOpen(false)}>管理後台</Link>
+                  <Link
+                    href="/admin"
+                    className="block text-black/70 px-4 py-2 font-medium border-t border-black/10 mt-1 pt-2"
+                    onClick={(e) => { e.preventDefault(); router.push('/admin') }}
+                  >
+                    管理後台
+                  </Link>
                 )}
                 {isAuthenticated ? (
                   <button type="button" onClick={() => { handleLogout(); setIsMenuOpen(false) }} className="block w-full text-left text-black/70 font-medium px-4 py-2 border-t border-black/10 mt-1 pt-2">登出</button>
                 ) : (
-                  <Link href="/login" className="block text-black font-bold px-4 py-2 border-t border-black/10 mt-1 pt-2" onClick={() => setIsMenuOpen(false)}>登入</Link>
+                  <Link
+                    href="/login"
+                    className="block text-black font-bold px-4 py-2 border-t border-black/10 mt-1 pt-2"
+                    onClick={(e) => { e.preventDefault(); router.push('/login') }}
+                  >
+                    登入
+                  </Link>
                 )}
               </div>
             )}
@@ -212,8 +248,20 @@ export default function Navbar() {
             role="button"
             tabIndex={0}
             aria-label="關閉選單"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(false) }}
-            onTouchEnd={(e) => { e.preventDefault(); setIsMenuOpen(false) }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsMenuOpen(false)
+              }
+            }}
+            onTouchEnd={(e) => {
+              // Only close when the overlay itself was tapped; otherwise allow link navigation
+              if (e.target === e.currentTarget) {
+                e.preventDefault()
+                setIsMenuOpen(false)
+              }
+            }}
             onTouchStart={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.key === 'Enter' && setIsMenuOpen(false)}
           />
@@ -224,7 +272,6 @@ export default function Navbar() {
                 <Link 
                   href="/tabs/new" 
                   className="flex items-center gap-2 text-black/70 px-3 py-2 rounded-md font-medium"
-                  onClick={() => setIsMenuOpen(false)}
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
                     <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -234,7 +281,6 @@ export default function Navbar() {
                 <Link
                   href={`/profile/${user.uid}`}
                   className="flex items-center gap-2 text-black/70 px-3 py-2 rounded-md font-medium"
-                  onClick={() => setIsMenuOpen(false)}
                 >
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
@@ -252,7 +298,6 @@ export default function Navbar() {
               <Link 
                 href="/admin" 
                 className="block text-black/70 px-3 py-2 font-medium border-t border-yellow-600 mt-2 pt-2"
-                onClick={() => setIsMenuOpen(false)}
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +322,6 @@ export default function Navbar() {
               <Link 
                 href="/login" 
                 className="block text-black font-bold px-3 py-2 rounded-none border-t border-yellow-600 mt-2 pt-2"
-                onClick={() => setIsMenuOpen(false)}
               >
                 登入
               </Link>

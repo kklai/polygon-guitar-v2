@@ -193,20 +193,20 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
         </div>
       </nav>
 
-      {/* 桌面版底部導航 - 黃底黑字設計 */}
+      {/* 桌面版底部導航 - 黃底黑字設計；唔用 scale 動畫，避免 transition 影響桌面點擊/導航 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
-            {desktopNavItems.map((item) => {
-              const isTapped = tappedPath === item.path
-              const scaleClass = isTapped ? getTapScaleClass(tapPhase) : 'scale-100'
-              return (
+            {desktopNavItems.map((item) => (
                 <Link 
                   key={item.path}
                   href={item.path}
-                  onPointerDown={() => handleNavPointerDown(item.path)}
-                  className={`flex flex-col items-center transition group transition-transform duration-100 ${scaleClass} ${
-                    isActive(item.path) || isTapped ? 'text-black font-bold' : 'text-black/60 hover:text-black'
+                  onClick={(e) => {
+                    e.preventDefault()
+                    router.push(item.path)
+                  }}
+                  className={`flex flex-col items-center group ${
+                    isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
                   }`}
                 >
                   <div className={`flex items-center justify-center shrink-0 ${item.icon === 'hand' ? 'h-[34px] w-[34px]' : 'h-8 w-8'}`}>
@@ -214,14 +214,13 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                       name={item.icon} 
                       iconUrl={navIcons[item.icon]}
                       label={item.label}
-                      active={isActive(item.path) || isTapped}
+                      active={isActive(item.path)}
                       className={item.icon === 'hand' ? 'w-[34px] h-[34px] translate-y-[1px]' : 'w-[32px] h-[32px]'}
                     />
                   </div>
                   <span className="text-xs mt-0.5 font-medium">{item.label}</span>
                 </Link>
-              )
-            })}
+            ))}
           </div>
         </div>
       </nav>
