@@ -223,13 +223,13 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs }) 
   const showSkeleton = loading && count > 0
 
   return (
-    <section style={{ marginBottom: 25 }}>
-      <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{title}</h2>
-      <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+    <section className="mb-[23px] md:mb-[25px]">
+      <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{title}</h2>
+      <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
         {showSkeleton ? (
           [...Array(Math.min(count, 12))].map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-36">
-              <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+            <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+              <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
               <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
               <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
             </div>
@@ -241,6 +241,7 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs }) 
               song={song}
               artistPhoto={song.artistPhoto}
               href={`/tabs/${song.id}`}
+              compact
             />
           ))
         )}
@@ -313,16 +314,16 @@ function mergeInitialHomeSettings(initialHomeSettings = {}) {
   }
 }
 
-// Category card that respects viewport image loading (used inside SectionViewportLoader)
+// Category card that respects viewport image loading (used inside SectionViewportLoader) — 32vw to match 最近瀏覽
 function HomeCategoryCard({ category, hotArtists }) {
   const loadImages = useContext(HomeSectionImageContext)
   const showImage = loadImages && category.image
   return (
     <Link
       href={`/artists?category=${category.id}`}
-      className="flex-shrink-0 flex flex-col cursor-pointer"
+      className="flex-shrink-0 flex flex-col cursor-pointer w-[32vw] md:w-36"
     >
-      <div className="relative w-36 h-36 rounded-lg overflow-hidden bg-gray-800">
+      <div className="relative w-[32vw] md:w-36 h-[32vw] md:h-36 rounded-[4px] overflow-hidden bg-gray-800">
         {showImage ? (
           <img
             src={category.image}
@@ -346,7 +347,7 @@ function HomeCategoryCard({ category, hotArtists }) {
             </div>
           </>
         )}
-        <div className="absolute bottom-2 right-0 w-1/2">
+        <div className="absolute bottom-2 right-0">
           <span className={`text-black text-[106%] font-bold px-2 py-[0.2px] rounded-none block text-center whitespace-nowrap leading-tight tracking-[0.1em] ${
             category.id === 'male' ? 'bg-[#1fc3df]' :
             category.id === 'female' ? 'bg-[#ff9b98]' :
@@ -356,7 +357,7 @@ function HomeCategoryCard({ category, hotArtists }) {
           </span>
         </div>
       </div>
-      <div className="w-36 mt-2 px-1">
+      <div className="w-[32vw] md:w-36 mt-2 px-1">
         <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
           {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
         </p>
@@ -428,12 +429,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
       case 'categories':
         if (!hasSectionData) {
           return (
-            <section key={section.id} className="pt-2" style={{ marginBottom: 25 }}>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
+            <section key={section.id} className="pt-2 mb-[23px] md:mb-[25px]">
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex-shrink-0 flex flex-col w-36">
-                    <div className="w-36 h-36 rounded-lg overflow-hidden bg-gray-800 animate-pulse" />
-                    <div className="w-36 mt-2 h-3 bg-gray-800 rounded animate-pulse" />
+                  <div key={i} className="flex-shrink-0 flex flex-col w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 rounded-[4px] overflow-hidden bg-gray-800 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 mt-2 h-3 bg-gray-800 rounded animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -442,8 +443,8 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         }
         return (
           <SectionViewportLoader key={section.id}>
-            <section className="pt-2" style={{ marginBottom: 25 }}>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3" style={{ paddingLeft: '1rem' }}>
+            <section className="pt-2 mb-[23px] md:mb-[25px]">
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {categories.map((category) => (
                   <HomeCategoryCard key={category.id} category={category} hotArtists={hotArtists} />
                 ))}
@@ -459,12 +460,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
       case 'hotTabs':
         if (hotTabs.length === 0) {
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section key={section.id} className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36">
-                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
                     <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
                   </div>
@@ -475,15 +476,16 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         }
         return (
           <SectionViewportLoader key={section.id}>
-            <section style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {hotTabs.map((song) => (
                   <SongCard
                     key={song.id}
                     song={song}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
+                    compact
                   />
                 ))}
               </div>
@@ -494,12 +496,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
       case 'hotArtists':
         if (!hotArtists.all?.length) {
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section key={section.id} className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36">
-                    <div className="w-36 h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
@@ -509,14 +511,15 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         }
         return (
           <SectionViewportLoader key={section.id}>
-            <section style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {hotArtists.all.map((artist) => (
                   <ArtistAvatar
                     key={artist.id}
                     artist={artist}
                     href={`/artists/${artist.id}`}
+                    compact
                   />
                 ))}
               </div>
@@ -527,12 +530,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
       case 'autoPlaylists':
         if (autoPlaylists.length === 0) {
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section key={section.id} className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36">
-                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
@@ -542,14 +545,15 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         }
         return (
           <SectionViewportLoader key={section.id}>
-            <section style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {autoPlaylists.map((playlist) => (
                   <PlaylistCard
                     key={playlist.id}
                     playlist={playlist}
                     href={`/playlist/${playlist.id}`}
+                    compact
                   />
                 ))}
               </div>
@@ -560,12 +564,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
       case 'latest':
         if (latestSongs.length === 0) {
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section key={section.id} className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36">
-                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
                     <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
                   </div>
@@ -576,15 +580,16 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         }
         return (
           <SectionViewportLoader key={section.id}>
-            <section style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {latestSongs.map((song) => (
                   <SongCard
                     key={song.id}
                     song={song}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
+                    compact
                   />
                 ))}
               </div>
@@ -595,12 +600,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
       case 'manualPlaylists':
         if (manualPlaylists.length === 0) {
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section key={section.id} className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36">
-                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
@@ -610,14 +615,15 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         }
         return (
           <SectionViewportLoader key={section.id}>
-            <section style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{getSectionLabel(section)}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{getSectionLabel(section)}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {manualPlaylists.map((playlist) => (
                   <PlaylistCard
                     key={playlist.id}
                     playlist={playlist}
                     href={`/playlist/${playlist.id}`}
+                    compact
                   />
                 ))}
               </div>
@@ -633,12 +639,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         if (!customSection) {
           // Section 在 sectionOrder 但沒有定義（例如首屏時 customPlaylistSections 未載入）— 預留骨架區位
           return (
-            <section key={section.id} style={{ marginBottom: 25 }}>
-              <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle || '載入中...'}</h2>
-              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+            <section key={section.id} className="mb-[23px] md:mb-[25px]">
+              <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{sectionTitle || '載入中...'}</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36">
-                    <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                  <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                     <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
                     <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
                   </div>
@@ -658,12 +664,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
           
           if (!hasContent) {
             return (
-              <section key={section.id} style={{ marginBottom: 25 }}>
-                <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle}</h2>
-                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+              <section key={section.id} className="mb-[23px] md:mb-[25px]">
+                <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{sectionTitle}</h2>
+                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex-shrink-0 w-36">
-                      <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                    <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                      <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                       <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
                       <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
                     </div>
@@ -693,12 +699,12 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
           
           if (playlists.length === 0) {
             return (
-              <section key={section.id} style={{ marginBottom: 25 }}>
-                <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle}</h2>
-                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+              <section key={section.id} className="mb-[23px] md:mb-[25px]">
+                <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{sectionTitle}</h2>
+                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex-shrink-0 w-36">
-                      <div className="w-36 h-36 bg-gray-800 rounded-lg animate-pulse mb-2" />
+                    <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
+                      <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
                       <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
                     </div>
                   ))}
@@ -709,14 +715,15 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
           
           return (
             <SectionViewportLoader key={section.id}>
-              <section style={{ marginBottom: 25 }}>
-                <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>{sectionTitle}</h2>
-                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+              <section className="mb-[23px] md:mb-[25px]">
+                <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">{sectionTitle}</h2>
+                <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                   {playlists.map((playlist) => (
                     <PlaylistCard
                       key={playlist.id}
                       playlist={playlist}
                       href={`/playlist/${playlist.id}`}
+                      compact
                     />
                   ))}
                 </div>
@@ -889,7 +896,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
           }}
         />
       </Head>
-      <div className="min-h-screen bg-black pb-24">
+      <div className="min-h-screen bg-black pb-0 md:pb-[25px]">
         {/* Admin 快捷按鈕（右上角） */}
         {isAdmin && (
           <div className="pr-6 pb-2 flex justify-end gap-2" style={{ paddingLeft: '1rem' }}>
@@ -909,9 +916,11 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         )}
 
         {/* 根據 sectionOrder 動態渲染（用凍結的 layout 避免 appear→disappear→reappear） */}
-        {(frozenLayout ? frozenLayout.sectionOrder : (homeSettings.sectionOrder || DEFAULT_SECTION_ORDER))
-          .filter(section => section.enabled !== false)
-          .map(section => renderSection(section, frozenLayout ? frozenLayout.customPlaylistSections : (homeSettings.customPlaylistSections || [])))}
+        <div style={{ marginTop: 25 }}>
+          {(frozenLayout ? frozenLayout.sectionOrder : (homeSettings.sectionOrder || DEFAULT_SECTION_ORDER))
+            .filter(section => section.enabled !== false)
+            .map(section => renderSection(section, frozenLayout ? frozenLayout.customPlaylistSections : (homeSettings.customPlaylistSections || [])))}
+        </div>
 
         {/* 底部 Spacer */}
         <div className="h-8" />

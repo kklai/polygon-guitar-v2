@@ -1,6 +1,6 @@
 # Polygon Guitar V2 - 項目記憶檔案
 
-> 最後更新：2026-03-09（更多掣統一：SongActionSheet 元件 + AGENTS.md 規格）
+> 最後更新：2026-03-11（Carousel 標準：100px 卡片 + gap-4，與最近瀏覽同款）
 > 
 > 此檔案用於保存項目背景、技術規格、設計風格及開發偏好，方便每次啟動時快速恢復上下文。
 
@@ -101,6 +101,38 @@ pages/
 - **封面縮圖**：49×49，無圖時 🎸 fallback
 
 **用法**：`<SongActionSheet open={...} onClose={...} title={...} artist={...} thumbnailUrl={...} liked={...} likeLabel={...} onCopyShareLink onSelectLyricsShare onAddToLiked onAddToPlaylist artistHref={...} />`。可選 `paddingBottom`（預設留位給底部導航）。已用頁面：`artists/[id].js`、`playlist/[id].js`、`library/recent-tabs.js`、`library/liked.js`。
+
+#### Carousel 標準（橫向滾動卡片 — 「carousel」一律跟呢個）
+
+凡提到 **carousel**、橫向滾動卡片、或要與首頁「最近瀏覽」同款時，必須用以下規格：
+
+| 項目 | 規格 |
+|------|------|
+| **卡片寬度** | `w-[32vw]`（32% 視窗寬） |
+| **封面尺寸** | `w-[32vw] h-[32vw]`（32vw 正方形） |
+| **間距** | `gap-3`（12px） |
+| **歌曲/歌單圓角** | `rounded-[4px]` |
+| **歌手頭像圓角** | `rounded-full` |
+| **區塊內邊距** | `paddingLeft: '1rem'`、`pr-6`、`py-2 -my-2` |
+
+**元件用法**（`components/LazyImage.js`）：
+
+- **歌曲**：`<SongCard ... compact />` → 32vw、rounded-[4px]
+- **歌單**：`<PlaylistCard ... compact />` → 32vw、rounded-[4px]
+- **歌手**：`<ArtistAvatar ... compact />` → 32vw、rounded-full
+
+**容器結構**：
+
+```jsx
+<section style={{ marginBottom: 25 }}>
+  <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>標題</h2>
+  <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3" style={{ paddingLeft: '1rem' }}>
+    {/* 用 SongCard compact / PlaylistCard compact / ArtistAvatar compact，或自訂 w-[32vw] h-[32vw] 卡片 */}
+  </div>
+</section>
+```
+
+**骨架屏**：`flex-shrink-0 w-[32vw]`，封面 `w-[32vw] h-[32vw] rounded-[4px]`（或歌手 `rounded-full`）。已用：首頁各區、搜尋頁熱門歌曲、Playlist 頁推薦歌單、`RecentItems`（最近瀏覽）。
 
 ### Firestore 資料結構
 

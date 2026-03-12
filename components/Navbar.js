@@ -10,7 +10,6 @@ const SITE_NAME = 'Polygon 結他譜'
 export default function Navbar() {
   const { user, logout, isAuthenticated, isAdmin, loading: authLoading } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
   const menuRef = useRef(null)
   // Desktop: 避免「點擊 Link」被誤判為點擊外部；mousedown 在 menu 內設 true，document click 時見 true 就不關閉
@@ -63,26 +62,6 @@ export default function Navbar() {
     }
   }, [isMenuOpen])
 
-  useEffect(() => {
-    const onScroll = () => {
-      // 有彈出視窗打開時唔好收窄 navbar（避免 mobile Safari 手勢觸發）
-      if (document.body.getAttribute('data-modal-open') === 'true') {
-        setScrolled(false)
-        return
-      }
-      setScrolled(window.scrollY > 30)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    const observer = new MutationObserver(() => {
-      if (document.body.getAttribute('data-modal-open') === 'true') setScrolled(false)
-    })
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-modal-open'] })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      observer.disconnect()
-    }
-  }, [])
-
   const handleLogout = async () => {
     try {
       await logout()
@@ -97,7 +76,7 @@ export default function Navbar() {
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between relative z-10 bg-[#FFD700]" style={{ height: scrolled ? '2.5rem' : '4.4rem' }}>
+        <div className="flex justify-between relative z-10 bg-[#FFD700]" style={{ height: '4.4rem' }}>
           {/* Logo + 副標題 */}
           <div className="flex flex-col justify-end">
             <Link href="/" className="flex flex-col">
@@ -106,13 +85,11 @@ export default function Navbar() {
                 alt={SITE_NAME}
                 loading="eager"
                 decoding="async"
-                style={scrolled ? { width: 140, paddingBottom: 1 } : { height: 40, maxWidth: 160 }}
+                style={{ height: 40, maxWidth: 160 }}
               />
-              {!scrolled && (
-                <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
-                  香港廣東歌結他譜網
-                </span>
-              )}
+              <span className="text-base text-black tracking-[0.25em] mt-0.5 w-full pb-2 navbar-tagline">
+                香港廣東歌結他譜網
+              </span>
             </Link>
           </div>
 
@@ -127,13 +104,13 @@ export default function Navbar() {
                 <img
                   src={user.photoURL}
                   alt={user.displayName || '用戶'}
-                  className={`rounded-full object-cover ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+                  className="rounded-full object-cover w-[42px] h-[42px]"
                   loading="lazy"
                   decoding="async"
                 />
               ) : (
-                <span className={`flex items-center justify-center rounded-full bg-black/10 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}>
-                  <svg className={scrolled ? 'w-4 h-4' : 'w-5 h-5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center justify-center rounded-full bg-black/10 w-[42px] h-[42px]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </span>
@@ -212,13 +189,13 @@ export default function Navbar() {
                 <img
                   src={user.photoURL}
                   alt={user.displayName || '用戶'}
-                  className={`rounded-full object-cover ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+                  className="rounded-full object-cover w-[42px] h-[42px]"
                   loading="lazy"
                   decoding="async"
                 />
               ) : (
-                <span className={`flex items-center justify-center rounded-full bg-black/10 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}>
-                  <svg className={scrolled ? 'w-4 h-4' : 'w-5 h-5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center justify-center rounded-full bg-black/10 w-[42px] h-[42px]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </span>

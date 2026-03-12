@@ -20,9 +20,9 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
     : items.filter(item => item.type !== 'liked-songs');
 
   return (
-    <div style={{ marginBottom: 25, marginTop: 10 }}>
+    <div className="mb-[23px] md:mb-[25px] mt-2.5">
       <div className="flex justify-between items-end mb-2 pr-6" style={{ paddingLeft: '1rem' }}>
-        <h2 className="text-white font-bold" style={{ fontSize: '1.375rem' }}>{title}</h2>
+        <h2 className="text-white font-bold text-[1.3rem] md:text-[1.375rem]">{title}</h2>
         <Link 
           href="/library/recent-tabs?from=home"
           className="text-[#B3B3B3] text-sm hover:text-white"
@@ -32,15 +32,14 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
       </div>
       
       <div className="overflow-x-auto scrollbar-hide">
-        <div className="flex space-x-4 pr-6" style={{ paddingLeft: '1rem' }}>
+        <div className="flex gap-3 md:gap-4 pr-6" style={{ paddingLeft: '1rem' }}>
           {displayItems.length === 0 ? (
             <p className="text-[#B3B3B3] text-sm py-2">暫無瀏覽記錄</p>
           ) : displayItems.map((item, index) => (
             <Link 
               key={index}
               href={getItemHref(item)}
-              className="flex-shrink-0 cursor-pointer"
-              style={{ width: '100px' }}
+              className="flex-shrink-0 cursor-pointer w-[32vw] md:w-36"
             >
               {/* 圖片區域 */}
               <div className={`
@@ -87,10 +86,10 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
               
               {/* 文字資訊 */}
               <div className="text-left">
-                <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
+                <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
                   {item.title}
                 </div>
-                <div className="text-[#B3B3B3] truncate" style={{ fontSize: 13, lineHeight: '16px' }}>
+                <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
                   {item.subtitle || item.artistName || ''}
                 </div>
               </div>

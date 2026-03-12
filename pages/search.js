@@ -234,8 +234,8 @@ export default function Search() {
             {/* Artists Results */}
             {filteredArtists.length > 0 && (
               <section>
-                <h2 className="text-lg font-bold text-white mb-4">歌手</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-4 pr-4">
+                <h2 className="font-bold text-white mb-4 text-[1.3rem] md:text-[1.375rem]">歌手</h2>
+                <div className="flex overflow-x-auto scrollbar-hide gap-3 md:gap-4 pr-4">
                   {filteredArtists.map((artist) => (
                     <div
                       key={artist.id}
@@ -269,7 +269,7 @@ export default function Search() {
             {/* Songs Results */}
             {filteredSongs.length > 0 && (
               <section>
-                <h2 className="text-lg font-bold text-white mb-4">歌曲</h2>
+                <h2 className="font-bold text-white mb-4 text-[1.3rem] md:text-[1.375rem]">歌曲</h2>
                 <div className="space-y-2">
                   {filteredSongs.map((song, index) => (
                     <button
@@ -319,7 +319,7 @@ export default function Search() {
           /* Default View - 分類區與首頁同款：橫向滾動、正方形卡、右下標籤、下方歌手預覽 */
           <div className="space-y-6">
             {/* 歌手分類 - 手機三格 fit 屏寬，桌面橫向滾動 */}
-            <section className="pt-2 px-4 md:pl-4 md:pr-0" style={{ marginBottom: 25 }}>
+            <section className="pt-2 px-4 md:pl-4 md:pr-0 mb-[23px] md:mb-[25px]">
               <div className="flex gap-2 md:flex-nowrap md:overflow-x-auto md:scrollbar-hide md:pr-6 md:gap-3">
                 {categories.map((category) => {
                   const coverUrl = typeof categoryCovers[category.id] === 'string'
@@ -369,11 +369,11 @@ export default function Search() {
               </div>
             </section>
 
-            {/* 熱門歌曲 - same data and component as home (home-data API + SongCard) */}
+            {/* 熱門歌曲 - same size as 最近瀏覽 (32vw cards, gap-3) */}
             {!isLoading && hotSongs.length > 0 && (
               <section className="pl-4">
-                <h2 className="text-lg font-bold text-white mb-4">熱門歌曲</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-3 pr-4">
+                <h2 className="font-bold text-white mb-4 text-[1.3rem] md:text-[1.375rem]">熱門歌曲</h2>
+                <div className="flex overflow-x-auto scrollbar-hide gap-3 md:gap-4 pr-4">
                   {hotSongs.map((song) => (
                     <SongCard
                       key={song.id}
@@ -381,6 +381,7 @@ export default function Search() {
                       artistPhoto={song.artistPhoto}
                       href={addToPlaylistId ? undefined : `/tabs/${song.id}`}
                       onClick={addToPlaylistId ? () => handleSongClick(song.id) : undefined}
+                      compact
                     />
                   ))}
                 </div>
@@ -390,8 +391,8 @@ export default function Search() {
             {/* 熱門歌手 - same data as home (home-data API) */}
             {!isLoading && (hotArtists.all?.length > 0) && (
               <section className="pl-4">
-                <h2 className="text-lg font-bold text-white mb-4">熱門歌手</h2>
-                <div className="flex overflow-x-auto scrollbar-hide gap-4 pr-4">
+                <h2 className="font-bold text-white mb-4 text-[1.3rem] md:text-[1.375rem]">熱門歌手</h2>
+                <div className="flex overflow-x-auto scrollbar-hide gap-3 md:gap-4 pr-4">
                   {(hotArtists.all || []).map((artist) => (
                     <button
                       key={artist.id}
@@ -430,7 +431,7 @@ export default function Search() {
 
             {/* 熱門搜尋 */}
             <section className="pl-4">
-              <h2 className="text-lg font-bold text-white mb-4">熱門搜尋</h2>
+              <h2 className="font-bold text-white mb-4 text-[1.3rem] md:text-[1.375rem]">熱門搜尋</h2>
               <div className="flex flex-wrap gap-2">
                 {popularSearches.map((term) => (
                   <button

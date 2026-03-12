@@ -68,8 +68,9 @@ export default function LazyImage({
 /**
  * SongCard - 帶骨架屏的歌曲卡片
  * Respects HomeSectionImageContext: when false (section not in viewport), shows placeholder only.
+ * compact: use 32vw size to match 最近瀏覽 carousel.
  */
-export function SongCard({ song, artistPhoto, onClick, href }) {
+export function SongCard({ song, artistPhoto, onClick, href, compact }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const loadImages = useContext(HomeSectionImageContext)
 
@@ -86,6 +87,8 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
 
   const coverImage = getCoverImage()
   const showRealImage = loadImages && coverImage
+  const sizeClass = compact ? 'w-[32vw] h-[32vw] md:w-36 md:h-36' : 'w-36 h-36'
+  const roundedClass = compact ? 'rounded-[4px]' : 'rounded-lg'
 
   const Wrapper = href ? Link : 'button'
   const wrapperProps = href ? { href } : { onClick }
@@ -93,10 +96,10 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
   return (
     <Wrapper
       {...wrapperProps}
-      className="flex-shrink-0 flex flex-col text-left w-36 group"
+      className={`flex-shrink-0 flex flex-col text-left group ${compact ? 'w-[32vw] md:w-36' : 'w-36'}`}
     >
       {/* 封面區域 */}
-      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
+      <div className={`${sizeClass} ${roundedClass} overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20`}>
         {showRealImage ? (
           <>
             {/* 骨架屏 */}
@@ -136,10 +139,10 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
         )}
       </div>
       
-      <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
+      <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
         {song.title}
       </div>
-      <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>{song.artist}</div>
+      <div className="text-gray-500 truncate text-[0.8rem] md:text-[13px] leading-[1.3]">{song.artist}</div>
     </Wrapper>
   )
 }
@@ -147,13 +150,16 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
 /**
  * PlaylistCard - 帶骨架屏的歌單卡片
  * Respects HomeSectionImageContext: when false, shows placeholder only.
+ * compact: use 32vw size to match 最近瀏覽 carousel.
  */
-export function PlaylistCard({ playlist, onClick, href }) {
+export function PlaylistCard({ playlist, onClick, href, compact }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const loadImages = useContext(HomeSectionImageContext)
 
   const coverImage = playlist.coverImage || null
   const showRealImage = loadImages && coverImage
+  const sizeClass = compact ? 'w-[32vw] h-[32vw] md:w-36 md:h-36' : 'w-36 h-36'
+  const roundedClass = compact ? 'rounded-[4px]' : 'rounded-lg'
 
   const Wrapper = href ? Link : 'button'
   const wrapperProps = href ? { href } : { onClick }
@@ -161,10 +167,10 @@ export function PlaylistCard({ playlist, onClick, href }) {
   return (
     <Wrapper
       {...wrapperProps}
-      className="flex-shrink-0 flex flex-col text-left w-36 group"
+      className={`flex-shrink-0 flex flex-col text-left group ${compact ? 'w-[32vw] md:w-36' : 'w-36'}`}
     >
       {/* 封面區域 */}
-      <div className="w-36 h-36 rounded-lg overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
+      <div className={`${sizeClass} ${roundedClass} overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20`}>
         {showRealImage ? (
           <>
             {/* 骨架屏 */}
@@ -194,11 +200,11 @@ export function PlaylistCard({ playlist, onClick, href }) {
         )}
       </div>
       
-      <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
+      <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
         {playlist.title}
       </div>
       {typeof playlist.description === 'string' && playlist.description.trim() && (
-        <div className="text-gray-500 line-clamp-2" style={{ fontSize: 13, lineHeight: '16px' }}>{playlist.description.trim()}</div>
+        <div className="text-gray-500 line-clamp-2 text-[0.8rem] md:text-[13px] leading-[1.3]">{playlist.description.trim()}</div>
       )}
     </Wrapper>
   )
@@ -207,13 +213,15 @@ export function PlaylistCard({ playlist, onClick, href }) {
 /**
  * ArtistAvatar - 帶骨架屏的歌手頭像
  * Respects HomeSectionImageContext: when false, shows placeholder only.
+ * compact: use 32vw size to match 最近瀏覽 carousel.
  */
-export function ArtistAvatar({ artist, onClick, href }) {
+export function ArtistAvatar({ artist, onClick, href, compact }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const loadImages = useContext(HomeSectionImageContext)
 
   const photoUrl = artist.photo ?? artist.photoURL ?? artist.wikiPhotoURL
   const showRealImage = loadImages && photoUrl
+  const sizeClass = compact ? 'w-[32vw] h-[32vw] md:w-36 md:h-36' : 'w-36 h-36'
 
   const Wrapper = href ? Link : 'button'
   const wrapperProps = href ? { href } : { onClick }
@@ -221,9 +229,9 @@ export function ArtistAvatar({ artist, onClick, href }) {
   return (
     <Wrapper
       {...wrapperProps}
-      className="flex-shrink-0 flex flex-col text-left w-36 group"
+      className={`flex-shrink-0 flex flex-col text-left group ${compact ? 'w-[32vw] md:w-36' : 'w-36'}`}
     >
-      <div className="w-36 h-36 rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20">
+      <div className={`${sizeClass} rounded-full overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20`}>
         {showRealImage ? (
           <>
             {!imageLoaded && (
@@ -252,7 +260,7 @@ export function ArtistAvatar({ artist, onClick, href }) {
         )}
       </div>
       
-      <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>
+      <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
         {artist.name}
       </div>
     </Wrapper>

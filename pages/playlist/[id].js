@@ -728,19 +728,19 @@ export default function PlaylistDetail({
           </div>
         )}
 
-        {/* 推薦歌單 - 2 歌手 + 2 自動 + 6 手動，合併後整體隨機排序 */}
+        {/* 推薦歌單 - same size as 最近瀏覽 (32vw cards, gap-3) */}
         {recommendedItems.length > 0 && (
-          <section className="pt-8 pb-6" style={{ marginBottom: 25 }}>
-            <h2 className="font-bold text-white pr-6 pb-2 pt-0" style={{ fontSize: '1.375rem', paddingLeft: '1rem' }}>推薦歌單</h2>
-            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2" style={{ gap: 14, paddingLeft: '1rem' }}>
+          <section className="pt-8 pb-6 mb-[23px] md:mb-[25px]">
+            <h2 className="font-bold text-white pr-6 pb-2 pt-0 pl-4 text-[1.3rem] md:text-[1.375rem]">推薦歌單</h2>
+            <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
               {recommendedItems.map((item) =>
                 item.type === 'artist' ? (
                   <Link
                     key={`artist-${item.data.id}`}
                     href={`/artists/${item.data.id}`}
-                    className="flex-shrink-0 w-36 flex flex-col group"
+                    className="flex-shrink-0 w-[32vw] md:w-36 flex flex-col group"
                   >
-                    <div className="aspect-square rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
+                    <div className="w-[32vw] h-[32vw] md:w-36 md:h-36 rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
                       {item.data.photo ? (
                         <img
                           src={item.data.photo}
@@ -754,7 +754,7 @@ export default function PlaylistDetail({
                         </div>
                       )}
                     </div>
-                    <h3 className="text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition">
+                    <h3 className="text-[0.95rem] md:text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition mb-[1px] md:mb-0">
                       {item.data.name}
                     </h3>
                   </Link>
@@ -762,9 +762,9 @@ export default function PlaylistDetail({
                   <Link
                     key={item.data.id}
                     href={`/playlist/${item.data.id}`}
-                    className="flex-shrink-0 w-36 flex flex-col group"
+                    className="flex-shrink-0 w-[32vw] md:w-36 flex flex-col group"
                   >
-                    <div className="aspect-square rounded-lg overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
+                    <div className="w-[32vw] h-[32vw] md:w-36 md:h-36 rounded-[4px] overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
                       {item.data.coverImage ? (
                         <img
                           src={item.data.coverImage}
@@ -776,7 +776,7 @@ export default function PlaylistDetail({
                         <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
                       )}
                     </div>
-                    <h3 className="text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition">
+                    <h3 className="text-[0.95rem] md:text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition mb-[1px] md:mb-0">
                       {item.data.title}
                     </h3>
                   </Link>

@@ -741,7 +741,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
 
       {/* 熱門歌曲（前5首 - 有相片） */}
       <section className="px-4 mt-2">
-        <h2 className="text-white font-bold mb-2" style={{ fontSize: '1.375rem' }}>熱門</h2>
+        <h2 className="text-white font-bold mb-2 text-[1.3rem] md:text-[1.375rem]">熱門</h2>
         <div className="space-y-1">
           {hotTabs.map((tab, index) => (
             <Link 
@@ -793,7 +793,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
       <section className="px-4 mt-8">
         {/* 標題 + 排序 */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-white font-bold" style={{ fontSize: '1.375rem' }}>所有歌曲</h2>
+          <h2 className="text-white font-bold text-[1.3rem] md:text-[1.375rem]">所有歌曲</h2>
           
           <div className="relative">
             <button 
