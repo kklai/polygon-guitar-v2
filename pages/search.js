@@ -253,7 +253,7 @@ export default function Search() {
           {isSearchFocused && (
             <div className="flex gap-2 pb-1" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
               <p className="flex-1 min-w-0 pl-11 text-left text-xs text-[#FFD700]">
-                可輸入 歌名/歌手/作曲/作詞/編曲/監製 搜尋
+                可輸入 歌名／歌手／歌單名／作曲／作詞／編曲／監製 搜尋
               </p>
               <div className="flex-shrink-0 w-8" aria-hidden="true" />
             </div>
