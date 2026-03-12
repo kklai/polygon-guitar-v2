@@ -171,7 +171,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                 iconUrl={navIcons[item.icon]}
                 label={item.label}
                 active={isActive(item.path)}
-                className={item.icon === 'hand' ? 'w-[26px] h-[26px] translate-y-[2.7px]' : 'w-[32px] h-[32px]'}
+                className={item.icon === 'hand' ? 'w-[25px] h-[25px] translate-y-[2.8px]' : 'w-[32px] h-[32px]'}
               />
               <span className={`text-xs font-medium ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
             </Link>
@@ -195,13 +195,13 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                     isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
                   }`}
                 >
-                  <div className={`flex items-center justify-center shrink-0 ${item.icon === 'hand' ? 'h-[26px] w-[26px]' : 'h-8 w-8'}`}>
+                  <div className={`flex items-center justify-center shrink-0 ${item.icon === 'hand' ? 'h-[25px] w-[25px]' : 'h-8 w-8'}`}>
                     <Icon 
                       name={item.icon} 
                       iconUrl={navIcons[item.icon]}
                       label={item.label}
                       active={isActive(item.path)}
-                      className={item.icon === 'hand' ? 'w-[26px] h-[26px] translate-y-[2.7px]' : 'w-[32px] h-[32px]'}
+                      className={item.icon === 'hand' ? 'w-[25px] h-[25px] translate-y-[2.8px]' : 'w-[32px] h-[32px]'}
                     />
                   </div>
                   <span className={`text-xs font-medium ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
