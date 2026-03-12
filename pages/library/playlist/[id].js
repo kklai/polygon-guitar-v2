@@ -546,7 +546,7 @@ export default function UserPlaylistDetail() {
   const handleDeletePlaylist = async () => {
     if (!confirm('確定要刪除此歌單？刪除後無法還原。')) return;
     try {
-      await deletePlaylist(user.uid, id);
+      await deletePlaylist(id, user.uid);
       router.push('/library');
     } catch (error) {
       console.error('刪除歌單失敗:', error);
@@ -946,7 +946,7 @@ export default function UserPlaylistDetail() {
           </>
         )}
 
-        {/* 加入此歌單 - 底部彈出 Menu（Portal 到 body，確保蓋住底部黃 bar） */}
+        {/* 加入歌單 - 底部彈出 Menu（Portal 到 body，確保蓋住底部黃 bar） */}
         {showAddSongModal && typeof document !== 'undefined' && createPortal(
           <>
             <div
@@ -998,7 +998,7 @@ export default function UserPlaylistDetail() {
                     <X className="w-6 h-6" />
                   </button>
                   <h2 className="text-white font-bold text-lg truncate flex-1 text-center pointer-events-none">
-                    加入此歌單
+                    加入歌單
                   </h2>
                   <div className="w-10" />
                 </div>
@@ -1031,7 +1031,6 @@ export default function UserPlaylistDetail() {
                   <ul className="space-y-0">
                     {addSongFiltered.map((tab) => {
                       const isAdding = addingSongId === tab.id;
-                      const thumb = getSongThumbnail(tab);
                       return (
                         <li key={tab.id}>
                           <button
@@ -1040,18 +1039,11 @@ export default function UserPlaylistDetail() {
                             disabled={isAdding}
                             className="w-full flex items-center gap-2 py-1.5 rounded-2xl md:hover:bg-white/5 text-left disabled:opacity-70"
                           >
-                            <div className="w-10 h-10 rounded-lg bg-[#282828] flex-shrink-0 overflow-hidden">
-                              {thumb ? (
-                                <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-xl">🎸</div>
-                              )}
-                            </div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{tab.title}</p>
                               <p className="text-gray-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{tab.artist}</p>
                             </div>
-                            <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-[#A0A0A0] pointer-events-none">
+                            <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-[#FFD700] pointer-events-none">
                               {isAdding ? (
                                 <div className="w-5 h-5 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
                               ) : (
@@ -1154,7 +1146,7 @@ export default function UserPlaylistDetail() {
                             className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-lg md:hover:opacity-90 transition -ml-1"
                             aria-label="從歌單移除"
                           >
-                            <svg className="w-5 h-5" viewBox="0 0 9.5 9.5" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#4d4d4d" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.8}>
+                            <svg className="w-5 h-5" viewBox="0 0 9.5 9.5" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#9B2D2D" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.8}>
                               <circle cx="4.8" cy="4.8" r="4" />
                               <line x1="2.6" y1="4.8" x2="6.9" y2="4.8" />
                             </svg>

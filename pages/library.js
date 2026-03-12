@@ -53,26 +53,9 @@ async function fetchLibraryData(userId) {
       });
       if (res.ok) {
         const data = await res.json();
-        const userPlaylists = data.playlists ?? [];
-        const tabIdsToFetch = [];
-        const seen = new Set();
-        for (const pl of userPlaylists) {
-          for (const id of (pl.songIds || []).slice(0, 4)) {
-            if (!seen.has(id)) {
-              seen.add(id);
-              tabIdsToFetch.push(id);
-            }
-          }
-        }
-        const tabList = tabIdsToFetch.length ? await getTabsByIds(tabIdsToFetch) : [];
-        const tabMap = new Map(tabList.map((t) => [t.id, t]));
-        const playlists = userPlaylists.map((pl) => {
-          const ids = (pl.songIds || []).slice(0, 4);
-          const coverSongs = ids.map((id) => tabMap.get(id)).filter(Boolean);
-          return { ...pl, coverSongs };
-        });
+        // API 已包含 coverSongs，唔使再 client 再 call getTabsByIds
         return {
-          playlists,
+          playlists: data.playlists ?? [],
           savedPlaylists: data.savedPlaylists ?? [],
           savedArtists: data.savedArtists ?? [],
           likedCount: (data.likedSongIds ?? []).length
@@ -325,7 +308,7 @@ export default function Library() {
                 )}
               </div>
               <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>最近瀏覽</div>
-              <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>結他譜 • {recentTabsCount}份</div>
+              <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>結他譜</div>
             </div>
 
             {/* 已排序：歌手 / 已收藏歌單 / 用戶歌單 */}

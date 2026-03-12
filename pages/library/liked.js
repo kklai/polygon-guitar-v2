@@ -278,14 +278,14 @@ export default function LikedSongs() {
           </Link>
         </div>
 
-        {/* 標題行：喜愛結他譜 + 共 X 首 */}
+        {/* 標題行：喜愛結他譜 + 共 X 份 */}
         <div className="pb-1" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
           <div className="flex items-baseline justify-between gap-3">
             <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
               喜愛結他譜
             </h1>
             <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
-              共 {songs.length} 首
+              共 {songs.length} 份
             </span>
           </div>
         </div>

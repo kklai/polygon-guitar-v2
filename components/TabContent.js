@@ -2312,7 +2312,7 @@ const TabContent = ({
                   renderBlock={(res, refs, notationContentBetween) => (
                 <>
                 {/* 和弦行 — grid alignment: overflow into remainder when space allows, expand cell when it doesn't */}
-                {useGridAlignment ? (() => {
+                {useGridAlignment && res.lyricSplit?.segments?.length ? (() => {
                   const segs = res.lyricSplit.segments.map((segment, segIdx) => {
                     const chord = res.alignedChords[segIdx];
                     const { bracketPart, remainder } = splitSegmentAtBracketClose(segment);
@@ -2473,7 +2473,7 @@ const TabContent = ({
                   data-clean-text={res.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
                   style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}
                 >
-                  {useGridAlignment ? (
+                  {useGridAlignment && res.lyricSplit?.segments?.length ? (
                     <>
                       {res.lyricSplit.preBracket && (
                         <span style={{ whiteSpace: 'pre-wrap', color: colors.lyricNormal, fontWeight: 400 }}>

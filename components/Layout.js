@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
@@ -8,6 +9,8 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
   const router = useRouter()
   const { isAdmin } = useAuth()
   const currentPath = router.pathname
+  // 搜尋頁不顯示頂部 nav：用 pathname 判斷，路由一變即隱藏，避免切換時閃一下
+  const showHeader = !hideHeader && currentPath !== '/search'
 
   // 檢查當前頁面是否激活
   const isActive = (path) => {
@@ -142,15 +145,22 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
 
   const desktopNavItems = getDesktopNavItems()
 
+  // 離開搜尋頁時移除 body class（同步隱藏用）
+  useEffect(() => {
+    if (currentPath !== '/search' && typeof document !== 'undefined') {
+      document.body.classList.remove('pg-hide-top-nav')
+    }
+  }, [currentPath])
+
   return (
-    <div className={`${hideHeader ? 'bg-transparent' : 'bg-black'} text-white min-h-screen min-h-[calc(100vh+1px)]`}>
-      {!hideHeader && <Navbar />}
+    <div className={`${showHeader ? 'bg-black' : 'bg-transparent'} text-white min-h-screen min-h-[calc(100vh+1px)]`}>
+      <div className="pg-top-nav-wrapper">{showHeader && <Navbar />}</div>
       <main 
         className={fullWidth 
-          ? (hideHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
-          : (hideHeader ? 'pb-24' : 'max-w-7xl mx-auto pb-24')
+          ? (showHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
+          : (showHeader ? 'max-w-7xl mx-auto pb-24' : 'pb-24')
         }
-        style={hideHeader ? {} : { paddingTop: fullWidth ? 'calc(4.4rem + env(safe-area-inset-top, 0px))' : 'calc(4.4rem + 10px + env(safe-area-inset-top, 0px))' }}
+        style={showHeader ? { paddingTop: fullWidth ? 'calc(4.4rem + env(safe-area-inset-top, 0px))' : 'calc(4.4rem + 10px + env(safe-area-inset-top, 0px))' } : {}}
       >
         {children}
       </main>
@@ -162,6 +172,12 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
             <Link 
               key={item.path}
               href={item.path}
+              onClick={() => {
+                if (item.path === '/search') {
+                  try { sessionStorage.setItem('pg_focus_search', '1') } catch (_) {}
+                  document.body.classList.add('pg-hide-top-nav')
+                }
+              }}
               className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] group ${
                 isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
               }`}
@@ -189,6 +205,10 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                   href={item.path}
                   onClick={(e) => {
                     e.preventDefault()
+                    if (item.path === '/search') {
+                      try { sessionStorage.setItem('pg_focus_search', '1') } catch (_) {}
+                      document.body.classList.add('pg-hide-top-nav')
+                    }
                     router.push(item.path)
                   }}
                   className={`flex flex-col items-center group ${
