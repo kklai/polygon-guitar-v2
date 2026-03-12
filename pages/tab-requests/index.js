@@ -8,9 +8,11 @@ import {
   arrayUnion, arrayRemove, serverTimestamp, where, deleteDoc
 } from 'firebase/firestore'
 import { getTab } from '@/lib/tabs'
+import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { getGroupKeys, normalizeTitleForGrouping } from '@/lib/tabGrouping'
 import Image from 'next/image'
 
+// 卡片縮圖：來自 request.albumImage。建立求譜時由 Spotify/YouTube 搜尋結果寫入；出譜（fulfill）時會用樂譜 getSongThumbnail(tab) 寫入，無額外 fetch。
 // 求譜列表排序：fulfilled 最底；其餘 自己嘅求譜（新至舊）最頂 → 我投過 → voteCount、createdAt
 function compareTabRequests(a, b, uid) {
   const aDone = a.status === 'fulfilled'
@@ -613,7 +615,11 @@ export default function TabRequestsPage() {
   const renderRequestCard = (request) => (
     <div
       key={request.id}
-      className="bg-[#121212] rounded-xl p-3 flex items-center gap-3 relative"
+      role={request.status === 'fulfilled' && request.tabId ? 'link' : undefined}
+      tabIndex={request.status === 'fulfilled' && request.tabId ? 0 : undefined}
+      onClick={request.status === 'fulfilled' && request.tabId ? () => router.push(`/tabs/${request.tabId}`) : undefined}
+      onKeyDown={request.status === 'fulfilled' && request.tabId ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/tabs/${request.tabId}`); } } : undefined}
+      className={`rounded-xl p-3 flex items-center gap-3 relative ${request.status === 'fulfilled' ? 'bg-[#0f2418] opacity-75' : 'bg-[#121212]'} ${request.status === 'fulfilled' && request.tabId ? 'cursor-pointer' : ''}`}
     >
       {(isAdmin || (user?.uid && request.requestedBy === user.uid && (request.voteCount || 0) <= 1)) && (
         <button
@@ -637,7 +643,7 @@ export default function TabRequestsPage() {
           </div>
         )}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 shrink">
         {editingRequest?.id === request.id ? (
           <div className="space-y-2">
             <input
@@ -662,24 +668,30 @@ export default function TabRequestsPage() {
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <div className={`font-medium truncate ${request.status === 'fulfilled' ? 'text-green-400' : 'text-white'}`}>
+              <div className="font-medium truncate text-white">
                 {request.songTitle}
               </div>
             </div>
             <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
             <div className="text-[#FFD700] text-xs mt-0.5 flex items-center gap-2 min-w-0">
               {request.status === 'fulfilled' ? (
-                <span className="text-green-400 truncate min-w-0">感謝 {request.fulfilledByName || '結他友'} 出譜</span>
+                <span className="text-green-400 truncate min-w-0">{request.voteCount ?? 0} 人求譜成功</span>
               ) : (
-                <span>{request.voteCount}人求譜</span>
+                <span>{request.voteCount} 人求譜</span>
               )}
             </div>
           </>
         )}
       </div>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => voteForRequest(request.id)}
+      <div className={`flex items-center gap-2 min-w-0 ${request.status === 'fulfilled' ? '' : 'flex-shrink-0'}`} style={request.status === 'fulfilled' ? { flexShrink: 2 } : undefined}>
+        {request.status === 'fulfilled' ? (
+          <div className="flex flex-col items-end text-right min-w-0 w-full">
+            <span className="text-white text-xs truncate w-full text-right">感謝 {request.fulfilledByName || '結他友'} 出譜</span>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => voteForRequest(request.id)}
           className={`rounded-full flex items-center justify-center gap-1.5 h-9 transition-all duration-300 ease-out ${
             justCancelledId === request.id
               ? 'bg-[#282828] text-gray-400 cursor-default px-3 py-2 min-w-[2.5rem] w-28'
@@ -729,10 +741,12 @@ export default function TabRequestsPage() {
               ? 'bg-[#1a1a1a] text-gray-500 cursor-default opacity-70'
               : 'bg-[#282828] text-[#FFD700] hover:bg-[#FFD700] hover:text-black'
           }`}
-          title="出譜"
-        >
-          出譜
-        </button>
+              title="出譜"
+            >
+              出譜
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -851,18 +865,20 @@ export default function TabRequestsPage() {
         const requestId = pasteLinkModalRequest.id
         // 顯示該樂譜嘅出譜者（編譜者），唔係貼連結嘅用戶
         const fulfilledByName = (tab.uploaderPenName || tab.arrangedBy || '').trim() || '結他友'
+        const albumImage = getSongThumbnail(tab) || null
         try {
           await updateDoc(doc(db, 'tabRequests', requestId), {
             status: 'fulfilled',
             fulfilledBy: user?.uid || null,
             fulfilledByName,
             fulfilledAt: serverTimestamp(),
-            tabId
+            tabId,
+            ...(albumImage && { albumImage })
           })
           setRequests((prev) =>
             prev.map((r) =>
               r.id === requestId
-                ? { ...r, status: 'fulfilled', fulfilledBy: user?.uid ?? null, fulfilledByName, fulfilledAt: new Date(), tabId }
+                ? { ...r, status: 'fulfilled', fulfilledBy: user?.uid ?? null, fulfilledByName, fulfilledAt: new Date(), tabId, ...(albumImage && { albumImage }) }
                 : r
             )
           )
@@ -873,7 +889,8 @@ export default function TabRequestsPage() {
             fulfilledBy: user?.uid ?? null,
             fulfilledByName,
             fulfilledAt: Date.now(),
-            tabId
+            tabId,
+            ...(albumImage && { albumImage })
           })
         } catch (err) {
           console.error('Error marking request fulfilled:', err)
