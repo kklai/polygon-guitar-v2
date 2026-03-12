@@ -5,9 +5,12 @@
 @tailwind utilities;
 
 
-/* 首屏同底色，減輕返回時閃黑 */
+/* 首屏同底色，減輕返回時閃黑；預留捲軸空間避免 loading 時底 nav 左右跳 */
 html {
   background: #000000;
+  scrollbar-gutter: stable;
+  /* Chrome Mac 等 overlay 捲軸下，強制預留捲軸軌道，避免載入前後寬度不一致 */
+  overflow-y: scroll;
 }
 
 body {
@@ -122,4 +125,18 @@ body {
 
 .text-xl {
   margin-top: 15px;
+}
+
+/* 全站圖片：禁止拖曳、選取、右鍵另存，減低下載 */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: auto;
+}
+img::selection {
+  background: transparent;
 }

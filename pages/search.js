@@ -247,8 +247,7 @@ export default function Search() {
                           <img
                             src={getArtistPhoto(artist)}
                             alt={artist.name}
-                            className="w-full h-full object-cover pointer-events-none select-none"
-                            draggable="false"
+                            className="w-full h-full object-cover pointer-events-none"
                             loading="lazy"
                             decoding="async"
                           />
@@ -337,8 +336,7 @@ export default function Search() {
                           <img
                             src={coverUrl}
                             alt={category.name}
-                            className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
-                            draggable="false"
+                            className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
                             loading="lazy"
                             decoding="async"
                           />
@@ -405,8 +403,7 @@ export default function Search() {
                           <img
                             src={getArtistPhoto(artist)}
                             alt={artist.name}
-                            className="w-full h-full object-cover pointer-events-none select-none"
-                            draggable="false"
+                            className="w-full h-full object-cover pointer-events-none"
                             loading="lazy"
                             decoding="async"
                           />

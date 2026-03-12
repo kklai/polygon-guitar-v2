@@ -16,8 +16,7 @@ export default function ArtistCard({ artist }) {
             alt={artist.name}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover pointer-events-none select-none"
-            draggable="false"
+            className="w-full h-full object-cover pointer-events-none"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

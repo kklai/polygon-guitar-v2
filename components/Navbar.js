@@ -103,17 +103,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop：出譜掣 + 頭像/icon，點擊開選單 */}
+          {/* Desktop：頭像/icon，點擊開選單（出譜在選單內） */}
           <div className="hidden md:flex md:relative items-center gap-2" ref={menuRef}>
-            <Link
-              href="/tabs/new"
-              className={`flex items-center justify-center rounded-full bg-black/10 text-black/70 flex-shrink-0 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
-              aria-label="出譜"
-            >
-              <svg className={scrolled ? 'w-5 h-5' : 'w-6 h-6'} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
-                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            </Link>
             <button
               onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
               className="text-black/70 p-1 rounded-full focus:outline-none"
@@ -123,11 +114,9 @@ export default function Navbar() {
                 <img
                   src={user.photoURL}
                   alt={user.displayName || '用戶'}
-                  className={`rounded-full object-cover select-none ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+                  className={`rounded-full object-cover ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
                   loading="lazy"
                   decoding="async"
-                  draggable={false}
-                  onContextMenu={(e) => e.preventDefault()}
                 />
               ) : (
                 <span className={`flex items-center justify-center rounded-full bg-black/10 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}>
@@ -144,13 +133,13 @@ export default function Navbar() {
                   <>
                     <Link href="/tabs/new" className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium" onClick={() => setIsMenuOpen(false)}>
                       <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
-                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                       </svg>
                       出譜
                     </Link>
                     <Link href={`/profile/${user.uid}`} className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium" onClick={() => setIsMenuOpen(false)}>
                       {user?.photoURL ? (
-                        <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 select-none" draggable={false} loading="lazy" decoding="async" onContextMenu={(e) => e.preventDefault()} />
+                        <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
                       ) : (
                         <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
                           <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -172,17 +161,8 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile：出譜掣 + 頭像/選單 icon（collapse 時隱藏出譜 icon） */}
+          {/* Mobile：頭像/選單 icon（出譜在選單內） */}
           <div className="md:hidden flex items-center gap-1">
-            <Link
-              href="/tabs/new"
-              className={`flex items-center justify-center rounded-full bg-black/10 text-black/70 flex-shrink-0 ${scrolled ? 'hidden' : 'w-[42px] h-[42px]'}`}
-              aria-label="出譜"
-            >
-              <svg className={scrolled ? 'w-5 h-5' : 'w-6 h-6'} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
-                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            </Link>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-black/70 p-1 rounded-full focus:outline-none"
@@ -196,11 +176,9 @@ export default function Navbar() {
                 <img
                   src={user.photoURL}
                   alt={user.displayName || '用戶'}
-                  className={`rounded-full object-cover select-none ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
+                  className={`rounded-full object-cover ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}
                   loading="lazy"
                   decoding="async"
-                  draggable={false}
-                  onContextMenu={(e) => e.preventDefault()}
                 />
               ) : (
                 <span className={`flex items-center justify-center rounded-full bg-black/10 ${scrolled ? 'w-8 h-8' : 'w-[42px] h-[42px]'}`}>
@@ -249,7 +227,7 @@ export default function Navbar() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
-                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                   </svg>
                   出譜
                 </Link>
@@ -259,7 +237,7 @@ export default function Navbar() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {user?.photoURL ? (
-                    <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0 select-none" draggable={false} loading="lazy" decoding="async" onContextMenu={(e) => e.preventDefault()} />
+                    <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
                   ) : (
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
                       <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

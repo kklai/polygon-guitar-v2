@@ -470,7 +470,7 @@ function PlaylistAdmin() {
                       {/* Cover */}
                       <div className="relative w-[70px] h-[70px] rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
-                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xl">📊</div>
                         )}
@@ -617,7 +617,7 @@ function PlaylistAdmin() {
                       {/* Cover */}
                       <div className="relative w-[70px] h-[70px] rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
-                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" />
+                          <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xl">✨</div>
                         )}

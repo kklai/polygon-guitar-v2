@@ -102,7 +102,7 @@ export default function SongActionSheet({
           <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
             <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
               {thumbnailUrl ? (
-                <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" loading="lazy" decoding="async" />
+                <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-2xl">🎸</div>
               )}

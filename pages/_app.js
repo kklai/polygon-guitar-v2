@@ -200,6 +200,20 @@ function ScrollRestoration() {
   return null
 }
 
+// 全站圖片禁止右鍵另存（禁止下載）
+function DisableImageContextMenu() {
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target?.tagName === 'IMG') {
+        e.preventDefault()
+      }
+    }
+    document.addEventListener('contextmenu', handler, { capture: true })
+    return () => document.removeEventListener('contextmenu', handler, { capture: true })
+  }, [])
+  return null
+}
+
 // 預先載入底部導航 5 個 route 的 JS chunk，撳下去即時切換 URL + 頁面 shell，再喺頁內做 data loading
 const BOTTOM_NAV_ROUTES = ['/', '/search', '/artists', '/library', '/tab-requests']
 
@@ -267,6 +281,7 @@ function RouteChangeIndicator() {
 export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
+      <DisableImageContextMenu />
       <PrefetchNavRoutes />
       <RouteChangeIndicator />
       <ScrollRestoration />

@@ -111,10 +111,9 @@ export function SongCard({ song, artistPhoto, onClick, href }) {
             <img
               src={coverImage}
               alt={song.title}
-              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none select-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
-              draggable="false"
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
             />
@@ -177,10 +176,9 @@ export function PlaylistCard({ playlist, onClick, href }) {
             <img
               src={coverImage}
               alt={playlist.title}
-              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none select-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
-              draggable="false"
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
             />
@@ -236,10 +234,9 @@ export function ArtistAvatar({ artist, onClick, href }) {
             <img
               src={photoUrl}
               alt={artist.name}
-              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none select-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 pointer-events-none ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               loading="lazy"
               decoding="async"
-              draggable="false"
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
             />

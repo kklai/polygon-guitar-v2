@@ -71,8 +71,7 @@ function ArtistCircle({ artist, href }) {
           <img
             src={photoUrl}
             alt={artist.name}
-            className="w-full h-full object-cover pointer-events-none select-none"
-            draggable="false"
+            className="w-full h-full object-cover pointer-events-none"
             loading="lazy"
             decoding="async"
           />

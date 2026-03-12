@@ -327,8 +327,7 @@ function HomeCategoryCard({ category, hotArtists }) {
           <img
             src={category.image}
             alt={category.name}
-            className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none"
-            draggable="false"
+            className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
             loading="lazy"
             decoding="async"
           />

@@ -756,7 +756,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
               {/* 歌曲封面 */}
               <div className="w-12 h-12 rounded-[4px] overflow-hidden mr-3 bg-[#282828] flex-shrink-0">
                 {getSongThumbnail(tab) ? (
-                  <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover pointer-events-none select-none" draggable="false" loading="lazy" decoding="async" />
+                  <img src={getSongThumbnail(tab)} alt={tab.title} className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-[#3E3E3E] text-xl">♪</div>
                 )}

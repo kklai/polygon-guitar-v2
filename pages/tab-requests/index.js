@@ -686,17 +686,15 @@ export default function TabRequestsPage() {
               : displayAsUnvotedId === request.id
                 ? 'w-9 bg-[#FFD700] text-black cursor-default'
                 : hasVoted(request)
-                  ? justVotedId === request.id
-                    ? 'bg-[#282828] text-green-500 opacity-90 cursor-default px-3 py-1.5 min-w-[2.5rem] w-24'
-                    : 'w-9 bg-[#282828] text-green-500 opacity-90 cursor-default'
-                  : 'w-9 bg-[#FFD700] text-black hover:opacity-90'
+                  ? 'h-9 px-3 py-1.5 rounded-full bg-[#282828] text-[#FFD700] cursor-default text-sm font-medium'
+                  : 'w-9 bg-[#FFD700] text-black hover:opacity-90 rounded-full'
           }`}
           title={justCancelledId === request.id ? '已取消求譜' : displayAsUnvotedId === request.id ? '我要求譜' : hasVoted(request) ? '取消求譜' : '我要求譜'}
         >
           {justCancelledId === request.id ? (
             <span className="text-gray-400 text-sm whitespace-nowrap">已取消求譜</span>
           ) : displayAsUnvotedId === request.id ? (
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
+            <svg className="w-[1.375rem] h-[1.375rem] flex-shrink-0 -translate-y-[0.6px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
               <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
               <path d="M599.4,454v119.1c0,174.8-109.6,295.3-282,295.3" />
               <path d="M261,394.5v-245.7c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v269.2" />
@@ -708,14 +706,9 @@ export default function TabRequestsPage() {
               <path d="M263.7,681.3c0-45.7,5-155.3-115.6-155.3v-126.2" />
             </svg>
           ) : hasVoted(request) ? (
-            <>
-              <svg className="w-5 h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path d="M5 13l4 4L19 7" />
-              </svg>
-              {justVotedId === request.id && <span className="text-green-500 text-sm whitespace-nowrap">已求譜</span>}
-            </>
+            <span className="text-[#FFD700] text-sm font-medium whitespace-nowrap">已求譜</span>
           ) : (
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
+            <svg className="w-[1.375rem] h-[1.375rem] flex-shrink-0 -translate-y-[0.6px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
               <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
               <path d="M599.4,454v119.1c0,174.8-109.6,295.3-282,295.3" />
               <path d="M261,394.5v-245.7c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v269.2" />
@@ -731,7 +724,11 @@ export default function TabRequestsPage() {
         <button
           type="button"
           onClick={() => openPasteLinkModal(request)}
-          className="h-9 px-3 py-1.5 rounded-full bg-[#282828] text-[#FFD700] flex items-center justify-center hover:bg-[#FFD700] hover:text-black transition text-sm font-medium"
+          className={`h-9 px-3 py-1.5 rounded-full flex items-center justify-center transition text-sm font-medium ${
+            hasVoted(request)
+              ? 'bg-[#1a1a1a] text-gray-500 cursor-default opacity-70'
+              : 'bg-[#282828] text-[#FFD700] hover:bg-[#FFD700] hover:text-black'
+          }`}
           title="出譜"
         >
           出譜
@@ -852,7 +849,8 @@ export default function TabRequestsPage() {
       const titleMatch = matchByGrouping || matchByNoSpace
       if (titleMatch) {
         const requestId = pasteLinkModalRequest.id
-        const fulfilledByName = user?.displayName || user?.email || '結他友'
+        // 顯示該樂譜嘅出譜者（編譜者），唔係貼連結嘅用戶
+        const fulfilledByName = (tab.uploaderPenName || tab.arrangedBy || '').trim() || '結他友'
         try {
           await updateDoc(doc(db, 'tabRequests', requestId), {
             status: 'fulfilled',
@@ -952,7 +950,7 @@ export default function TabRequestsPage() {
             onClick={() => setShowForm(true)}
             className="px-4 py-2 bg-[#FFD700] text-black rounded-full font-medium flex items-center gap-0.5"
           >
-            <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
+            <svg className="w-[1.375rem] h-[1.375rem] flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
               <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
               <path d="M599.4,454v119.1c0,174.8-109.6,295.3-282,295.3" />
               <path d="M261,394.5v-245.7c0-31.2-25.3-56.4-56.4-56.4s-56.4,25.3-56.4,56.4v269.2" />
@@ -1264,33 +1262,23 @@ export default function TabRequestsPage() {
             >
               <p className="text-white text-center mb-1">請貼上結他譜連結</p>
               <p className="text-gray-500 text-xs text-center mb-4">必須為 POLYGON 結他譜連結</p>
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  ref={pasteLinkInputRef}
-                  type="url"
-                  value={pastedLink}
-                  onChange={(e) => setPastedLink(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && checkPasteLinkAndConfirm()}
-                  placeholder="https://polygon.guitars/tabs/..."
-                  className="flex-1 bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none text-base"
-                />
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePasteLink(e); }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="w-12 h-12 rounded-full bg-[#282828] text-[#FFD700] flex items-center justify-center hover:bg-[#3E3E3E] transition touch-manipulation flex-shrink-0 active:scale-95 select-none"
-                  title="貼上（讀取剪貼簿）"
-                  aria-label="貼上"
-                >
-                  <svg className="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
-                    <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                  </svg>
-                </button>
-              </div>
-              {pasteMessage && (
-                <p className="text-[#FFD700] text-xs text-center mb-3">{pasteMessage}</p>
-              )}
+              <input
+                ref={pasteLinkInputRef}
+                type="url"
+                value={pastedLink}
+                onChange={(e) => setPastedLink(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && checkPasteLinkAndConfirm()}
+                placeholder="https://polygon.guitars/tabs/..."
+                className="w-full bg-[#282828] border-0 rounded-full px-4 py-3 text-white placeholder-[#666] outline-none text-base mb-3"
+              />
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); checkPasteLinkAndConfirm(); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className={`w-full rounded-full font-medium py-3 text-base hover:opacity-90 transition ${pasteMessage && pasteMessage.includes('失敗') ? 'bg-[#282828] text-red-500' : 'bg-[#FFD700] text-black'}`}
+              >
+                {pasteMessage || '確定'}
+              </button>
             </div>
           </div>
         )}
