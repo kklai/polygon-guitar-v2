@@ -571,7 +571,7 @@ export default function TabDetail({ initialTab }) {
           </div>
           {/* 歌曲資訊：跟頂 bar sticky，唔會隨 scroll 移動，唔影響背景 */}
           {showInfo && (tab?.youtubeVideoId || tab?.youtubeUrl || hasSongInfo) && (
-            <div className="absolute left-0 right-0 top-full bg-[#111111] rounded-b-2xl shadow-xl z-10">
+            <div className="absolute left-0 right-0 top-full bg-[#111111] rounded-b-2xl shadow-xl z-10 min-[600px]:max-w-3xl min-[600px]:left-auto">
               <div className="px-4 py-3">
                 <div className="space-y-3">
                   {(extractYouTubeId(tab.youtubeUrl) || tab.youtubeVideoId) && (
@@ -782,7 +782,7 @@ export default function TabDetail({ initialTab }) {
         {showFloatingControls && (
           <div className="fixed inset-0" style={{ zIndex: 29 }} onClick={() => setShowFloatingControls(false)} />
         )}
-        <div className="fixed bottom-20 right-4 z-30 md:bottom-6 md:right-6 flex flex-col items-end gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+        <div className="fixed bottom-20 right-4 z-30 md:bottom-20 md:right-6 flex flex-col items-end gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
           {showFloatingControls ? (
             <div className="rounded-2xl bg-[#1a1a1a] shadow-xl p-3 w-[190px] border border-neutral-700">
               <div className="space-y-3">

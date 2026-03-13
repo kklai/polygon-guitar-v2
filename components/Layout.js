@@ -156,16 +156,18 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
 
   return (
     <div className={`${showHeader ? 'bg-black' : 'bg-transparent'} text-white min-h-screen min-h-[calc(100vh+1px)]`}>
-      <div className="pg-top-nav-wrapper">{showHeader && <Navbar />}</div>
-      <main 
-        className={fullWidth 
-          ? (showHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
-          : (showHeader ? 'max-w-7xl mx-auto pb-24' : 'pb-24')
-        }
-        style={showHeader ? { paddingTop: fullWidth ? 'calc(4.4rem + env(safe-area-inset-top, 0px))' : 'calc(4.4rem + 10px + env(safe-area-inset-top, 0px))' } : {}}
-      >
-        {children}
-      </main>
+      <div className="max-w-[1050px] mx-auto">
+        <div className="pg-top-nav-wrapper">{showHeader && <Navbar />}</div>
+        <main 
+          className={fullWidth 
+            ? (showHeader ? 'pb-16 md:pb-0' : 'pb-16 md:pb-0')
+            : (showHeader ? 'pb-24' : 'pb-24')
+          }
+          style={showHeader ? { paddingTop: fullWidth ? 'calc(4.4rem + env(safe-area-inset-top, 0px))' : 'calc(4.4rem + 10px + env(safe-area-inset-top, 0px))' } : {}}
+        >
+          {children}
+        </main>
+      </div>
       
       {/* 手機版底部導航 - 黃底黑字設計 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-[100] md:hidden" style={{ paddingBottom: 'min(env(safe-area-inset-bottom, 0px), 30px)' }}>
