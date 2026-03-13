@@ -140,6 +140,14 @@ function EditArtist() {
     
     if (!validate()) return
 
+    for (const field of ['heroPhoto', 'photoURL', 'wikiPhotoURL']) {
+      const v = formData[field]
+      if (v && (v.startsWith('data:') || (v.length > 500 && !v.startsWith('http')))) {
+        setErrors({ [field]: '唔可以用 base64，請用上傳按鈕' })
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       // 由新歌手名生成網站 ID（slug），例如 "陳奕迅 Eason Chan" → "陳奕迅-Eason-Chan"

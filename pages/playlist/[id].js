@@ -441,7 +441,7 @@ export default function PlaylistDetail({
     }
   }
 
-  if (isLoading) {
+  if (router.isFallback || isLoading) {
     return (
       <Layout fullWidth hideHeader>
         <Head>
@@ -1063,7 +1063,7 @@ export default function PlaylistDetail({
 }
 
 export async function getStaticPaths() {
-  return { paths: [], fallback: 'blocking' }
+  return { paths: [], fallback: true }
 }
 
 export async function getStaticProps({ params }) {

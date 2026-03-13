@@ -224,6 +224,13 @@ export default function ArtistsV2Page() {
         showMessage('資料不完整，無法保存', 'error')
         return
       }
+      for (const field of ['heroPhoto', 'photoURL', 'wikiPhotoURL']) {
+        const v = editForm[field]
+        if (v && (v.startsWith('data:') || (v.length > 500 && !v.startsWith('http')))) {
+          showMessage(`${field} 唔可以用 base64，請用上傳按鈕`, 'error')
+          return
+        }
+      }
 
       console.log('Saving artist:', selectedArtist.id, editForm.name)
       const artistRef = doc(db, 'artists', selectedArtist.id)
@@ -843,7 +850,7 @@ export default function ArtistsV2Page() {
 
                     <div>
                       <label className="block text-[#B3B3B3] text-sm mb-2">
-                        Hero 照片 URL (Base64 或連結)
+                        Hero 照片 URL
                       </label>
                       <div className="flex gap-2">
                         <textarea

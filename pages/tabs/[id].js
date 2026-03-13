@@ -471,7 +471,7 @@ export default function TabDetail({ initialTab }) {
   const isOwner = tab && user && tab.createdBy === user.uid
   const canEdit = isOwner || isAdmin
 
-  if (isLoading) {
+  if (router.isFallback || isLoading) {
     return (
       <Layout>
         <div className="w-full">
@@ -1091,7 +1091,7 @@ export default function TabDetail({ initialTab }) {
 }
 
 export async function getStaticPaths() {
-  return { paths: [], fallback: 'blocking' }
+  return { paths: [], fallback: true }
 }
 
 export async function getStaticProps({ params }) {

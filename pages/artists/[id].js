@@ -529,7 +529,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     return artist?.photoURL || artist?.wikiPhotoURL || null;
   };
 
-  if (loading || !artist) return (
+  if (router.isFallback || loading || !artist) return (
     <Layout fullWidth>
       <Head>
         <title>{id ? `${decodeURIComponent(id)} | Polygon Guitar` : 'Polygon Guitar'}</title>
@@ -1133,7 +1133,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
 }
 
 export async function getStaticPaths() {
-  return { paths: [], fallback: 'blocking' };
+  return { paths: [], fallback: true };
 }
 
 export async function getStaticProps({ params }) {
@@ -1155,8 +1155,8 @@ export async function getStaticProps({ params }) {
       return {
         props: {
           initialArtist: serializeForProps(cached.artist),
-          initialHotTabs: serializeForProps(cached.hotTabs || []),
-          initialAllTabs: serializeForProps(cached.allTabs)
+          initialHotTabs: serializeForProps((cached.hotTabs || []).map(slimTabForArtistPage)),
+          initialAllTabs: serializeForProps(cached.allTabs.map(slimTabForArtistPage))
         },
         revalidate: 300
       };

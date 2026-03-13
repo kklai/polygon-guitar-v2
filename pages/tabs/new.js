@@ -462,13 +462,18 @@ export default function NewTab() {
       try {
         const token = await auth.currentUser?.getIdToken?.()
         if (token) {
-          await fetch('/api/patch-caches-on-new-tab', {
+          const patchRes = await fetch('/api/patch-caches-on-new-tab', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ tab: newTab, action: 'create' })
           })
+          if (!patchRes.ok) {
+            console.warn('[patch-caches] failed:', patchRes.status, await patchRes.text().catch(() => ''))
+          }
         }
-      } catch (_) {}
+      } catch (e) {
+        console.warn('[patch-caches] error:', e?.message)
+      }
       router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)
