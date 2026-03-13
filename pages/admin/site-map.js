@@ -653,16 +653,12 @@ function AdminSection() {
               { name: "合併重複歌手", path: "/admin/merge-artists", desc: "合併中英文重複的歌手" },
               { name: "歌手排序", path: "/admin/artists-sort", desc: "設置首頁歌手顯示順序" },
               { name: "分類封面", path: "/admin/category-images", desc: "設置男/女/組合分類封面" },
-              { name: "Hero 照片", path: "/admin/hero-photos", desc: "批量上傳歌手 Hero 背景圖" },
             ]}
           />
           <AdminToolCard 
             title="🎸 樂譜管理"
             tools={[
-              { name: "遷移樂譜管理", path: "/admin/migrated-tabs", desc: "管理從 Blogger 導入的舊譜" },
-              { name: "導入樂譜", path: "/admin/import-tabs", desc: "從 Blogger 導入新樂譜" },
               { name: "樂譜分析", path: "/admin/analyze", desc: "分析樂譜質素和問題" },
-              { name: "數據審查", path: "/admin/data-review", desc: "找出可疑/錯誤的資料" },
             ]}
           />
           <AdminToolCard 
@@ -694,7 +690,6 @@ function AdminSection() {
             tools={[
               { name: "批量 YouTube", path: "/admin/bulk-youtube", desc: "批量更新 YouTube 連結" },
               { name: "歌單管理", path: "/admin/playlists", desc: "管理精選歌單" },
-              { name: "修復工具", path: "/admin/fix-artist", desc: "修復錯誤歌手名" },
             ]}
           />
         </div>
