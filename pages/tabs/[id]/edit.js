@@ -588,10 +588,10 @@ export default function EditTab() {
       <Layout>
         <div className="max-w-3xl mx-auto px-4">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-800 rounded w-1/3"></div>
-            <div className="h-12 bg-gray-800 rounded"></div>
-            <div className="h-12 bg-gray-800 rounded"></div>
-            <div className="h-64 bg-gray-800 rounded"></div>
+            <div className="h-8 bg-neutral-800 rounded w-1/3"></div>
+            <div className="h-12 bg-neutral-800 rounded"></div>
+            <div className="h-12 bg-neutral-800 rounded"></div>
+            <div className="h-64 bg-neutral-800 rounded"></div>
           </div>
         </div>
       </Layout>
@@ -604,7 +604,7 @@ export default function EditTab() {
     <Layout>
       <div className="max-w-3xl mx-auto px-4 pb-8">
         {/* Header - Sticky */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-2 flex items-center justify-between">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-[#1a1a1a] -mx-4 px-4 py-4 mb-2 flex items-center justify-between">
           <div className="flex items-center">
             <Link
               href={`/tabs/${id}`}
@@ -652,14 +652,14 @@ export default function EditTab() {
               </svg>
               {(formData.viewCount || 0).toLocaleString()} 次瀏覽
             </span>
-            <span className="text-gray-600">|</span>
+            <span className="text-neutral-600">|</span>
             <span className="flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
               </svg>
               Key: {formData.originalKey || 'C'}
             </span>
-            <span className="text-gray-600">|</span>
+            <span className="text-neutral-600">|</span>
             <span className="flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -670,7 +670,7 @@ export default function EditTab() {
         </div>
 
         {/* Form */}
-        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-gray-800">
+        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-neutral-800">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div>
@@ -684,7 +684,7 @@ export default function EditTab() {
                 value={formData.title}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] ${
-                  errors.title ? 'border-red-500' : 'border-gray-800'
+                  errors.title ? 'border-red-500' : 'border-neutral-800'
                 }`}
               />
               {errors.title && (
@@ -728,14 +728,14 @@ export default function EditTab() {
                 歌手類型 <span className="text-[#FFD700]">*</span>
               </label>
               {useExistingArtistSelected && formData.artistType ? (
-                <div className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2">
+                <div className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white flex items-center gap-2">
                   <span className="text-green-400">✓</span>
                   <span>
                     {formData.artistType === 'male' && '男歌手'}
                     {formData.artistType === 'female' && '女歌手'}
                     {formData.artistType === 'group' && '組合'}
                   </span>
-                  <span className="text-xs text-gray-400 ml-auto">（已綁定現有歌手）</span>
+                  <span className="text-xs text-neutral-400 ml-auto">（已綁定現有歌手）</span>
                 </div>
               ) : (
                 <select
@@ -743,7 +743,7 @@ export default function EditTab() {
                   name="artistType"
                   value={formData.artistType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                 >
                   <option value="">請選擇...</option>
                   <option value="male">男歌手</option>
@@ -754,7 +754,7 @@ export default function EditTab() {
               
               {/* 已填入的歌手資料預覽 */}
               {(formData.artistPhoto || formData.artistYear || formData.artistType) && (
-                <div className="mt-4 p-4 bg-black rounded-lg border border-gray-700">
+                <div className="mt-4 p-4 bg-black rounded-lg border border-neutral-700">
                   <h4 className="text-sm font-medium text-[#FFD700] mb-3">
                     已填入歌手資料：
                     {collaborators.length > 1 && (
@@ -785,13 +785,13 @@ export default function EditTab() {
                         <p className="text-white text-sm font-medium">{formData.artist}</p>
                       )}
                       {formData.artistType && (
-                        <p className="text-gray-400 text-sm mt-1">
+                        <p className="text-neutral-400 text-sm mt-1">
                           {formData.artistType === 'male' ? '男歌手' : 
                            formData.artistType === 'female' ? '女歌手' : '組合'}
                         </p>
                       )}
                       {formData.artistYear && (
-                        <p className="text-gray-500 text-xs mt-1">出道/出生年份：{formData.artistYear}</p>
+                        <p className="text-neutral-500 text-xs mt-1">出道/出生年份：{formData.artistYear}</p>
                       )}
                     </div>
                   </div>
@@ -800,9 +800,9 @@ export default function EditTab() {
             </div>
 
             {/* Song Info Search - Spotify */}
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">歌曲資訊（Spotify 搜尋）</h3>
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-neutral-500 mb-3">
                 自動從 Spotify 獲取歌曲資訊，包括專輯封面、發行年份等
               </p>
               <button
@@ -829,13 +829,13 @@ export default function EditTab() {
                     />
                   )}
                   <div className="space-y-2 text-sm">
-                    <p><span className="text-gray-500">歌手：</span><span className="text-white">{formData.artist}</span></p>
-                    <p><span className="text-gray-500">歌名：</span><span className="text-white">{formData.title}</span></p>
+                    <p><span className="text-neutral-500">歌手：</span><span className="text-white">{formData.artist}</span></p>
+                    <p><span className="text-neutral-500">歌名：</span><span className="text-white">{formData.title}</span></p>
                     {formData.album && (
-                      <p><span className="text-gray-500">專輯：</span><span className="text-white">{formData.album}</span></p>
+                      <p><span className="text-neutral-500">專輯：</span><span className="text-white">{formData.album}</span></p>
                     )}
                     {formData.songYear && (
-                      <p><span className="text-gray-500">年份：</span><span className="text-white">{formData.songYear}</span></p>
+                      <p><span className="text-neutral-500">年份：</span><span className="text-white">{formData.songYear}</span></p>
                     )}
                   </div>
                 </div>
@@ -843,12 +843,12 @@ export default function EditTab() {
             </div>
 
             {/* Guitar Pro Segments */}
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">🎸 Guitar Pro 段落</h3>
               
               {/* GP 主題選擇 */}
               <div className="mb-4 p-3 bg-black/30 rounded-lg">
-                <label className="block text-sm text-gray-400 mb-2">譜面顯示主題</label>
+                <label className="block text-sm text-neutral-400 mb-2">譜面顯示主題</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -856,7 +856,7 @@ export default function EditTab() {
                     className={`flex-1 py-2 px-3 rounded border transition text-sm ${
                       formData.gpTheme === 'dark' 
                         ? 'bg-[#FFD700] text-black border-[#FFD700]' 
-                        : 'bg-gray-800 text-white border-gray-700'
+                        : 'bg-neutral-800 text-white border-neutral-700'
                     }`}
                   >
                     🌙 黑底黃字
@@ -866,8 +866,8 @@ export default function EditTab() {
                     onClick={() => setFormData(prev => ({ ...prev, gpTheme: 'light' }))}
                     className={`flex-1 py-2 px-3 rounded border transition text-sm ${
                       formData.gpTheme === 'light' 
-                        ? 'bg-white text-black border-gray-300' 
-                        : 'bg-gray-800 text-white border-gray-700'
+                        ? 'bg-white text-black border-neutral-300' 
+                        : 'bg-neutral-800 text-white border-neutral-700'
                     }`}
                   >
                     ☀️ 白底黑字
@@ -890,9 +890,9 @@ export default function EditTab() {
               {/* 已添加段落列表 */}
               {formData.gpSegments.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <h4 className="text-sm font-medium text-gray-400">已添加段落</h4>
+                  <h4 className="text-sm font-medium text-neutral-400">已添加段落</h4>
                   {formData.gpSegments.map((seg, index) => (
-                    <div key={seg.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+                    <div key={seg.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <span className="text-lg">
                           {seg.type === 'intro' && '🎵'}
@@ -906,7 +906,7 @@ export default function EditTab() {
                         </span>
                         <div>
                           <p className="text-white text-sm capitalize">{seg.type}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-neutral-500">
                             小節 {seg.startBar}-{seg.endBar} • {seg.originalFilename}
                           </p>
                         </div>
@@ -919,7 +919,7 @@ export default function EditTab() {
                             gpSegments: prev.gpSegments.filter((_, i) => i !== index)
                           }))
                         }}
-                        className="text-gray-500 hover:text-red-400 transition p-1"
+                        className="text-neutral-500 hover:text-red-400 transition p-1"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -932,7 +932,7 @@ export default function EditTab() {
             </div>
 
             {/* Cover Image Selection */}
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">封面圖片設定</h3>
               
               {(() => {
@@ -944,8 +944,8 @@ export default function EditTab() {
                     <div className="flex items-center gap-4">
                       <label className={`relative flex items-center justify-center w-[100px] h-[100px] rounded-lg border-2 border-dashed cursor-pointer transition flex-shrink-0 ${
                         isUploadingCover 
-                          ? 'border-gray-600 bg-gray-800/50' 
-                          : 'border-gray-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
+                          ? 'border-neutral-600 bg-neutral-800/50' 
+                          : 'border-neutral-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
                       }`}>
                         <input
                           type="file"
@@ -956,25 +956,25 @@ export default function EditTab() {
                         />
                         {isUploadingCover ? (
                           <div className="flex flex-col items-center">
-                            <svg className="w-6 h-6 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 text-neutral-400 animate-spin" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <span className="text-[10px] text-gray-400 mt-1">上傳中...</span>
+                            <span className="text-[10px] text-neutral-400 mt-1">上傳中...</span>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            <span className="text-[10px] text-gray-400 mt-1">上傳封面</span>
+                            <span className="text-[10px] text-neutral-400 mt-1">上傳封面</span>
                           </div>
                         )}
                       </label>
                       
                       <div className="flex-1">
                         <p className="text-sm text-white font-medium">上傳自訂封面</p>
-                        <p className="text-xs text-gray-500">支援 JPG、PNG、GIF、WebP，最大 10MB</p>
+                        <p className="text-xs text-neutral-500">支援 JPG、PNG、GIF、WebP，最大 10MB</p>
                         {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
                       </div>
                     </div>
@@ -982,9 +982,9 @@ export default function EditTab() {
                     {/* 分隔線 */}
                     {options.length > 0 && (
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px bg-gray-800"></div>
-                        <span className="text-xs text-gray-500">或選擇現有圖片</span>
-                        <div className="flex-1 h-px bg-gray-800"></div>
+                        <div className="flex-1 h-px bg-neutral-800"></div>
+                        <span className="text-xs text-neutral-500">或選擇現有圖片</span>
+                        <div className="flex-1 h-px bg-neutral-800"></div>
                       </div>
                     )}
                     
@@ -999,7 +999,7 @@ export default function EditTab() {
                             className={`relative w-[100px] h-[100px] rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${
                               formData.coverImage === option.url 
                                 ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
-                                : 'border-gray-700 hover:border-gray-500'
+                                : 'border-neutral-700 hover:border-neutral-500'
                             }`}
                           >
                             <img 
@@ -1011,7 +1011,7 @@ export default function EditTab() {
                                 e.target.nextSibling.style.display = 'flex'
                               }}
                             />
-                            <div className="hidden w-full h-full items-center justify-center bg-gray-800 text-gray-500 text-xs">
+                            <div className="hidden w-full h-full items-center justify-center bg-neutral-800 text-neutral-500 text-xs">
                               載入失敗
                             </div>
                             
@@ -1061,9 +1061,9 @@ export default function EditTab() {
                     
                     {/* 沒有選項時的提示 */}
                     {options.length === 0 && !formData.coverImage && (
-                      <div className="text-center py-4 bg-[#1a1a1a] rounded-lg border border-gray-800">
-                        <p className="text-gray-500 text-sm">還沒有其他封面選項</p>
-                        <p className="text-gray-600 text-xs mt-1">添加 YouTube 影片或從 Spotify 搜尋可獲取更多封面</p>
+                      <div className="text-center py-4 bg-[#1a1a1a] rounded-lg border border-neutral-800">
+                        <p className="text-neutral-500 text-sm">還沒有其他封面選項</p>
+                        <p className="text-neutral-600 text-xs mt-1">添加 YouTube 影片或從 Spotify 搜尋可獲取更多封面</p>
                       </div>
                     )}
                   </div>
@@ -1075,31 +1075,31 @@ export default function EditTab() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="songYear" className="block text-sm font-medium text-white mb-1">歌曲年份</label>
-                <input type="text" id="songYear" name="songYear" value={formData.songYear} onChange={handleChange} placeholder="例如：1993" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="text" id="songYear" name="songYear" value={formData.songYear} onChange={handleChange} placeholder="例如：1993" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="album" className="block text-sm font-medium text-white mb-1">所屬專輯/CD</label>
-                <input type="text" id="album" name="album" value={formData.album} onChange={handleChange} placeholder="例如：樂與怒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="text" id="album" name="album" value={formData.album} onChange={handleChange} placeholder="例如：樂與怒" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="bpm" className="block text-sm font-medium text-white mb-1">BPM</label>
-                <input type="number" id="bpm" name="bpm" value={formData.bpm} onChange={handleChange} placeholder="例如：120" min="1" max="300" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="number" id="bpm" name="bpm" value={formData.bpm} onChange={handleChange} placeholder="例如：120" min="1" max="300" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="composer" className="block text-sm font-medium text-white mb-1">作曲</label>
-                <input type="text" id="composer" name="composer" value={formData.composer} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="text" id="composer" name="composer" value={formData.composer} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="lyricist" className="block text-sm font-medium text-white mb-1">填詞</label>
-                <input type="text" id="lyricist" name="lyricist" value={formData.lyricist} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="text" id="lyricist" name="lyricist" value={formData.lyricist} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="arranger" className="block text-sm font-medium text-white mb-1">編曲</label>
-                <input type="text" id="arranger" name="arranger" value={formData.arranger} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="text" id="arranger" name="arranger" value={formData.arranger} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               <div>
                 <label htmlFor="producer" className="block text-sm font-medium text-white mb-1">監製</label>
-                <input type="text" id="producer" name="producer" value={formData.producer} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+                <input type="text" id="producer" name="producer" value={formData.producer} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               </div>
               
               {/* 上傳者筆名 */}
@@ -1117,8 +1117,8 @@ export default function EditTab() {
                   placeholder="例如：Kermit、結他小王子（顯示為『編譜：xxx』）" 
                   className={`w-full px-4 py-2 bg-black rounded-lg text-white placeholder-[#B3B3B3] ${
                     isAdmin 
-                      ? 'border border-gray-800' 
-                      : 'border border-gray-800 cursor-not-allowed opacity-70'
+                      ? 'border border-neutral-800' 
+                      : 'border border-neutral-800 cursor-not-allowed opacity-70'
                   }`} 
                 />
                 <p className="mt-1 text-sm text-[#B3B3B3]">
@@ -1131,7 +1131,7 @@ export default function EditTab() {
             </div>
 
             {/* YouTube */}
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">YouTube 連結</h3>
               <div className="flex flex-wrap gap-2 mb-3">
                 <button type="button" onClick={() => { setYouTubeAutoSelect(false); setIsYouTubeModalOpen(true); }} disabled={!formData.artist || !formData.title} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 text-sm">
@@ -1143,7 +1143,7 @@ export default function EditTab() {
                   快速添加（自動選第一個）
                 </button>
               </div>
-              <input type="url" id="youtubeUrl" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="貼上 YouTube 連結..." className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]" />
+              <input type="url" id="youtubeUrl" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="貼上 YouTube 連結..." className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
               {formData.youtubeVideoId && (
                 <div className="mt-3">
                   <p className="text-xs text-green-400 mb-2">✓ 已識別 Video ID: {formData.youtubeVideoId}</p>
@@ -1164,7 +1164,7 @@ export default function EditTab() {
                 name="originalKey"
                 value={formData.originalKey}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <optgroup label="Major (大調)">
                   {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
@@ -1189,7 +1189,7 @@ export default function EditTab() {
                 name="capo"
                 value={formData.capo}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value="">唔用 Capo</option>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((num) => (
@@ -1211,7 +1211,7 @@ export default function EditTab() {
                 name="playKey"
                 value={formData.playKey}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value="">同原調</option>
                 <optgroup label="Major (大調)">
@@ -1231,7 +1231,7 @@ export default function EditTab() {
             </div>
 
             {/* 演奏技巧 */}
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">演奏技巧（可選）</h3>
               
               <div className="space-y-4">
@@ -1246,9 +1246,9 @@ export default function EditTab() {
                     onChange={handleChange}
                     placeholder="例如：↓ ↓↑ ↓↑ ↓↑&#10;或：D DU DU DU"
                     rows={3}
-                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] font-mono text-sm"
+                    className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3] font-mono text-sm"
                   />
-                  <p className="mt-1 text-xs text-gray-500">可以用箭頭 ↓↑ 或 D/U 表示</p>
+                  <p className="mt-1 text-xs text-neutral-500">可以用箭頭 ↓↑ 或 D/U 表示</p>
                 </div>
                 
                 <div>
@@ -1262,7 +1262,7 @@ export default function EditTab() {
                     onChange={handleChange}
                     placeholder="例如：副歌可以用Power Chord加強節奏感&#10;間奏Solo建議用食指橫按..."
                     rows={3}
-                    className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3] text-sm"
+                    className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3] text-sm"
                   />
                 </div>
               </div>
@@ -1283,7 +1283,7 @@ export default function EditTab() {
                       className={`px-3 py-1.5 rounded text-sm font-medium transition ${
                         formData.displayFont === 'mono' 
                           ? 'bg-[#FFD700] text-black' 
-                          : 'text-gray-400 hover:text-white'
+                          : 'text-neutral-400 hover:text-white'
                       }`}
                     >
                       等寬字體
@@ -1296,14 +1296,14 @@ export default function EditTab() {
                       className={`px-3 py-1.5 rounded text-sm font-medium transition ${
                         formData.displayFont === 'arial' 
                           ? 'bg-[#FFD700] text-black' 
-                          : 'text-gray-400 hover:text-white'
+                          : 'text-neutral-400 hover:text-white'
                       }`}
                     >
                       Arial
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-neutral-500 mt-2">
                   {formData.displayFont === 'arial' 
                     ? 'Arial：適合從其他網站複製過來嘅譜，用戶睇到嘅效果同你編輯時一樣（舊譜預設）' 
                     : '等寬字體：傳統結他譜顯示方式'}
@@ -1340,7 +1340,7 @@ export default function EditTab() {
                         .join('\n');
                       setFormData(prev => ({ ...prev, content: cleaned }));
                     }}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                    className="text-sm text-neutral-400 hover:text-white transition-colors"
                     disabled={!formData.content}
                   >
                     移除所有空行
@@ -1375,14 +1375,14 @@ export default function EditTab() {
                 rows={20}
                 placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] text-sm ${
-                  errors.content ? 'border-red-500' : 'border-gray-800'
+                  errors.content ? 'border-red-500' : 'border-neutral-800'
                 } ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
                 style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }}
               />
               {errors.content && (
                 <p className="mt-1 text-sm text-red-400">{errors.content}</p>
               )}
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 mt-2 text-xs text-neutral-500">
                 <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -1401,7 +1401,7 @@ export default function EditTab() {
               </button>
               <Link
                 href={`/tabs/${id}`}
-                className="px-6 py-3 border border-gray-800 rounded-lg font-medium text-[#B3B3B3] hover:text-white hover:border-[#FFD700] transition"
+                className="px-6 py-3 border border-neutral-800 rounded-lg font-medium text-[#B3B3B3] hover:text-white hover:border-[#FFD700] transition"
               >
                 取消
               </Link>
@@ -1409,7 +1409,7 @@ export default function EditTab() {
 
             {/* 刪除按鈕 - 僅管理員可見 */}
             {isAdmin && (
-              <div className="pt-6 mt-6 border-t border-gray-800">
+              <div className="pt-6 mt-6 border-t border-[#1a1a1a]">
                 <button
                   type="button"
                   onClick={handleDeleteTab}
@@ -1420,7 +1420,7 @@ export default function EditTab() {
                   </svg>
                   刪除樂譜
                 </button>
-                <p className="mt-2 text-xs text-gray-500 text-center">
+                <p className="mt-2 text-xs text-neutral-500 text-center">
                   警告：刪除後無法復原。
                 </p>
               </div>

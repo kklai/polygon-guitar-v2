@@ -32,7 +32,7 @@ export default function MoreMenu({ isOpen, onClose }) {
     <div className="fixed inset-0 z-[60] bg-black/50" onClick={onClose}>
       <div 
         ref={menuRef}
-        className="absolute bottom-20 left-4 right-4 bg-[#121212] rounded-2xl border border-gray-800 overflow-hidden shadow-2xl"
+        className="absolute bottom-20 left-4 right-4 bg-[#121212] rounded-2xl border border-neutral-800 overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-4">
@@ -50,9 +50,9 @@ export default function MoreMenu({ isOpen, onClose }) {
                 </div>
                 <div className="flex-1">
                   <div className="text-white font-medium">{item.label}</div>
-                  <div className="text-gray-500 text-sm">{item.desc}</div>
+                  <div className="text-neutral-500 text-sm">{item.desc}</div>
                 </div>
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
@@ -61,7 +61,7 @@ export default function MoreMenu({ isOpen, onClose }) {
         </div>
         
         {!user && (
-          <div className="p-4 border-t border-gray-800 bg-[#0a0a0a]">
+          <div className="p-4 border-t border-neutral-800 bg-[#0a0a0a]">
             <Link 
               href="/login"
               onClick={onClose}

@@ -367,7 +367,7 @@ export default function TestGpDisplay() {
             <h2 className="text-lg font-medium text-white">1. 選擇 GP 文件</h2>
             <button
               onClick={loadSampleFile}
-              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition"
+              className="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-sm transition"
             >
               🔄 重新載入範例
             </button>
@@ -376,13 +376,13 @@ export default function TestGpDisplay() {
             type="file"
             accept=".gp3,.gp4,.gp5,.gpx,.gp"
             onChange={handleFileSelect}
-            className="block w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#FFD700] file:text-black"
+            className="block w-full text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#FFD700] file:text-black"
           />
           {file && (
             <div className="mt-2 flex items-center gap-2">
               <span className="text-green-400 text-sm">{file.name}</span>
               {file.name === SAMPLE_FILE.name && (
-                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">範例文件</span>
+                <span className="text-xs bg-neutral-700 text-neutral-300 px-2 py-0.5 rounded">範例文件</span>
               )}
             </div>
           )}
@@ -399,7 +399,7 @@ export default function TestGpDisplay() {
                   <button
                     key={key}
                     onClick={() => applyPreset(key)}
-                    className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm transition text-left"
+                    className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm transition text-left"
                   >
                     {preset.name}
                   </button>
@@ -424,12 +424,12 @@ export default function TestGpDisplay() {
                 {colorControls.map(({ key, label, desc, important }) => (
                   <div 
                     key={key} 
-                    className={`bg-gray-900 rounded-lg p-3 ${important ? 'border-2 border-[#FFD700]' : ''}`}
+                    className={`bg-neutral-900 rounded-lg p-3 ${important ? 'border-2 border-[#FFD700]' : ''}`}
                   >
-                    <label className={`block text-sm ${important ? 'text-[#FFD700]' : 'text-gray-300'} mb-1`}>
+                    <label className={`block text-sm ${important ? 'text-[#FFD700]' : 'text-neutral-300'} mb-1`}>
                       {label}
                     </label>
-                    <p className="text-xs text-gray-500 mb-2">{desc}</p>
+                    <p className="text-xs text-neutral-500 mb-2">{desc}</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -441,7 +441,7 @@ export default function TestGpDisplay() {
                         type="text"
                         value={colors[key] || '#FFD700'}
                         onChange={(e) => updateColor(key, e.target.value)}
-                        className="flex-1 px-2 py-1 bg-black border border-gray-700 rounded text-white text-sm font-mono"
+                        className="flex-1 px-2 py-1 bg-black border border-neutral-700 rounded text-white text-sm font-mono"
                       />
                     </div>
                   </div>
@@ -458,25 +458,25 @@ export default function TestGpDisplay() {
                 
                 {isReady && totalBars > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-sm">小節</span>
+                    <span className="text-neutral-400 text-sm">小節</span>
                     <input
                       type="number"
                       min={1}
                       max={totalBars}
                       value={startBar}
                       onChange={(e) => setStartBar(parseInt(e.target.value) || 1)}
-                      className="w-14 px-2 py-1 bg-black border border-gray-700 rounded text-white text-sm text-center"
+                      className="w-14 px-2 py-1 bg-black border border-neutral-700 rounded text-white text-sm text-center"
                     />
-                    <span className="text-gray-400">-</span>
+                    <span className="text-neutral-400">-</span>
                     <input
                       type="number"
                       min={startBar}
                       max={totalBars}
                       value={endBar}
                       onChange={(e) => setEndBar(parseInt(e.target.value) || startBar)}
-                      className="w-14 px-2 py-1 bg-black border border-gray-700 rounded text-white text-sm text-center"
+                      className="w-14 px-2 py-1 bg-black border border-neutral-700 rounded text-white text-sm text-center"
                     />
-                    <span className="text-gray-500 text-sm">/ {totalBars}</span>
+                    <span className="text-neutral-500 text-sm">/ {totalBars}</span>
                   </div>
                 )}
               </div>
@@ -493,7 +493,7 @@ export default function TestGpDisplay() {
                 }}
               >
                 {!file && (
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  <div className="h-[300px] flex items-center justify-center text-neutral-500">
                     載入範例文件中...
                   </div>
                 )}
@@ -507,22 +507,22 @@ export default function TestGpDisplay() {
               {/* 日誌 */}
               <div className="mt-4 bg-black rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-400">日誌</span>
+                  <span className="text-sm text-neutral-400">日誌</span>
                   <button
                     onClick={() => setLogs([])}
-                    className="text-xs text-gray-500 hover:text-white"
+                    className="text-xs text-neutral-500 hover:text-white"
                   >
                     清除
                   </button>
                 </div>
                 <div className="h-[120px] overflow-y-auto font-mono text-xs space-y-1">
                   {logs.length === 0 ? (
-                    <p className="text-gray-600">等待操作...</p>
+                    <p className="text-neutral-600">等待操作...</p>
                   ) : (
                     logs.map((log, i) => (
                       <div 
                         key={i} 
-                        className={log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-green-400' : 'text-gray-400'}
+                        className={log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-green-400' : 'text-neutral-400'}
                       >
                         {log}
                       </div>

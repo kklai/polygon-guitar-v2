@@ -262,7 +262,7 @@ function BulkUpdateYearPage() {
     <Layout>
       <div className="max-w-7xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -280,25 +280,25 @@ function BulkUpdateYearPage() {
 
         {/* 統計卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
             <div className="text-2xl font-bold text-white">{stats.total}</div>
-            <div className="text-sm text-gray-400">總歌曲數</div>
+            <div className="text-sm text-neutral-400">總歌曲數</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-red-900/50">
             <div className="text-2xl font-bold text-red-400">{stats.noYear}</div>
-            <div className="text-sm text-gray-400">❌ 無年份</div>
+            <div className="text-sm text-neutral-400">❌ 無年份</div>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
             <div className="text-2xl font-bold text-purple-400">{stats.hasMbYear}</div>
-            <div className="text-sm text-gray-400">🧠 MB 年份</div>
+            <div className="text-sm text-neutral-400">🧠 MB 年份</div>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
             <div className="text-2xl font-bold text-green-400">{stats.hasSpotifyYear}</div>
-            <div className="text-sm text-gray-400">🎧 Spotify 年份</div>
+            <div className="text-sm text-neutral-400">🎧 Spotify 年份</div>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
             <div className="text-2xl font-bold text-blue-400">{stats.hasAlbumImage}</div>
-            <div className="text-sm text-gray-400">🖼️ 有專輯圖</div>
+            <div className="text-sm text-neutral-400">🖼️ 有專輯圖</div>
           </div>
         </div>
 
@@ -310,32 +310,32 @@ function BulkUpdateYearPage() {
           <div className="grid md:grid-cols-3 gap-4 text-sm">
             <div className="bg-black/50 p-3 rounded-lg">
               <div className="text-purple-400 font-bold mb-1">步驟 1: MusicBrainz</div>
-              <div className="text-gray-400">查詢歌曲最早發行年份</div>
-              <div className="text-gray-500 text-xs mt-1">Rate limit: 每秒 1 個請求</div>
+              <div className="text-neutral-400">查詢歌曲最早發行年份</div>
+              <div className="text-neutral-500 text-xs mt-1">Rate limit: 每秒 1 個請求</div>
             </div>
             <div className="bg-black/50 p-3 rounded-lg">
               <div className="text-green-400 font-bold mb-1">步驟 2: Spotify</div>
-              <div className="text-gray-400">查詢專輯封面和 Spotify 年份</div>
-              <div className="text-gray-500 text-xs mt-1">Rate limit: 每秒 1-2 個請求</div>
+              <div className="text-neutral-400">查詢專輯封面和 Spotify 年份</div>
+              <div className="text-neutral-500 text-xs mt-1">Rate limit: 每秒 1-2 個請求</div>
             </div>
             <div className="bg-black/50 p-3 rounded-lg">
               <div className="text-yellow-400 font-bold mb-1">步驟 3: 對比 & 寫入</div>
-              <div className="text-gray-400">選兩者中最早的年份寫入</div>
-              <div className="text-gray-500 text-xs mt-1">更新 Firestore 資料庫</div>
+              <div className="text-neutral-400">選兩者中最早的年份寫入</div>
+              <div className="text-neutral-500 text-xs mt-1">更新 Firestore 資料庫</div>
             </div>
           </div>
         </div>
 
         {/* 操作區 */}
         {!showResults && (
-          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-gray-800">
+          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-neutral-800">
             <h3 className="text-white font-medium mb-4">開始批量處理</h3>
             
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <select
                 value={batchSize}
                 onChange={(e) => setBatchSize(Number(e.target.value))}
-                className="px-4 py-2 bg-black border border-gray-700 rounded-lg text-white"
+                className="px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white"
               >
                 <option value={10}>每次 10 首（測試）</option>
                 <option value={50}>每次 50 首（推薦）</option>
@@ -365,7 +365,7 @@ function BulkUpdateYearPage() {
               </button>
             </div>
             
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-neutral-500">
               💡 建議：先用 10 首測試，確認正常後再用 50 首批量處理
             </p>
           </div>
@@ -374,17 +374,17 @@ function BulkUpdateYearPage() {
         {/* 處理結果 */}
         {showResults && results.length > 0 && (
           <div className="mb-6 bg-[#121212] rounded-xl border border-purple-500 overflow-hidden">
-            <div className="p-4 border-b border-gray-800 bg-purple-900/20">
+            <div className="p-4 border-b border-neutral-800 bg-purple-900/20">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-purple-300 font-medium">處理結果</h3>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-neutral-400">
                     成功: {results.filter(r => r.updated).length} / {results.length}
                   </p>
                 </div>
                 <button
                   onClick={() => setShowResults(false)}
-                  className="px-4 py-2 text-gray-400 hover:text-white transition"
+                  className="px-4 py-2 text-neutral-400 hover:text-white transition"
                 >
                   返回
                 </button>
@@ -395,40 +395,40 @@ function BulkUpdateYearPage() {
               <table className="w-full text-sm">
                 <thead className="bg-black sticky top-0 z-10">
                   <tr>
-                    <th className="text-left p-3 text-gray-400 font-medium">歌曲</th>
-                    <th className="text-center p-3 text-gray-400 font-medium">MB 年份</th>
-                    <th className="text-center p-3 text-gray-400 font-medium">Spotify</th>
-                    <th className="text-center p-3 text-gray-400 font-medium">最終年份</th>
-                    <th className="text-left p-3 text-gray-400 font-medium">來源</th>
-                    <th className="text-center p-3 text-gray-400 font-medium">狀態</th>
+                    <th className="text-left p-3 text-neutral-400 font-medium">歌曲</th>
+                    <th className="text-center p-3 text-neutral-400 font-medium">MB 年份</th>
+                    <th className="text-center p-3 text-neutral-400 font-medium">Spotify</th>
+                    <th className="text-center p-3 text-neutral-400 font-medium">最終年份</th>
+                    <th className="text-left p-3 text-neutral-400 font-medium">來源</th>
+                    <th className="text-center p-3 text-neutral-400 font-medium">狀態</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-neutral-800">
                   {results.map((item) => (
-                    <tr key={item.tabId} className="hover:bg-gray-900/50">
+                    <tr key={item.tabId} className="hover:bg-neutral-900/50">
                       <td className="p-3">
                         <div className="text-white font-medium">{item.title}</div>
-                        <div className="text-gray-500 text-xs">{item.artist}</div>
+                        <div className="text-neutral-500 text-xs">{item.artist}</div>
                       </td>
                       <td className="p-3 text-center">
                         {item.mbYear ? (
                           <span className="text-purple-400">{item.mbYear}</span>
                         ) : (
-                          <span className="text-gray-600">-</span>
+                          <span className="text-neutral-600">-</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
                         {item.spotifyYear ? (
                           <span className="text-green-400">{item.spotifyYear}</span>
                         ) : (
-                          <span className="text-gray-600">-</span>
+                          <span className="text-neutral-600">-</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
                         {item.finalYear ? (
                           <span className="text-[#FFD700] font-bold text-lg">{item.finalYear}</span>
                         ) : (
-                          <span className="text-gray-600">-</span>
+                          <span className="text-neutral-600">-</span>
                         )}
                       </td>
                       <td className="p-3">
@@ -448,7 +448,7 @@ function BulkUpdateYearPage() {
                         ) : item.error ? (
                           <span className="text-red-400">❌ 失敗</span>
                         ) : (
-                          <span className="text-gray-500">⏭️ 跳過</span>
+                          <span className="text-neutral-500">⏭️ 跳過</span>
                         )}
                       </td>
                     </tr>
@@ -461,17 +461,17 @@ function BulkUpdateYearPage() {
 
         {/* 日誌 */}
         {logs.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800">
-            <div className="p-3 border-b border-gray-800 flex items-center justify-between">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800">
+            <div className="p-3 border-b border-neutral-800 flex items-center justify-between">
               <h3 className="font-medium text-white">處理日誌</h3>
-              <button onClick={() => setLogs([])} className="text-xs text-gray-500 hover:text-white">清除</button>
+              <button onClick={() => setLogs([])} className="text-xs text-neutral-500 hover:text-white">清除</button>
             </div>
             <div className="p-3 max-h-96 overflow-y-auto font-mono text-sm space-y-1">
               {logs.map((log, i) => (
                 <div key={i} className={`${
-                  log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-gray-300'
+                  log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-neutral-300'
                 }`}>
-                  <span className="text-gray-600">[{log.time}]</span> {log.message}
+                  <span className="text-neutral-600">[{log.time}]</span> {log.message}
                 </div>
               ))}
             </div>

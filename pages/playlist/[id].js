@@ -449,10 +449,10 @@ export default function PlaylistDetail({
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         </Head>
         <div className="relative z-10 min-h-screen pb-24 pt-[env(safe-area-inset-top)] bg-black">
-          <div className="h-64 bg-gray-800/50 animate-pulse" />
+          <div className="h-64 bg-neutral-800/50 animate-pulse" />
           <div className="px-6 py-4 space-y-3">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-800/50 rounded animate-pulse" />
+              <div key={i} className="h-16 bg-neutral-800/50 rounded animate-pulse" />
             ))}
           </div>
         </div>
@@ -532,7 +532,7 @@ export default function PlaylistDetail({
                   </Link>
                 )}
               </div>
-              <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
+              <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
                 共 {songs.length} 首
                 {playlist.source === 'manual' && playlist.curatedBy && (
                   <> • By {playlist.curatedBy}</>
@@ -557,7 +557,7 @@ export default function PlaylistDetail({
               <button
                 type="button"
                 onClick={() => setSortMode('default')}
-                className={`pl-0 pr-2.5 py-2.5 rounded transition shrink-0 outline-none ${sortMode === 'default' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`pl-0 pr-2.5 py-2.5 rounded transition shrink-0 outline-none ${sortMode === 'default' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="預設次序"
               >
                 <svg className="w-7 h-7 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 36.42 41.51" preserveAspectRatio="xMidYMid meet">
@@ -570,7 +570,7 @@ export default function PlaylistDetail({
               <button
                 type="button"
                 onClick={() => setSortMode('artist')}
-                className={`-ml-2 p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'artist' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`-ml-2 p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'artist' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="按歌手排序"
               >
                 <svg className="w-7 h-7 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 36.42 41.51" preserveAspectRatio="xMidYMid meet">
@@ -581,7 +581,7 @@ export default function PlaylistDetail({
               <button
                 type="button"
                 onClick={() => setSortMode('year')}
-                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'year' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'year' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="按年份排序"
               >
                 <svg className="w-6 h-6 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 34.26 32.9" preserveAspectRatio="xMidYMid meet">
@@ -601,7 +601,7 @@ export default function PlaylistDetail({
                     setSortMode('shuffle')
                   }
                 }}
-                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'shuffle' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'shuffle' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="隨機排序"
               >
                 <svg className="w-6 h-6 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="35 5 34 34" preserveAspectRatio="xMidYMid meet">
@@ -641,7 +641,7 @@ export default function PlaylistDetail({
               disabled={isSavingPlaylist}
               title={isSavedToLibrary ? '已收藏（撳一下取消）' : '加入我的收藏'}
               className={`flex-shrink-0 flex items-center gap-2 rounded-full outline-none pr-0 ${
-                isSavedToLibrary ? 'text-[#FFD700] py-2 pl-2' : 'text-gray-400 p-1 pl-1'
+                isSavedToLibrary ? 'text-[#FFD700] py-2 pl-2' : 'text-neutral-400 p-1 pl-1'
               } ${isSavingPlaylist ? 'opacity-50' : ''}`}
             >
               {isSavedToLibrary ? (
@@ -672,7 +672,7 @@ export default function PlaylistDetail({
                   onClick={() => handleSongClick(song.id)}
                   className="flex-1 flex items-center gap-3 py-0 pl-0 pr-0 rounded-[7px] min-w-0 text-left bg-transparent border-0 cursor-pointer"
                 >
-                  <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                  <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
                       <img
                         src={getSongThumbnail(song)}
@@ -692,7 +692,7 @@ export default function PlaylistDetail({
                     <p className="text-[0.85rem] text-[#999] truncate">{song.artist}</p>
                   </div>
                   {playlist.source === 'auto' && (
-                    <span className="text-xs text-gray-600 hidden sm:block">
+                    <span className="text-xs text-neutral-600 hidden sm:block">
                       {(song.viewCount || 0).toLocaleString('zh-HK')} 瀏覽
                     </span>
                   )}
@@ -718,7 +718,7 @@ export default function PlaylistDetail({
           <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <span className="text-6xl block mb-4">🎸</span>
             <h3 className="text-xl text-white mb-2">暫時冇歌曲</h3>
-            <p className="text-gray-500 mb-6">呢個歌單暫時未有歌曲</p>
+            <p className="text-neutral-500 mb-6">呢個歌單暫時未有歌曲</p>
             <Link
               href="/"
               className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
@@ -842,7 +842,7 @@ export default function PlaylistDetail({
               <div className="pb-4 px-4 text-left">
                 {playlist && (
                   <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
-                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                    <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                       {playlist.coverImage ? (
                         <img
                           src={playlist.coverImage}
@@ -855,7 +855,7 @@ export default function PlaylistDetail({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-white font-medium truncate">{playlist.title}</p>
-                      <p className="text-gray-400 text-sm truncate">
+                      <p className="text-neutral-400 text-sm truncate">
                         {playlist.source === 'manual' && playlist.curatedBy ? `By ${playlist.curatedBy}` : playlist.source === 'auto' ? '自動歌單' : ''}
                       </p>
                     </div>
@@ -908,7 +908,7 @@ export default function PlaylistDetail({
               aria-hidden
             />
             <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10001] w-full max-w-sm mx-4">
-              <div className="bg-[#121212] rounded-2xl border border-gray-800 shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-[#121212] rounded-2xl border border-neutral-800 shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
                 <p className="text-white text-center mb-6">
                   請先登入後即可將歌單加入收藏
                 </p>
@@ -917,7 +917,7 @@ export default function PlaylistDetail({
                     type="button"
                     onClick={handleLoginPromptGoogleSignIn}
                     disabled={isSigningIn}
-                    className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-gray-700 text-white py-3 px-4 rounded-xl font-medium hover:border-[#FFD700] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-neutral-700 text-white py-3 px-4 rounded-xl font-medium hover:border-[#FFD700] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -930,7 +930,7 @@ export default function PlaylistDetail({
                   <button
                     type="button"
                     onClick={() => setShowLoginPrompt(false)}
-                    className="w-full py-3 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition"
+                    className="w-full py-3 rounded-xl font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition"
                   >
                     取消
                   </button>

@@ -71,19 +71,19 @@ function calculateKeyAndCapo(originalKey, capo, playKey) {
 // 可拖放的區塊組件
 function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandleProps, isDark }) {
   return (
-    <div className={`rounded-xl border transition-all ${isDark ? 'bg-[#1a1a1a] border-gray-800' : 'bg-white border-gray-200'}`}>
+    <div className={`rounded-xl border transition-all ${isDark ? 'bg-[#1a1a1a] border-neutral-800' : 'bg-white border-neutral-200'}`}>
       {/* 區塊標題欄 */}
       <div 
-        className={`flex items-center justify-between px-4 py-3 rounded-t-xl transition-colors ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+        className={`flex items-center justify-between px-4 py-3 rounded-t-xl transition-colors ${isDark ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'}`}
       >
         <div className="flex items-center gap-3">
           {/* 拖放圖標 - 只有這裡可以拖拽 */}
           <div 
             {...dragHandleProps} 
-            className="cursor-grab active:cursor-grabbing p-1 -ml-1 rounded hover:bg-gray-700/50"
+            className="cursor-grab active:cursor-grabbing p-1 -ml-1 rounded hover:bg-neutral-700/50"
             title="拖放排序"
           >
-            <svg className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-5 h-5 ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
             </svg>
           </div>
@@ -92,16 +92,16 @@ function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandl
             className="flex-1 cursor-pointer"
             onClick={onToggle}
           >
-            <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+            <h3 className={`font-medium ${isDark ? 'text-white' : 'text-neutral-900'}`}>{title}</h3>
           </div>
         </div>
         {/* 展開/收合圖標 */}
         <div 
-          className="cursor-pointer p-1 -mr-1 rounded hover:bg-gray-700/50"
+          className="cursor-pointer p-1 -mr-1 rounded hover:bg-neutral-700/50"
           onClick={onToggle}
         >
           <svg 
-            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''} ${isDark ? 'text-gray-400' : 'text-gray-500'}`} 
+            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''} ${isDark ? 'text-neutral-400' : 'text-neutral-500'}`} 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -113,7 +113,7 @@ function DraggableSection({ id, title, children, isExpanded, onToggle, dragHandl
       
       {/* 區塊內容 */}
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-gray-800/50">
+        <div className="px-4 pb-4 border-t border-neutral-800/50">
           {children}
         </div>
       )}
@@ -356,12 +356,12 @@ export default function NewTab() {
     return (
       <Layout>
         <div className="max-w-md mx-auto mt-20 text-center">
-          <div className="bg-[#121212] rounded-xl border border-gray-800 p-8">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 p-8">
             <svg className="w-16 h-16 mx-auto mb-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <h1 className="text-xl font-bold text-white mb-2">請先登入</h1>
-            <p className="text-gray-400 mb-6">出譜需要先登入帳戶</p>
+            <p className="text-neutral-400 mb-6">出譜需要先登入帳戶</p>
             <Link 
               href="/login?redirect=/tabs/new" 
               className="inline-block bg-[#FFD700] text-black px-6 py-3 rounded-lg font-medium hover:bg-yellow-400 transition"
@@ -643,7 +643,7 @@ E|----------------------------------------------------------------|
           <label className="block text-sm font-medium text-white mb-1">歌名 <span className="text-[#FFD700]">*</span></label>
           <input type="text" name="title" value={formData.title} onChange={handleChange}
             placeholder="例如：海闊天空"
-            className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-gray-500 ${errors.title ? 'border-red-500' : 'border-gray-700'}`} />
+            className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-neutral-500 ${errors.title ? 'border-red-500' : 'border-neutral-700'}`} />
           {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
         </div>
         
@@ -679,18 +679,18 @@ E|----------------------------------------------------------------|
         <div>
           <label className="block text-sm font-medium text-white mb-1">歌手類型 <span className="text-[#FFD700]">*</span></label>
           {useExistingArtistSelected && formData.artistType ? (
-            <div className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white flex items-center gap-2">
+            <div className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white flex items-center gap-2">
               <span className="text-green-400">✓</span>
               <span>
                 {formData.artistType === 'male' && '男歌手'}
                 {formData.artistType === 'female' && '女歌手'}
                 {formData.artistType === 'group' && '組合'}
               </span>
-              <span className="text-xs text-gray-400 ml-auto">（已綁定現有歌手）</span>
+              <span className="text-xs text-neutral-400 ml-auto">（已綁定現有歌手）</span>
             </div>
           ) : (
             <select name="artistType" value={formData.artistType} onChange={handleChange}
-              className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white">
+              className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white">
               <option value="">請選擇...</option>
               <option value="male">男歌手</option>
               <option value="female">女歌手</option>
@@ -701,7 +701,7 @@ E|----------------------------------------------------------------|
         
         {/* 歌手相片預覽 */}
         {formData.artistPhoto && (
-          <div className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800">
+          <div className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-neutral-800">
             <img 
               src={formData.artistPhoto} 
               alt="歌手相片"
@@ -709,7 +709,7 @@ E|----------------------------------------------------------------|
             />
             <div className="flex-1">
               <p className="text-sm text-white">歌手相片</p>
-              <p className="text-xs text-gray-500">可在「封面圖片設定」選擇使用</p>
+              <p className="text-xs text-neutral-500">可在「封面圖片設定」選擇使用</p>
             </div>
           </div>
         )}
@@ -717,39 +717,39 @@ E|----------------------------------------------------------------|
         {/* 歌曲資訊網格 */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">歌曲年份</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">歌曲年份</label>
             <input type="text" name="songYear" value={formData.songYear} onChange={handleChange}
-              placeholder="1993" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="1993" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">所屬專輯</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">所屬專輯</label>
             <input type="text" name="album" value={formData.album} onChange={handleChange}
-              placeholder="樂與怒" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="樂與怒" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">作曲</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">作曲</label>
             <input type="text" name="composer" value={formData.composer} onChange={handleChange}
-              placeholder="黃家駒" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="黃家駒" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">填詞</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">填詞</label>
             <input type="text" name="lyricist" value={formData.lyricist} onChange={handleChange}
-              placeholder="黃家駒" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="黃家駒" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">編曲</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">編曲</label>
             <input type="text" name="arranger" value={formData.arranger} onChange={handleChange}
-              placeholder="Beyond" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="Beyond" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">監製</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">監製</label>
             <input type="text" name="producer" value={formData.producer} onChange={handleChange}
-              placeholder="Beyond" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="Beyond" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">BPM</label>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">BPM</label>
             <input type="number" name="bpm" value={formData.bpm} onChange={handleChange}
-              placeholder="120" min="1" max="300" className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              placeholder="120" min="1" max="300" className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
         </div>
       </div>
@@ -761,7 +761,7 @@ E|----------------------------------------------------------------|
           <div>
             <label className="block text-sm font-medium text-white mb-1">原調 <span className="text-[#FFD700]">*</span></label>
             <select name="originalKey" value={formData.originalKey} onChange={handleChange}
-              className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white">
+              className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white">
               <optgroup label="Major">
                 {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map(k => <option key={k} value={k}>{k}</option>)}
               </optgroup>
@@ -774,7 +774,7 @@ E|----------------------------------------------------------------|
           <div>
             <label className="block text-sm font-medium text-white mb-1">Capo</label>
             <select name="capo" value={formData.capo} onChange={handleChange}
-              className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white">
+              className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white">
               <option value="">唔用</option>
               {[1,2,3,4,5,6,7,8,9,10,11].map(n => <option key={n} value={n}>Capo {n}</option>)}
             </select>
@@ -783,7 +783,7 @@ E|----------------------------------------------------------------|
           <div>
             <label className="block text-sm font-medium text-white mb-1">彈奏調性</label>
             <select name="playKey" value={formData.playKey} onChange={handleChange}
-              className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white">
+              className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white">
               <option value="">同原調</option>
               <optgroup label="Major">
                 {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map(k => <option key={k} value={k}>{k}</option>)}
@@ -798,16 +798,16 @@ E|----------------------------------------------------------------|
         {/* 演奏技巧 */}
         <div className="space-y-3 pt-2">
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">掃弦節奏</label>
+            <label className="block text-sm font-medium text-neutral-400 mb-1">掃弦節奏</label>
             <textarea name="strummingPattern" value={formData.strummingPattern} onChange={handleChange}
               placeholder="例如：↓ ↓↑ ↓↑ ↓↑" rows={2}
-              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm font-mono" />
+              className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm font-mono" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">指法提示</label>
+            <label className="block text-sm font-medium text-neutral-400 mb-1">指法提示</label>
             <textarea name="fingeringTips" value={formData.fingeringTips} onChange={handleChange}
               placeholder="例如：副歌可以用Power Chord..." rows={2}
-              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm" />
+              className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm" />
           </div>
         </div>
       </div>
@@ -834,10 +834,10 @@ E|----------------------------------------------------------------|
         
         {/* YouTube URL 輸入 */}
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-1">YouTube 連結</label>
+          <label className="block text-sm font-medium text-neutral-400 mb-1">YouTube 連結</label>
           <input type="url" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange}
             placeholder="貼上 YouTube 連結..."
-            className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500" />
+            className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500" />
         </div>
         
         {/* 預覽 */}
@@ -869,7 +869,7 @@ E|----------------------------------------------------------------|
                 className={`px-3 py-1.5 rounded text-sm font-medium transition ${
                   formData.displayFont === 'mono' 
                     ? 'bg-[#FFD700] text-black' 
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 等寬字體
@@ -882,14 +882,14 @@ E|----------------------------------------------------------------|
                 className={`px-3 py-1.5 rounded text-sm font-medium transition ${
                   formData.displayFont === 'arial' 
                     ? 'bg-[#FFD700] text-black' 
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 Arial
               </button>
             </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-neutral-500 mt-2">
             {formData.displayFont === 'arial' 
               ? 'Arial：適合從其他網站複製過來嘅譜（推薦）' 
               : '等寬字體：傳統結他譜顯示方式'}
@@ -924,7 +924,7 @@ E|----------------------------------------------------------------|
                   .join('\n');
                 setFormData(prev => ({ ...prev, content: cleaned }));
               }}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
+              className="text-sm text-neutral-400 hover:text-white transition-colors"
               disabled={!formData.content}
             >
               移除所有空行
@@ -951,10 +951,10 @@ E|----------------------------------------------------------------|
             setFormData(prev => ({ ...prev, content: newValue }));
           }}
           placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕" rows={15}
-          className={`w-full px-4 py-2 bg-black border rounded-lg text-white text-sm ${errors.content ? 'border-red-500' : 'border-gray-700'} ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`} 
+          className={`w-full px-4 py-2 bg-black border rounded-lg text-white text-sm ${errors.content ? 'border-red-500' : 'border-neutral-700'} ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`} 
           style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }} />
         {errors.content && <p className="text-sm text-red-400">{errors.content}</p>}
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-neutral-500">
           <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -975,9 +975,9 @@ E|----------------------------------------------------------------|
             value={formData.uploaderPenName} 
             onChange={isAdmin ? handleChange : undefined}
             readOnly={!isAdmin}
-            className={`w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white ${isAdmin ? '' : 'cursor-not-allowed'}`} 
+            className={`w-full px-4 py-2 bg-black/50 border border-neutral-700 rounded-lg text-white ${isAdmin ? '' : 'cursor-not-allowed'}`} 
           />
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-neutral-400">
             {isAdmin ? (
               <>Admin 可以修改上傳者筆名。</>
             ) : (
@@ -992,8 +992,8 @@ E|----------------------------------------------------------------|
     gpSegments: (
       <div className="space-y-4 pt-4">
         {/* GP 主題選擇 */}
-        <div className="p-4 bg-[#1a1a1a] rounded-lg border border-gray-800">
-          <label className="block text-sm text-gray-400 mb-3">譜面顯示主題</label>
+        <div className="p-4 bg-[#1a1a1a] rounded-lg border border-neutral-800">
+          <label className="block text-sm text-neutral-400 mb-3">譜面顯示主題</label>
           <div className="flex gap-3">
             <button
               type="button"
@@ -1001,7 +1001,7 @@ E|----------------------------------------------------------------|
               className={`flex-1 py-3 px-4 rounded-lg border transition ${
                 formData.gpTheme === 'dark' 
                   ? 'bg-[#FFD700] text-black border-[#FFD700]' 
-                  : 'bg-gray-800 text-white border-gray-700 hover:border-gray-600'
+                  : 'bg-neutral-800 text-white border-neutral-700 hover:border-neutral-600'
               }`}
             >
               <span className="block text-lg mb-1">🌙</span>
@@ -1013,8 +1013,8 @@ E|----------------------------------------------------------------|
               onClick={() => setFormData(prev => ({ ...prev, gpTheme: 'light' }))}
               className={`flex-1 py-3 px-4 rounded-lg border transition ${
                 formData.gpTheme === 'light' 
-                  ? 'bg-white text-black border-gray-300' 
-                  : 'bg-gray-800 text-white border-gray-700 hover:border-gray-600'
+                  ? 'bg-white text-black border-neutral-300' 
+                  : 'bg-neutral-800 text-white border-neutral-700 hover:border-neutral-600'
               }`}
             >
               <span className="block text-lg mb-1">☀️</span>
@@ -1039,9 +1039,9 @@ E|----------------------------------------------------------------|
         {/* 已添加段落列表（自定義顯示） */}
         {formData.gpSegments.length > 0 && (
           <div className="mt-4 space-y-2">
-            <h4 className="text-sm font-medium text-gray-400">已添加段落</h4>
+            <h4 className="text-sm font-medium text-neutral-400">已添加段落</h4>
             {formData.gpSegments.map((seg, index) => (
-              <div key={seg.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
+              <div key={seg.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
                     {seg.type === 'intro' && '🎵'}
@@ -1055,7 +1055,7 @@ E|----------------------------------------------------------------|
                   </span>
                   <div>
                     <p className="text-white text-sm capitalize">{seg.type}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-neutral-500">
                       小節 {seg.startBar}-{seg.endBar} • {seg.originalFilename}
                     </p>
                   </div>
@@ -1068,7 +1068,7 @@ E|----------------------------------------------------------------|
                       gpSegments: prev.gpSegments.filter((_, i) => i !== index)
                     }))
                   }}
-                  className="text-gray-500 hover:text-red-400 transition p-1"
+                  className="text-neutral-500 hover:text-red-400 transition p-1"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1093,8 +1093,8 @@ E|----------------------------------------------------------------|
               <div className="flex items-center gap-4">
                 <label className={`relative flex items-center justify-center w-[100px] h-[100px] rounded-lg border-2 border-dashed cursor-pointer transition flex-shrink-0 ${
                   isUploadingCover 
-                    ? 'border-gray-600 bg-gray-800/50' 
-                    : 'border-gray-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
+                    ? 'border-neutral-600 bg-neutral-800/50' 
+                    : 'border-neutral-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
                 }`}>
                   <input
                     type="file"
@@ -1105,25 +1105,25 @@ E|----------------------------------------------------------------|
                   />
                   {isUploadingCover ? (
                     <div className="flex flex-col items-center">
-                      <svg className="w-6 h-6 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-neutral-400 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span className="text-[10px] text-gray-400 mt-1">上傳中...</span>
+                      <span className="text-[10px] text-neutral-400 mt-1">上傳中...</span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="text-[10px] text-gray-400 mt-1">上傳封面</span>
+                      <span className="text-[10px] text-neutral-400 mt-1">上傳封面</span>
                     </div>
                   )}
                 </label>
                 
                 <div className="flex-1">
                   <p className="text-sm text-white font-medium">上傳自訂封面</p>
-                  <p className="text-xs text-gray-500">支援 JPG、PNG、GIF、WebP，最大 10MB</p>
+                  <p className="text-xs text-neutral-500">支援 JPG、PNG、GIF、WebP，最大 10MB</p>
                   {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
                 </div>
               </div>
@@ -1131,9 +1131,9 @@ E|----------------------------------------------------------------|
               {/* 分隔線 */}
               {options.length > 0 && (
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-gray-800"></div>
-                  <span className="text-xs text-gray-500">或選擇現有圖片</span>
-                  <div className="flex-1 h-px bg-gray-800"></div>
+                  <div className="flex-1 h-px bg-neutral-800"></div>
+                  <span className="text-xs text-neutral-500">或選擇現有圖片</span>
+                  <div className="flex-1 h-px bg-neutral-800"></div>
                 </div>
               )}
               
@@ -1148,7 +1148,7 @@ E|----------------------------------------------------------------|
                       className={`relative w-[100px] h-[100px] rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${
                         formData.coverImage === option.url 
                           ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
-                          : 'border-gray-700 hover:border-gray-500'
+                          : 'border-neutral-700 hover:border-neutral-500'
                       }`}
                     >
                       <img 
@@ -1160,7 +1160,7 @@ E|----------------------------------------------------------------|
                           e.target.nextSibling.style.display = 'flex'
                         }}
                       />
-                      <div className="hidden w-full h-full items-center justify-center bg-gray-800 text-gray-500 text-xs">
+                      <div className="hidden w-full h-full items-center justify-center bg-neutral-800 text-neutral-500 text-xs">
                         載入失敗
                       </div>
                       
@@ -1210,9 +1210,9 @@ E|----------------------------------------------------------------|
               
               {/* 沒有選項時的提示 */}
               {options.length === 0 && !formData.coverImage && (
-                <div className="text-center py-4 bg-[#1a1a1a] rounded-lg border border-gray-800">
-                  <p className="text-gray-500 text-sm">還沒有其他封面選項</p>
-                  <p className="text-gray-600 text-xs mt-1">添加 YouTube 影片或從 Spotify 搜尋可獲取更多封面</p>
+                <div className="text-center py-4 bg-[#1a1a1a] rounded-lg border border-neutral-800">
+                  <p className="text-neutral-500 text-sm">還沒有其他封面選項</p>
+                  <p className="text-neutral-600 text-xs mt-1">添加 YouTube 影片或從 Spotify 搜尋可獲取更多封面</p>
                 </div>
               )}
             </div>
@@ -1237,10 +1237,10 @@ E|----------------------------------------------------------------|
             <h4 className="text-[#1DB954] font-medium mb-3">✓ 已從 Spotify 獲取：</h4>
             {formData.albumImage && <img src={formData.albumImage} alt={formData.album} className="w-24 h-24 rounded object-cover mb-3" />}
             <div className="space-y-1 text-sm">
-              <p><span className="text-gray-500">歌手：</span><span className="text-white">{formData.artist}</span></p>
-              <p><span className="text-gray-500">歌名：</span><span className="text-white">{formData.title}</span></p>
-              {formData.album && <p><span className="text-gray-500">專輯：</span><span className="text-white">{formData.album}</span></p>}
-              {formData.songYear && <p><span className="text-gray-500">年份：</span><span className="text-white">{formData.songYear}</span></p>}
+              <p><span className="text-neutral-500">歌手：</span><span className="text-white">{formData.artist}</span></p>
+              <p><span className="text-neutral-500">歌名：</span><span className="text-white">{formData.title}</span></p>
+              {formData.album && <p><span className="text-neutral-500">專輯：</span><span className="text-white">{formData.album}</span></p>}
+              {formData.songYear && <p><span className="text-neutral-500">年份：</span><span className="text-white">{formData.songYear}</span></p>}
             </div>
           </div>
         )}
@@ -1264,7 +1264,7 @@ E|----------------------------------------------------------------|
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center mb-6">
-          <Link href="/" className="inline-flex items-center text-gray-400 hover:text-white mr-4 transition" aria-label="返回">
+          <Link href="/" className="inline-flex items-center text-neutral-400 hover:text-white mr-4 transition" aria-label="返回">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-2xl font-bold text-white">出譜</h1>
@@ -1296,7 +1296,7 @@ E|----------------------------------------------------------------|
           </div>
 
           {/* 提示文字 */}
-          <div className="flex items-center gap-2 text-sm text-gray-500 px-2">
+          <div className="flex items-center gap-2 text-sm text-neutral-500 px-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -1309,7 +1309,7 @@ E|----------------------------------------------------------------|
               className="flex-1 bg-[#FFD700] text-black py-3 px-6 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50">
               {isSubmitting ? '出譜中...' : '出譜'}
             </button>
-            <Link href="/" className="px-6 py-3 border border-gray-700 rounded-lg font-medium text-gray-400 hover:text-white hover:border-[#FFD700] transition">
+            <Link href="/" className="px-6 py-3 border border-neutral-700 rounded-lg font-medium text-neutral-400 hover:text-white hover:border-[#FFD700] transition">
               取消
             </Link>
           </div>

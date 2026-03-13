@@ -11,7 +11,7 @@ function TechCard({ icon: Icon, title, subtitle, description, details, color }) 
   const [isOpen, setIsOpen] = useState(false)
   
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
       <div 
         className="p-4 cursor-pointer hover:bg-[#1a1a1a] transition-colors"
         onClick={() => setIsOpen(!isOpen)}
@@ -26,20 +26,20 @@ function TechCard({ icon: Icon, title, subtitle, description, details, color }) 
                 <h3 className="text-white font-bold text-lg">{title}</h3>
                 <p className="text-[#FFD700] text-sm">{subtitle}</p>
               </div>
-              {isOpen ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
+              {isOpen ? <ChevronUp className="text-neutral-400" /> : <ChevronDown className="text-neutral-400" />}
             </div>
-            <p className="text-gray-400 text-sm mt-2">{description}</p>
+            <p className="text-neutral-400 text-sm mt-2">{description}</p>
           </div>
         </div>
       </div>
       
       {isOpen && (
-        <div className="px-4 pb-4 border-t border-gray-800 pt-4">
+        <div className="px-4 pb-4 border-t border-neutral-800 pt-4">
           <div className="space-y-3">
             {details.map((detail, idx) => (
               <div key={idx} className="flex gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#FFD700] mt-2 flex-shrink-0" />
-                <p className="text-gray-300 text-sm leading-relaxed">{detail}</p>
+                <p className="text-neutral-300 text-sm leading-relaxed">{detail}</p>
               </div>
             ))}
           </div>
@@ -52,16 +52,16 @@ function TechCard({ icon: Icon, title, subtitle, description, details, color }) 
 // Cost Estimation Card
 function CostCard({ tier, price, users, features, recommended }) {
   return (
-    <div className={`rounded-xl border p-4 ${recommended ? 'border-[#FFD700] bg-[#FFD700]/5' : 'border-gray-800 bg-[#121212]'}`}>
+    <div className={`rounded-xl border p-4 ${recommended ? 'border-[#FFD700] bg-[#FFD700]/5' : 'border-neutral-800 bg-[#121212]'}`}>
       {recommended && (
         <div className="text-[#FFD700] text-xs font-bold mb-2">💡 建議方案</div>
       )}
       <h4 className="text-white font-bold">{tier}</h4>
       <div className="text-2xl font-bold text-white mt-1">{price}</div>
-      <p className="text-gray-400 text-sm mt-1">{users}</p>
+      <p className="text-neutral-400 text-sm mt-1">{users}</p>
       <div className="mt-3 space-y-1">
         {features.map((f, i) => (
-          <div key={i} className="flex items-center gap-2 text-sm text-gray-300">
+          <div key={i} className="flex items-center gap-2 text-sm text-neutral-300">
             <div className="w-1 h-1 rounded-full bg-green-500" />
             {f}
           </div>
@@ -188,7 +188,7 @@ export default function TechStack() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">網站技術架構說明書</h1>
-          <p className="text-gray-400">Polygon Guitar 技術棧、成本分析及擴展方案</p>
+          <p className="text-neutral-400">Polygon Guitar 技術棧、成本分析及擴展方案</p>
         </div>
 
         {/* Tabs */}
@@ -220,9 +220,9 @@ export default function TechStack() {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h2 className="text-xl font-bold text-white mb-4">🎯 一句話總結</h2>
-              <p className="text-gray-300 leading-relaxed">
+              <p className="text-neutral-300 leading-relaxed">
                 這是一個用 <span className="text-[#FFD700]">Next.js</span> 寫的結他譜分享網站，
                 數據存在 <span className="text-[#FFD700]">Firebase</span>，
                 圖片存在 <span className="text-[#FFD700]">Cloudinary</span>，
@@ -232,46 +232,46 @@ export default function TechStack() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-[#121212] rounded-xl p-5 border border-gray-800">
+              <div className="bg-[#121212] rounded-xl p-5 border border-neutral-800">
                 <h3 className="text-white font-bold mb-3 flex items-center gap-2">
                   <Database className="text-[#FFD700]" size={20} />
                   當前數據量
                 </h3>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-300">
+                  <div className="flex justify-between text-neutral-300">
                     <span>結他譜</span>
                     <span className="text-[#FFD700] font-bold">3,246 份</span>
                   </div>
-                  <div className="flex justify-between text-gray-300">
+                  <div className="flex justify-between text-neutral-300">
                     <span>歌手</span>
                     <span className="text-[#FFD700] font-bold">487 位</span>
                   </div>
-                  <div className="flex justify-between text-gray-300">
+                  <div className="flex justify-between text-neutral-300">
                     <span>用戶</span>
                     <span className="text-[#FFD700] font-bold">約 200 人</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-[#121212] rounded-xl p-5 border border-gray-800">
+              <div className="bg-[#121212] rounded-xl p-5 border border-neutral-800">
                 <h3 className="text-white font-bold mb-3 flex items-center gap-2">
                   <DollarSign className="text-green-500" size={20} />
                   目前月費
                 </h3>
                 <div className="text-3xl font-bold text-white">$0</div>
-                <p className="text-gray-400 text-sm mt-2">
+                <p className="text-neutral-400 text-sm mt-2">
                   全部使用免費方案
                 </p>
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-neutral-500 text-xs mt-1">
                   估計可支持至 10,000 用戶才需要升級
                 </p>
               </div>
             </div>
 
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">🏗️ 架構圖</h3>
               <div className="bg-[#1a1a1a] rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                <pre className="text-gray-300">
+                <pre className="text-neutral-300">
 {`用戶瀏覽器
      │
      ▼
@@ -302,7 +302,7 @@ Spotify API         YouTube API        Wikipedia API
         {/* Tech Stack Tab */}
         {activeTab === 'tech' && (
           <div className="space-y-4">
-            <p className="text-gray-400 text-sm mb-4">點擊卡片查看詳細說明</p>
+            <p className="text-neutral-400 text-sm mb-4">點擊卡片查看詳細說明</p>
             {techStack.map((tech, idx) => (
               <TechCard key={idx} {...tech} />
             ))}
@@ -312,7 +312,7 @@ Spotify API         YouTube API        Wikipedia API
         {/* Database Tab */}
         {activeTab === 'database' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4 flex items-center gap-2">
                 <Database className="text-[#FFD700]" size={20} />
                 Firestore Collections（資料表）
@@ -322,18 +322,18 @@ Spotify API         YouTube API        Wikipedia API
                   <div key={idx} className="bg-[#1a1a1a] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <code className="text-[#FFD700] font-bold text-lg">{col.name}</code>
-                      <span className="text-gray-500 text-xs">{col.desc}</span>
+                      <span className="text-neutral-500 text-xs">{col.desc}</span>
                     </div>
-                    <p className="text-gray-400 text-xs">{col.fields}</p>
+                    <p className="text-neutral-400 text-xs">{col.fields}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">🔗 資料關係圖</h3>
               <div className="bg-[#1a1a1a] rounded-lg p-4 font-mono text-sm overflow-x-auto">
-                <pre className="text-gray-300">
+                <pre className="text-neutral-300">
 {`artists (歌手)
    │
    ├── songs (歌曲) ──► tabs (結他譜) ◄── users (上傳者)
@@ -361,11 +361,11 @@ Spotify API         YouTube API        Wikipedia API
             </div>
             
             {apis.map((api, idx) => (
-              <div key={idx} className="bg-[#121212] rounded-xl p-5 border border-gray-800">
+              <div key={idx} className="bg-[#121212] rounded-xl p-5 border border-neutral-800">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="text-white font-bold text-lg">{api.name}</h4>
-                    <p className="text-gray-400 text-sm">{api.purpose}</p>
+                    <p className="text-neutral-400 text-sm">{api.purpose}</p>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded ${api.cost === '免費' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
                     {api.cost}
@@ -373,16 +373,16 @@ Spotify API         YouTube API        Wikipedia API
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">端點：</span>
+                    <span className="text-neutral-500">端點：</span>
                     <code className="text-[#FFD700]">{api.endpoint}</code>
                   </div>
                   <div>
-                    <span className="text-gray-500">配額：</span>
-                    <span className="text-gray-300">{api.quota}</span>
+                    <span className="text-neutral-500">配額：</span>
+                    <span className="text-neutral-300">{api.quota}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-500">狀態：</span>
-                    <span className="text-gray-300">{api.status}</span>
+                    <span className="text-neutral-500">狀態：</span>
+                    <span className="text-neutral-300">{api.status}</span>
                   </div>
                 </div>
               </div>
@@ -393,12 +393,12 @@ Spotify API         YouTube API        Wikipedia API
         {/* Guitar Pro Tab */}
         {activeTab === 'guitarpro' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4 flex items-center gap-2">
                 <Music className="text-[#FFD700]" size={20} />
                 Guitar Pro 整合
               </h3>
-              <div className="space-y-4 text-gray-300">
+              <div className="space-y-4 text-neutral-300">
                 <div className="bg-[#1a1a1a] rounded-lg p-4">
                   <h4 className="text-white font-bold mb-2">目前支援</h4>
                   <ul className="space-y-2 text-sm">
@@ -420,7 +420,7 @@ Spotify API         YouTube API        Wikipedia API
 
                 <div className="bg-[#1a1a1a] rounded-lg p-4">
                   <h4 className="text-white font-bold mb-2">限制</h4>
-                  <ul className="space-y-2 text-sm text-gray-400">
+                  <ul className="space-y-2 text-sm text-neutral-400">
                     <li>• 大檔案（&gt;5MB）可能需要較長時間加載</li>
                     <li>• 手機瀏覽器播放可能會有延遲</li>
                     <li>• 不支援舊版 .ptb (PowerTab) 格式</li>
@@ -434,33 +434,33 @@ Spotify API         YouTube API        Wikipedia API
         {/* Cost Tab */}
         {activeTab === 'cost' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">💰 目前成本（$0/月）</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-[#1a1a1a] rounded-lg p-4">
-                  <h4 className="text-gray-400 text-sm mb-2">Vercel Hobby Plan</h4>
+                  <h4 className="text-neutral-400 text-sm mb-2">Vercel Hobby Plan</h4>
                   <div className="text-white font-bold">免費</div>
-                  <p className="text-gray-500 text-xs mt-1">100GB 流量/月</p>
+                  <p className="text-neutral-500 text-xs mt-1">100GB 流量/月</p>
                 </div>
                 <div className="bg-[#1a1a1a] rounded-lg p-4">
-                  <h4 className="text-gray-400 text-sm mb-2">Firebase Spark Plan</h4>
+                  <h4 className="text-neutral-400 text-sm mb-2">Firebase Spark Plan</h4>
                   <div className="text-white font-bold">免費</div>
-                  <p className="text-gray-500 text-xs mt-1">50K 讀取/日</p>
+                  <p className="text-neutral-500 text-xs mt-1">50K 讀取/日</p>
                 </div>
                 <div className="bg-[#1a1a1a] rounded-lg p-4">
-                  <h4 className="text-gray-400 text-sm mb-2">Cloudinary Free</h4>
+                  <h4 className="text-neutral-400 text-sm mb-2">Cloudinary Free</h4>
                   <div className="text-white font-bold">免費</div>
-                  <p className="text-gray-500 text-xs mt-1">25GB 存儲 + 25GB 流量</p>
+                  <p className="text-neutral-500 text-xs mt-1">25GB 存儲 + 25GB 流量</p>
                 </div>
                 <div className="bg-[#1a1a1a] rounded-lg p-4">
-                  <h4 className="text-gray-400 text-sm mb-2">API 費用</h4>
+                  <h4 className="text-neutral-400 text-sm mb-2">API 費用</h4>
                   <div className="text-white font-bold">免費</div>
-                  <p className="text-gray-500 text-xs mt-1">Spotify/YouTube/Wiki</p>
+                  <p className="text-neutral-500 text-xs mt-1">Spotify/YouTube/Wiki</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">📊 付費升級方案對比</h3>
               <div className="grid md:grid-cols-3 gap-4">
                 <CostCard
@@ -490,21 +490,21 @@ Spotify API         YouTube API        Wikipedia API
         {/* Scaling Tab */}
         {activeTab === 'scaling' && (
           <div className="space-y-6">
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">🚀 擴展時間線</h3>
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <div className="w-20 text-right text-[#FFD700] font-bold">現階段</div>
-                  <div className="flex-1 pb-4 border-l-2 border-gray-700 pl-4">
+                  <div className="flex-1 pb-4 border-l-2 border-neutral-700 pl-4">
                     <h4 className="text-white font-bold">0 - 10,000 用戶</h4>
-                    <p className="text-gray-400 text-sm">全部免費方案足夠，無需任何升級</p>
+                    <p className="text-neutral-400 text-sm">全部免費方案足夠，無需任何升級</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="w-20 text-right text-[#FFD700] font-bold">第1階段</div>
-                  <div className="flex-1 pb-4 border-l-2 border-gray-700 pl-4">
+                  <div className="flex-1 pb-4 border-l-2 border-neutral-700 pl-4">
                     <h4 className="text-white font-bold">10,000 - 50,000 用戶</h4>
-                    <ul className="text-gray-400 text-sm space-y-1 mt-2">
+                    <ul className="text-neutral-400 text-sm space-y-1 mt-2">
                       <li>• Vercel Pro ($20) - 1TB 流量 + 團隊功能</li>
                       <li>• Firebase Blaze Pay-as-you-go - 約 $20-30/月</li>
                       <li>• Cloudinary Plus ($25) - 225GB 存儲</li>
@@ -513,9 +513,9 @@ Spotify API         YouTube API        Wikipedia API
                 </div>
                 <div className="flex gap-4">
                   <div className="w-20 text-right text-[#FFD700] font-bold">第2階段</div>
-                  <div className="flex-1 pb-4 border-l-2 border-gray-700 pl-4">
+                  <div className="flex-1 pb-4 border-l-2 border-neutral-700 pl-4">
                     <h4 className="text-white font-bold">50,000+ 用戶</h4>
-                    <ul className="text-gray-400 text-sm space-y-1 mt-2">
+                    <ul className="text-neutral-400 text-sm space-y-1 mt-2">
                       <li>• 考慮自建伺服器（DigitalOcean/AWS）- 更便宜的數據庫</li>
                       <li>• CDN 加速（CloudFlare Pro $20）</li>
                       <li>• 數據庫讀寫分離</li>
@@ -525,7 +525,7 @@ Spotify API         YouTube API        Wikipedia API
               </div>
             </div>
 
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">⚠️ 瓶頸預警指標</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
@@ -559,28 +559,28 @@ Spotify API         YouTube API        Wikipedia API
               </div>
             </div>
 
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h3 className="text-white font-bold mb-4">🛠️ 維護指南（給 Admin）</h3>
-              <div className="space-y-3 text-sm text-gray-300">
+              <div className="space-y-3 text-sm text-neutral-300">
                 <div className="flex gap-3">
                   <Settings className="text-[#FFD700] flex-shrink-0" size={18} />
                   <div>
                     <strong className="text-white">Firebase Console</strong>
-                    <p className="text-gray-400">monitor usage, check database, view logs</p>
+                    <p className="text-neutral-400">monitor usage, check database, view logs</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <Shield className="text-[#FFD700] flex-shrink-0" size={18} />
                   <div>
                     <strong className="text-white">Vercel Dashboard</strong>
-                    <p className="text-gray-400">view deployments, check errors, monitor traffic</p>
+                    <p className="text-neutral-400">view deployments, check errors, monitor traffic</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <Cloud className="text-[#FFD700] flex-shrink-0" size={18} />
                   <div>
                     <strong className="text-white">Cloudinary Console</strong>
-                    <p className="text-gray-400">manage images, check storage usage</p>
+                    <p className="text-neutral-400">manage images, check storage usage</p>
                   </div>
                 </div>
               </div>

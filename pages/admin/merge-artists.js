@@ -148,7 +148,7 @@ export default function MergeArtistsPage() {
       case 'male': return { text: '男歌手', color: 'bg-blue-600/30 text-blue-400 border-blue-500/30' }
       case 'female': return { text: '女歌手', color: 'bg-pink-600/30 text-pink-400 border-pink-500/30' }
       case 'group': return { text: '組合', color: 'bg-yellow-600/30 text-yellow-400 border-yellow-500/30' }
-      default: return { text: '其他', color: 'bg-gray-600/30 text-gray-400 border-gray-500/30' }
+      default: return { text: '其他', color: 'bg-neutral-600/30 text-neutral-400 border-neutral-500/30' }
     }
   }
 
@@ -189,7 +189,7 @@ export default function MergeArtistsPage() {
           )}
 
           {/* 統計 */}
-          <div className="bg-[#121212] rounded-lg p-4 border border-gray-800 mb-6">
+          <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-white">{artists.length}</div>
@@ -221,7 +221,7 @@ export default function MergeArtistsPage() {
 
           {/* 手動合併模式 */}
           {manualMode && (
-            <div className="bg-[#121212] rounded-lg border border-gray-800 p-6 mb-6">
+            <div className="bg-[#121212] rounded-lg border border-neutral-800 p-6 mb-6">
               <h2 className="text-lg font-bold text-white mb-4">手動選擇合併</h2>
               <p className="text-[#B3B3B3] text-sm mb-4">
                 選擇兩個要合併的歌手，第一個會被保留，第二個會被合併到第一個
@@ -233,7 +233,7 @@ export default function MergeArtistsPage() {
                   <select
                     value={manualSelection.keep || ''}
                     onChange={(e) => setManualSelection({...manualSelection, keep: e.target.value})}
-                    className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                   >
                     <option value="">選擇歌手...</option>
                     {artists.sort((a, b) => a.name.localeCompare(b.name)).map(artist => {
@@ -251,7 +251,7 @@ export default function MergeArtistsPage() {
                   <select
                     value={manualSelection.merge || ''}
                     onChange={(e) => setManualSelection({...manualSelection, merge: e.target.value})}
-                    className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                   >
                     <option value="">選擇歌手...</option>
                     {artists
@@ -277,7 +277,7 @@ export default function MergeArtistsPage() {
                     if (keep && merge) mergeArtists(keep, merge)
                   }}
                   disabled={processing}
-                  className="bg-red-600 hover:bg-red-500 disabled:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-red-600 hover:bg-red-500 disabled:bg-neutral-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                 >
                   {processing ? '處理中...' : '執行合併'}
                 </button>
@@ -291,7 +291,7 @@ export default function MergeArtistsPage() {
               {loading ? (
                 <div className="text-center py-12 text-[#B3B3B3]">載入中...</div>
               ) : duplicates.length === 0 ? (
-                <div className="text-center py-12 bg-[#121212] rounded-lg border border-gray-800">
+                <div className="text-center py-12 bg-[#121212] rounded-lg border border-neutral-800">
                   <span className="text-4xl mb-4 block">✅</span>
                   <h3 className="text-lg font-medium text-white mb-2">
                     沒有發現重複歌手
@@ -308,7 +308,7 @@ export default function MergeArtistsPage() {
                         <h3 className="text-lg font-bold text-yellow-400">
                           可能重複組 {groupIdx + 1} / {duplicates.length}
                         </h3>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-neutral-500">
                           匹配度: {Math.round(group.confidence * 100)}%
                         </span>
                       </div>
@@ -316,7 +316,7 @@ export default function MergeArtistsPage() {
                       {/* 顯示匹配原因 */}
                       {group.matches && group.matches.length > 0 && (
                         <div className="mb-4 text-sm">
-                          <span className="text-gray-400">匹配原因: </span>
+                          <span className="text-neutral-400">匹配原因: </span>
                           <span className="text-yellow-400">
                             {group.matches.map(m => {
                               const reasons = {
@@ -345,7 +345,7 @@ export default function MergeArtistsPage() {
                               className={`bg-[#1a1a1a] rounded-lg p-4 border ${
                                 isPrimary
                                   ? 'border-green-500 ring-2 ring-green-500/20' 
-                                  : 'border-gray-800'
+                                  : 'border-neutral-800'
                               }`}
                             >
                               <div className="flex items-center gap-4">
@@ -378,7 +378,7 @@ export default function MergeArtistsPage() {
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-gray-500 text-xs">ID: {artist.id}</p>
+                                  <p className="text-neutral-500 text-xs">ID: {artist.id}</p>
                                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     {parsed.chinese && (
                                       <span className="text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded">
@@ -402,7 +402,7 @@ export default function MergeArtistsPage() {
                       </div>
                       
                       {/* 合併選項 */}
-                      <div className="bg-[#1a1a1a] rounded-lg p-4 border border-gray-800">
+                      <div className="bg-[#1a1a1a] rounded-lg p-4 border border-neutral-800">
                         <p className="text-[#B3B3B3] text-sm mb-3">
                           選擇要保留的歌手（另一個會被合併並刪除）：
                         </p>
@@ -415,7 +415,7 @@ export default function MergeArtistsPage() {
                                 if (other) mergeArtists(artist, other)
                               }}
                               disabled={processing}
-                              className="bg-[#FFD700] hover:bg-yellow-400 disabled:bg-gray-700 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                              className="bg-[#FFD700] hover:bg-yellow-400 disabled:bg-neutral-700 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
                               保留「{artist.name}」
                             </button>

@@ -171,7 +171,7 @@ function SingleArtistField({
       case 'male': return 'bg-blue-500/20 text-blue-300'
       case 'female': return 'bg-pink-500/20 text-pink-300'
       case 'group': return 'bg-yellow-500/20 text-yellow-300'
-      default: return 'bg-gray-500/20 text-gray-300'
+      default: return 'bg-neutral-500/20 text-neutral-300'
     }
   }
 
@@ -198,7 +198,7 @@ function SingleArtistField({
         
         {isLoading && (
           <div className="absolute right-3 top-2.5">
-            <svg className="w-5 h-5 animate-spin text-gray-500" fill="none" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 animate-spin text-neutral-500" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
@@ -208,18 +208,18 @@ function SingleArtistField({
 
       {/* Suggest 下拉選單 */}
       {showDropdown && (
-        <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-neutral-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
           {suggestions.map((artist, index) => (
             <button
               key={artist.id}
               type="button"
               onClick={() => handleSelectArtist(artist)}
-              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-800 transition text-left ${
-                index === selectedIndex ? 'bg-gray-800' : ''
+              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-neutral-800 transition text-left ${
+                index === selectedIndex ? 'bg-neutral-800' : ''
               }`}
             >
               {/* 歌手圖片 */}
-              <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
                 {artist.photoURL || artist.wikiPhotoURL ? (
                   <img 
                     src={artist.photoURL || artist.wikiPhotoURL} 
@@ -242,7 +242,7 @@ function SingleArtistField({
                     </span>
                   )}
                   {artist.tabCount > 0 && (
-                    <span className="text-xs text-gray-500">{artist.tabCount} 個譜</span>
+                    <span className="text-xs text-neutral-500">{artist.tabCount} 個譜</span>
                   )}
                 </div>
               </div>
@@ -263,14 +263,14 @@ function SingleArtistField({
               setShowDropdown(false)
               onSelect({ name: inputValue, id: null, isNew: true })
             }}
-            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-800 transition text-left border-t border-gray-700"
+            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-neutral-800 transition text-left border-t border-neutral-700"
           >
             <div className="w-10 h-10 rounded-full bg-[#FFD700]/20 flex items-center justify-center flex-shrink-0">
               <span className="text-[#FFD700] text-lg">+</span>
             </div>
             <div>
               <p className="text-[#FFD700] font-medium">創建新歌手「{inputValue}」</p>
-              <p className="text-xs text-gray-500">如果這位歌手不在資料庫中</p>
+              <p className="text-xs text-neutral-500">如果這位歌手不在資料庫中</p>
             </div>
           </button>
         </div>
@@ -301,9 +301,9 @@ function CollaboratorItem({
   }
 
   return (
-    <div className="flex items-start gap-3 p-3 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+    <div className="flex items-start gap-3 p-3 bg-[#1a1a1a] border border-neutral-800 rounded-lg">
       {/* 歌手圖片 */}
-      <div className="w-12 h-12 rounded-full bg-gray-800 overflow-hidden flex-shrink-0">
+      <div className="w-12 h-12 rounded-full bg-neutral-800 overflow-hidden flex-shrink-0">
         {collaborator.artistPhoto ? (
           <img 
             src={collaborator.artistPhoto} 
@@ -337,7 +337,7 @@ function CollaboratorItem({
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="text-gray-500 hover:text-white transition"
+              className="text-neutral-500 hover:text-white transition"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -348,7 +348,7 @@ function CollaboratorItem({
         
         {/* 關係選擇 */}
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-xs text-gray-500">關係：</span>
+          <span className="text-xs text-neutral-500">關係：</span>
           <div className="flex gap-1">
             {RELATION_OPTIONS.map(option => (
               <button
@@ -358,7 +358,7 @@ function CollaboratorItem({
                 className={`px-2 py-1 text-xs rounded transition ${
                   collaborator.relation === option.value
                     ? 'bg-[#FFD700] text-black'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                 }`}
               >
                 {option.label}
@@ -372,7 +372,7 @@ function CollaboratorItem({
       <button
         type="button"
         onClick={() => onRemove(index)}
-        className="text-gray-500 hover:text-red-400 transition p-1"
+        className="text-neutral-500 hover:text-red-400 transition p-1"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -503,7 +503,7 @@ export default function MultiArtistInput({
       <button
         type="button"
         onClick={handleAddCollaborator}
-        className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-600 rounded-lg text-gray-400 hover:text-white hover:border-gray-400 transition"
+        className="flex items-center gap-2 px-4 py-2 border border-dashed border-neutral-600 rounded-lg text-neutral-400 hover:text-white hover:border-neutral-400 transition"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -513,8 +513,8 @@ export default function MultiArtistInput({
 
       {/* 預覽顯示 */}
       {localPrimary?.name && (
-        <div className="p-3 bg-gray-900/50 border border-gray-800 rounded-lg">
-          <p className="text-xs text-gray-500 mb-1">顯示效果：</p>
+        <div className="p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg">
+          <p className="text-xs text-neutral-500 mb-1">顯示效果：</p>
           <p className="text-white font-medium">
             {generateDisplayString(localPrimary, localCollaborators)}
           </p>

@@ -32,7 +32,7 @@ export default function LazyImage({
   if (!src || error) {
     return (
       <div 
-        className={`${containerClassName} flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900`}
+        className={`${containerClassName} flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900`}
         onClick={onClick}
       >
         {fallback || <span className="text-4xl">🎵</span>}
@@ -106,7 +106,7 @@ export function SongCard({ song, artistPhoto, onClick, href, compact }) {
             {!imageLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828] z-10">
                 <span className="text-3xl mb-1">🎵</span>
-                <span className="text-[10px] text-gray-500 text-center px-2 line-clamp-1">
+                <span className="text-[10px] text-neutral-500 text-center px-2 line-clamp-1">
                   {song.artist}
                 </span>
               </div>
@@ -125,14 +125,14 @@ export function SongCard({ song, artistPhoto, onClick, href, compact }) {
           /* Section not in viewport yet: placeholder only (no img request) */
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828]">
             <span className="text-3xl mb-1">🎵</span>
-            <span className="text-[10px] text-gray-500 text-center px-2 line-clamp-1">
+            <span className="text-[10px] text-neutral-500 text-center px-2 line-clamp-1">
               {song.artist}
             </span>
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
             <span className="text-4xl mb-1">🎵</span>
-            <span className="text-[10px] text-gray-500 text-center px-2 line-clamp-1">
+            <span className="text-[10px] text-neutral-500 text-center px-2 line-clamp-1">
               {song.artist}
             </span>
           </div>
@@ -142,7 +142,7 @@ export function SongCard({ song, artistPhoto, onClick, href, compact }) {
       <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
         {song.title}
       </div>
-      <div className="text-gray-500 truncate text-[0.8rem] md:text-[13px] leading-[1.3]">{song.artist}</div>
+      <div className="text-neutral-500 truncate text-[0.8rem] md:text-[13px] leading-[1.3]">{song.artist}</div>
     </Wrapper>
   )
 }
@@ -194,7 +194,7 @@ export function PlaylistCard({ playlist, onClick, href, compact }) {
             <span className="text-3xl">🎸</span>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
             <span className="text-4xl">🎸</span>
           </div>
         )}
@@ -204,7 +204,7 @@ export function PlaylistCard({ playlist, onClick, href, compact }) {
         {playlist.title}
       </div>
       {typeof playlist.description === 'string' && playlist.description.trim() && (
-        <div className="text-gray-500 line-clamp-2 text-[0.8rem] md:text-[13px] leading-[1.3]">{playlist.description.trim()}</div>
+        <div className="text-neutral-500 line-clamp-2 text-[0.8rem] md:text-[13px] leading-[1.3]">{playlist.description.trim()}</div>
       )}
     </Wrapper>
   )
@@ -254,7 +254,7 @@ export function ArtistAvatar({ artist, onClick, href, compact }) {
             <span className="text-3xl mb-1">🎤</span>
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
             <span className="text-4xl mb-1">🎤</span>
           </div>
         )}

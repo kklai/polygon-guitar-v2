@@ -412,7 +412,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
             )}
           </div>
         ) : (
-          <div className="text-center py-12 bg-[#121212] rounded-xl border border-gray-800">
+          <div className="text-center py-12 bg-[#121212] rounded-xl border border-neutral-800">
             <span className="text-4xl mb-4 block"></span>
             <h3 className="text-lg font-medium text-white mb-2">
               暫時冇歌手

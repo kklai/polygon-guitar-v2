@@ -55,11 +55,11 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
   const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0)
 
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 p-4">
       <h3 className="text-white font-bold mb-4 flex items-center gap-2">
         用戶評價
         {totalVotes > 0 && (
-          <span className="text-sm font-normal text-gray-400">
+          <span className="text-sm font-normal text-neutral-400">
             ({totalVotes} 人投票)
           </span>
         )}
@@ -72,7 +72,7 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
             <button
               key={option.id}
               onClick={() => handleVote(option.id)}
-              className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-left transition group"
+              className="p-3 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-left transition group"
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xl">{option.icon}</span>
@@ -80,7 +80,7 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
                   {option.label}
                 </span>
               </div>
-              <p className="text-xs text-gray-400">{option.desc}</p>
+              <p className="text-xs text-neutral-400">{option.desc}</p>
             </button>
           ))}
         </div>
@@ -88,12 +88,12 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
         <div className="text-center py-4">
           <div className="text-3xl mb-2"></div>
           <p className="text-green-400 font-medium">多謝你嘅投票！</p>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-neutral-400 text-sm mt-1">
             你揀咗：{VOTE_OPTIONS.find(o => o.id === selectedVote)?.label}
           </p>
           <button
             onClick={() => setHasVoted(false)}
-            className="text-gray-500 text-xs mt-3 hover:text-gray-300 underline"
+            className="text-neutral-500 text-xs mt-3 hover:text-neutral-300 underline"
           >
             重新投票
           </button>
@@ -102,7 +102,7 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
 
       {/* 投票結果統計 */}
       {totalVotes > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-800">
+        <div className="mt-4 pt-4 border-t border-neutral-800">
           <div className="space-y-2">
             {VOTE_OPTIONS.map(option => {
               const count = votes[option.id] || 0
@@ -112,11 +112,11 @@ export default function TabUserVotes({ tabId, votes = {}, userVote, onVote }) {
                 <div key={option.id} className="flex items-center gap-2">
                   <span className="text-lg w-6">{option.icon}</span>
                   <div className="flex-1">
-                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <div className="flex justify-between text-xs text-neutral-400 mb-1">
                       <span>{option.label}</span>
                       <span>{count} 票 ({percentage.toFixed(0)}%)</span>
                     </div>
-                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
                       <div 
                         className={`h-full ${option.color} transition-all duration-500`}
                         style={{ width: `${percentage}%` }}

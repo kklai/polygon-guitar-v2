@@ -374,10 +374,10 @@ function renderGuitarTab(tabLines) {
     
     return (
       <div key={index} className="font-mono text-sm whitespace-pre text-[#FFD700] leading-tight">
-        <span className="text-gray-500 w-4 inline-block">{stringName}</span>
-        <span className="text-gray-500">|</span>
+        <span className="text-neutral-500 w-4 inline-block">{stringName}</span>
+        <span className="text-neutral-500">|</span>
         <span>{line.replace(/^[eEbBgGdDaA]\|/, '').replace(/^\d+\|/, '')}</span>
-        <span className="text-gray-500">|</span>
+        <span className="text-neutral-500">|</span>
       </div>
     );
   });
@@ -1484,7 +1484,14 @@ const TabContent = ({
   gpTheme = 'dark',
   // 外部控制的 showInfo（由父組件傳入，確保轉調時 YouTube 唔會閂）
   showInfo: externalShowInfo,
-  setShowInfo: externalSetShowInfo
+  setShowInfo: externalSetShowInfo,
+  // 樂譜頁 layout：隱藏 ControlBar 內的 Key 行與底部控制行（由頁面自己渲染）
+  hideKeyRowAndBottomBar = false,
+  // 外部控制隱藏簡譜 / 括號（供底部黃 bar 用）
+  externalHideNotation,
+  externalHideBrackets,
+  onHideNotationChange,
+  onHideBracketsChange
 }) => {
   // 緩存 YouTube src，防止轉調時重新渲染 iframe
   const youtubeSrc = useMemo(() => {
@@ -1499,8 +1506,12 @@ const TabContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content || '');
   const [internalTheme, setInternalTheme] = useState('night'); // 'night' | 'day'
-  const [hideNotation, setHideNotation] = useState(true); // 隱藏簡譜功能（預設隱藏）
-  const [hideBrackets, setHideBrackets] = useState(false); // 隱藏括號功能
+  const [internalHideNotation, setInternalHideNotation] = useState(true);
+  const [internalHideBrackets, setInternalHideBrackets] = useState(false);
+  const hideNotation = externalHideNotation !== undefined ? externalHideNotation : internalHideNotation;
+  const setHideNotation = onHideNotationChange !== undefined ? onHideNotationChange : setInternalHideNotation;
+  const hideBrackets = externalHideBrackets !== undefined ? externalHideBrackets : internalHideBrackets;
+  const setHideBrackets = onHideBracketsChange !== undefined ? onHideBracketsChange : setInternalHideBrackets;
   const [isMobile, setIsMobile] = useState(false); // 手機版檢測
   
   // 檢測是否為手機版
@@ -1594,10 +1605,11 @@ const TabContent = ({
   // 自動滾動 - 成個頁面一齊滾動
   useEffect(() => {
     if (isAutoScroll) {
-      // 速度：6 個選項（0-5），由慢到快
-      const speeds = [0, 0.3, 0.5, 0.7, 0.9, 1.2];
+      // 速度：1–4 對應 0.5 / 0.9 / 1.2 / 1.5 px（每 50ms）
+      const speeds = [0, 0.5, 0.9, 1.2, 1.5];
+      const speed = Math.max(1, Math.min(4, scrollSpeed));
       autoScrollRef.current = setInterval(() => {
-        window.scrollBy({ top: speeds[scrollSpeed] || 0.4, behavior: 'auto' });
+        window.scrollBy({ top: speeds[speed] || 0.5, behavior: 'auto' });
       }, 50);
     } else {
       if (autoScrollRef.current) {
@@ -2670,21 +2682,26 @@ const TabContent = ({
     
     const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.album || songInfo.strummingPattern || songInfo.fingeringTips);
     
+    // 樂譜頁 layout：和弦改由頂部操作列 icon 開 pop-up，唔 render ControlBar
+    if (hideKeyRowAndBottomBar) return null;
+    
     return (
-      <div className="px-2 sm:px-4 py-2 border-b border-gray-800">
-        <div className={`rounded-2xl p-2.5 sm:p-3 ${theme === 'day' ? 'bg-gray-100' : 'bg-[#1A1A1A]'}`}>
+      <div className="px-2 sm:px-4 py-2 border-b border-[#1a1a1a]">
+        <div className={`rounded-2xl p-2.5 sm:p-3 ${theme === 'day' ? 'bg-neutral-100' : 'bg-[#1A1A1A]'}`}>
           <div className="flex items-center justify-between">
+            {/* 樂譜頁 layout 時唔顯示原調/出譜；只保留和弦圖入口 */}
+            {!hideKeyRowAndBottomBar && (
             <div className="flex items-center gap-2 text-xs md:text-base whitespace-nowrap">
               <span className="flex items-center gap-1">
                 <span className="text-[#FFD700]">♪</span>
                 <span className="text-white font-medium">{originalKey}</span>
                 {playKey && playKey !== originalKey && (
-                  <span className="text-gray-400">({playKey})</span>
+                  <span className="text-neutral-400">({playKey})</span>
                 )}
               </span>
-              <span className="text-gray-600">|</span>
+              <span className="text-neutral-600">|</span>
               {arrangedBy && (
-                <span className="text-gray-400">
+                <span className="text-neutral-400">
                   出譜: {uploaderId ? (
                     <a 
                       href={`/profile/${uploaderId}`}
@@ -2697,34 +2714,25 @@ const TabContent = ({
                   )}
                 </span>
               )}
-              {chordStats.total > 0 && (
-                <>
-                  <span className="text-gray-600">|</span>
-                  <button 
-                    onClick={() => setShowChordDiagram(true)}
-                    className="text-gray-400 hover:text-[#FFD700] transition flex items-center gap-1"
-                    title="查看和弦圖"
-                  >
-                    和弦數 <span className="text-[#FFD700] underline">{chordStats.total}</span>
-                    {chordStats.barreCount > 0 && (
-                      <span className="text-orange-400">({chordStats.barreCount}Barre)</span>
-                    )}
-                  </button>
-                </>
-              )}
             </div>
-            {(youtubeVideoId || hasSongInfo) && (
-              <button onClick={() => setShowInfo(!showInfo)} className="p-1 md:p-1.5 text-gray-400 hover:text-white transition">
-                <svg className={`w-4 h-4 md:w-5 md:h-5 transition-transform ${showInfo ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+            )}
+            {/* 非樂譜頁 layout 先顯示 YouTube/歌曲資訊展開列；樂譜頁已移去 Key 選擇器上方 */}
+            {!hideKeyRowAndBottomBar && (youtubeVideoId || hasSongInfo) && (
+              <>
+                <span className="text-xs text-neutral-400">YouTube / 歌曲資訊</span>
+                <button onClick={() => setShowInfo(!showInfo)} className="p-1 md:p-1.5 text-neutral-400 hover:text-white transition" title={showInfo ? '收起' : '展開 YouTube / 歌曲資訊'}>
+                  <svg className={`w-4 h-4 md:w-5 md:h-5 transition-transform ${showInfo ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </>
             )}
           </div>
 
-          {/* YouTube 播放器 - 始終保持渲染，用 CSS 控制顯示，防止重新加載 */}
+          {/* YouTube 播放器 + 歌曲資訊（僅非樂譜頁 layout 顯示；樂譜頁已移去頁面） */}
+          {!hideKeyRowAndBottomBar && (
           <div 
-            className="mt-3 pt-3 border-t border-gray-700 space-y-3 transition-all duration-500 overflow-hidden"
+            className="mt-3 pt-3 border-t border-[#1a1a1a] space-y-3 transition-all duration-500 overflow-hidden"
             style={{ 
               maxHeight: showInfo ? '600px' : '0',
               opacity: showInfo ? 1 : 0,
@@ -2746,7 +2754,7 @@ const TabContent = ({
               </div>
             )}
             {hasSongInfo && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-gray-400">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs md:text-sm text-neutral-400">
                 {songInfo.songYear && <span>年份：<span className="text-white">{songInfo.songYear}</span></span>}
                 {songInfo.album && <span>專輯：<span className="text-white">{songInfo.album}</span></span>}
                 {songInfo.composer && <span>作曲：<span className="text-white">{songInfo.composer}</span></span>}
@@ -2756,22 +2764,25 @@ const TabContent = ({
               </div>
             )}
           </div>
+          )}
 
+          {!hideKeyRowAndBottomBar && (
+          <>
           <div className="flex items-center gap-2 text-xs md:text-base mt-3 whitespace-nowrap">
-            <span className="text-gray-400">原調: <span className="text-white">{originalKey}</span></span>
-            <span className="text-gray-600">→</span>
-            <span className="text-gray-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
+            <span className="text-neutral-400">原調: <span className="text-white">{originalKey}</span></span>
+            <span className="text-neutral-600">→</span>
+            <span className="text-neutral-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey}</span></span>
             {displayCapo > 0 && (
               <span className="bg-[#FFD700] text-black text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded font-medium">Capo {displayCapo}</span>
             )}
           </div>
 
           {!hideKeySelector && (
-            <div className="flex gap-0.5 mt-3 pt-3 border-t border-gray-700">
+            <div className="flex gap-0.5 mt-3 pt-3 border-t border-[#1a1a1a]">
               {(baseKey?.endsWith('m') ? MINOR_KEYS.filter(k => !['Ebm','G#m','A#m'].includes(k)) : MAJOR_KEYS).map((key) => {
                 const isCurrent = key === currentKey;
                 return (
-                  <button key={key} onClick={() => { setCurrentKey(key); onKeyChange?.(key); }} className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-bold transition hover:scale-105 ${isCurrent ? 'bg-[#FFD700] text-black' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+                  <button key={key} onClick={() => { setCurrentKey(key); onKeyChange?.(key); }} className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-bold transition hover:scale-105 ${isCurrent ? 'bg-[#FFD700] text-black' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'}`}>
                     {key}
                   </button>
                 );
@@ -2779,13 +2790,13 @@ const TabContent = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1a1a1a]">
             <div className="flex items-center gap-1.5 md:gap-2">
-              <button onClick={() => handleFontSize(-1)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm">A-</button>
-              <span className="w-6 md:w-8 text-center text-xs md:text-sm text-gray-400">{fontSize}</span>
-              <button onClick={() => handleFontSize(1)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-gray-800 text-white hover:bg-gray-700 transition text-xs md:text-sm">A+</button>
-              <div className="w-px h-5 md:h-6 bg-gray-700 mx-1" />
-              <button onClick={() => setIsAutoScroll(!isAutoScroll)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${isAutoScroll ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-white hover:bg-gray-700'}`}>
+              <button onClick={() => handleFontSize(-1)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-neutral-800 text-white hover:bg-neutral-700 transition text-xs md:text-sm">A-</button>
+              <span className="w-6 md:w-8 text-center text-xs md:text-sm text-neutral-400">{fontSize}</span>
+              <button onClick={() => handleFontSize(1)} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded bg-neutral-800 text-white hover:bg-neutral-700 transition text-xs md:text-sm">A+</button>
+              <div className="w-px h-5 md:h-6 bg-neutral-700 mx-1" />
+              <button onClick={() => setIsAutoScroll(!isAutoScroll)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${isAutoScroll ? 'bg-[#FFD700] text-black' : 'bg-neutral-800 text-white hover:bg-neutral-700'}`}>
                 <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
@@ -2793,30 +2804,32 @@ const TabContent = ({
               </button>
               {isAutoScroll && (
                 <div className="flex items-center gap-0.5">
-                  <button onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm" disabled={scrollSpeed <= 0}>−</button>
-                  <span className="w-4 md:w-5 text-center text-xs md:text-sm text-gray-400">{scrollSpeed}</span>
-                  <button onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-gray-700 text-white text-xs md:text-sm" disabled={scrollSpeed >= 4}>+</button>
+                  <button onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-neutral-700 text-white text-xs md:text-sm" disabled={scrollSpeed <= 0}>−</button>
+                  <span className="w-4 md:w-5 text-center text-xs md:text-sm text-neutral-400">{scrollSpeed}</span>
+                  <button onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-neutral-700 text-white text-xs md:text-sm" disabled={scrollSpeed >= 4}>+</button>
                 </div>
               )}
-              <div className="w-px h-5 md:h-6 bg-gray-700 mx-1" />
-              <button onClick={() => setHideNotation(!hideNotation)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${hideNotation ? 'bg-gray-600 text-gray-300' : 'bg-gray-800 text-white hover:bg-gray-700'}`} title={hideNotation ? '顯示簡譜' : '隱藏簡譜'}>
+              <div className="w-px h-5 md:h-6 bg-neutral-700 mx-1" />
+              <button onClick={() => setHideNotation(!hideNotation)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${hideNotation ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-800 text-white hover:bg-neutral-700'}`} title={hideNotation ? '顯示簡譜' : '隱藏簡譜'}>
                 <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={hideNotation ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
                 </svg>
                 <span className="hidden sm:inline">{hideNotation ? '顯示簡譜' : '隱藏簡譜'}</span>
               </button>
-              <div className="w-px h-5 md:h-6 bg-gray-700 mx-1" />
-              <button onClick={() => setHideBrackets(!hideBrackets)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${hideBrackets ? 'bg-gray-600 text-gray-300' : 'bg-gray-800 text-white hover:bg-gray-700'}`} title={hideBrackets ? '顯示括號' : '隱藏括號'}>
+              <div className="w-px h-5 md:h-6 bg-neutral-700 mx-1" />
+              <button onClick={() => setHideBrackets(!hideBrackets)} className={`flex items-center gap-1 px-2.5 py-1.5 md:px-4 md:py-2 rounded transition text-xs md:text-sm ${hideBrackets ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-800 text-white hover:bg-neutral-700'}`} title={hideBrackets ? '顯示括號' : '隱藏括號'}>
                 <span className="text-xs md:text-sm font-mono">( )</span>
                 <span className="hidden sm:inline">{hideBrackets ? '顯示()' : '隱藏()'}</span>
               </button>
             </div>
-            <button onClick={handleCopy} className="p-2 md:p-2.5 text-gray-400 hover:text-white transition" title="複製歌詞">
+            <button onClick={handleCopy} className="p-2 md:p-2.5 text-neutral-400 hover:text-white transition" title="複製歌詞">
               <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
           </div>
+          </>
+          )}
         </div>
         
         {/* 和弦圖彈窗 */}
@@ -2866,12 +2879,12 @@ const TabContent = ({
 
   if (isEditing && editable) {
     return (
-      <div className={`${theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800'} ${className}`}>
+      <div className={`${theme === 'day' ? 'bg-white rounded-xl border border-neutral-300' : 'bg-[#121212] rounded-xl border border-neutral-800'} ${className}`}>
         {showControls && <ControlBar />}
         <div className="p-4">
-          <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className={`w-full h-96 p-4 rounded-lg border outline-none resize-none font-mono text-sm ${theme === 'day' ? 'bg-gray-50 text-gray-800 border-gray-300' : 'bg-black text-gray-300 border-gray-700'}`} placeholder="輸入譜內容..." />
+          <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className={`w-full h-96 p-4 rounded-lg border outline-none resize-none font-mono text-sm ${theme === 'day' ? 'bg-neutral-50 text-neutral-800 border-neutral-300' : 'bg-black text-neutral-300 border-neutral-700'}`} placeholder="輸入譜內容..." />
           <div className="flex justify-end gap-3 mt-4">
-            <button onClick={() => setIsEditing(false)} className={`px-4 py-2 transition ${theme === 'day' ? 'text-gray-600 hover:text-gray-900' : 'text-gray-400 hover:text-white'}`}>取消</button>
+            <button onClick={() => setIsEditing(false)} className={`px-4 py-2 transition ${theme === 'day' ? 'text-neutral-600 hover:text-neutral-900' : 'text-neutral-400 hover:text-white'}`}>取消</button>
             <button onClick={handleSave} className={`px-4 py-2 rounded-lg transition ${theme === 'day' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-[#FFD700] text-black hover:opacity-90'}`}>保存</button>
           </div>
         </div>
@@ -2880,7 +2893,7 @@ const TabContent = ({
   }
 
   return (
-    <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-gray-300' : 'bg-[#121212] rounded-xl border border-gray-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
+    <div className={`${fullWidth ? (theme === 'day' ? 'bg-white' : 'bg-black') : (theme === 'day' ? 'bg-white rounded-xl border border-neutral-300' : 'bg-[#121212] rounded-xl border border-neutral-800')} ${className}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-4' : `p-4 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
         <div className={`tab-content-wrapper ${displayFont !== 'arial' ? 'font-light' : ''}`} onCopy={handleContentCopy} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>

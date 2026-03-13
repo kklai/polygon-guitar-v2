@@ -299,7 +299,7 @@ export default function GpSegmentUploader({
   const isValid = totalBars > 0 && startBar <= endBar && endBar <= totalBars
 
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
       <h3 className="text-lg font-medium text-white mb-4">🎸 Guitar Pro 段落</h3>
       
       {!uploadedFile ? (
@@ -313,15 +313,15 @@ export default function GpSegmentUploader({
           />
           <div 
             onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed border-gray-700 rounded-xl p-8 text-center transition ${
+            className={`border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center transition ${
               isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#FFD700] cursor-pointer'
             }`}
           >
             <div className="text-4xl mb-3">📁</div>
-            <p className="text-gray-400 mb-2">
+            <p className="text-neutral-400 mb-2">
               {isUploading ? '上傳中...' : '點擊上傳 Guitar Pro 文件'}
             </p>
-            <p className="text-xs text-gray-600">支援 .gp3, .gp4, .gp5, .gpx, .gp</p>
+            <p className="text-xs text-neutral-600">支援 .gp3, .gp4, .gp5, .gpx, .gp</p>
           </div>
           
           {error && (
@@ -346,7 +346,7 @@ export default function GpSegmentUploader({
               </div>
               <button
                 onClick={handleRemove}
-                className="text-gray-500 hover:text-red-400 transition"
+                className="text-neutral-500 hover:text-red-400 transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -356,9 +356,9 @@ export default function GpSegmentUploader({
           </div>
           
           {/* 主題切換提示 */}
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-neutral-500">
             <span>預覽主題：</span>
-            <span className="text-gray-300">
+            <span className="text-neutral-300">
               {typeof theme === 'object' ? '🎨 自定義顏色' : (theme === 'dark' ? '🌙 黑底黃字' : '☀️ 白底黑字')}
             </span>
           </div>
@@ -385,11 +385,11 @@ export default function GpSegmentUploader({
           {/* 段落設置 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">段落類型</label>
+              <label className="block text-sm text-neutral-400 mb-2">段落類型</label>
               <select
                 value={segmentType}
                 onChange={(e) => setSegmentType(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
               >
                 {SEGMENT_TYPES.map(type => (
                   <option key={type.value} value={type.value}>
@@ -401,45 +401,45 @@ export default function GpSegmentUploader({
             
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">開始小節</label>
+                <label className="block text-sm text-neutral-400 mb-2">開始小節</label>
                 <input
                   type="number"
                   min={1}
                   max={totalBars || 1}
                   value={startBar}
                   onChange={(e) => setStartBar(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-2">結束小節</label>
+                <label className="block text-sm text-neutral-400 mb-2">結束小節</label>
                 <input
                   type="number"
                   min={startBar}
                   max={totalBars || 1}
                   value={endBar}
                   onChange={(e) => setEndBar(parseInt(e.target.value) || startBar)}
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                 />
               </div>
             </div>
           </div>
           
           {/* 顯示設置 - 手機版優化 */}
-          <div className="bg-gray-900/50 rounded-lg p-3 space-y-3">
-            <p className="text-xs text-gray-500 font-medium">📱 手機版顯示設置</p>
+          <div className="bg-neutral-900/50 rounded-lg p-3 space-y-3">
+            <p className="text-xs text-neutral-500 font-medium">📱 手機版顯示設置</p>
             
             <div className="grid grid-cols-3 gap-3">
               {/* 每行小節數 */}
               <div>
-                <label className="block text-xs text-gray-400 mb-1">每行小節</label>
+                <label className="block text-xs text-neutral-400 mb-1">每行小節</label>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setDisplaySettings(prev => ({ ...prev, barsPerRow: 1 }))}
                     className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
                       displaySettings.barsPerRow === 1 
                         ? 'bg-[#FFD700] text-black' 
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
                     1
@@ -449,7 +449,7 @@ export default function GpSegmentUploader({
                     className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
                       displaySettings.barsPerRow === 2 
                         ? 'bg-[#FFD700] text-black' 
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
                     2
@@ -459,7 +459,7 @@ export default function GpSegmentUploader({
               
               {/* 線條粗細 */}
               <div>
-                <label className="block text-xs text-gray-400 mb-1">線條粗幼</label>
+                <label className="block text-xs text-neutral-400 mb-1">線條粗幼</label>
                 <input
                   type="range"
                   min="0.2"
@@ -470,14 +470,14 @@ export default function GpSegmentUploader({
                     ...prev, 
                     lineThickness: parseFloat(e.target.value) 
                   }))}
-                  className="w-full h-5 bg-gray-800 rounded cursor-pointer"
+                  className="w-full h-5 bg-neutral-800 rounded cursor-pointer"
                 />
-                <span className="text-[10px] text-gray-500">{displaySettings.lineThickness.toFixed(1)}</span>
+                <span className="text-[10px] text-neutral-500">{displaySettings.lineThickness.toFixed(1)}</span>
               </div>
               
               {/* 字體大小 */}
               <div>
-                <label className="block text-xs text-gray-400 mb-1">字體大小</label>
+                <label className="block text-xs text-neutral-400 mb-1">字體大小</label>
                 <input
                   type="range"
                   min="12"
@@ -488,9 +488,9 @@ export default function GpSegmentUploader({
                     ...prev, 
                     fretFontSize: parseInt(e.target.value) 
                   }))}
-                  className="w-full h-5 bg-gray-800 rounded cursor-pointer"
+                  className="w-full h-5 bg-neutral-800 rounded cursor-pointer"
                 />
-                <span className="text-[10px] text-gray-500">{displaySettings.fretFontSize}px</span>
+                <span className="text-[10px] text-neutral-500">{displaySettings.fretFontSize}px</span>
               </div>
             </div>
           </div>
@@ -513,15 +513,15 @@ export default function GpSegmentUploader({
       
       {/* 現有段落列表 */}
       {existingSegments.length > 0 && (
-        <div className="mt-6 pt-6 border-t border-gray-800">
-          <h4 className="text-sm font-medium text-gray-400 mb-3">
+        <div className="mt-6 pt-6 border-t border-neutral-800">
+          <h4 className="text-sm font-medium text-neutral-400 mb-3">
             已添加段落 ({existingSegments.length})
           </h4>
           <div className="space-y-2">
             {existingSegments.map((segment, index) => (
               <div 
                 key={segment.id || index}
-                className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
@@ -531,7 +531,7 @@ export default function GpSegmentUploader({
                     <p className="text-white text-sm">
                       {SEGMENT_TYPES.find(t => t.value === segment.type)?.label || segment.type}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-neutral-500">
                       小節 {segment.startBar}-{segment.endBar} • {segment.originalFilename}
                     </p>
                   </div>

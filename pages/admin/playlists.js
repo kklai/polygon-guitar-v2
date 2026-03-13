@@ -382,7 +382,7 @@ function PlaylistAdmin() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <button onClick={() => router.back()} className="text-gray-400 hover:text-white transition" aria-label="返回">
+              <button onClick={() => router.back()} className="text-neutral-400 hover:text-white transition" aria-label="返回">
                 <ArrowLeft className="w-6 h-6" />
               </button>
               <h1 className="text-3xl font-bold text-white">歌單管理</h1>
@@ -402,18 +402,18 @@ function PlaylistAdmin() {
         )}
 
         {/* Tabs */}
-        <div className="flex items-center border-b border-gray-800">
+        <div className="flex items-center border-b border-neutral-800">
           <button
             onClick={() => { setActiveTab('auto'); localStorage.setItem('playlistTab', 'auto') }}
             className={`px-6 py-3 font-medium transition ${
-              activeTab === 'auto' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-500 hover:text-gray-300'
+              activeTab === 'auto' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-neutral-500 hover:text-neutral-300'
             }`}
           >
             自動生成歌單
             <button
               onClick={(e) => { e.stopPropagation(); handleRefreshAuto() }}
               disabled={isRefreshing}
-              className="ml-2 text-gray-400 hover:text-white transition disabled:opacity-50 inline-flex"
+              className="ml-2 text-neutral-400 hover:text-white transition disabled:opacity-50 inline-flex"
               title="立即刷新數據"
             >
               <svg className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,11 +424,11 @@ function PlaylistAdmin() {
           <button
             onClick={() => { setActiveTab('manual'); localStorage.setItem('playlistTab', 'manual') }}
             className={`px-6 py-3 font-medium transition ${
-              activeTab === 'manual' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-500 hover:text-gray-300'
+              activeTab === 'manual' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-neutral-500 hover:text-neutral-300'
             }`}
           >
             自製歌單
-            <span className="ml-2 text-xs bg-gray-800 px-2 py-0.5 rounded-full">{manualPlaylists.length}</span>
+            <span className="ml-2 text-xs bg-neutral-800 px-2 py-0.5 rounded-full">{manualPlaylists.length}</span>
           </button>
         </div>
 
@@ -440,7 +440,7 @@ function PlaylistAdmin() {
             {isLoading ? (
               <div className="space-y-2">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-20 bg-gray-800 rounded-lg animate-pulse" />
+                  <div key={i} className="h-20 bg-neutral-800 rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : (
@@ -451,7 +451,7 @@ function PlaylistAdmin() {
                     data-drag-item
                     onDragOver={(e) => handleAutoDragOver(e, index)}
                     className={`p-2 bg-[#121212] rounded-lg border transition select-none ${
-                      draggingAutoIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
+                      draggingAutoIndex === index ? 'border-[#FFD700] opacity-50' : 'border-neutral-800 hover:border-neutral-700'
                     }`}
                   >
                     <div className="flex items-center gap-3 w-full">
@@ -461,14 +461,14 @@ function PlaylistAdmin() {
                         onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDraggingAutoIndex(index) }}
                         onDragEnd={handleAutoDragEnd}
                         onTouchStart={handleTouchStart(index, 'auto')}
-                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 touch-none"
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400 touch-none"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                         </svg>
                       </div>
                       {/* Cover */}
-                      <div className="relative w-[70px] h-[70px] rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                      <div className="relative w-[70px] h-[70px] rounded-lg bg-neutral-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
                           <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none" />
                         ) : (
@@ -498,19 +498,19 @@ function PlaylistAdmin() {
                               type="text"
                               value={editTitle}
                               onChange={(e) => setEditTitle(e.target.value)}
-                              className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-white text-sm"
+                              className="w-full px-2 py-1 bg-black border border-neutral-600 rounded text-white text-sm"
                               placeholder="歌單名稱"
                             />
                             <input
                               type="text"
                               value={editDescription}
                               onChange={(e) => setEditDescription(e.target.value)}
-                              className="w-full px-2 py-1 bg-black border border-gray-600 rounded text-gray-400 text-xs"
+                              className="w-full px-2 py-1 bg-black border border-neutral-600 rounded text-neutral-400 text-xs"
                               placeholder="描述"
                             />
                             <div className="flex gap-2">
                               <button onClick={() => saveAutoEdit(playlist.id)} className="px-2 py-1 bg-green-700 text-white text-xs rounded">保存</button>
-                              <button onClick={cancelEditAuto} className="px-2 py-1 bg-gray-700 text-white text-xs rounded">取消</button>
+                              <button onClick={cancelEditAuto} className="px-2 py-1 bg-neutral-700 text-white text-xs rounded">取消</button>
                             </div>
                           </div>
                         ) : (
@@ -518,25 +518,25 @@ function PlaylistAdmin() {
                             <div className="flex items-center justify-between">
                               <h3 className="text-white font-medium truncate">{playlist.title}</h3>
                               <button onClick={() => togglePlaylistActive(playlist)}
-                                className={`w-10 h-5 rounded-full transition relative flex-shrink-0 ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
+                                className={`w-10 h-5 rounded-full transition relative flex-shrink-0 ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-neutral-700'}`}>
                                 <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition"
                                   style={{ left: playlist.isActive ? '22px' : '2px' }} />
                               </button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5">{playlist.description?.length > 8 ? playlist.description.slice(0, 8) + '…' : playlist.description}</p>
+                            <p className="text-xs text-neutral-500 mt-0.5">{playlist.description?.length > 8 ? playlist.description.slice(0, 8) + '…' : playlist.description}</p>
                             <div className="flex items-center justify-between mt-1.5">
-                              <p className="text-xs text-gray-600">
+                              <p className="text-xs text-neutral-600">
                                 {formatTimeAgo(playlist.lastUpdated)}更新
                               </p>
                               <div className="flex items-center gap-1">
                                 <button onClick={() => openCoverGenerator(playlist)}
-                                  className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="生成封面">
+                                  className="p-1.5 text-neutral-500 hover:text-[#FFD700] transition" title="生成封面">
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                   </svg>
                                 </button>
                                 <button onClick={() => startEditAuto(playlist)}
-                                  className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="編輯名稱">
+                                  className="p-1.5 text-neutral-500 hover:text-[#FFD700] transition" title="編輯名稱">
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                   </svg>
@@ -569,7 +569,7 @@ function PlaylistAdmin() {
           <div className="space-y-6">
             {/* Header with add button and hint */}
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 flex items-center gap-2">
+              <p className="text-sm text-neutral-500 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                 </svg>
@@ -587,7 +587,7 @@ function PlaylistAdmin() {
             {isLoading ? (
               <div className="space-y-2">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-800 rounded-lg animate-pulse" />
+                  <div key={i} className="h-16 bg-neutral-800 rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : manualPlaylists.length > 0 ? (
@@ -598,7 +598,7 @@ function PlaylistAdmin() {
                     data-drag-item
                     onDragOver={(e) => handleDragOver(e, index)}
                     className={`p-2 bg-[#121212] rounded-lg border transition select-none ${
-                      draggingIndex === index ? 'border-[#FFD700] opacity-50' : 'border-gray-800 hover:border-gray-700'
+                      draggingIndex === index ? 'border-[#FFD700] opacity-50' : 'border-neutral-800 hover:border-neutral-700'
                     }`}
                   >
                     <div className="flex items-center gap-3 w-full">
@@ -608,14 +608,14 @@ function PlaylistAdmin() {
                         onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDraggingIndex(index) }}
                         onDragEnd={handleDragEnd}
                         onTouchStart={handleTouchStart(index, 'manual')}
-                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 touch-none"
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400 touch-none"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                         </svg>
                       </div>
                       {/* Cover */}
-                      <div className="relative w-[70px] h-[70px] rounded-lg bg-gray-800 overflow-hidden flex-shrink-0 group">
+                      <div className="relative w-[70px] h-[70px] rounded-lg bg-neutral-800 overflow-hidden flex-shrink-0 group">
                         {playlist.coverImage ? (
                           <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none" />
                         ) : (
@@ -642,31 +642,31 @@ function PlaylistAdmin() {
                         <div className="flex items-center justify-between">
                           <h3 className="text-white font-medium truncate">{playlist.title}</h3>
                           <button onClick={() => togglePlaylistActive(playlist)}
-                            className={`w-10 h-5 rounded-full transition relative flex-shrink-0 ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-gray-700'}`}>
+                            className={`w-10 h-5 rounded-full transition relative flex-shrink-0 ml-2 ${playlist.isActive ? 'bg-[#FFD700]' : 'bg-neutral-700'}`}>
                             <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition"
                               style={{ left: playlist.isActive ? '22px' : '2px' }} />
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{(playlist.description || '無描述').length > 8 ? (playlist.description || '無描述').slice(0, 8) + '…' : (playlist.description || '無描述')}</p>
+                        <p className="text-xs text-neutral-500 mt-0.5">{(playlist.description || '無描述').length > 8 ? (playlist.description || '無描述').slice(0, 8) + '…' : (playlist.description || '無描述')}</p>
                         <div className="flex items-center justify-between mt-1.5">
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-neutral-600">
                             {playlist.songIds?.length || 0} 首 • {getTypeLabel(playlist.manualType)}
                           </p>
                           <div className="flex items-center gap-1">
                             <button onClick={() => openCoverGenerator(playlist)}
-                              className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="生成封面">
+                              className="p-1.5 text-neutral-500 hover:text-[#FFD700] transition" title="生成封面">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                             </button>
                             <Link href={`/admin/playlists/edit/${playlist.id}`}
-                              className="p-1.5 text-gray-500 hover:text-[#FFD700] transition" title="編輯">
+                              className="p-1.5 text-neutral-500 hover:text-[#FFD700] transition" title="編輯">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </Link>
                             <button onClick={() => handleDeleteManual(playlist)}
-                              className="p-1.5 text-gray-500 hover:text-red-500 transition" title="刪除">
+                              className="p-1.5 text-neutral-500 hover:text-red-500 transition" title="刪除">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
@@ -679,10 +679,10 @@ function PlaylistAdmin() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-16 bg-[#121212] rounded-xl border border-gray-800">
+              <div className="text-center py-16 bg-[#121212] rounded-xl border border-neutral-800">
                 <span className="text-6xl block mb-4">✨</span>
                 <h3 className="text-xl text-white mb-2">暫時冇精選歌單</h3>
-                <p className="text-gray-500 mb-6">建立你的第一個精選歌單</p>
+                <p className="text-neutral-500 mb-6">建立你的第一個精選歌單</p>
                 <Link href="/admin/playlists/new" className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -698,13 +698,13 @@ function PlaylistAdmin() {
           <div className="fixed inset-0 bg-black/80 z-50 flex items-start md:items-center justify-center overflow-y-auto" onClick={() => setCoverGenPlaylist(null)}>
             <div className="w-full max-w-lg mt-12 md:mt-4 mb-4 mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-end mb-1">
-                <button onClick={() => setCoverGenPlaylist(null)} className="text-gray-400 hover:text-white transition">
+                <button onClick={() => setCoverGenPlaylist(null)} className="text-neutral-400 hover:text-white transition">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-              <div className="bg-[#121212] rounded-xl border border-gray-700 p-4">
+              <div className="bg-[#121212] rounded-xl border border-neutral-700 p-4">
               {coverGenLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />

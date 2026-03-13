@@ -35,10 +35,10 @@ export default function Login() {
   return (
     <Layout>
       <div className="min-h-[60vh] flex items-center justify-center p-4">
-        <div className="bg-[#121212] rounded-2xl w-full max-w-sm overflow-hidden border border-gray-800">
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-[#121212] rounded-2xl w-full max-w-sm overflow-hidden border border-neutral-800">
+          <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">請先登入</h2>
-            <Link href="/" className="text-gray-400 hover:text-white">
+            <Link href="/" className="text-neutral-400 hover:text-white">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -48,7 +48,7 @@ export default function Login() {
             <button
               onClick={handleGoogleSignIn}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-gray-800 text-white py-3 px-4 rounded-lg font-medium hover:border-[#FFD700] transition disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-neutral-800 text-white py-3 px-4 rounded-lg font-medium hover:border-[#FFD700] transition disabled:opacity-50"
             >
               <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

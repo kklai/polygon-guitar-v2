@@ -84,7 +84,7 @@ export default function DailyUploads() {
       <Layout>
         <div className="max-w-6xl mx-auto p-8">
           <div className="bg-[#121212] rounded-xl p-8 text-center">
-            <p className="text-gray-400">請以管理員身份登入</p>
+            <p className="text-neutral-400">請以管理員身份登入</p>
           </div>
         </div>
       </Layout>
@@ -97,14 +97,14 @@ export default function DailyUploads() {
         <h1 className="text-2xl font-bold text-white mb-6">每日上傳監控</h1>
         
         {/* 日期選擇 */}
-        <div className="bg-[#121212] rounded-xl p-4 border border-gray-800 mb-6">
+        <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800 mb-6">
           <div className="flex items-center gap-4">
-            <label className="text-gray-400">選擇日期：</label>
+            <label className="text-neutral-400">選擇日期：</label>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-[#1a1a1a] text-white px-4 py-2 rounded-lg border border-gray-700"
+              className="bg-[#1a1a1a] text-white px-4 py-2 rounded-lg border border-neutral-700"
             />
             <button
               onClick={() => setSelectedDate(format(new Date(), 'yyyy-MM-dd'))}
@@ -118,7 +118,7 @@ export default function DailyUploads() {
             >
               昨日
             </button>
-            <span className="text-gray-400 ml-4">
+            <span className="text-neutral-400 ml-4">
               共 {uploads.length} 份新譜
             </span>
           </div>
@@ -130,33 +130,33 @@ export default function DailyUploads() {
             <div className="inline-block w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : uploads.length === 0 ? (
-          <div className="bg-[#121212] rounded-xl p-8 text-center border border-gray-800">
-            <p className="text-gray-400">當日沒有新上傳</p>
+          <div className="bg-[#121212] rounded-xl p-8 text-center border border-neutral-800">
+            <p className="text-neutral-400">當日沒有新上傳</p>
           </div>
         ) : (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-[#1a1a1a]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-gray-400 font-medium">時間</th>
-                  <th className="px-4 py-3 text-left text-gray-400 font-medium">Google 帳戶</th>
-                  <th className="px-4 py-3 text-left text-gray-400 font-medium">上傳筆名</th>
-                  <th className="px-4 py-3 text-left text-gray-400 font-medium">歌曲</th>
-                  <th className="px-4 py-3 text-left text-gray-400 font-medium">歌手</th>
-                  <th className="px-4 py-3 text-left text-gray-400 font-medium">操作</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">時間</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">Google 帳戶</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">上傳筆名</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">歌曲</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">歌手</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-neutral-800">
                 {uploads.map((tab) => {
                   const userInfo = getUserInfo(tab.createdBy)
                   return (
                     <tr key={tab.id} className="hover:bg-[#1a1a1a]">
-                      <td className="px-4 py-3 text-gray-400">
+                      <td className="px-4 py-3 text-neutral-400">
                         {formatTime(tab.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-white">
                         {userInfo.displayName}
-                        <div className="text-xs text-gray-500">{userInfo.email}</div>
+                        <div className="text-xs text-neutral-500">{userInfo.email}</div>
                       </td>
                       <td className="px-4 py-3 text-[#FFD700]">
                         {tab.uploaderPenName || '-'}
@@ -164,7 +164,7 @@ export default function DailyUploads() {
                       <td className="px-4 py-3 text-white">
                         {tab.title}
                       </td>
-                      <td className="px-4 py-3 text-gray-400">
+                      <td className="px-4 py-3 text-neutral-400">
                         {tab.artist}
                       </td>
                       <td className="px-4 py-3">

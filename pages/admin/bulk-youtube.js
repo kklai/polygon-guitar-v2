@@ -183,7 +183,7 @@ function BulkYouTubePage() {
     <Layout>
       <div className="max-w-4xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">批量添加 YouTube</h1>
@@ -199,7 +199,7 @@ function BulkYouTubePage() {
         </div>
 
         {/* API Key 輸入 */}
-        <div className="bg-[#121212] rounded-xl p-4 border border-gray-800 mb-6">
+        <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800 mb-6">
           <label className="block text-sm font-medium text-white mb-2">
             YouTube API Key
           </label>
@@ -208,22 +208,22 @@ function BulkYouTubePage() {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="輸入你的 YouTube Data API v3 Key"
-            className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600"
+            className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-neutral-600"
           />
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-neutral-500 mt-2">
             每日限額 10,000 quota，約可處理 100 個影片搜尋
           </p>
         </div>
 
         {/* 設定 */}
-        <div className="bg-[#121212] rounded-xl p-4 border border-gray-800 mb-6">
+        <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-white mb-2">過濾條件</label>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value="no-youtube">只顯示冇 YouTube 嘅譜</option>
                 <option value="all">顯示所有譜</option>
@@ -234,7 +234,7 @@ function BulkYouTubePage() {
               <select
                 value={batchSize}
                 onChange={(e) => setBatchSize(parseInt(e.target.value))}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value={10}>10 份</option>
                 <option value={50}>50 份</option>
@@ -255,10 +255,10 @@ function BulkYouTubePage() {
 
         {/* 統計 */}
         {tabs.length > 0 && (
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800 mb-6">
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400">待處理譜數量</p>
+                <p className="text-sm text-neutral-400">待處理譜數量</p>
                 <p className="text-2xl font-bold text-white">{tabs.length}</p>
               </div>
               <div className="text-right">
@@ -273,7 +273,7 @@ function BulkYouTubePage() {
                 ) : (
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="text-sm text-gray-400">處理進度</p>
+                      <p className="text-sm text-neutral-400">處理進度</p>
                       <p className="text-lg font-bold text-white">
                         {progress.current} / {progress.total}
                       </p>
@@ -292,7 +292,7 @@ function BulkYouTubePage() {
             {/* 進度條 */}
             {isProcessing && (
               <div className="mt-4">
-                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#FFD700] transition-all duration-300"
                     style={{ width: `${(progress.current / progress.total) * 100}%` }}
@@ -304,19 +304,19 @@ function BulkYouTubePage() {
         )}
 
         {/* 日誌 */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800">
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800">
+          <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
             <h3 className="font-medium text-white">處理日誌</h3>
             <button
               onClick={() => setLogs([])}
-              className="text-sm text-gray-400 hover:text-white"
+              className="text-sm text-neutral-400 hover:text-white"
             >
               清除
             </button>
           </div>
           <div className="p-4 max-h-96 overflow-y-auto font-mono text-sm space-y-1">
             {logs.length === 0 ? (
-              <p className="text-gray-500">等待開始...</p>
+              <p className="text-neutral-500">等待開始...</p>
             ) : (
               logs.map((log, i) => (
                 <div
@@ -325,11 +325,11 @@ function BulkYouTubePage() {
                     log.type === 'error' ? 'text-red-400' :
                     log.type === 'success' ? 'text-green-400' :
                     log.type === 'warning' ? 'text-yellow-400' :
-                    log.type === 'skip' ? 'text-gray-500' :
-                    'text-gray-300'
+                    log.type === 'skip' ? 'text-neutral-500' :
+                    'text-neutral-300'
                   }`}
                 >
-                  <span className="text-gray-600">[{log.time}]</span> {log.message}
+                  <span className="text-neutral-600">[{log.time}]</span> {log.message}
                 </div>
               ))
             )}

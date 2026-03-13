@@ -479,7 +479,7 @@ function FixArtistPage() {
     <Layout>
       <div className="max-w-6xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -494,11 +494,11 @@ function FixArtistPage() {
         </div>
 
         {/* Tab 切換 */}
-        <div className="flex border-b border-gray-800 mb-6">
+        <div className="flex border-b border-neutral-800 mb-6">
           <button
             onClick={() => setActiveTab('unknown')}
             className={`px-6 py-3 text-sm font-medium transition ${
-              activeTab === 'unknown' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-400 hover:text-white'
+              activeTab === 'unknown' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-neutral-400 hover:text-white'
             }`}
           >
             🚨 UNKNOWN 歌手 ({unknownTabs.length})
@@ -506,7 +506,7 @@ function FixArtistPage() {
           <button
             onClick={() => setActiveTab('search')}
             className={`px-6 py-3 text-sm font-medium transition ${
-              activeTab === 'search' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-gray-400 hover:text-white'
+              activeTab === 'search' ? 'text-[#FFD700] border-b-2 border-[#FFD700]' : 'text-neutral-400 hover:text-white'
             }`}
           >
             🔍 搜尋修復
@@ -522,7 +522,7 @@ function FixArtistPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-blue-300 font-medium mb-1">⚡ 批量自動解析</h3>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-neutral-400">
                       系統會嘗試從標題自動分出歌手和歌名，你可以在預覽中勾選要修復的項目
                     </p>
                   </div>
@@ -543,27 +543,27 @@ function FixArtistPage() {
             {showBatchPreview && (
               <div className="mb-6 bg-[#121212] rounded-xl border border-[#FFD700] overflow-hidden">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-800 bg-[#FFD700]/5">
+                <div className="p-4 border-b border-neutral-800 bg-[#FFD700]/5">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h3 className="text-[#FFD700] font-medium mb-1">批量解析預覽</h3>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-neutral-400">
                         已選中 {batchResults.filter(r => r.selected).length} / {batchResults.length} 首歌曲
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={selectAll} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                      <button onClick={selectAll} className="px-3 py-1.5 bg-neutral-700 text-white rounded text-sm hover:bg-neutral-600 transition">
                         全選
                       </button>
-                      <button onClick={deselectAll} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                      <button onClick={deselectAll} className="px-3 py-1.5 bg-neutral-700 text-white rounded text-sm hover:bg-neutral-600 transition">
                         全不選
                       </button>
-                      <button onClick={invertSelection} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                      <button onClick={invertSelection} className="px-3 py-1.5 bg-neutral-700 text-white rounded text-sm hover:bg-neutral-600 transition">
                         反選
                       </button>
                       <button
                         onClick={() => setShowBatchPreview(false)}
-                        className="px-4 py-1.5 text-gray-400 hover:text-white transition"
+                        className="px-4 py-1.5 text-neutral-400 hover:text-white transition"
                       >
                         取消
                       </button>
@@ -590,18 +590,18 @@ function FixArtistPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-black sticky top-0 z-10">
                       <tr>
-                        <th className="text-center p-3 text-gray-400 font-medium w-12">選</th>
-                        <th className="text-left p-3 text-gray-400 font-medium">原始標題</th>
-                        <th className="text-left p-3 text-gray-400 font-medium max-w-xs">內容預覽</th>
-                        <th className="text-left p-3 text-gray-400 font-medium">歌手</th>
-                        <th className="text-left p-3 text-gray-400 font-medium">歌名</th>
-                        <th className="text-center p-3 text-gray-400 font-medium w-20">信心度</th>
-                        <th className="text-center p-3 text-gray-400 font-medium w-24">操作</th>
+                        <th className="text-center p-3 text-neutral-400 font-medium w-12">選</th>
+                        <th className="text-left p-3 text-neutral-400 font-medium">原始標題</th>
+                        <th className="text-left p-3 text-neutral-400 font-medium max-w-xs">內容預覽</th>
+                        <th className="text-left p-3 text-neutral-400 font-medium">歌手</th>
+                        <th className="text-left p-3 text-neutral-400 font-medium">歌名</th>
+                        <th className="text-center p-3 text-neutral-400 font-medium w-20">信心度</th>
+                        <th className="text-center p-3 text-neutral-400 font-medium w-24">操作</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody className="divide-y divide-neutral-800">
                       {batchResults.map((item, index) => (
-                        <tr key={item.tabId} className={`${item.selected ? 'bg-green-900/10' : 'bg-gray-900/30'} hover:bg-gray-800/50 transition`}>
+                        <tr key={item.tabId} className={`${item.selected ? 'bg-green-900/10' : 'bg-neutral-900/30'} hover:bg-neutral-800/50 transition`}>
                           {/* 勾選框 */}
                           <td className="p-3 text-center">
                             <input
@@ -620,7 +620,7 @@ function FixArtistPage() {
                           {/* 內容預覽 */}
                           <td className="p-3 max-w-xs">
                             <div 
-                              className="text-gray-500 text-xs line-clamp-2" 
+                              className="text-neutral-500 text-xs line-clamp-2" 
                               title={item.content?.substring(0, 200)}
                             >
                               {item.content ? item.content.substring(0, 80).replace(/\n/g, ' ') : '(無內容)'}
@@ -654,7 +654,7 @@ function FixArtistPage() {
                                 className="w-full px-2 py-1 bg-black border border-[#FFD700] rounded text-white text-sm"
                               />
                             ) : (
-                              <div className="text-gray-400 text-xs">
+                              <div className="text-neutral-400 text-xs">
                                 {item.parsedTitle}
                               </div>
                             )}
@@ -730,16 +730,16 @@ function FixArtistPage() {
               <h2 className="text-lg font-medium text-white">
                 待修復譜（{unknownTabs.length} 首）
               </h2>
-              <button onClick={loadData} className="text-sm text-gray-400 hover:text-white transition">
+              <button onClick={loadData} className="text-sm text-neutral-400 hover:text-white transition">
                 🔄 刷新
               </button>
             </div>
             
             {unknownTabs.length === 0 ? (
-              <div className="text-center py-12 bg-[#121212] rounded-xl border border-gray-800">
+              <div className="text-center py-12 bg-[#121212] rounded-xl border border-neutral-800">
                 <div className="text-4xl mb-4">✅</div>
                 <h3 className="text-white font-medium mb-2">沒有待修復的譜</h3>
-                <p className="text-gray-400 text-sm">所有歌曲都已正確分配歌手</p>
+                <p className="text-neutral-400 text-sm">所有歌曲都已正確分配歌手</p>
               </div>
             ) : !showBatchPreview && (
               <div className="space-y-3">
@@ -747,7 +747,7 @@ function FixArtistPage() {
                   <div
                     key={tab.id}
                     className={`bg-[#121212] rounded-lg border ${
-                      editingTab?.id === tab.id ? 'border-[#FFD700]' : 'border-gray-800'
+                      editingTab?.id === tab.id ? 'border-[#FFD700]' : 'border-neutral-800'
                     } overflow-hidden`}
                   >
                     {editingTab?.id !== tab.id ? (
@@ -756,10 +756,10 @@ function FixArtistPage() {
                           <h3 className="text-white font-medium truncate mb-1">{tab.title || '(無標題)'}</h3>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-red-400 bg-red-400/10 px-2 py-0.5 rounded text-xs">UNKNOWN</span>
-                            <span className="text-gray-500">ID: {tab.id}</span>
+                            <span className="text-neutral-500">ID: {tab.id}</span>
                           </div>
                           {tab.content && (
-                            <p className="text-gray-600 text-xs mt-2 line-clamp-2">{tab.content.substring(0, 100)}...</p>
+                            <p className="text-neutral-600 text-xs mt-2 line-clamp-2">{tab.content.substring(0, 100)}...</p>
                           )}
                         </div>
                         <div className="flex gap-2 ml-4">
@@ -793,29 +793,29 @@ function FixArtistPage() {
                     ) : (
                       <div className="p-4">
                         <div className="mb-4 p-3 bg-black rounded-lg">
-                          <p className="text-gray-500 text-xs mb-1">原始標題：</p>
+                          <p className="text-neutral-500 text-xs mb-1">原始標題：</p>
                           <p className="text-white font-medium">{tab.title}</p>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                           <div>
-                            <label className="block text-xs text-gray-500 mb-1">歌手名 <span className="text-[#FFD700]">*</span></label>
+                            <label className="block text-xs text-neutral-500 mb-1">歌手名 <span className="text-[#FFD700]">*</span></label>
                             <input
                               type="text"
                               value={editForm.artist}
                               onChange={(e) => setEditForm(prev => ({ ...prev, artist: e.target.value }))}
                               placeholder="例如：陳奕迅"
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm outline-none"
+                              className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm outline-none"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-500 mb-1">歌名 <span className="text-[#FFD700]">*</span></label>
+                            <label className="block text-xs text-neutral-500 mb-1">歌名 <span className="text-[#FFD700]">*</span></label>
                             <input
                               type="text"
                               value={editForm.title}
                               onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
                               placeholder="例如：十年"
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white text-sm outline-none"
+                              className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm outline-none"
                             />
                           </div>
                         </div>
@@ -831,7 +831,7 @@ function FixArtistPage() {
                           >
                             {isFixing ? '保存中...' : '✅ 確認修復'}
                           </button>
-                          <button onClick={cancelEdit} className="px-3 py-1.5 bg-gray-700 text-white rounded text-sm hover:bg-gray-600 transition">
+                          <button onClick={cancelEdit} className="px-3 py-1.5 bg-neutral-700 text-white rounded text-sm hover:bg-neutral-600 transition">
                             取消
                           </button>
                         </div>
@@ -872,7 +872,7 @@ function FixArtistPage() {
                   type="text"
                   id="manualSearch"
                   placeholder="輸入歌手名或關鍵字..."
-                  className="flex-1 px-4 py-2 bg-[#121212] border border-gray-800 rounded-lg text-white"
+                  className="flex-1 px-4 py-2 bg-[#121212] border border-neutral-800 rounded-lg text-white"
                   onKeyPress={(e) => e.key === 'Enter' && manualSearch(e.target.value)}
                 />
                 <button
@@ -894,10 +894,10 @@ function FixArtistPage() {
                 </div>
                 <div className="space-y-2">
                   {searchResults.map(tab => (
-                    <div key={tab.id} className="bg-[#121212] rounded-lg p-4 border border-gray-800 flex items-center justify-between">
+                    <div key={tab.id} className="bg-[#121212] rounded-lg p-4 border border-neutral-800 flex items-center justify-between">
                       <div>
                         <h3 className="text-white font-medium">{tab.title}</h3>
-                        <p className="text-sm text-gray-500">現時歌手：{tab.artist || 'UNKNOWN'} | ID: {tab.id}</p>
+                        <p className="text-sm text-neutral-500">現時歌手：{tab.artist || 'UNKNOWN'} | ID: {tab.id}</p>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -924,17 +924,17 @@ function FixArtistPage() {
 
         {/* 日誌 */}
         {logs.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 mt-6">
-            <div className="p-3 border-b border-gray-800 flex items-center justify-between">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 mt-6">
+            <div className="p-3 border-b border-neutral-800 flex items-center justify-between">
               <h3 className="font-medium text-white">處理日誌</h3>
-              <button onClick={() => setLogs([])} className="text-xs text-gray-500 hover:text-white">清除</button>
+              <button onClick={() => setLogs([])} className="text-xs text-neutral-500 hover:text-white">清除</button>
             </div>
             <div className="p-3 max-h-64 overflow-y-auto font-mono text-sm space-y-1">
               {logs.map((log, i) => (
                 <div key={i} className={`${
-                  log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : log.type === 'warning' ? 'text-yellow-400' : 'text-gray-300'
+                  log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : log.type === 'warning' ? 'text-yellow-400' : 'text-neutral-300'
                 }`}>
-                  <span className="text-gray-600">[{log.time}]</span> {log.message}
+                  <span className="text-neutral-600">[{log.time}]</span> {log.message}
                 </div>
               ))}
             </div>
@@ -944,7 +944,7 @@ function FixArtistPage() {
         {/* 說明 */}
         <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-blue-900/50">
           <h3 className="text-blue-300 font-medium mb-2">💡 使用說明</h3>
-          <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
+          <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
             <li><b>批量自動解析</b>：點擊按鈕後，在預覽中勾選要修復的項目</li>
             <li><b>內容預覽</b>：表格顯示每份譜的頭 80 個字，方便判斷係咪垃圾數據</li>
             <li><b>勾選/取消</b>：使用 checkbox 選擇要修復的譜，點「全選」「全不選」「反選」快速操作</li>

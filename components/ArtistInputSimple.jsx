@@ -274,7 +274,7 @@ function ArtistFieldRow({
       case 'male': return 'bg-blue-500/20 text-blue-300'
       case 'female': return 'bg-pink-500/20 text-pink-300'
       case 'group': return 'bg-yellow-500/20 text-yellow-300'
-      default: return 'bg-gray-500/20 text-gray-300'
+      default: return 'bg-neutral-500/20 text-neutral-300'
     }
   }
 
@@ -296,12 +296,12 @@ function ArtistFieldRow({
         {/* 左側固定寬度：主唱標籤 或 關係選擇，讓輸入框對齊 */}
         <div className="w-20 flex-shrink-0">
           {isFirst ? (
-            <span className="text-xs text-gray-500">主唱</span>
+            <span className="text-xs text-neutral-500">主唱</span>
           ) : (
             <select
               value={artist.relation || 'slash'}
               onChange={handleRelationChange}
-              className="w-full px-2 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm outline-none"
+              className="w-full px-2 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm outline-none"
             >
               {RELATION_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -341,7 +341,7 @@ function ArtistFieldRow({
           {/* Loading */}
           {isLoading && !artist.id && (
             <div className="absolute right-3 top-2.5">
-              <svg className="w-5 h-5 animate-spin text-gray-500" fill="none" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 animate-spin text-neutral-500" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
@@ -354,7 +354,7 @@ function ArtistFieldRow({
           <button
             type="button"
             onClick={() => onRemove(index)}
-            className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-red-400 transition"
+            className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-neutral-500 hover:text-red-400 transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -365,18 +365,18 @@ function ArtistFieldRow({
 
       {/* Suggest 下拉選單 - 僅在有輸入時顯示 */}
       {showDropdown && inputValue.trim() && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-[#1a1a1a] border border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-[#1a1a1a] border border-neutral-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
           {suggestions.map((suggestion, idx) => (
             <button
               key={suggestion.id}
               type="button"
               onClick={() => handleSelectArtist(suggestion)}
-              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-800 transition text-left ${
-                idx === selectedIndex ? 'bg-gray-800' : ''
+              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-neutral-800 transition text-left ${
+                idx === selectedIndex ? 'bg-neutral-800' : ''
               }`}
             >
               {/* 歌手圖片 */}
-              <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">
                 {suggestion.photoURL || suggestion.wikiPhotoURL || suggestion.photo ? (
                   <img 
                     src={suggestion.photoURL || suggestion.wikiPhotoURL || suggestion.photo} 
@@ -399,7 +399,7 @@ function ArtistFieldRow({
                     </span>
                   )}
                   {suggestion.tabCount > 0 && (
-                    <span className="text-xs text-gray-500">{suggestion.tabCount} 個譜</span>
+                    <span className="text-xs text-neutral-500">{suggestion.tabCount} 個譜</span>
                   )}
                 </div>
               </div>
@@ -418,14 +418,14 @@ function ArtistFieldRow({
                 isNew: true 
               })
             }}
-            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-800 transition text-left border-t border-gray-700"
+            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-neutral-800 transition text-left border-t border-neutral-700"
           >
             <div className="w-10 h-10 rounded-full bg-[#FFD700]/20 flex items-center justify-center flex-shrink-0">
               <span className="text-[#FFD700] text-lg">+</span>
             </div>
             <div>
               <p className="text-[#FFD700] font-medium">創建新歌手「{inputValue}」</p>
-              <p className="text-xs text-gray-500">如果這位歌手不在資料庫中</p>
+              <p className="text-xs text-neutral-500">如果這位歌手不在資料庫中</p>
             </div>
           </button>
         </div>
@@ -522,7 +522,7 @@ export default function ArtistInputSimple({ value, onChange }) {
         <label className="block text-sm font-medium text-white">
           歌手 <span className="text-[#FFD700]">*</span>
         </label>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-neutral-500">
           {artists.length} 位歌手
         </span>
       </div>
@@ -548,7 +548,7 @@ export default function ArtistInputSimple({ value, onChange }) {
         <button
           type="button"
           onClick={handleAddArtist}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition"
+          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -556,15 +556,15 @@ export default function ArtistInputSimple({ value, onChange }) {
           <span>添加歌手</span>
         </button>
         
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-neutral-500">
           支援合唱 / Featuring
         </span>
       </div>
 
       {/* 預覽顯示 */}
       {artists[0]?.name && (
-        <div className="p-3 bg-gray-900/50 border border-gray-800 rounded-lg">
-          <p className="text-xs text-gray-500 mb-1">顯示效果：</p>
+        <div className="p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg">
+          <p className="text-xs text-neutral-500 mb-1">顯示效果：</p>
           <p className="text-white font-medium">
             {generateDisplayName(artists)}
           </p>

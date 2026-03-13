@@ -369,9 +369,9 @@ export function TabEditor({
   const currentMeasure = measures[selectedMeasure];
   
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
       {/* 工具欄 */}
-      <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1a1a1a] border-b border-gray-800">
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1a1a1a] border-b border-neutral-800">
         {/* 播放控制 */}
         <div className="flex items-center gap-1 bg-[#282828] rounded p-1">
           <button onClick={() => isPlaying ? stop() : play(measures, timeSignature, bpm)}
@@ -381,16 +381,16 @@ export function TabEditor({
             {isPlaying ? '⏹' : '▶'}
           </button>
           <button onClick={initSynth}
-            className={`w-8 h-8 flex items-center justify-center rounded ${isReady ? 'text-[#FFD700]' : 'text-gray-500'}`}>
+            className={`w-8 h-8 flex items-center justify-center rounded ${isReady ? 'text-[#FFD700]' : 'text-neutral-500'}`}>
             {isReady ? '🔊' : '🔇'}
           </button>
         </div>
         
-        <div className="w-px h-6 bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-neutral-700 mx-1"></div>
         
         {/* 拍子 */}
         <select value={timeSignature} onChange={(e) => setTimeSignature(e.target.value)}
-          className="bg-[#282828] text-white text-sm px-2 py-1.5 rounded border border-gray-700">
+          className="bg-[#282828] text-white text-sm px-2 py-1.5 rounded border border-neutral-700">
           <option value="4/4">4/4</option>
           <option value="3/4">3/4</option>
           <option value="2/4">2/4</option>
@@ -398,12 +398,12 @@ export function TabEditor({
         </select>
         
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">BPM</span>
+          <span className="text-xs text-neutral-400">BPM</span>
           <input type="number" value={bpm} onChange={(e) => setBpm(parseInt(e.target.value) || 120)}
-            className="w-16 bg-[#282828] text-white text-sm px-2 py-1.5 rounded border border-gray-700" />
+            className="w-16 bg-[#282828] text-white text-sm px-2 py-1.5 rounded border border-neutral-700" />
         </div>
         
-        <div className="w-px h-6 bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-neutral-700 mx-1"></div>
         
         {/* 時值選擇 */}
         <div className="flex items-center gap-1 bg-[#282828] rounded p-0.5">
@@ -414,7 +414,7 @@ export function TabEditor({
               className={`px-2 py-1 text-sm rounded transition ${
                 durationValue === value 
                   ? 'bg-[#FFD700] text-black font-bold' 
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-neutral-400 hover:text-white'
               }`}
               title={name}
             >
@@ -423,12 +423,12 @@ export function TabEditor({
           ))}
         </div>
         
-        <div className="w-px h-6 bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-neutral-700 mx-1"></div>
         
-        <button onClick={undo} disabled={historyIndex <= 0} className="px-2 py-1.5 text-sm text-gray-400 hover:text-white disabled:opacity-30">↩️</button>
-        <button onClick={redo} disabled={historyIndex >= history.length - 1} className="px-2 py-1.5 text-sm text-gray-400 hover:text-white disabled:opacity-30">↪️</button>
+        <button onClick={undo} disabled={historyIndex <= 0} className="px-2 py-1.5 text-sm text-neutral-400 hover:text-white disabled:opacity-30">↩️</button>
+        <button onClick={redo} disabled={historyIndex >= history.length - 1} className="px-2 py-1.5 text-sm text-neutral-400 hover:text-white disabled:opacity-30">↪️</button>
         
-        <button onClick={() => addMeasure(selectedMeasure)} className="px-3 py-1.5 bg-[#282828] hover:bg-[#3E3E3E] text-white text-sm rounded border border-gray-700">
+        <button onClick={() => addMeasure(selectedMeasure)} className="px-3 py-1.5 bg-[#282828] hover:bg-[#3E3E3E] text-white text-sm rounded border border-neutral-700">
           + 小節
         </button>
       </div>
@@ -484,10 +484,10 @@ export function TabEditor({
           </div>
         </div>
         
-        <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+        <div className="mt-4 flex items-center gap-4 text-xs text-neutral-500">
           <span>{stats.measureCount} 小節</span>
           <span>{stats.noteCount} 音符</span>
-          <span className="ml-auto text-gray-400">
+          <span className="ml-auto text-neutral-400">
             第 {selectedMeasure + 1} 小節 | 拍 {selectedBeat + 1} / {getBeatsPerMeasure()} | 
             時值: <span className="text-[#FFD700] text-lg">{currentDuration.label}</span> {currentDuration.name}
           </span>
@@ -495,9 +495,9 @@ export function TabEditor({
       </div>
       
       {/* ASCII 預覽 */}
-      <div className="border-t border-gray-800 p-4 bg-[#0a0a0a]">
+      <div className="border-t border-neutral-800 p-4 bg-[#0a0a0a]">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-xs font-medium text-gray-400">ASCII 預覽</h4>
+          <h4 className="text-xs font-medium text-neutral-400">ASCII 預覽</h4>
           <button onClick={() => navigator.clipboard.writeText(exportASCII())}
             className="text-xs text-[#FFD700] hover:underline">複製</button>
         </div>
@@ -521,15 +521,15 @@ function MeasureGrid({
   
   return (
     <div className={`border rounded-lg overflow-hidden flex-shrink-0 ${
-      isSelected ? 'border-[#FFD700]/50 bg-[#FFD700]/5' : 'border-gray-800 bg-[#1a1a1a]'
+      isSelected ? 'border-[#FFD700]/50 bg-[#FFD700]/5' : 'border-neutral-800 bg-[#1a1a1a]'
     }`} style={{ width: `${beats * 40 + 40}px` }}>
       {/* 標題 */}
-      <div className="flex items-center justify-between px-2 py-1 bg-[#282828] border-b border-gray-800">
-        <span className="text-xs text-gray-400">{index + 1}</span>
+      <div className="flex items-center justify-between px-2 py-1 bg-[#282828] border-b border-neutral-800">
+        <span className="text-xs text-neutral-400">{index + 1}</span>
         <div className="flex gap-1">
-          <button onClick={onClear} className="text-xs text-gray-500 hover:text-yellow-400 px-1" title="清空">🗑️</button>
+          <button onClick={onClear} className="text-xs text-neutral-500 hover:text-yellow-400 px-1" title="清空">🗑️</button>
           {index > 0 && (
-            <button onClick={onDelete} className="text-xs text-gray-500 hover:text-red-400 px-1" title="刪除">✕</button>
+            <button onClick={onDelete} className="text-xs text-neutral-500 hover:text-red-400 px-1" title="刪除">✕</button>
           )}
         </div>
       </div>
@@ -541,7 +541,7 @@ function MeasureGrid({
           <div className="w-6"></div>
           {Array.from({ length: beats }).map((_, bIdx) => (
             <div key={bIdx} className={`flex-1 text-center text-xs ${
-              selectedBeat === bIdx ? 'text-[#FFD700] font-bold' : 'text-gray-600'
+              selectedBeat === bIdx ? 'text-[#FFD700] font-bold' : 'text-neutral-600'
             }`}>
               {bIdx + 1}
             </div>
@@ -552,7 +552,7 @@ function MeasureGrid({
         {strings.map((stringName, sIdx) => (
           <div key={sIdx} className="flex items-center mb-1">
             <span className={`text-xs font-bold w-6 text-right pr-1 ${
-              selectedString === sIdx ? 'text-[#FFD700]' : 'text-gray-500'
+              selectedString === sIdx ? 'text-[#FFD700]' : 'text-neutral-500'
             }`}>{stringName}</span>
             
             <div className="flex-1 flex">
@@ -572,11 +572,11 @@ function MeasureGrid({
                     }}
                     className={`
                       flex-1 h-8 flex items-center justify-center text-sm font-bold
-                      border-r border-gray-800 last:border-r-0
+                      border-r border-neutral-800 last:border-r-0
                       transition
                       ${isPlayPos ? 'bg-green-500/30' : ''}
                       ${isCurrent ? 'bg-[#FFD700]/30 ring-1 ring-[#FFD700]' : ''}
-                      ${note ? 'text-[#FFD700]' : 'text-gray-700 hover:bg-[#282828]'}
+                      ${note ? 'text-[#FFD700]' : 'text-neutral-700 hover:bg-[#282828]'}
                     `}
                   >
                     {note ? note.fret : ''}

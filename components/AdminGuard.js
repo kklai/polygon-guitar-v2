@@ -51,7 +51,7 @@ export default function AdminGuard({ children, requiredRole }) {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <p className="text-white mb-2">您沒有權限訪問此頁面</p>
-          <p className="text-gray-500 text-sm mb-4">請聯繫超級管理員獲取權限</p>
+          <p className="text-neutral-500 text-sm mb-4">請聯繫超級管理員獲取權限</p>
           <button 
             onClick={() => router.push('/admin')}
             className="inline-flex items-center p-2 bg-[#FFD700] text-black rounded-lg font-medium mr-2"
@@ -61,7 +61,7 @@ export default function AdminGuard({ children, requiredRole }) {
           </button>
           <button 
             onClick={() => router.push('/')}
-            className="inline-flex items-center p-2 bg-gray-800 text-white rounded-lg font-medium"
+            className="inline-flex items-center p-2 bg-neutral-800 text-white rounded-lg font-medium"
             aria-label="返回首頁"
           >
             <ArrowLeft className="w-4 h-4" />

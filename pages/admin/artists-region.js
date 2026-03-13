@@ -206,7 +206,7 @@ export default function ArtistsRegion() {
 
   // 獲取地區標籤樣式
   const getRegionStyle = (region) => {
-    return REGIONS.find(r => r.value === region)?.color || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    return REGIONS.find(r => r.value === region)?.color || 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30'
   }
 
   // 獲取地區名稱
@@ -220,8 +220,8 @@ export default function ArtistsRegion() {
         <Layout>
           <div className="max-w-5xl mx-auto p-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-8 bg-gray-800 rounded w-1/3"></div>
-              <div className="h-64 bg-gray-800 rounded"></div>
+              <div className="h-8 bg-neutral-800 rounded w-1/3"></div>
+              <div className="h-64 bg-neutral-800 rounded"></div>
             </div>
           </div>
         </Layout>
@@ -236,7 +236,7 @@ export default function ArtistsRegion() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-2">歌手地區管理</h1>
-            <p className="text-gray-400">設定歌手所屬地區，可設定最多 3 個地區</p>
+            <p className="text-neutral-400">設定歌手所屬地區，可設定最多 3 個地區</p>
           </div>
 
           {/* Message */}
@@ -251,7 +251,7 @@ export default function ArtistsRegion() {
           )}
 
           {/* 批次操作列 */}
-          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-gray-800 space-y-4">
+          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-neutral-800 space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               {/* 全選 */}
               <label className="flex items-center gap-2 cursor-pointer">
@@ -259,18 +259,18 @@ export default function ArtistsRegion() {
                   type="checkbox"
                   checked={selectedArtists.size === artists.length && artists.length > 0}
                   onChange={toggleSelectAll}
-                  className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
+                  className="w-5 h-5 rounded border-neutral-600 bg-neutral-800 text-[#FFD700]"
                 />
                 <span className="text-white text-sm">
                   全選 ({selectedArtists.size}/{artists.length})
                 </span>
               </label>
 
-              <div className="w-px h-6 bg-gray-700"></div>
+              <div className="w-px h-6 bg-neutral-700"></div>
 
               {/* 批次地區選擇 */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-gray-400 text-sm">批次設定地區:</span>
+                <span className="text-neutral-400 text-sm">批次設定地區:</span>
                 {batchRegions.map((region, idx) => (
                   <span 
                     key={region} 
@@ -289,7 +289,7 @@ export default function ArtistsRegion() {
                   <select
                     value=""
                     onChange={(e) => e.target.value && addBatchRegion(e.target.value)}
-                    className="bg-[#1a1a1a] text-white text-sm px-3 py-1.5 rounded-lg border border-gray-700 outline-none"
+                    className="bg-[#1a1a1a] text-white text-sm px-3 py-1.5 rounded-lg border border-neutral-700 outline-none"
                   >
                     <option value="">+ 添加地區 ({batchRegions.length + 1}/3)</option>
                     {REGIONS.filter(r => !batchRegions.includes(r.value)).map(r => (
@@ -322,9 +322,9 @@ export default function ArtistsRegion() {
           </div>
 
           {/* 歌手列表 */}
-          <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
             {/* 表頭 */}
-            <div className="grid grid-cols-12 gap-4 p-4 bg-[#1a1a1a] border-b border-gray-800 text-sm text-gray-400">
+            <div className="grid grid-cols-12 gap-4 p-4 bg-[#1a1a1a] border-b border-neutral-800 text-sm text-neutral-400">
               <div className="col-span-1">選擇</div>
               <div className="col-span-3">歌手名稱</div>
               <div className="col-span-4">目前地區</div>
@@ -342,7 +342,7 @@ export default function ArtistsRegion() {
                 return (
                   <div 
                     key={artist.id}
-                    className={`grid grid-cols-12 gap-4 p-4 border-b border-gray-800 items-center hover:bg-[#1a1a1a] transition ${
+                    className={`grid grid-cols-12 gap-4 p-4 border-b border-neutral-800 items-center hover:bg-[#1a1a1a] transition ${
                       selectedArtists.has(artist.id) ? 'bg-[#1a1a1a]' : ''
                     }`}
                   >
@@ -352,7 +352,7 @@ export default function ArtistsRegion() {
                         type="checkbox"
                         checked={selectedArtists.has(artist.id)}
                         onChange={() => toggleSelect(artist.id)}
-                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
+                        className="w-5 h-5 rounded border-neutral-600 bg-neutral-800 text-[#FFD700]"
                       />
                     </div>
 
@@ -366,7 +366,7 @@ export default function ArtistsRegion() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-lg">
+                          <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-lg">
                             🎤
                           </div>
                         )}
@@ -388,14 +388,14 @@ export default function ArtistsRegion() {
                             </span>
                           ))
                         ) : (
-                          <span className="text-gray-500 text-sm">-</span>
+                          <span className="text-neutral-500 text-sm">-</span>
                         )}
                       </div>
                     </div>
 
                     {/* 新地區選擇 */}
                     <div className="col-span-3">
-                      <div className={`p-2 rounded-lg border ${hasChanges ? 'border-[#FFD700] bg-[#FFD700]/5' : 'border-gray-700 bg-[#1a1a1a]'}`}>
+                      <div className={`p-2 rounded-lg border ${hasChanges ? 'border-[#FFD700] bg-[#FFD700]/5' : 'border-neutral-700 bg-[#1a1a1a]'}`}>
                         <div className="flex flex-wrap gap-1 mb-2">
                           {newRegions.map((region, idx) => (
                             <span 
@@ -416,7 +416,7 @@ export default function ArtistsRegion() {
                           <select
                             value=""
                             onChange={(e) => e.target.value && addIndividualRegion(artist.id, e.target.value)}
-                            className="w-full bg-black text-white text-xs px-2 py-1.5 rounded border border-gray-700 outline-none"
+                            className="w-full bg-black text-white text-xs px-2 py-1.5 rounded border border-neutral-700 outline-none"
                           >
                             <option value="">+ 添加地區</option>
                             {REGIONS.filter(r => !newRegions.includes(r.value)).map(r => (
@@ -432,7 +432,7 @@ export default function ArtistsRegion() {
                       <button
                         onClick={() => saveIndividual(artist.id)}
                         disabled={!hasChanges}
-                        className="px-3 py-1.5 bg-gray-700 text-white text-xs rounded-lg hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                        className="px-3 py-1.5 bg-neutral-700 text-white text-xs rounded-lg hover:bg-neutral-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
                       >
                         儲存
                       </button>
@@ -444,7 +444,7 @@ export default function ArtistsRegion() {
           </div>
 
           {/* 統計 */}
-          <div className="mt-4 text-sm text-gray-400 flex flex-wrap gap-4">
+          <div className="mt-4 text-sm text-neutral-400 flex flex-wrap gap-4">
             <span>統計:</span>
             {REGIONS.map(r => {
               const count = artists.filter(a => {
@@ -459,12 +459,12 @@ export default function ArtistsRegion() {
               )
             })}
             <span className="ml-4">
-              未設定: <span className="text-gray-500">{artists.filter(a => !a.region && (!a.regions || a.regions.length === 0)).length}</span>
+              未設定: <span className="text-neutral-500">{artists.filter(a => !a.region && (!a.regions || a.regions.length === 0)).length}</span>
             </span>
           </div>
 
           {/* 說明 */}
-          <div className="mt-6 p-4 bg-gray-800/50 rounded-lg text-sm text-gray-400">
+          <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg text-sm text-neutral-400">
             <h4 className="text-white font-medium mb-2">💡 使用說明</h4>
             <ul className="space-y-1 list-disc list-inside">
               <li>每位歌手可設定最多 3 個地區（例如：香港 + 台灣）</li>

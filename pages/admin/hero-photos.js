@@ -146,7 +146,7 @@ function HeroPhotosAdmin() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Hero 圖片管理</h1>
-            <p className="text-gray-500">
+            <p className="text-neutral-500">
               上傳歌手頁面頂部的大圖片（建議尺寸：1920x1080 或 16:9 比例）
             </p>
           </div>
@@ -170,24 +170,24 @@ function HeroPhotosAdmin() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
-            <p className="text-gray-500 text-sm">總歌手數</p>
+          <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
+            <p className="text-neutral-500 text-sm">總歌手數</p>
             <p className="text-2xl font-bold text-white">{artists.length}</p>
           </div>
-          <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
-            <p className="text-gray-500 text-sm">已有 Hero 圖</p>
+          <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
+            <p className="text-neutral-500 text-sm">已有 Hero 圖</p>
             <p className="text-2xl font-bold text-[#FFD700]">
               {artists.filter(a => a.heroPhoto).length}
             </p>
           </div>
-          <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
-            <p className="text-gray-500 text-sm">冇 Hero 圖</p>
+          <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
+            <p className="text-neutral-500 text-sm">冇 Hero 圖</p>
             <p className="text-2xl font-bold text-red-400">
               {artists.filter(a => !a.heroPhoto).length}
             </p>
           </div>
-          <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
-            <p className="text-gray-500 text-sm">完成率</p>
+          <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
+            <p className="text-neutral-500 text-sm">完成率</p>
             <p className="text-2xl font-bold text-green-400">
               {artists.length > 0 
                 ? Math.round((artists.filter(a => a.heroPhoto).length / artists.length) * 100) 
@@ -219,7 +219,7 @@ function HeroPhotosAdmin() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-[#121212] rounded-lg h-64 animate-pulse border border-gray-800" />
+              <div key={i} className="bg-[#121212] rounded-lg h-64 animate-pulse border border-neutral-800" />
             ))}
           </div>
         ) : (
@@ -228,11 +228,11 @@ function HeroPhotosAdmin() {
               <div 
                 key={artist.id} 
                 className={`bg-[#121212] rounded-lg overflow-hidden border ${
-                  artist.heroPhoto ? 'border-[#FFD700]' : 'border-gray-800'
+                  artist.heroPhoto ? 'border-[#FFD700]' : 'border-neutral-800'
                 }`}
               >
                 {/* Preview Area */}
-                <div className="relative aspect-video bg-gray-800">
+                <div className="relative aspect-video bg-neutral-800">
                   {artist.heroPhoto ? (
                     <>
                       <img
@@ -263,7 +263,7 @@ function HeroPhotosAdmin() {
                         className="w-full h-full object-cover opacity-50"
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-gray-400 text-sm">使用歌手頭像</span>
+                        <span className="text-neutral-400 text-sm">使用歌手頭像</span>
                       </div>
                     </div>
                   ) : (
@@ -277,7 +277,7 @@ function HeroPhotosAdmin() {
                 <div className="p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     {/* Avatar - 圓形（手機風格） */}
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800 flex-shrink-0">
                       {artist.photo ? (
                         <img src={artist.photo} alt={artist.name} className="w-full h-full object-cover" />
                       ) : (
@@ -286,7 +286,7 @@ function HeroPhotosAdmin() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium truncate">{artist.name}</h3>
-                      <p className="text-gray-500 text-sm">
+                      <p className="text-neutral-500 text-sm">
                         {artist.tabCount || 0} 個譜
                       </p>
                     </div>
@@ -295,7 +295,7 @@ function HeroPhotosAdmin() {
                   {/* Upload Button */}
                   <label className={`block w-full py-2 px-4 rounded-lg text-center cursor-pointer transition ${
                     artist.heroPhoto 
-                      ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                      ? 'bg-neutral-800 text-white hover:bg-neutral-700' 
                       : 'bg-[#FFD700] text-black hover:opacity-90'
                   }`}>
                     {uploadingId === artist.id ? (
@@ -322,7 +322,7 @@ function HeroPhotosAdmin() {
 
                   {/* Tips */}
                   {!artist.heroPhoto && (
-                    <p className="text-xs text-gray-600 text-center">
+                    <p className="text-xs text-neutral-600 text-center">
                       建議：1920x1080 或 16:9 比例
                     </p>
                   )}
@@ -337,7 +337,7 @@ function HeroPhotosAdmin() {
           <div className="text-center py-16">
             <span className="text-6xl block mb-4">🔍</span>
             <h3 className="text-xl text-white mb-2">找不到歌手</h3>
-            <p className="text-gray-500">試試其他關鍵字</p>
+            <p className="text-neutral-500">試試其他關鍵字</p>
           </div>
         )}
       </div>

@@ -158,7 +158,7 @@ export default function TablatureViewer({
   }
 
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
       {/* 載入中 */}
       {isLoading && (
         <div className="flex items-center justify-center h-[400px]">
@@ -167,14 +167,14 @@ export default function TablatureViewer({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p className="text-gray-400">載入六線譜...</p>
+            <p className="text-neutral-400">載入六線譜...</p>
           </div>
         </div>
       )}
 
       {/* 控制欄 */}
       {showControls && !isLoading && (
-        <div className="flex items-center justify-between px-4 py-3 bg-[#1a1a1a] border-b border-gray-800">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#1a1a1a] border-b border-neutral-800">
           {/* 播放控制 */}
           <div className="flex items-center gap-2">
             <button
@@ -195,7 +195,7 @@ export default function TablatureViewer({
             
             <button
               onClick={handleStop}
-              className="w-8 h-8 hover:bg-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition"
+              className="w-8 h-8 hover:bg-neutral-700 rounded-full flex items-center justify-center text-neutral-400 hover:text-white transition"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <rect x="6" y="6" width="12" height="12" />
@@ -205,7 +205,7 @@ export default function TablatureViewer({
             <button
               onClick={handleToggleLoop}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
-                loopEnabled ? 'bg-green-900/50 text-green-400' : 'hover:bg-gray-700 text-gray-400 hover:text-white'
+                loopEnabled ? 'bg-green-900/50 text-green-400' : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'
               }`}
               title="循環播放"
             >
@@ -218,23 +218,23 @@ export default function TablatureViewer({
           {/* 進度條 */}
           <div className="flex-1 mx-6">
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500 w-10 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <span className="text-xs text-neutral-500 w-10 text-right">{formatTime(currentTime)}</span>
+              <div className="flex-1 h-1 bg-neutral-700 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-[#FFD700] transition-all"
                   style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
                 />
               </div>
-              <span className="text-xs text-gray-500 w-10">{formatTime(duration)}</span>
+              <span className="text-xs text-neutral-500 w-10">{formatTime(duration)}</span>
             </div>
           </div>
 
           {/* 速度控制 */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">速度:</span>
+            <span className="text-xs text-neutral-500">速度:</span>
             <select 
               onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-              className="bg-black border border-gray-700 rounded px-2 py-1 text-sm text-white"
+              className="bg-black border border-neutral-700 rounded px-2 py-1 text-sm text-white"
               defaultValue="1"
             >
               <option value="0.25">0.25x</option>
@@ -255,7 +255,7 @@ export default function TablatureViewer({
                   apiRef.current.renderProperties.showChordDiagrams = !apiRef.current.renderProperties.showChordDiagrams;
                 }
               }}
-              className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-gray-300 transition"
+              className="text-xs px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 transition"
             >
               和弦圖
             </button>
@@ -265,7 +265,7 @@ export default function TablatureViewer({
                   apiRef.current.renderProperties.showTablature = !apiRef.current.renderProperties.showTablature;
                 }
               }}
-              className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-gray-300 transition"
+              className="text-xs px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 transition"
             >
               六線譜
             </button>
@@ -275,7 +275,7 @@ export default function TablatureViewer({
                   apiRef.current.renderProperties.showStandardNotation = !apiRef.current.renderProperties.showStandardNotation;
                 }
               }}
-              className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-gray-300 transition"
+              className="text-xs px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded text-neutral-300 transition"
             >
               五線譜
             </button>

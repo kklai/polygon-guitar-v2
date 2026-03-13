@@ -130,7 +130,7 @@ function ImportTabsPage() {
             className={`px-4 py-2 rounded-lg transition ${
               activeTab === 'single' 
                 ? 'bg-[#FFD700] text-black' 
-                : 'bg-gray-800 text-white hover:bg-gray-700'
+                : 'bg-neutral-800 text-white hover:bg-neutral-700'
             }`}
           >
             逐首添加
@@ -140,7 +140,7 @@ function ImportTabsPage() {
             className={`px-4 py-2 rounded-lg transition ${
               activeTab === 'batch' 
                 ? 'bg-[#FFD700] text-black' 
-                : 'bg-gray-800 text-white hover:bg-gray-700'
+                : 'bg-neutral-800 text-white hover:bg-neutral-700'
             }`}
           >
             批量導入 (CSV)
@@ -149,7 +149,7 @@ function ImportTabsPage() {
 
         {/* 單首輸入 */}
         {activeTab === 'single' && (
-          <form onSubmit={handleSingleSubmit} className="bg-[#121212] rounded-xl p-6 border border-gray-800 space-y-4">
+          <form onSubmit={handleSingleSubmit} className="bg-[#121212] rounded-xl p-6 border border-neutral-800 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-1">歌名 *</label>
@@ -157,7 +157,7 @@ function ImportTabsPage() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                   placeholder="例如：海闊天空"
                 />
               </div>
@@ -167,7 +167,7 @@ function ImportTabsPage() {
                   type="text"
                   value={formData.artist}
                   onChange={(e) => setFormData({...formData, artist: e.target.value})}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                   placeholder="例如：Beyond"
                 />
               </div>
@@ -177,7 +177,7 @@ function ImportTabsPage() {
                   type="text"
                   value={formData.composer}
                   onChange={(e) => setFormData({...formData, composer: e.target.value})}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                   placeholder="例如：黃家駒"
                 />
               </div>
@@ -187,7 +187,7 @@ function ImportTabsPage() {
                   type="text"
                   value={formData.lyricist}
                   onChange={(e) => setFormData({...formData, lyricist: e.target.value})}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                   placeholder="例如：黃家駒"
                 />
               </div>
@@ -196,7 +196,7 @@ function ImportTabsPage() {
                 <select
                   value={formData.originalKey}
                   onChange={(e) => setFormData({...formData, originalKey: e.target.value})}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                 >
                   {['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'].map(key => (
                     <option key={key} value={key}>{key}</option>
@@ -209,7 +209,7 @@ function ImportTabsPage() {
                   type="url"
                   value={formData.youtubeUrl}
                   onChange={(e) => setFormData({...formData, youtubeUrl: e.target.value})}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                   placeholder="https://youtube.com/..."
                 />
               </div>
@@ -221,7 +221,7 @@ function ImportTabsPage() {
                 value={formData.content}
                 onChange={(e) => setFormData({...formData, content: e.target.value})}
                 rows={15}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white font-mono text-sm"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white font-mono text-sm"
                 placeholder="在這裡貼上結他譜內容..."
               />
             </div>
@@ -238,8 +238,8 @@ function ImportTabsPage() {
 
         {/* 批量輸入 */}
         {activeTab === 'batch' && (
-          <div className="bg-[#121212] rounded-xl p-6 border border-gray-800 space-y-4">
-            <div className="bg-gray-900 p-4 rounded-lg text-sm text-gray-400">
+          <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800 space-y-4">
+            <div className="bg-neutral-900 p-4 rounded-lg text-sm text-neutral-400">
               <p className="mb-2"><strong className="text-white">CSV 格式說明：</strong></p>
               <p>第一行：欄位名稱（必需：title, artist, content；可選：composer, lyricist, key, youtubeUrl）</p>
               <p>第二行起：每首譜的資料</p>
@@ -255,7 +255,7 @@ function ImportTabsPage() {
               value={batchData}
               onChange={(e) => setBatchData(e.target.value)}
               rows={15}
-              className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white font-mono text-sm"
+              className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white font-mono text-sm"
               placeholder="貼上 CSV 數據..."
             />
             
@@ -271,7 +271,7 @@ function ImportTabsPage() {
 
         {/* 結果顯示 */}
         {results.length > 0 && (
-          <div className="mt-6 bg-[#121212] rounded-xl p-6 border border-gray-800">
+          <div className="mt-6 bg-[#121212] rounded-xl p-6 border border-neutral-800">
             <h2 className="text-lg font-bold text-white mb-4">導入結果</h2>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {results.map((result, i) => (

@@ -114,9 +114,9 @@ export default function ArtistReport() {
       male: 'bg-blue-500/20 text-blue-400',
       female: 'bg-pink-500/20 text-pink-400',
       group: 'bg-yellow-500/20 text-[#FFD700]',
-      other: 'bg-gray-500/20 text-gray-400'
+      other: 'bg-neutral-500/20 text-neutral-400'
     }
-    return colors[gender] || 'bg-gray-500/20 text-gray-400'
+    return colors[gender] || 'bg-neutral-500/20 text-neutral-400'
   }
 
   const stats = getArtistStats()
@@ -175,7 +175,7 @@ export default function ArtistReport() {
   // 獲取排序圖標
   const getSortIcon = (column) => {
     if (sortBy !== column) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-600" />
+      return <ArrowUpDown className="w-4 h-4 text-neutral-600" />
     }
     return sortOrder === 'asc' ? 
       <ArrowUp className="w-4 h-4 text-[#FFD700]" /> : 
@@ -192,7 +192,7 @@ export default function ArtistReport() {
       <Layout>
         <div className="max-w-6xl mx-auto p-8">
           <div className="bg-[#121212] rounded-xl p-8 text-center">
-            <p className="text-gray-400">請以管理員身份登入</p>
+            <p className="text-neutral-400">請以管理員身份登入</p>
           </div>
         </div>
       </Layout>
@@ -206,29 +206,29 @@ export default function ArtistReport() {
         
         {/* 統計概覽 */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <div className="text-gray-400 text-sm">有譜歌手總數</div>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <div className="text-neutral-400 text-sm">有譜歌手總數</div>
             <div className="text-3xl font-bold text-white">{totalStats.artists}</div>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <div className="text-gray-400 text-sm">譜總數</div>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <div className="text-neutral-400 text-sm">譜總數</div>
             <div className="text-3xl font-bold text-[#FFD700]">{totalStats.songs}</div>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <div className="text-gray-400 text-sm">冇年份嘅譜</div>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <div className="text-neutral-400 text-sm">冇年份嘅譜</div>
             <div className="text-3xl font-bold text-red-400">{totalStats.noYearSongs}</div>
           </div>
         </div>
 
         {/* 過濾器 */}
-        <div className="bg-[#121212] rounded-xl p-4 border border-gray-800 mb-6">
+        <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-gray-400">性別：</label>
+              <label className="text-neutral-400">性別：</label>
               <select
                 value={filterGender}
                 onChange={(e) => setFilterGender(e.target.value)}
-                className="bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-gray-700"
+                className="bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-neutral-700"
               >
                 <option value="all">全部</option>
                 <option value="male">男歌手</option>
@@ -245,7 +245,7 @@ export default function ArtistReport() {
                 onChange={(e) => setFilterNoYear(e.target.checked)}
                 className="w-4 h-4 accent-[#FFD700]"
               />
-              <span className="text-gray-400">只顯示有冇年份歌曲嘅歌手</span>
+              <span className="text-neutral-400">只顯示有冇年份歌曲嘅歌手</span>
             </label>
             
             <button
@@ -298,12 +298,12 @@ export default function ArtistReport() {
             <div className="inline-block w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-[#1a1a1a]">
                 <tr>
                   <th 
-                    className="px-3 py-3 text-left text-gray-400 font-medium cursor-pointer hover:text-white select-none"
+                    className="px-3 py-3 text-left text-neutral-400 font-medium cursor-pointer hover:text-white select-none"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -311,7 +311,7 @@ export default function ArtistReport() {
                     </div>
                   </th>
                   <th 
-                    className="px-3 py-3 text-left text-gray-400 font-medium cursor-pointer hover:text-white select-none"
+                    className="px-3 py-3 text-left text-neutral-400 font-medium cursor-pointer hover:text-white select-none"
                     onClick={() => handleSort('gender')}
                   >
                     <div className="flex items-center gap-1">
@@ -319,7 +319,7 @@ export default function ArtistReport() {
                     </div>
                   </th>
                   <th 
-                    className="px-3 py-3 text-center text-gray-400 font-medium cursor-pointer hover:text-white select-none"
+                    className="px-3 py-3 text-center text-neutral-400 font-medium cursor-pointer hover:text-white select-none"
                     onClick={() => handleSort('songCount')}
                   >
                     <div className="flex items-center justify-center gap-1">
@@ -334,17 +334,17 @@ export default function ArtistReport() {
                       冇年份 {getSortIcon('noYearCount')}
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">2021+</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">2016-20</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">2011-15</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">2006-10</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">2000-05</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">1990s</th>
-                  <th className="px-3 py-3 text-center text-gray-400 font-medium">更早</th>
-                  <th className="px-3 py-3 text-left text-gray-400 font-medium">操作</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">2021+</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">2016-20</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">2011-15</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">2006-10</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">2000-05</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">1990s</th>
+                  <th className="px-3 py-3 text-center text-neutral-400 font-medium">更早</th>
+                  <th className="px-3 py-3 text-left text-neutral-400 font-medium">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-neutral-800">
                 {filteredStats.map((artist) => (
                   <tr key={artist.id} className="hover:bg-[#1a1a1a]">
                     <td className="px-3 py-3">
@@ -362,28 +362,28 @@ export default function ArtistReport() {
                       {artist.noYearCount > 0 ? (
                         <span className="text-red-400 font-bold">{artist.noYearCount}</span>
                       ) : (
-                        <span className="text-gray-600">-</span>
+                        <span className="text-neutral-600">-</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['2021-2026'] || '-'}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['2016-2020'] || '-'}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['2011-2015'] || '-'}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['2006-2010'] || '-'}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['2000-2005'] || '-'}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['1995-1999'] || artist.yearGroups['1990-1994'] || '-'}
                     </td>
-                    <td className="px-3 py-3 text-center text-gray-400">
+                    <td className="px-3 py-3 text-center text-neutral-400">
                       {artist.yearGroups['1980-1989'] || artist.yearGroups['1979或更早'] || '-'}
                     </td>
                     <td className="px-3 py-3">
@@ -412,7 +412,7 @@ export default function ArtistReport() {
             </table>
             
             {filteredStats.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-neutral-400">
                 沒有符合條件的歌手
               </div>
             )}
@@ -423,22 +423,22 @@ export default function ArtistReport() {
         {filterNoYear && filteredStats.length > 0 && (
           <div ref={noYearDetailRef} className="mt-8">
             <h2 className="text-xl font-bold text-white mb-4">冇年份歌曲詳情</h2>
-            <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-[#1a1a1a]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-400 font-medium">歌手</th>
-                    <th className="px-4 py-3 text-left text-gray-400 font-medium">歌曲名稱</th>
-                    <th className="px-4 py-3 text-left text-gray-400 font-medium">操作</th>
+                    <th className="px-4 py-3 text-left text-neutral-400 font-medium">歌手</th>
+                    <th className="px-4 py-3 text-left text-neutral-400 font-medium">歌曲名稱</th>
+                    <th className="px-4 py-3 text-left text-neutral-400 font-medium">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-neutral-800">
                   {filteredStats.map(artist => 
                     artist.tabs
                       .filter(tab => !tab.songYear && !tab.uploadYear)
                       .map(tab => (
                         <tr key={tab.id} className="hover:bg-[#1a1a1a]">
-                          <td className="px-4 py-3 text-gray-400">{artist.name}</td>
+                          <td className="px-4 py-3 text-neutral-400">{artist.name}</td>
                           <td className="px-4 py-3 text-white">{tab.title}</td>
                           <td className="px-4 py-3">
                             <a

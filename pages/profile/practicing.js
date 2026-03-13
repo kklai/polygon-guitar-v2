@@ -112,7 +112,7 @@ export default function CurrentlyPracticing() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">正在練習</h1>
-            <p className="text-gray-400 text-sm">告訴大家你正在練習什麼歌</p>
+            <p className="text-neutral-400 text-sm">告訴大家你正在練習什麼歌</p>
           </div>
           <Link
             href={`/profile/${user.uid}`}
@@ -124,11 +124,11 @@ export default function CurrentlyPracticing() {
         </div>
 
         {/* Current Status */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
           <h2 className="text-lg font-medium text-white mb-4">目前狀態</h2>
           
           {currentPracticing ? (
-            <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-neutral-900 rounded-lg">
               {currentPracticing.thumbnail && (
                 <img 
                   src={currentPracticing.thumbnail} 
@@ -138,7 +138,7 @@ export default function CurrentlyPracticing() {
               )}
               <div className="flex-1">
                 <p className="text-white font-medium">{currentPracticing.title}</p>
-                <p className="text-sm text-gray-400">{currentPracticing.artist}</p>
+                <p className="text-sm text-neutral-400">{currentPracticing.artist}</p>
               </div>
               <button
                 onClick={clearPracticing}
@@ -148,7 +148,7 @@ export default function CurrentlyPracticing() {
               </button>
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-neutral-500">
               <p>暫時沒有標記正在練習的歌曲</p>
               <p className="text-sm mt-2">在下方搜尋並選擇一首歌</p>
             </div>
@@ -156,7 +156,7 @@ export default function CurrentlyPracticing() {
         </div>
 
         {/* Search */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
           <h2 className="text-lg font-medium text-white mb-4">搜尋歌曲</h2>
           
           <div className="relative">
@@ -177,12 +177,12 @@ export default function CurrentlyPracticing() {
           {/* Search Results */}
           {searchResults.length > 0 && (
             <div className="mt-4 space-y-2">
-              <p className="text-sm text-gray-400 mb-2">搜尋結果：</p>
+              <p className="text-sm text-neutral-400 mb-2">搜尋結果：</p>
               {searchResults.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setPracticing(tab.id)}
-                  className="w-full flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition text-left"
+                  className="w-full flex items-center gap-3 p-3 bg-neutral-900 rounded-lg hover:bg-neutral-800 transition text-left"
                 >
                   {tab.thumbnail && (
                     <img 
@@ -193,7 +193,7 @@ export default function CurrentlyPracticing() {
                   )}
                   <div className="flex-1">
                     <p className="text-white text-sm">{tab.title}</p>
-                    <p className="text-xs text-gray-400">{tab.artist}</p>
+                    <p className="text-xs text-neutral-400">{tab.artist}</p>
                   </div>
                   <span className="text-[#FFD700] text-sm">選擇</span>
                 </button>
@@ -202,7 +202,7 @@ export default function CurrentlyPracticing() {
           )}
 
           {searchTerm.length >= 2 && searchResults.length === 0 && !isSearching && (
-            <p className="mt-4 text-center text-gray-500">
+            <p className="mt-4 text-center text-neutral-500">
               找不到符合的歌曲
             </p>
           )}

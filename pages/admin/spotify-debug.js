@@ -94,24 +94,24 @@ function SpotifyDebugPage() {
         <h1 className="text-2xl font-bold text-white mb-6">🎧 音樂 API 測試</h1>
         
         {/* 輸入區 */}
-        <div className="bg-[#121212] rounded-xl p-6 border border-gray-800 mb-6">
+        <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800 mb-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-gray-400 text-sm mb-2">歌手</label>
+              <label className="block text-neutral-400 text-sm mb-2">歌手</label>
               <input
                 type="text"
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-gray-400 text-sm mb-2">歌名</label>
+              <label className="block text-neutral-400 text-sm mb-2">歌名</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white"
               />
             </div>
           </div>
@@ -145,7 +145,7 @@ function SpotifyDebugPage() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Spotify 結果 */}
           {spotifyResult && (
-            <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+            <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
               <h2 className="text-lg font-medium text-[#1DB954] mb-4">Spotify 結果</h2>
               
               {spotifyResult.details?.result?.albumImage && (
@@ -157,27 +157,27 @@ function SpotifyDebugPage() {
               )}
               
               <div className="text-white font-medium">{spotifyResult.details?.result?.name}</div>
-              <div className="text-gray-400 text-sm">{spotifyResult.details?.result?.artist}</div>
-              <div className="text-gray-500 text-sm">{spotifyResult.details?.result?.releaseYear}</div>
+              <div className="text-neutral-400 text-sm">{spotifyResult.details?.result?.artist}</div>
+              <div className="text-neutral-500 text-sm">{spotifyResult.details?.result?.releaseYear}</div>
               
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">BPM:</span>
+                  <span className="text-neutral-500">BPM:</span>
                   <span className="text-red-400">❌ 不可用</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">作曲:</span>
+                  <span className="text-neutral-500">作曲:</span>
                   <span className="text-red-400">❌ 不可用</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">填詞:</span>
+                  <span className="text-neutral-500">填詞:</span>
                   <span className="text-red-400">❌ 不可用</span>
                 </div>
               </div>
               
               <details className="mt-4">
-                <summary className="text-gray-500 text-sm cursor-pointer">查看原始數據</summary>
-                <pre className="mt-2 text-xs text-gray-400 bg-black p-3 rounded-lg overflow-auto max-h-60">
+                <summary className="text-neutral-500 text-sm cursor-pointer">查看原始數據</summary>
+                <pre className="mt-2 text-xs text-neutral-400 bg-black p-3 rounded-lg overflow-auto max-h-60">
                   {JSON.stringify(spotifyResult, null, 2)}
                 </pre>
               </details>
@@ -190,50 +190,50 @@ function SpotifyDebugPage() {
               <h2 className="text-lg font-medium text-purple-400 mb-4">MusicBrainz 結果</h2>
               
               <div className="text-white font-medium">{musicbrainzResult.result?.title}</div>
-              <div className="text-gray-400 text-sm">{musicbrainzResult.result?.artist}</div>
+              <div className="text-neutral-400 text-sm">{musicbrainzResult.result?.artist}</div>
               
               {musicbrainzResult.result?.releases?.[0] && (
-                <div className="text-gray-500 text-sm">
+                <div className="text-neutral-500 text-sm">
                   {musicbrainzResult.result.releases[0].title} · {musicbrainzResult.result.releases[0].date}
                 </div>
               )}
               
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">BPM:</span>
+                  <span className="text-neutral-500">BPM:</span>
                   <span className={musicbrainzResult.result?.audioFeatures?.bpm ? 'text-green-400' : 'text-red-400'}>
                     {musicbrainzResult.result?.audioFeatures?.bpm || '❌ 無數據'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Key:</span>
+                  <span className="text-neutral-500">Key:</span>
                   <span className={musicbrainzResult.result?.audioFeatures?.key ? 'text-green-400' : 'text-red-400'}>
                     {musicbrainzResult.result?.audioFeatures?.key || '❌ 無數據'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">作曲:</span>
+                  <span className="text-neutral-500">作曲:</span>
                   <span className={musicbrainzResult.result?.credits?.composers?.length ? 'text-green-400' : 'text-red-400'}>
                     {musicbrainzResult.result?.credits?.composers?.join(', ') || '❌ 無數據'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">填詞:</span>
+                  <span className="text-neutral-500">填詞:</span>
                   <span className={musicbrainzResult.result?.credits?.lyricists?.length ? 'text-green-400' : 'text-red-400'}>
                     {musicbrainzResult.result?.credits?.lyricists?.join(', ') || '❌ 無數據'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">編曲:</span>
-                  <span className={musicbrainzResult.result?.credits?.arrangers?.length ? 'text-green-400' : 'text-gray-500'}>
+                  <span className="text-neutral-500">編曲:</span>
+                  <span className={musicbrainzResult.result?.credits?.arrangers?.length ? 'text-green-400' : 'text-neutral-500'}>
                     {musicbrainzResult.result?.credits?.arrangers?.join(', ') || '無數據'}
                   </span>
                 </div>
               </div>
               
               <details className="mt-4">
-                <summary className="text-gray-500 text-sm cursor-pointer">查看原始數據</summary>
-                <pre className="mt-2 text-xs text-gray-400 bg-black p-3 rounded-lg overflow-auto max-h-60">
+                <summary className="text-neutral-500 text-sm cursor-pointer">查看原始數據</summary>
+                <pre className="mt-2 text-xs text-neutral-400 bg-black p-3 rounded-lg overflow-auto max-h-60">
                   {JSON.stringify(musicbrainzResult, null, 2)}
                 </pre>
               </details>

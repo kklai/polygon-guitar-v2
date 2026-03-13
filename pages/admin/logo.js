@@ -119,7 +119,7 @@ function LogoSettings() {
           </div>
           <Link
             href="/admin"
-            className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+            className="px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition"
           >
             返回管理
           </Link>
@@ -137,34 +137,34 @@ function LogoSettings() {
         )}
 
         {/* Logo Settings Card */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
           <h2 className="text-xl font-bold text-white mb-6">Logo 圖片</h2>
 
           {/* Preview Area */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-400 mb-3">
+            <label className="block text-sm font-medium text-neutral-400 mb-3">
               目前預覽（上傳後會更新）
             </label>
-            <div className="bg-black rounded-lg p-8 flex items-center justify-center border border-gray-800">
+            <div className="bg-black rounded-lg p-8 flex items-center justify-center border border-neutral-800">
               <img
                 src={previewUrl}
                 alt="Site Logo"
                 className="max-h-32 max-w-full object-contain"
               />
             </div>
-            <p className="text-gray-500 text-xs mt-2">網站實際顯示的 Logo 來自程式碼內 hardcoded 設定，見下方說明。</p>
+            <p className="text-neutral-500 text-xs mt-2">網站實際顯示的 Logo 來自程式碼內 hardcoded 設定，見下方說明。</p>
           </div>
 
           {/* Upload Area */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-400 mb-3">
+            <label className="block text-sm font-medium text-neutral-400 mb-3">
               上傳新 Logo
             </label>
             <div 
               className={`border-2 border-dashed rounded-lg p-8 text-center transition ${
                 isUploading 
                   ? 'border-[#FFD700] bg-[#FFD700]/5' 
-                  : 'border-gray-700 hover:border-gray-500'
+                  : 'border-neutral-700 hover:border-neutral-500'
               }`}
             >
               {isUploading ? (
@@ -176,7 +176,7 @@ function LogoSettings() {
                 <>
                   <div className="text-4xl mb-3">☁️</div>
                   <p className="text-white mb-2">拖曳圖片到這裡，或點擊選擇檔案</p>
-                  <p className="text-gray-500 text-sm mb-4">
+                  <p className="text-neutral-500 text-sm mb-4">
                     支援 JPG、PNG、WEBP · 最大 5MB · 建議尺寸 200×50px
                   </p>
                   <label className="inline-block">
@@ -209,7 +209,7 @@ function LogoSettings() {
           {lastUploadedLogoUrl && (
             <div className="mt-4 p-4 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-sm">
               <p className="font-medium mb-2">✓ 上傳完成。要讓網站顯示這個 Logo，請更新程式碼後重新部署：</p>
-              <ul className="list-disc list-inside space-y-1 text-gray-300">
+              <ul className="list-disc list-inside space-y-1 text-neutral-300">
                 <li><strong>components/Navbar.js</strong> — 將 <code className="bg-black/30 px-1 rounded">SITE_LOGO_URL</code> 改為：<br /><code className="block mt-1 break-all bg-black/50 p-2 rounded text-xs">{lastUploadedLogoUrl}</code></li>
                 <li>儲存後執行 <code className="bg-black/30 px-1 rounded">vercel --prod</code> 或推送到 Git 觸發部署。</li>
               </ul>
@@ -218,17 +218,17 @@ function LogoSettings() {
         </div>
 
         {/* App Icon Settings Card */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
           <h2 className="text-xl font-bold text-white mb-2">App Icon（手機桌面圖示）</h2>
-          <p className="text-gray-400 text-sm mb-6">用戶將網站加入手機主屏幕時顯示的圖示</p>
+          <p className="text-neutral-400 text-sm mb-6">用戶將網站加入手機主屏幕時顯示的圖示</p>
 
           {/* Preview Area */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-400 mb-3">
+            <label className="block text-sm font-medium text-neutral-400 mb-3">
               目前 App Icon
             </label>
             <div className="flex items-center gap-6">
-              <div className="bg-black rounded-lg p-4 flex items-center justify-center border border-gray-800">
+              <div className="bg-black rounded-lg p-4 flex items-center justify-center border border-neutral-800">
                 {appIconPreview ? (
                   <img 
                     src={appIconPreview} 
@@ -241,7 +241,7 @@ function LogoSettings() {
                   </div>
                 )}
               </div>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-neutral-400">
                 <p>預覽效果</p>
                 <p className="text-xs mt-1">建議尺寸：512×512px</p>
                 <p className="text-xs">建議格式：PNG（透明背景）</p>
@@ -251,14 +251,14 @@ function LogoSettings() {
 
           {/* Upload Area */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-400 mb-3">
+            <label className="block text-sm font-medium text-neutral-400 mb-3">
               上傳新 App Icon
             </label>
             <div 
               className={`border-2 border-dashed rounded-lg p-8 text-center transition ${
                 isUploading 
                   ? 'border-[#FFD700] bg-[#FFD700]/5' 
-                  : 'border-gray-700 hover:border-gray-500'
+                  : 'border-neutral-700 hover:border-neutral-500'
               }`}
             >
               {isUploading ? (
@@ -270,7 +270,7 @@ function LogoSettings() {
                 <>
                   <div className="text-4xl mb-3">📱</div>
                   <p className="text-white mb-2">拖曳圖片到這裡，或點擊選擇檔案</p>
-                  <p className="text-gray-500 text-sm mb-4">
+                  <p className="text-neutral-500 text-sm mb-4">
                     支援 JPG、PNG、WEBP · 最大 5MB · 建議正方形 512×512px
                   </p>
                   <label className="inline-block">
@@ -303,17 +303,17 @@ function LogoSettings() {
           {lastUploadedAppIconUrl && (
             <div className="mt-4 p-4 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-sm">
               <p className="font-medium mb-2">✓ App Icon 已儲存。若要在 PWA 使用此圖示：</p>
-              <p className="text-gray-300">請在 <strong>pages/api/manifest.json.js</strong> 的 <code className="bg-black/30 px-1 rounded">icons</code> 中加入此 URL，然後重新部署。</p>
+              <p className="text-neutral-300">請在 <strong>pages/api/manifest.json.js</strong> 的 <code className="bg-black/30 px-1 rounded">icons</code> 中加入此 URL，然後重新部署。</p>
               <code className="block mt-2 break-all bg-black/50 p-2 rounded text-xs">{lastUploadedAppIconUrl}</code>
             </div>
           )}
         </div>
 
         {/* Usage Info */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6">
           <h3 className="text-lg font-bold text-white mb-4">使用說明</h3>
-          <ul className="space-y-2 text-gray-400 text-sm">
-            <li>• <strong className="text-gray-300">Logo / 網站名稱</strong> 已改為 hardcoded，不會每次讀取 Firebase。上傳後請依上方黃色提示更新程式碼並重新部署。</li>
+          <ul className="space-y-2 text-neutral-400 text-sm">
+            <li>• <strong className="text-neutral-300">Logo / 網站名稱</strong> 已改為 hardcoded，不會每次讀取 Firebase。上傳後請依上方黃色提示更新程式碼並重新部署。</li>
             <li>• <strong>Logo：</strong> 更新 <code className="bg-black/50 px-1 rounded">components/Navbar.js</code> 的 <code className="bg-black/50 px-1 rounded">SITE_LOGO_URL</code>、<code className="bg-black/50 px-1 rounded">SITE_NAME</code>。</li>
             <li>• <strong>App Icon / PWA 名稱：</strong> 更新 <code className="bg-black/50 px-1 rounded">pages/api/manifest.json.js</code> 的 <code className="bg-black/50 px-1 rounded">name</code>、<code className="bg-black/50 px-1 rounded">short_name</code>、<code className="bg-black/50 px-1 rounded">icons</code>。</li>
             <li>• 建議使用透明背景的 PNG 格式。</li>

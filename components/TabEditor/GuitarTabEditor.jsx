@@ -215,16 +215,16 @@ export function GuitarTabEditor({
   };
   
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
       {/* 工具欄 */}
-      <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1a1a1a] border-b border-gray-800">
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-[#1a1a1a] border-b border-neutral-800">
         <button onClick={() => isPlaying ? stop() : play(measures, timeSignature, bpm)}
           className={`w-10 h-8 flex items-center justify-center rounded ${
             isPlaying ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
           }`}>
           {isPlaying ? '⏹' : '▶'}
         </button>
-        <button onClick={initSynth} className={isReady ? 'text-[#FFD700]' : 'text-gray-500'}>
+        <button onClick={initSynth} className={isReady ? 'text-[#FFD700]' : 'text-neutral-500'}>
           {isReady ? '🔊' : '🔇'}
         </button>
         
@@ -242,7 +242,7 @@ export function GuitarTabEditor({
           {durations.map(d => (
             <button key={d.value} onClick={() => setDuration(d.value)}
               className={`px-2 py-1 text-sm rounded ${
-                duration === d.value ? 'bg-[#FFD700] text-black font-bold' : 'text-gray-400'
+                duration === d.value ? 'bg-[#FFD700] text-black font-bold' : 'text-neutral-400'
               }`}>
               {d.label}
             </button>
@@ -281,7 +281,7 @@ export function GuitarTabEditor({
       </div>
       
       {/* 狀態欄 */}
-      <div className="px-4 py-2 bg-[#0a0a0a] border-t border-gray-800 text-sm text-gray-400">
+      <div className="px-4 py-2 bg-[#0a0a0a] border-t border-neutral-800 text-sm text-neutral-400">
         第 {selectedMeasure + 1} 小節 | 拍 {selectedBeat + 1} | 
         時值: <span className="text-[#FFD700] text-lg">{currentDuration.label}</span> | 
         選中: {strings[selectedString]}弦
@@ -316,7 +316,7 @@ function Measure({
   return (
     <div className={`relative ${isSelected ? 'ring-2 ring-[#FFD700]/30 rounded' : ''}`}>
       {/* 小節編號 */}
-      <div className="absolute -top-5 left-0 text-xs text-gray-500 font-bold">
+      <div className="absolute -top-5 left-0 text-xs text-neutral-500 font-bold">
         {index + 1}
       </div>
       
@@ -326,13 +326,13 @@ function Measure({
           <div key={sIdx} className="relative h-8">
             {/* 弦名 */}
             <span className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 text-sm font-bold ${
-              selectedString === sIdx ? 'text-[#FFD700]' : 'text-gray-500'
+              selectedString === sIdx ? 'text-[#FFD700]' : 'text-neutral-500'
             }`}>
               {stringName}
             </span>
             
             {/* 弦線 */}
-            <div className="absolute left-0 right-0 top-1/2 h-px bg-gray-600"></div>
+            <div className="absolute left-0 right-0 top-1/2 h-px bg-neutral-600"></div>
             
             {/* 拍子位置 */}
             <div className="absolute left-0 right-0 top-0 h-full flex">
@@ -345,11 +345,11 @@ function Measure({
                   <div key={bIdx} className="flex-1 relative">
                     {/* 小節線 */}
                     {bIdx === 0 && (
-                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gray-400"></div>
+                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-neutral-400"></div>
                     )}
                     
                     {/* 拍子線 */}
-                    <div className="absolute right-0 top-0 bottom-0 w-px bg-gray-700"></div>
+                    <div className="absolute right-0 top-0 bottom-0 w-px bg-neutral-700"></div>
                     
                     {/* 選中指示 */}
                     {(isCurrent || isPlayPos) && (
@@ -402,7 +402,7 @@ function Measure({
       {/* 底部拍子標記 */}
       <div className="flex mt-1" style={{ width: `${beats * 60 + 20}px`, paddingLeft: '10px' }}>
         {Array.from({ length: beats }).map((_, i) => (
-          <div key={i} className="flex-1 text-center text-xs text-gray-600">
+          <div key={i} className="flex-1 text-center text-xs text-neutral-600">
             {i + 1}
           </div>
         ))}

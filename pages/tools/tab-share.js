@@ -616,12 +616,12 @@ export default function TabShareTool() {
                     {renderImageContent()}
                   </div>
                 ) : (
-                  <div style={{ width: `${PREVIEW_W * previewScale}px`, height: `${PREVIEW_H * previewScale}px` }} className="bg-[#121212] rounded-xl border border-gray-800 flex items-center justify-center">
-                    <p className="text-gray-500">{selectedTab ? '㨂選你喜歡的歌詞' : '載入中...'}</p>
+                  <div style={{ width: `${PREVIEW_W * previewScale}px`, height: `${PREVIEW_H * previewScale}px` }} className="bg-[#121212] rounded-xl border border-neutral-800 flex items-center justify-center">
+                    <p className="text-neutral-500">{selectedTab ? '㨂選你喜歡的歌詞' : '載入中...'}</p>
                   </div>
                 )}
               </div>
-              {selectedTab && hasSelection && <p className="text-center text-xs md:text-sm text-gray-500" style={{ marginTop: 5 }}>點擊圖片下載</p>}
+              {selectedTab && hasSelection && <p className="text-center text-xs md:text-sm text-neutral-500" style={{ marginTop: 5 }}>點擊圖片下載</p>}
             </div>
           </div>
 
@@ -629,8 +629,8 @@ export default function TabShareTool() {
           <div className="flex flex-col gap-4 flex-1">
             {selectedTab && (
               <>
-                <h3 className="text-[#FFD700] font-medium mb-[-8px] -mt-3 text-center" style={{ fontWeight: 500 }}>㨂選你喜歡的歌詞 ▼</h3>
-                <div className="bg-[#121212] rounded-xl border border-gray-800 px-4 pb-4 pt-0">
+                <h3 className="text-[#FFD700] font-medium mb-[-8px] -mt-3 text-center" style={{ fontWeight: 500 }}>滾動㨂選你喜歡的歌詞 ▼</h3>
+                <div className="bg-[#121212] rounded-xl border border-neutral-800 px-4 pb-4 pt-0">
                   <div style={{ position: 'relative' }}>
                     <div
                       ref={pickerRef}

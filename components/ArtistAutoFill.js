@@ -143,7 +143,7 @@ export default function ArtistAutoFill({
             <p className="text-green-400 text-sm font-medium">
               歌手資料已存在
             </p>
-            <p className="text-gray-400 text-xs">
+            <p className="text-neutral-400 text-xs">
               {existingArtist.name} • {existingArtist.year || '無年份'} • 
               {existingArtist.artistType ? 
                 (existingArtist.artistType === 'male' ? '男歌手' : 
@@ -155,7 +155,7 @@ export default function ArtistAutoFill({
           <button
             type="button"
             onClick={() => setExistingArtist(null)}
-            className="text-xs text-gray-500 hover:text-white underline"
+            className="text-xs text-neutral-500 hover:text-white underline"
           >
             重新搜尋
           </button>
@@ -167,8 +167,8 @@ export default function ArtistAutoFill({
   // 如果完全停用（已選擇現有歌手），顯示已停用狀態
   if (disabled) {
     return (
-      <div className={`p-3 bg-gray-800/50 border border-gray-700 rounded-lg ${className}`}>
-        <div className="flex items-center gap-2 text-gray-500 text-sm">
+      <div className={`p-3 bg-neutral-800/50 border border-neutral-700 rounded-lg ${className}`}>
+        <div className="flex items-center gap-2 text-neutral-500 text-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
@@ -229,27 +229,27 @@ export default function ArtistAutoFill({
             )}
             <div className="flex-1">
               <div className="mb-1">
-                <span className="text-gray-500 text-sm">名稱：</span>
+                <span className="text-neutral-500 text-sm">名稱：</span>
                 <span className="text-white">{preview.name}</span>
               </div>
               
               {preview.birthYear && (
                 <div className="mb-1">
-                  <span className="text-gray-500 text-sm">出生年份：</span>
+                  <span className="text-neutral-500 text-sm">出生年份：</span>
                   <span className="text-white">{preview.birthYear}</span>
                 </div>
               )}
               
               {preview.debutYear && (
                 <div className="mb-1">
-                  <span className="text-gray-500 text-sm">出道年份：</span>
+                  <span className="text-neutral-500 text-sm">出道年份：</span>
                   <span className="text-white">{preview.debutYear}</span>
                 </div>
               )}
               
               {preview.artistType && preview.artistType !== 'unknown' && (
                 <div className="mb-1">
-                  <span className="text-gray-500 text-sm">類型：</span>
+                  <span className="text-neutral-500 text-sm">類型：</span>
                   <span className="text-white">
                     {preview.artistType === 'male' ? '男歌手' : 
                      preview.artistType === 'female' ? '女歌手' : '組合'}
@@ -260,8 +260,8 @@ export default function ArtistAutoFill({
           </div>
           
           <div className="mb-4">
-            <span className="text-gray-500 text-sm">簡介：</span>
-            <p className="text-gray-300 text-sm mt-1 leading-relaxed">
+            <span className="text-neutral-500 text-sm">簡介：</span>
+            <p className="text-neutral-300 text-sm mt-1 leading-relaxed">
               {preview.bio.substring(0, 150)}...
             </p>
           </div>
@@ -280,7 +280,7 @@ export default function ArtistAutoFill({
             <button
               type="button"
               onClick={() => setPreview(null)}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition text-sm"
+              className="px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 transition text-sm"
             >
               取消
             </button>

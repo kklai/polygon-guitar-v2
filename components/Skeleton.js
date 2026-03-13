@@ -14,7 +14,7 @@ export default function Skeleton({ className = '', circle = false }) {
 // 預設的骨架屏樣式
 export function TabCardSkeleton() {
   return (
-    <div className="bg-[#121212] rounded-lg shadow-md overflow-hidden border border-gray-800">
+    <div className="bg-[#121212] rounded-lg shadow-md overflow-hidden border border-neutral-800">
       {/* 封面骨架 */}
       <div className="w-full aspect-square bg-[#282828] animate-pulse" />
       
@@ -26,7 +26,7 @@ export function TabCardSkeleton() {
         <Skeleton className="h-5 w-20 rounded-full" />
         
         {/* 分隔線 */}
-        <div className="border-t border-gray-800 my-3" />
+        <div className="border-t border-neutral-800 my-3" />
         
         {/* 資料骨架 */}
         <div className="flex items-center gap-3">

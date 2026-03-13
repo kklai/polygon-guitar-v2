@@ -27,7 +27,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
     // 簡潔模式 - 用於個人主頁列表
     return (
       <Link href={`/tabs/${tab.id}`}>
-        <div className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer">
+        <div className="flex items-center gap-3 p-3 bg-neutral-900 rounded-lg hover:bg-neutral-800 transition cursor-pointer">
           {/* 縮圖區域 - 骨架屏或圖片 */}
           <div className="w-14 h-10 rounded bg-[#282828] overflow-hidden flex-shrink-0">
             {tab.thumbnail && (
@@ -50,7 +50,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-[#FFD700]">{tab.artist}</span>
               {tab.originalKey && (
-                <span className="text-gray-500">· Key: {tab.originalKey}</span>
+                <span className="text-neutral-500">· Key: {tab.originalKey}</span>
               )}
             </div>
           </div>
@@ -60,7 +60,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
   }
 
   return (
-    <div className="bg-[#121212] rounded-lg shadow-md overflow-hidden border border-gray-800">
+    <div className="bg-[#121212] rounded-lg shadow-md overflow-hidden border border-neutral-800">
       {/* 封面圖片 */}
       <Link href={`/tabs/${tab.id}`}>
         <div className="w-full aspect-square bg-[#282828] overflow-hidden cursor-pointer relative">
@@ -71,7 +71,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <Skeleton className="w-full h-full absolute inset-0" />
                   <span className="text-4xl mb-2 relative z-10">🎵</span>
-                  <span className="text-xs text-gray-500 text-center px-4 relative z-10">{tab.artist}</span>
+                  <span className="text-xs text-neutral-500 text-center px-4 relative z-10">{tab.artist}</span>
                 </div>
               )}
               <img
@@ -85,9 +85,9 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
               />
             </>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
               <span className="text-4xl mb-2">🎵</span>
-              <span className="text-xs text-gray-500 text-center px-4">{tab.artist}</span>
+              <span className="text-xs text-neutral-500 text-center px-4">{tab.artist}</span>
             </div>
           )}
         </div>
@@ -111,7 +111,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
       </p>
       
       {/* 分隔線 */}
-      <div className="border-t border-gray-800 my-3"></div>
+      <div className="border-t border-neutral-800 my-3"></div>
       
       {/* 譜資料 - 瀏覽次數 & Key */}
       <div className="flex items-center gap-3 mb-3 text-sm">
@@ -124,7 +124,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
           <span>{(tab.viewCount || 0).toLocaleString()}</span>
         </span>
         
-        <span className="text-gray-600">|</span>
+        <span className="text-neutral-600">|</span>
         
         {/* Key */}
         <span className="flex items-center gap-1 text-[#B3B3B3]">
@@ -137,7 +137,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
         {/* 讚數 (如果有的話) */}
         {tab.likes > 0 && (
           <>
-            <span className="text-gray-600">|</span>
+            <span className="text-neutral-600">|</span>
             <span className="flex items-center gap-1 text-[#B3B3B3]">
               <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
@@ -149,7 +149,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
       </div>
       
       {/* 底部 - 日期 */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-neutral-500">
         <span className="flex items-center gap-1">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

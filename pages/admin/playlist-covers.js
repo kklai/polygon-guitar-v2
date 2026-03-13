@@ -80,7 +80,7 @@ function PlaylistCovers() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">歌單封面生成器</h1>
-            <p className="text-gray-500 text-sm mt-1">用歌單入面嘅歌嚟生成封面</p>
+            <p className="text-neutral-500 text-sm mt-1">用歌單入面嘅歌嚟生成封面</p>
           </div>
           <button onClick={() => router.push('/admin/playlists')} className="text-[#FFD700] hover:opacity-80 text-sm">
             返回歌單管理
@@ -103,10 +103,10 @@ function PlaylistCovers() {
             <h2 className="text-white font-medium">揀歌單</h2>
             {loading ? (
               <div className="space-y-2">
-                {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-gray-800 rounded-lg animate-pulse" />)}
+                {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-neutral-800 rounded-lg animate-pulse" />)}
               </div>
             ) : (
-              <div className="max-h-[500px] overflow-y-auto space-y-1 bg-[#0A0A0A] rounded-lg p-2 border border-gray-800">
+              <div className="max-h-[500px] overflow-y-auto space-y-1 bg-[#0A0A0A] rounded-lg p-2 border border-neutral-800">
                 {playlists.map(p => (
                   <button
                     key={p.id}
@@ -117,18 +117,18 @@ function PlaylistCovers() {
                         : 'hover:bg-[#1A1A1A] border border-transparent'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
+                    <div className="w-10 h-10 rounded bg-neutral-800 overflow-hidden flex-shrink-0">
                       {p.coverImage ? (
                         <img src={p.coverImage} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-lg">
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500 text-lg">
                           {p.source === 'auto' ? '📊' : '✨'}
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm truncate">{p.title}</p>
-                      <p className="text-gray-500 text-xs">{p.songIds?.length || 0} 首 · {p.source === 'auto' ? '自動' : '手動'}</p>
+                      <p className="text-neutral-500 text-xs">{p.songIds?.length || 0} 首 · {p.source === 'auto' ? '自動' : '手動'}</p>
                     </div>
                     {p.customCover && (
                       <span className="text-xs text-green-500 flex-shrink-0">自訂</span>
@@ -163,8 +163,8 @@ function PlaylistCovers() {
                 />
               )
             ) : (
-              <div className="flex items-center justify-center py-16 bg-[#121212] rounded-lg border border-gray-800">
-                <p className="text-gray-600">← 先揀一個歌單</p>
+              <div className="flex items-center justify-center py-16 bg-[#121212] rounded-lg border border-neutral-800">
+                <p className="text-neutral-600">← 先揀一個歌單</p>
               </div>
             )}
           </div>

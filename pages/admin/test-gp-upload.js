@@ -177,7 +177,7 @@ export default function TestGpUpload() {
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-white mb-2">🧪 GP 文件上傳測試</h1>
-        <p className="text-gray-400 mb-8">測試 Cloudinary 和 Firebase Storage 上傳功能</p>
+        <p className="text-neutral-400 mb-8">測試 Cloudinary 和 Firebase Storage 上傳功能</p>
 
         {/* 文件選擇 */}
         <div className="bg-[#121212] rounded-xl p-6 mb-6">
@@ -193,21 +193,21 @@ export default function TestGpUpload() {
           
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center hover:border-[#FFD700] transition cursor-pointer"
+            className="border-2 border-dashed border-neutral-700 rounded-xl p-8 text-center hover:border-[#FFD700] transition cursor-pointer"
           >
             {file ? (
               <div>
                 <div className="text-4xl mb-2">🎵</div>
                 <p className="text-white font-medium">{file.originalFile.name}</p>
-                <p className="text-gray-400 text-sm">
+                <p className="text-neutral-400 text-sm">
                   {(file.size / 1024).toFixed(1)} KB • {file.format}
                 </p>
               </div>
             ) : (
               <div>
                 <div className="text-4xl mb-2">📁</div>
-                <p className="text-gray-400">點擊選擇 Guitar Pro 文件</p>
-                <p className="text-gray-600 text-sm">支援 .gp3, .gp4, .gp5, .gpx, .gp</p>
+                <p className="text-neutral-400">點擊選擇 Guitar Pro 文件</p>
+                <p className="text-neutral-600 text-sm">支援 .gp3, .gp4, .gp5, .gpx, .gp</p>
               </div>
             )}
           </div>
@@ -253,7 +253,7 @@ export default function TestGpUpload() {
             </div>
 
             {uploading && (
-              <div className="mt-4 flex items-center gap-2 text-gray-400">
+              <div className="mt-4 flex items-center gap-2 text-neutral-400">
                 <div className="animate-spin w-4 h-4 border-2 border-[#FFD700] border-t-transparent rounded-full" />
                 上傳中...
               </div>
@@ -283,7 +283,7 @@ export default function TestGpUpload() {
                   {alphaTabResult.message}
                 </p>
                 {alphaTabResult.info?.totalBars && (
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p className="text-sm text-neutral-400 mt-1">
                     音軌數: {alphaTabResult.info.tracks} | 
                     標題: {alphaTabResult.info.title || 'N/A'} |
                     藝人: {alphaTabResult.info.artist || 'N/A'}
@@ -296,7 +296,7 @@ export default function TestGpUpload() {
               ref={containerRef}
               className="min-h-[200px] bg-[#1a1a1a] rounded-lg overflow-hidden"
             >
-              <p className="text-gray-500 text-center py-8">
+              <p className="text-neutral-500 text-center py-8">
                 點擊「測試 AlphaTab」按鈕在此處渲染譜面
               </p>
             </div>
@@ -308,7 +308,7 @@ export default function TestGpUpload() {
           <h2 className="text-lg font-medium text-white mb-4">📋 測試結果</h2>
           
           {results.length === 0 ? (
-            <p className="text-gray-500">尚未進行測試</p>
+            <p className="text-neutral-500">尚未進行測試</p>
           ) : (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {results.map((result) => (
@@ -317,7 +317,7 @@ export default function TestGpUpload() {
                   className={`p-4 rounded-lg ${
                     result.type === 'success' ? 'bg-green-900/30 border border-green-700' :
                     result.type === 'error' ? 'bg-red-900/30 border border-red-700' :
-                    'bg-gray-800/50 border border-gray-700'
+                    'bg-neutral-800/50 border border-neutral-700'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -334,18 +334,18 @@ export default function TestGpUpload() {
                       <p className={`mt-1 ${
                         result.type === 'success' ? 'text-green-200' :
                         result.type === 'error' ? 'text-red-200' :
-                        'text-gray-300'
+                        'text-neutral-300'
                       }`}>
                         {result.message}
                       </p>
                       
                       {result.data && (
-                        <pre className="mt-2 p-2 bg-black/50 rounded text-xs text-gray-400 overflow-x-auto">
+                        <pre className="mt-2 p-2 bg-black/50 rounded text-xs text-neutral-400 overflow-x-auto">
                           {JSON.stringify(result.data, null, 2)}
                         </pre>
                       )}
                     </div>
-                    <span className="text-xs text-gray-600 ml-4">{result.time}</span>
+                    <span className="text-xs text-neutral-600 ml-4">{result.time}</span>
                   </div>
                 </div>
               ))}
@@ -359,13 +359,13 @@ export default function TestGpUpload() {
           
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Cloudinary Cloud Name:</span>
+              <span className="text-neutral-400">Cloudinary Cloud Name:</span>
               <span className={process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? 'text-green-400' : 'text-red-400'}>
                 {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '未設置'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Firebase Storage Bucket:</span>
+              <span className="text-neutral-400">Firebase Storage Bucket:</span>
               <span className={process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? 'text-green-400' : 'text-red-400'}>
                 {process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? '已設置' : '未設置'}
               </span>

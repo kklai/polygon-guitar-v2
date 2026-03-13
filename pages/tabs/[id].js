@@ -4,18 +4,24 @@ import Link from '@/components/Link'
 import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
-import LikeButton from '@/components/LikeButton'
 import TabContent from '@/components/TabContent'
 import TabComments from '@/components/TabComments'
+import SongActionSheet from '@/components/SongActionSheet'
 import RatingSystem from '@/components/RatingSystem'
 import GpSegmentPlayer from '@/components/GpSegmentPlayer'
 import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
 import { recordTabView } from '@/lib/libraryRecentViews'
-import { MoreVertical, Share, Heart, Music, Plus, Copy } from 'lucide-react'
+import { Share, Heart, Music, Plus, Copy, ArrowLeft, PenLine, Star } from 'lucide-react'
+
+const SongInfoIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="currentColor" aria-hidden xmlns="http://www.w3.org/2000/svg">
+    <path d="M50,0C22.42,0,0,22.42,0,50s22.42,50,50,50,50-22.42,50-50S77.58,0,50,0ZM44.95,19.05c1.37-1.37,3.16-2.11,5.26-2.11s3.89.74,5.26,2.11,2.11,3.16,2.11,5.26-.74,3.89-2.11,5.26-3.16,2.11-5.26,2.11-3.89-.74-5.26-2.11-2.11-3.16-2.11-5.26.74-3.89,2.11-5.26ZM63.16,79.16c0,1.47-1.16,2.53-2.53,2.53h-20.21c-1.47,0-2.53-1.05-2.53-2.53v-2.21c0-1.47,1.16-2.53,2.53-2.53l4.53-.42v-26.53l-4.95-.53c-1.37-.11-2.42-1.16-2.42-2.53v-2c0-1.37.95-2.42,2.21-2.53l10.63-1.79s.21-.11.63-.11h2.74c1.47,0,2.53,1.05,2.53,2.53v33.58l4.42.42c1.26,0,2.32,1.16,2.32,2.53v2.11h.11Z" />
+  </svg>
+)
 
 const InstagramIcon = ({ className }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
     <circle cx="12" cy="12" r="4" />
     <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" />
@@ -25,6 +31,8 @@ import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, crea
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema, getAbsoluteOgImage } from '@/lib/seo'
 import { siteConfig } from '@/lib/seo'
+import { calculateCapo, getKeyOptions } from '@/lib/keyUtils'
+import { extractChords, ChordDiagramModal } from '@/components/ChordDiagram'
 
 // 主題顏色配置
 const themeColors = {
@@ -77,8 +85,8 @@ export default function TabDetail({ initialTab }) {
   const [playingSegmentId, setPlayingSegmentId] = useState(null)
   const colors = themeColors[theme];
   
-  const [showActionMenu, setShowActionMenu] = useState(false)
-  const [menuTabLiked, setMenuTabLiked] = useState(false) // menu 內喜愛狀態，開 menu 時更新
+  const [menuTabLiked, setMenuTabLiked] = useState(false) // 頂 bar 喜愛狀態
+  const [likesCount, setLikesCount] = useState(0)
   const [userPlaylists, setUserPlaylists] = useState([])
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false)
   const [addToPlaylistSelectedIds, setAddToPlaylistSelectedIds] = useState([])
@@ -86,9 +94,20 @@ export default function TabDetail({ initialTab }) {
   const [showCreatePlaylistInput, setShowCreatePlaylistInput] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [toastMessage, setToastMessage] = useState(null)
+  // 底部黃 bar + TabContent 受控 state（樂譜頁 layout）
+  const [tabPageFontSize, setTabPageFontSize] = useState(16)
+  const [tabPageIsAutoScroll, setTabPageIsAutoScroll] = useState(false)
+  const [tabPageScrollSpeed, setTabPageScrollSpeed] = useState(3)
+  const [tabPageHideNotation, setTabPageHideNotation] = useState(true)
+  const [tabPageHideBrackets, setTabPageHideBrackets] = useState(false)
+  const [showChordDiagram, setShowChordDiagram] = useState(false)
+  const [showFloatingControls, setShowFloatingControls] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
 
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
+  const topBarRef = useRef(null)
+  const [topBarHeight, setTopBarHeight] = useState(44)
   // Fallback: when tab has no artistPhoto, get from search-data API (cache, no extra Firestore reads). Remove after backfill.
   const [fallbackArtistPhoto, setFallbackArtistPhoto] = useState(null)
 
@@ -260,20 +279,25 @@ export default function TabDetail({ initialTab }) {
     }
   }
 
-  // 處理更多選單
-  const handleMoreClick = async () => {
-    if (user && tab) {
-      const [liked, playlists] = await Promise.all([
-        checkIsLiked(user.uid, tab.id),
-        getUserPlaylists(user.uid)
-      ]);
-      setMenuTabLiked(liked);
-      setUserPlaylists(playlists);
+  // 頂 bar 喜愛狀態：tab 載入時更新
+  useEffect(() => {
+    if (tab) setLikesCount(tab.likes ?? 0);
+  }, [tab?.id]);
+
+  useEffect(() => {
+    if (user && tab?.id) {
+      checkIsLiked(user.uid, tab.id).then(setMenuTabLiked);
     } else {
       setMenuTabLiked(false);
     }
-    setShowActionMenu(true);
-  };
+  }, [user, tab?.id]);
+
+  // 加入歌單需要歌單列表：user 登入時載入
+  useEffect(() => {
+    if (user) {
+      getUserPlaylists(user.uid).then(setUserPlaylists);
+    }
+  }, [user]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -284,6 +308,10 @@ export default function TabDetail({ initialTab }) {
     const t = setTimeout(() => setToastMessage(null), 2500);
     return () => clearTimeout(t);
   }, [toastMessage]);
+
+  useEffect(() => {
+    if (topBarRef.current) setTopBarHeight(topBarRef.current.offsetHeight);
+  });
 
   const copyToClipboard = (text) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -321,7 +349,6 @@ export default function TabDetail({ initialTab }) {
 
   const handleSelectLyricsShare = () => {
     if (!tab?.id) return;
-    setShowActionMenu(false);
     router.push(`/tools/tab-share?tabId=${tab.id}`);
   };
 
@@ -347,7 +374,6 @@ export default function TabDetail({ initialTab }) {
         showToast('複製失敗');
       }
     }
-    setShowActionMenu(false);
   };
 
   const handleAddToLiked = async () => {
@@ -358,13 +384,13 @@ export default function TabDetail({ initialTab }) {
     try {
       const result = await toggleLikeSong(user.uid, tab.id);
       setMenuTabLiked(result.isLiked);
+      setLikesCount(prev => result.isLiked ? prev + 1 : Math.max(0, prev - 1));
     } catch (error) {
       alert('操作失敗：' + error.message);
     }
   };
 
   const handleAddToPlaylistClick = () => {
-    setShowActionMenu(false);
     // 預設剔選已包含此歌嘅歌單
     const alreadyIn = (userPlaylists || [])
       .filter((pl) => pl.songIds && pl.songIds.includes(tab?.id))
@@ -435,9 +461,9 @@ export default function TabDetail({ initialTab }) {
       <Layout>
         <div className="w-full">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-800 rounded w-1/2"></div>
-            <div className="h-6 bg-gray-800 rounded w-1/4"></div>
-            <div className="h-96 bg-gray-800 rounded"></div>
+            <div className="h-8 bg-neutral-800 rounded w-1/2"></div>
+            <div className="h-6 bg-neutral-800 rounded w-1/4"></div>
+            <div className="h-96 bg-neutral-800 rounded"></div>
           </div>
         </div>
       </Layout>
@@ -454,6 +480,7 @@ export default function TabDetail({ initialTab }) {
     : (tab.artist || '')
 
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
+  const tabChords = tab.content ? extractChords(tab.content) : []
 
   // SEO 配置
   const seoTitle = generateTabTitle(tab.title, artistDisplayName)
@@ -508,12 +535,117 @@ export default function TabDetail({ initialTab }) {
       
       <Layout>
         <div className="w-full">
-        {/* Header - 全寬 */}
-        <div className="pt-4 sm:pt-5 md:pt-6 pb-0">
-          {/* 頂部：封面 + 歌名 + 歌手 + 操作 */}
-          <div className="flex items-center gap-4 md:gap-6">
+        {/* 頂bar（固定，唔跟住滾動） */}
+        <div ref={topBarRef} className="sticky top-0 z-20 bg-black pt-1.5 relative">
+          <div className="px-4 pb-1.5 flex items-center justify-between gap-1 sm:gap-2 border-b border-[#1a1a1a]">
+          <button type="button" onClick={() => router.back()} className="p-0 text-neutral-400 hover:text-white transition -ml-0.5 min-w-[40px] min-h-[40px] flex items-center" title="返回上一頁" aria-label="返回上一頁">
+            <ArrowLeft className="w-6 h-6" strokeWidth={1.75} />
+          </button>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+          {(tab?.youtubeVideoId || tab?.youtubeUrl || hasSongInfo) && (
+            <button onClick={() => setShowInfo(!showInfo)} className={`p-1.5 transition ${showInfo ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`} title={showInfo ? '收起歌曲資訊' : '歌曲資訊'}>
+              <SongInfoIcon className="w-[22px] h-[22px]" />
+            </button>
+          )}
+          <button onClick={() => router.push(`/tools/tab-share?tabId=${tab.id}`)} className="p-1.5 text-neutral-400 hover:text-white transition" title="選取歌詞分享">
+            <InstagramIcon className="w-[22px] h-[22px]" />
+          </button>
+          <button onClick={handleAddToLiked} className="p-1.5 text-neutral-400 hover:text-white transition" title={menuTabLiked ? '取消喜愛' : '加到我最喜愛'}>
+            <Heart className={`w-6 h-6 ${menuTabLiked ? 'fill-[#FFD700] text-[#FFD700]' : 'fill-none text-neutral-400'}`} strokeWidth={1.35} />
+          </button>
+          <button onClick={handleAddToPlaylistClick} className="p-1.5 text-neutral-400 hover:text-white transition" title="加入歌單">
+            <svg className="w-[22px] h-[22px]" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.65" strokeLinecap="round" strokeMiterlimit={10} aria-hidden>
+              <circle cx="4.4" cy="4.4" r="4" />
+              <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
+              <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
+            </svg>
+          </button>
+          <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="p-1.5 text-neutral-400 hover:text-white transition" title="更多" aria-label="更多">
+            <svg className="w-[18px] h-[18px]" viewBox="0 0 2.54 14.96" fill="currentColor" aria-hidden>
+              <circle cx="1.27" cy="1.27" r="1.27" />
+              <circle cx="1.27" cy="7.48" r="1.27" />
+              <circle cx="1.27" cy="13.69" r="1.27" />
+            </svg>
+          </button>
+          </div>
+          </div>
+          {/* 歌曲資訊：跟頂 bar sticky，唔會隨 scroll 移動，唔影響背景 */}
+          {showInfo && (tab?.youtubeVideoId || tab?.youtubeUrl || hasSongInfo) && (
+            <div className="absolute left-0 right-0 top-full bg-[#111111] rounded-b-2xl shadow-xl z-10">
+              <div className="px-4 py-3">
+                <div className="space-y-3">
+                  {(extractYouTubeId(tab.youtubeUrl) || tab.youtubeVideoId) && (
+                    <div className="aspect-video w-full rounded-lg overflow-hidden">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={`https://www.youtube.com/embed/${tab.youtubeVideoId || extractYouTubeId(tab.youtubeUrl)}?enablejsapi=1`}
+                        title="YouTube"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
+                  {hasSongInfo && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] sm:text-xs text-neutral-400">
+                      {tab.songYear && <span>年份：<span className="text-white">{tab.songYear}</span></span>}
+                      {tab.album && <span>專輯：<span className="text-white">{tab.album}</span></span>}
+                      {tab.composer && <span>作曲：<span className="text-white">{tab.composer}</span></span>}
+                      {tab.lyricist && <span>填詞：<span className="text-white">{tab.lyricist}</span></span>}
+                      {tab.arranger && <span>編曲：<span className="text-white">{tab.arranger}</span></span>}
+                      {tab.producer && <span>監製：<span className="text-white">{tab.producer}</span></span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Key 選擇器（跟住頁面滾動）；只對波波行 full-bleed */}
+        {tab && (
+          <div className="bg-black pt-2 pb-3">
+            <div className="px-4 mb-1.5">
+              <div className="flex flex-nowrap items-center gap-2 text-xs whitespace-nowrap min-h-6 md:min-h-7 overflow-x-auto scrollbar-hide">
+                <span className="flex-shrink-0 text-neutral-400">原調: <span className="text-white">{tab.originalKey || 'C'}</span></span>
+                <span className="flex-shrink-0 text-neutral-600">→</span>
+                <span className="flex-shrink-0 text-neutral-400">PLAY: <span className="text-[#FFD700] font-medium">{currentKey || tab.playKey || tab.originalKey || 'C'}</span></span>
+                {(() => {
+                  const orig = tab.originalKey || 'C'
+                  const play = currentKey || tab.playKey || tab.originalKey || 'C'
+                  const capo = calculateCapo(orig, play)
+                  return capo > 0 ? (
+                    <span className="flex-shrink-0 bg-[#FFD700] text-black text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded font-medium">Capo {capo}</span>
+                  ) : null
+                })()}
+              </div>
+            </div>
+            <div className="max-md:w-screen max-md:ml-[calc(-50vw+50%)] md:w-full md:ml-0 box-border">
+              <div className="flex flex-nowrap max-md:justify-between md:justify-start gap-0.5 overflow-x-auto scrollbar-hide px-4 max-md:w-full md:w-auto">
+                {getKeyOptions(tab.playKey || tab.originalKey || 'C').map((key) => {
+                  const isCurrent = key === (currentKey || tab.playKey || tab.originalKey || 'C')
+                  return (
+                    <button key={key} onClick={() => setCurrentKey(key)} className={`flex-shrink-0 w-7 h-7 md:w-9 md:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm md:text-base font-medium transition ${isCurrent ? 'bg-[#FFD700] text-black' : 'bg-neutral-700 text-black hover:bg-neutral-600 hover:text-black'}`}>
+                      {key}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Key 與 歌id 之間分隔線 */}
+        <div className="px-4">
+          <div className="border-b border-[#1a1a1a]" />
+        </div>
+
+        {/* 歌id section */}
+        <div className="pt-3 sm:pt-4 md:pt-5 pb-3 sm:pb-4 md:pb-5 px-4">
+          <div className="flex items-start gap-4 md:gap-6">
             {/* 封面圖片 */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-800">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-800">
               {/* 統一封面優先順序：coverImage > albumImage > youtubeVideoId > thumbnail > artistPhoto (incl. search-data fallback) */}
               {(() => {
                 const videoId = tab.youtubeVideoId || tab.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
@@ -534,7 +666,7 @@ export default function TabDetail({ initialTab }) {
                   decoding="async"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-600">
+                <div className="w-full h-full flex items-center justify-center text-neutral-600">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
@@ -542,118 +674,75 @@ export default function TabDetail({ initialTab }) {
               )}
             </div>
             
-            {/* 歌名 + 歌手 + 操作 */}
-            <div className="flex-1 min-w-0">
-              {/* 歌名 - 參考圖：短歌名更大 */}
-              <h1 className={`font-bold text-white leading-tight truncate ${
-                tab.title.length > 20 ? 'text-lg sm:text-xl' : 
-                tab.title.length > 12 ? 'text-xl sm:text-2xl' : 
-                tab.title.length > 6 ? 'text-2xl sm:text-3xl' :
-                'text-3xl sm:text-4xl'
-              }`}>
-                {tab.title}
-              </h1>
-              
-              {/* 歌手行 + 操作掣 */}
-              <div className="flex items-center justify-between mt-1 md:mt-2">
-                {/* 歌手 + 合唱標籤 */}
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Link 
-                    href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="text-gray-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate"
-                  >
-                    {artistDisplayName}
+            {/* 歌名 + 歌手 + 操作（負 margin 令歌名第一行視覺對齊封面頂） */}
+            <div className="flex-1 min-w-0 pt-0 -mt-2">
+              {/* 歌名 + 編輯譜掣 */}
+              <div className="flex items-center gap-0">
+                <h1 className="font-bold text-white leading-none truncate text-xl sm:text-2xl md:text-3xl mt-0 mb-0">
+                  {tab.title}
+                </h1>
+                {canEdit && (
+                  <Link href={`/tabs/${tab.id}/edit`} className="relative top-2 -ml-0.5 p-1.5 text-neutral-400 hover:text-white transition shrink-0 rounded-full hover:bg-neutral-700 flex items-center justify-center" title="編輯譜">
+                    <svg className="w-5 h-5 stroke-[1.25]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
                   </Link>
-                  {/* 合唱/feat 標籤 */}
-                  {tab.isCollaboration && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      tab.collaborationType === 'feat' 
-                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
-                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                    }`}>
-                      {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
-                    </span>
-                  )}
-                </div>
-                
-                {/* 右邊操作掣 - 歌手嗰一行 */}
-                <div className="flex items-center gap-1 md:gap-2 ml-2">
-                  {/* 主題切換 */}
-                  <button
-                    onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
-                    className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
-                    title={theme === 'night' ? '切換日間模式' : '切換夜間模式'}
-                  >
-                    {theme === 'night' ? (
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                      </svg>
-                    )}
-                  </button>
-                  
-                  {/* Admin 編輯 */}
-                  {(isOwner || isAdmin) && (
-                    <Link
-                      href={`/tabs/${tab.id}/edit`}
-                      className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
-                      title="編輯"
-                    >
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </Link>
-                  )}
-                  
-                  {/* 心心 */}
-                  <LikeButton tab={tab} onLikeToggle={loadTab} compact />
-
-                  {/* 生成分享圖片 */}
-                  <button
-                    onClick={() => router.push(`/tools/tab-share?tabId=${tab.id}`)}
-                    className="p-1.5 md:p-2 text-gray-400 hover:text-white transition"
-                    title="生成分享圖片"
-                  >
-                    <Share className="w-4 h-4 md:w-5 md:h-5" />
-                  </button>
-
-                  {/* 更多選項 */}
-                  <button
-                    onClick={handleMoreClick}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-400 hover:text-white transition"
-                    title="更多"
-                  >
-                    <MoreVertical className="w-4 h-4 md:w-5 md:h-5" />
-                  </button>
-                </div>
+                )}
               </div>
               
-              {/* 評分系統 */}
-              {tab && (
-                <div className="mt-2">
-                  <RatingSystem 
-                    tabId={tab.id} 
-                    averageRating={ratingData.averageRating}
-                    ratingCount={ratingData.ratingCount}
-                    size="md"
-                    onRatingUpdate={(avg, count) => setRatingData({ averageRating: avg, ratingCount: count })}
-                  />
+              {/* 歌手 */}
+              <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-2 min-w-0">
+                <Link 
+                  href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
+                >
+                  {artistDisplayName}
+                </Link>
+                {tab.isCollaboration && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    tab.collaborationType === 'feat' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  }`}>
+                    {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
+                  </span>
+                )}
+              </div>
+              {/* 出譜者 + 評分、喜愛數（同一行） */}
+              <div className="flex items-center justify-between gap-3 mt-1.5 min-w-0">
+                <div className="min-w-0">
+                  {(tab.uploaderPenName || tab.arrangedBy) && (
+                    <p className="text-[#FFD700] text-sm flex items-center gap-1">
+                      <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                      {tab.uploaderPenName || tab.arrangedBy}
+                    </p>
+                  )}
                 </div>
-              )}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
+                    <Star className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                    {ratingData.averageRating ? ratingData.averageRating.toFixed(1) : '0'}
+                    <span className="text-sm text-neutral-500">({ratingData.ratingCount || 0})</span>
+                  </span>
+                  <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
+                    <Heart className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                    {likesCount}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-
         </div>
 
-        {/* 主要內容：譜 - 全寬無邊距 */}
+        {/* 歌id section 與 譜section 之間分隔線 */}
+        <div className="px-4">
+          <div className="border-b border-[#1a1a1a]" />
+        </div>
+
+        {/* 譜section */}
         <TabContent 
           content={tab.content} 
           originalKey={tab.originalKey || 'C'}
           playKey={tab.playKey}
-          initialKey={queryKey || tab.playKey || tab.originalKey}
+          initialKey={currentKey || tab.playKey || tab.originalKey}
           onKeyChange={setCurrentKey}
           fullWidth
           theme={theme}
@@ -674,66 +763,190 @@ export default function TabDetail({ initialTab }) {
           }}
           gpSegments={tab.gpSegments || []}
           gpTheme={tab.gpTheme || 'dark'}
-          // 傳 showInfo 去 TabContent
           showInfo={showInfo}
           setShowInfo={setShowInfo}
+          hideKeyRowAndBottomBar
+          externalFontSize={tabPageFontSize}
+          onFontSizeChange={setTabPageFontSize}
+          externalIsAutoScroll={tabPageIsAutoScroll}
+          onAutoScrollChange={setTabPageIsAutoScroll}
+          externalScrollSpeed={tabPageScrollSpeed}
+          onScrollSpeedChange={setTabPageScrollSpeed}
+          externalHideNotation={tabPageHideNotation}
+          externalHideBrackets={tabPageHideBrackets}
+          onHideNotationChange={setTabPageHideNotation}
+          onHideBracketsChange={setTabPageHideBrackets}
         />
 
+        {/* 顯示設定（收埋時右下角兩粒；撳開展開浮動視窗） */}
+        {showFloatingControls && (
+          <div className="fixed inset-0" style={{ zIndex: 29 }} onClick={() => setShowFloatingControls(false)} />
+        )}
+        <div className="fixed bottom-20 right-4 z-30 md:bottom-6 md:right-6 flex flex-col items-end gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+          {showFloatingControls ? (
+            <div className="rounded-2xl bg-[#1a1a1a] shadow-xl p-3 w-[190px] border border-neutral-700">
+              <div className="space-y-3">
+                {/* 字體大小：A − 16 + */}
+                <div className="flex items-center">
+                  <span className="w-8 shrink-0 flex items-center justify-center text-neutral-400 relative left-4">
+                    <svg className="w-6 h-6" viewBox="0 0 37.47 45.21" fill="currentColor" stroke="currentColor" strokeWidth="2">
+                      <path d="M37.36,43.14L20.12.93c-.23-.56-.78-.93-1.39-.93s-1.16.37-1.39.93L.11,43.14c-.31.77.05,1.64.82,1.96.77.32,1.64-.05,1.96-.82l8.24-20.17h15.22l8.24,20.17c.24.58.8.93,1.39.93.19,0,.38-.04.57-.11.77-.31,1.13-1.19.82-1.96ZM12.35,21.11l6.38-15.64,6.38,15.64h-12.77Z"/>
+                    </svg>
+                  </span>
+                  <div className="flex-1 flex items-center justify-center gap-2 relative -top-2 left-2">
+                    <button
+                      onClick={() => setTabPageFontSize(Math.max(12, tabPageFontSize - 1))}
+                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                    >−</button>
+                    <span className="text-[#FFD700] text-xl font-medium w-6 text-center">{tabPageFontSize}</span>
+                    <button
+                      onClick={() => setTabPageFontSize(Math.min(24, tabPageFontSize + 1))}
+                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                    >+</button>
+                  </div>
+                </div>
+
+                {/* 自動滾動速度：↓ − 2 + */}
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setTabPageIsAutoScroll(!tabPageIsAutoScroll)}
+                    className={`w-8 shrink-0 flex items-center justify-center transition relative left-4 ${tabPageIsAutoScroll ? 'text-[#FFD700]' : 'text-neutral-400'}`}
+                    title={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
+                  >
+                    <svg className="w-8 h-8" viewBox="0 0 35.38 47.33" fill="currentColor" stroke="none">
+                      <path d="M21.9,23.81l-.02-8.2c0-.78-.55-1.37-1.26-1.41-.68-.04-1.44.51-1.44,1.32l-.02,5.55c0,.76-.7,1.27-1.38,1.24-.61-.03-1.29-.54-1.29-1.33V4.15c0-.83-.54-1.42-1.3-1.44s-1.38.56-1.38,1.45v24.9c0,.84-.68,1.35-1.32,1.37-.86.02-1.38-.63-1.38-1.48v-1.87c0-.81-.67-1.37-1.34-1.37-.84,0-1.38.65-1.37,1.51l.04,5.18c.04,4.77,3.59,9.65,7.34,12.4.64.47.97,1.2.47,1.97-.35.53-1.26.83-1.95.32-4.67-3.41-8.36-8.72-8.59-14.7l.03-5.59c.01-2.66,2.7-4.37,5.36-3.63l.07-19.57C11.15,1.49,13.19.04,15.05,0c1.99-.05,4.04,1.44,4.06,3.55l.09,8.11c2.35-.69,4.56.54,5.25,2.79,1.26-.45,2.51-.33,3.67.36.93.55,1.58,1.74,1.89,2.89,1.19-.2,2.62-.25,3.75.65.89.71,1.64,1.86,1.64,3.21v4.85c-.02,5.64-.7,16.41-5.04,20.46-.61.57-1.5.58-2.01,0-.58-.65-.4-1.49.24-2.08,2.55-2.38,3.49-8.8,3.82-12.21.34-3.58.29-7.08.29-10.68,0-.83-.34-1.52-1.16-1.63-.75-.1-1.53.44-1.53,1.33v3.3c0,.84-.59,1.45-1.34,1.44-.8,0-1.36-.6-1.36-1.44v-6.73c0-.77-.73-1.29-1.35-1.28-.67,0-1.34.52-1.35,1.29l-.03,5.58c0,.7-.64,1.19-1.25,1.24-.53.05-1.41-.41-1.41-1.21Z"/>
+                      <path d="M5.07,21.53c-.6.6-1.45.61-2.02.04l-2.71-2.73c-.56-.57-.39-1.49.12-1.9.68-.56,1.41-.37,2.22.34V1.5c0-.83.48-1.42,1.22-1.49s1.49.46,1.49,1.35v16c.62-.72,1.45-1,2.14-.49s.73,1.47.07,2.13l-2.54,2.54Z"/>
+                    </svg>
+                  </button>
+                  <div className="flex-1 flex items-center justify-center gap-2 relative -top-2 left-2">
+                    <button
+                      onClick={() => { setTabPageScrollSpeed(Math.max(1, tabPageScrollSpeed - 1)); if (!tabPageIsAutoScroll) setTabPageIsAutoScroll(true); }}
+                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                    >−</button>
+                    <span className="text-[#FFD700] text-xl font-medium w-6 text-center">{tabPageScrollSpeed}</span>
+                    <button
+                      onClick={() => { setTabPageScrollSpeed(Math.min(4, tabPageScrollSpeed + 1)); if (!tabPageIsAutoScroll) setTabPageIsAutoScroll(true); }}
+                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                    >+</button>
+                  </div>
+                </div>
+
+                {/* 分隔線 */}
+                <div className="border-b border-neutral-600" />
+
+                {/* 底部 4 個圓形按鈕 */}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setShowChordDiagram(true)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white"
+                    title="本曲使用和弦"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${theme === 'night' ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
+                    title={theme === 'night' ? '日間模式' : '夜間模式'}
+                  >
+                    {theme === 'night' ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setTabPageHideNotation(!tabPageHideNotation)}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideNotation ? 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
+                    title={tabPageHideNotation ? '顯示簡譜' : '隱藏簡譜'}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabPageHideNotation ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setTabPageHideBrackets(!tabPageHideBrackets)}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideBrackets ? 'bg-[#FFD700] text-black' : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'}`}
+                    title={tabPageHideBrackets ? '顯示括號' : '隱藏括號'}
+                  >
+                    <span className="text-xs font-mono font-bold">( )</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setTabPageIsAutoScroll(!tabPageIsAutoScroll)}
+                className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition opacity-60 hover:opacity-100 focus:opacity-100 ${tabPageIsAutoScroll ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-neutral-800 border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-white'}`}
+                title={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
+                aria-label={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
+              >
+                <svg className="w-7 h-7" viewBox="0 0 35.38 47.33" fill="currentColor" stroke="none">
+                  <path d="M21.9,23.81l-.02-8.2c0-.78-.55-1.37-1.26-1.41-.68-.04-1.44.51-1.44,1.32l-.02,5.55c0,.76-.7,1.27-1.38,1.24-.61-.03-1.29-.54-1.29-1.33V4.15c0-.83-.54-1.42-1.3-1.44s-1.38.56-1.38,1.45v24.9c0,.84-.68,1.35-1.32,1.37-.86.02-1.38-.63-1.38-1.48v-1.87c0-.81-.67-1.37-1.34-1.37-.84,0-1.38.65-1.37,1.51l.04,5.18c.04,4.77,3.59,9.65,7.34,12.4.64.47.97,1.2.47,1.97-.35.53-1.26.83-1.95.32-4.67-3.41-8.36-8.72-8.59-14.7l.03-5.59c.01-2.66,2.7-4.37,5.36-3.63l.07-19.57C11.15,1.49,13.19.04,15.05,0c1.99-.05,4.04,1.44,4.06,3.55l.09,8.11c2.35-.69,4.56.54,5.25,2.79,1.26-.45,2.51-.33,3.67.36.93.55,1.58,1.74,1.89,2.89,1.19-.2,2.62-.25,3.75.65.89.71,1.64,1.86,1.64,3.21v4.85c-.02,5.64-.7,16.41-5.04,20.46-.61.57-1.5.58-2.01,0-.58-.65-.4-1.49.24-2.08,2.55-2.38,3.49-8.8,3.82-12.21.34-3.58.29-7.08.29-10.68,0-.83-.34-1.52-1.16-1.63-.75-.1-1.53.44-1.53,1.33v3.3c0,.84-.59,1.45-1.34,1.44-.8,0-1.36-.6-1.36-1.44v-6.73c0-.77-.73-1.29-1.35-1.28-.67,0-1.34.52-1.35,1.29l-.03,5.58c0,.7-.64,1.19-1.25,1.24-.53.05-1.41-.41-1.41-1.21Z"/>
+                  <path d="M5.07,21.53c-.6.6-1.45.61-2.02.04l-2.71-2.73c-.56-.57-.39-1.49.12-1.9.68-.56,1.41-.37,2.22.34V1.5c0-.83.48-1.42,1.22-1.49s1.49.46,1.49,1.35v16c.62-.72,1.45-1,2.14-.49s.73,1.47.07,2.13l-2.54,2.54Z"/>
+                </svg>
+              </button>
+              <button
+                onClick={() => setShowFloatingControls(true)}
+                className="w-14 h-14 rounded-full bg-[#FFD700] text-black shadow-lg flex items-center justify-center hover:bg-yellow-400 transition opacity-60 hover:opacity-100 focus:opacity-100"
+                title="顯示設定"
+                aria-label="展開顯示設定"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* 星星評分 */}
+        {tab && (
+          <div className="mt-4">
+            <RatingSystem 
+              tabId={tab.id} 
+              averageRating={ratingData.averageRating}
+              ratingCount={ratingData.ratingCount}
+              size="md"
+              onRatingUpdate={(avg, count) => setRatingData({ averageRating: avg, ratingCount: count })}
+            />
+          </div>
+        )}
+
         {/* 留言區 */}
-        <div className="mt-8">
+        <div className="px-4">
           <TabComments tabId={id} />
         </div>
 
-        {/* 更多操作 Modal */}
-        {showActionMenu && (
-          <>
-            <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowActionMenu(false)} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 animate-slide-up">
-              <div className="w-12 h-1 bg-[#3E3E3E] rounded-full mx-auto mb-4" />
-              <div className="px-4 text-left">
-              <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-[#282828]">
-                <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-[#282828]">
-                  {tab.thumbnail || tab.albumImage ? (
-                    <img src={tab.thumbnail || tab.albumImage} alt={tab.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#3E3E3E]">♪</div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium truncate">{tab.title}</h4>
-                  <p className="text-[#B3B3B3] text-sm">{artistDisplayName}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <button onClick={handleCopyShareLink} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Copy className="w-5 h-5 text-[#B3B3B3]" />
-                  <span className="text-white">複製分享連結</span>
-                </button>
-                <button onClick={handleSelectLyricsShare} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <InstagramIcon className="w-5 h-5 text-[#B3B3B3] shrink-0" />
-                  <span className="text-white">選取歌詞分享</span>
-                </button>
-
-                
-                <button onClick={handleAddToLiked} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <Heart className={`w-5 h-5 text-[#FFD700] ${menuTabLiked ? 'fill-[#FFD700]' : 'fill-none'}`} strokeWidth={1.5} />
-                  <span className="text-white">{menuTabLiked ? '取消喜愛' : '加到我最喜愛'}</span>
-                </button>
-                
-                <button onClick={handleAddToPlaylistClick} className="w-full flex items-center space-x-4 p-3 hover:bg-[#1a1a1a] rounded-lg">
-                  <svg className="w-5 h-5 text-[#B3B3B3] shrink-0" viewBox="0 0 8.7 8.7" fill="none" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" strokeMiterlimit={10} aria-hidden>
-                    <circle cx="4.4" cy="4.4" r="4" />
-                    <line x1="2.2" y1="4.4" x2="6.5" y2="4.4" />
-                    <line x1="4.4" y1="2.2" x2="4.4" y2="6.5" />
-                  </svg>
-                  <span className="text-white">加入歌單</span>
-                </button>
-              </div>
-              </div>
-            </div>
-          </>
-        )}
+        {/* 更多 Action Sheet */}
+        <SongActionSheet
+          open={showMoreMenu}
+          onClose={() => setShowMoreMenu(false)}
+          title={tab.title}
+          artist={artistDisplayName}
+          thumbnailUrl={(() => {
+            if (tab.coverImage) return tab.coverImage
+            if (tab.albumImage) return tab.albumImage
+            const videoId = tab.youtubeVideoId || tab.youtubeUrl?.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]
+            if (videoId) return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+            if (tab.thumbnail) return tab.thumbnail
+            return effectiveArtistPhoto
+          })()}
+          liked={menuTabLiked}
+          likeLabel={menuTabLiked ? '取消喜愛' : '加到我最喜愛'}
+          onCopyShareLink={() => { handleCopyShareLink(); setShowMoreMenu(false); }}
+          onSelectLyricsShare={() => { router.push(`/tools/tab-share?tabId=${tab.id}`); setShowMoreMenu(false); }}
+          onAddToLiked={() => { handleAddToLiked(); setShowMoreMenu(false); }}
+          onAddToPlaylist={() => { handleAddToPlaylistClick(); setShowMoreMenu(false); }}
+          artistHref={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
+        />
 
         {/* 自動消失 Toast（複製連結等） */}
         {toastMessage && (
@@ -746,17 +959,25 @@ export default function TabDetail({ initialTab }) {
           </div>
         )}
 
+        {/* 本曲使用和弦 Pop-up */}
+        <ChordDiagramModal
+          chords={tabChords}
+          isOpen={showChordDiagram}
+          onClose={() => setShowChordDiagram(false)}
+          theme={theme}
+        />
+
         {/* 加入歌單 Modal */}
         {showAddToPlaylist && (
           <>
-            <div className="fixed inset-0 bg-black/60 z-50" onClick={() => {
+            <div className="fixed inset-0 bg-black/60 z-[110]" onClick={() => {
                 setShowAddToPlaylist(false);
                 setShowCreatePlaylistInput(false);
                 setNewPlaylistName('');
                 setAddToPlaylistSelectedIds([]);
                 setAddToPlaylistInitialIds([]);
               }} />
-            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[60] pb-24 max-h-[70vh] overflow-y-auto">
+            <div className="fixed bottom-0 left-0 right-0 bg-[#121212] rounded-t-2xl z-[120] max-h-[70vh] overflow-y-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
               <div className="flex flex-col items-center justify-center py-2 min-h-[36px]">
                 <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
               </div>

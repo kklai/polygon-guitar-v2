@@ -91,7 +91,7 @@ export default function TablatureUploader({
           relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all
           ${isDragActive && !isDragReject ? 'border-[#FFD700] bg-yellow-900/10' : ''}
           ${isDragReject ? 'border-red-500 bg-red-900/10' : ''}
-          ${!isDragActive && !isDragReject ? 'border-gray-700 hover:border-gray-600 bg-[#1a1a1a]' : ''}
+          ${!isDragActive && !isDragReject ? 'border-neutral-700 hover:border-neutral-600 bg-[#1a1a1a]' : ''}
         `}
       >
         <input {...getInputProps()} />
@@ -102,12 +102,12 @@ export default function TablatureUploader({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p className="text-gray-400">載入文件中...</p>
+            <p className="text-neutral-400">載入文件中...</p>
           </div>
         ) : (
           <>
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 mx-auto mb-4 bg-neutral-800 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
               </svg>
             </div>
@@ -119,7 +119,7 @@ export default function TablatureUploader({
                 <p className="text-white font-medium mb-2">
                   拖放六線譜文件到這裡，或點擊選擇
                 </p>
-                <p className="text-gray-500 text-sm">
+                <p className="text-neutral-500 text-sm">
                   支援 Guitar Pro (.gp3/4/5 .gpx)、MIDI (.mid)、MusicXML (.xml)
                 </p>
               </>
@@ -130,7 +130,7 @@ export default function TablatureUploader({
 
       {/* 檔案預覽 */}
       {preview && (
-        <div className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-lg border border-gray-800">
+        <div className="flex items-center gap-4 p-4 bg-[#1a1a1a] rounded-lg border border-neutral-800">
           <div className="w-12 h-12 bg-[#FFD700] rounded-lg flex items-center justify-center flex-shrink-0">
             <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
@@ -138,14 +138,14 @@ export default function TablatureUploader({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-medium truncate">{preview.name}</p>
-            <p className="text-gray-500 text-sm">{preview.type} · {preview.size}</p>
+            <p className="text-neutral-500 text-sm">{preview.type} · {preview.size}</p>
           </div>
           <button
             onClick={() => {
               setPreview(null);
               onFileLoaded?.(null, null);
             }}
-            className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-red-400 transition"
+            className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400 hover:text-red-400 transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

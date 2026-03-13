@@ -65,12 +65,12 @@ function AnalyzePage() {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-6">🎸 結他譜自動分析</h1>
         
-        <div className="bg-[#121212] rounded-xl p-6 border border-gray-800 mb-6">
+        <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800 mb-6">
           <h2 className="text-xl font-bold text-white mb-4">分析設置</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-gray-400 mb-2">模式</label>
+              <label className="block text-neutral-400 mb-2">模式</label>
               <div className="flex gap-4 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -97,11 +97,11 @@ function AnalyzePage() {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-400 mb-2">分析數量</label>
+                <label className="block text-neutral-400 mb-2">分析數量</label>
                 <select
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
-                  className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700"
+                  className="w-full bg-neutral-800 text-white px-4 py-2 rounded-lg border border-neutral-700"
                 >
                   <option value={1}>1 篇</option>
                   <option value={5}>5 篇</option>
@@ -134,7 +134,7 @@ function AnalyzePage() {
         
         {/* 結果顯示 */}
         {results && (
-          <div className="bg-[#121212] rounded-xl p-6 border border-gray-800">
+          <div className="bg-[#121212] rounded-xl p-6 border border-neutral-800">
             <h2 className="text-xl font-bold text-white mb-4">
               {results.success ? '✅ 分析完成' : '❌ 分析失敗'}
             </h2>
@@ -142,37 +142,37 @@ function AnalyzePage() {
             {results.success && results.results && (
               <>
                 <div className="grid grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gray-800 p-4 rounded-lg text-center">
+                  <div className="bg-neutral-800 p-4 rounded-lg text-center">
                     <div className="text-2xl font-bold text-white">{results.results.total}</div>
-                    <div className="text-gray-400 text-sm">總譜數</div>
+                    <div className="text-neutral-400 text-sm">總譜數</div>
                   </div>
                   <div className="bg-green-900/30 p-4 rounded-lg text-center">
                     <div className="text-2xl font-bold text-green-400">{results.results.analyzed}</div>
-                    <div className="text-gray-400 text-sm">已分析</div>
+                    <div className="text-neutral-400 text-sm">已分析</div>
                   </div>
                   <div className="bg-blue-900/30 p-4 rounded-lg text-center">
                     <div className="text-2xl font-bold text-blue-400">{results.results.updated}</div>
-                    <div className="text-gray-400 text-sm">已更新</div>
+                    <div className="text-neutral-400 text-sm">已更新</div>
                   </div>
                   <div className="bg-yellow-900/30 p-4 rounded-lg text-center">
                     <div className="text-2xl font-bold text-yellow-400">{results.results.skipped}</div>
-                    <div className="text-gray-400 text-sm">已跳過</div>
+                    <div className="text-neutral-400 text-sm">已跳過</div>
                   </div>
                 </div>
                 
                 <h3 className="text-lg font-bold text-white mb-3">詳細結果（點擊展開查看）</h3>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
                   {results.results.details.map((item, i) => (
-                    <div key={i} className="bg-gray-800 rounded-lg overflow-hidden">
+                    <div key={i} className="bg-neutral-800 rounded-lg overflow-hidden">
                       <button
                         onClick={() => toggleExpand(i)}
-                        className="w-full p-3 flex items-center justify-between hover:bg-gray-700 transition"
+                        className="w-full p-3 flex items-center justify-between hover:bg-neutral-700 transition"
                       >
                         <div className="flex items-center gap-3">
                           <span className={`text-xs px-2 py-1 rounded ${
                             item.status === 'updated' ? 'bg-green-600 text-white' :
                             item.status === 'analyzed' ? 'bg-blue-600 text-white' :
-                            item.status === 'skipped' ? 'bg-gray-600 text-white' :
+                            item.status === 'skipped' ? 'bg-neutral-600 text-white' :
                             'bg-red-600 text-white'
                           }`}>
                             {item.status === 'updated' ? '已更新' :
@@ -181,17 +181,17 @@ function AnalyzePage() {
                           </span>
                           <span className="text-white font-medium text-left">{item.title}</span>
                           {item.artist && (
-                            <span className="text-gray-400 text-sm">- {item.artist}</span>
+                            <span className="text-neutral-400 text-sm">- {item.artist}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           {item.analysis && (
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-neutral-400">
                               {item.analysis.levelName} · {item.analysis.chordCount}個和弦
                             </span>
                           )}
                           <svg 
-                            className={`w-5 h-5 text-gray-400 transition-transform ${expandedItems.has(i) ? 'rotate-180' : ''}`} 
+                            className={`w-5 h-5 text-neutral-400 transition-transform ${expandedItems.has(i) ? 'rotate-180' : ''}`} 
                             fill="none" 
                             stroke="currentColor" 
                             viewBox="0 0 24 24"
@@ -202,24 +202,24 @@ function AnalyzePage() {
                       </button>
                       
                       {expandedItems.has(i) && item.analysis && (
-                        <div className="p-4 border-t border-gray-700 bg-gray-900/50">
+                        <div className="p-4 border-t border-neutral-700 bg-neutral-900/50">
                           {/* 基本統計 */}
                           <div className="grid grid-cols-4 gap-3 mb-4">
-                            <div className="bg-gray-800 p-2 rounded text-center">
+                            <div className="bg-neutral-800 p-2 rounded text-center">
                               <div className="text-lg font-bold text-[#FFD700]">{item.analysis.chordCount}</div>
-                              <div className="text-xs text-gray-400">獨特和弦</div>
+                              <div className="text-xs text-neutral-400">獨特和弦</div>
                             </div>
-                            <div className="bg-gray-800 p-2 rounded text-center">
+                            <div className="bg-neutral-800 p-2 rounded text-center">
                               <div className="text-lg font-bold text-[#FFD700]">{item.analysis.lineCount}</div>
-                              <div className="text-xs text-gray-400">行數</div>
+                              <div className="text-xs text-neutral-400">行數</div>
                             </div>
-                            <div className="bg-gray-800 p-2 rounded text-center">
+                            <div className="bg-neutral-800 p-2 rounded text-center">
                               <div className="text-lg font-bold text-[#FFD700]">{item.analysis.charCount}</div>
-                              <div className="text-xs text-gray-400">字符數</div>
+                              <div className="text-xs text-neutral-400">字符數</div>
                             </div>
-                            <div className="bg-gray-800 p-2 rounded text-center">
+                            <div className="bg-neutral-800 p-2 rounded text-center">
                               <div className="text-lg font-bold text-[#FFD700]">{item.analysis.estimatedTime}</div>
-                              <div className="text-xs text-gray-400">預計練習</div>
+                              <div className="text-xs text-neutral-400">預計練習</div>
                             </div>
                           </div>
                           
@@ -242,12 +242,12 @@ function AnalyzePage() {
                           {/* 和弦詳情 */}
                           <div className="space-y-3">
                             <div>
-                              <div className="text-sm text-gray-400 mb-1">所有獨特和弦 ({item.analysis.uniqueChords.length}個):</div>
+                              <div className="text-sm text-neutral-400 mb-1">所有獨特和弦 ({item.analysis.uniqueChords.length}個):</div>
                               <div className="flex flex-wrap gap-1">
                                 {item.analysis.uniqueChords.map((chord, idx) => (
                                   <span 
                                     key={idx}
-                                    className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-300"
+                                    className="text-xs px-2 py-1 rounded bg-neutral-700 text-neutral-300"
                                   >
                                     {chord}
                                   </span>
@@ -258,7 +258,7 @@ function AnalyzePage() {
                             {/* 標籤 */}
                             {item.analysis.autoTags?.length > 0 && (
                               <div>
-                                <div className="text-sm text-gray-400 mb-1">自動標籤:</div>
+                                <div className="text-sm text-neutral-400 mb-1">自動標籤:</div>
                                 <div className="flex flex-wrap gap-1">
                                   {item.analysis.autoTags.map((tag, idx) => (
                                     <span key={idx} className="text-xs px-2 py-1 bg-[#FFD700]/20 text-[#FFD700] rounded">
@@ -271,24 +271,24 @@ function AnalyzePage() {
                             
                             {/* 檢測到的技巧 */}
                             <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div className={`p-2 rounded ${item.analysis.hasFingerstyle ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+                              <div className={`p-2 rounded ${item.analysis.hasFingerstyle ? 'bg-green-900/30 text-green-400' : 'bg-neutral-800 text-neutral-500'}`}>
                                 {item.analysis.hasFingerstyle ? '✓' : '✗'} 指彈技巧
                               </div>
-                              <div className={`p-2 rounded ${item.analysis.hasStrummingPattern ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+                              <div className={`p-2 rounded ${item.analysis.hasStrummingPattern ? 'bg-green-900/30 text-green-400' : 'bg-neutral-800 text-neutral-500'}`}>
                                 {item.analysis.hasStrummingPattern ? '✓' : '✗'} 掃弦節奏
                               </div>
-                              <div className={`p-2 rounded ${item.analysis.hasChorus ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+                              <div className={`p-2 rounded ${item.analysis.hasChorus ? 'bg-green-900/30 text-green-400' : 'bg-neutral-800 text-neutral-500'}`}>
                                 {item.analysis.hasChorus ? '✓' : '✗'} 副歌標記
                               </div>
-                              <div className={`p-2 rounded ${item.analysis.hasBridge ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
+                              <div className={`p-2 rounded ${item.analysis.hasBridge ? 'bg-green-900/30 text-green-400' : 'bg-neutral-800 text-neutral-500'}`}>
                                 {item.analysis.hasBridge ? '✓' : '✗'} 橋段標記
                               </div>
                             </div>
                             
                             {/* 內容預覽 */}
                             <div>
-                              <div className="text-sm text-gray-400 mb-1">內容預覽 (前500字符):</div>
-                              <pre className="text-xs text-gray-500 bg-black p-3 rounded overflow-x-auto max-h-40 overflow-y-auto">
+                              <div className="text-sm text-neutral-400 mb-1">內容預覽 (前500字符):</div>
+                              <pre className="text-xs text-neutral-500 bg-black p-3 rounded overflow-x-auto max-h-40 overflow-y-auto">
                                 {item.analysis.contentPreview}
                               </pre>
                             </div>
@@ -307,7 +307,7 @@ function AnalyzePage() {
                       )}
                       
                       {expandedItems.has(i) && item.status === 'skipped' && (
-                        <div className="p-4 border-t border-gray-700 bg-gray-900/50 text-gray-400">
+                        <div className="p-4 border-t border-neutral-700 bg-neutral-900/50 text-neutral-400">
                           {item.reason}
                         </div>
                       )}
@@ -324,7 +324,7 @@ function AnalyzePage() {
         )}
         
         {/* 說明 */}
-        <div className="mt-6 p-4 bg-gray-900 rounded-lg text-sm text-gray-400">
+        <div className="mt-6 p-4 bg-neutral-900 rounded-lg text-sm text-neutral-400">
           <h3 className="font-bold text-white mb-2">💡 使用說明</h3>
           <ul className="list-disc list-inside space-y-1">
             <li>點擊結果展開查看詳細分析（所有和弦、內容預覽）</li>

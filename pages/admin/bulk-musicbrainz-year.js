@@ -247,7 +247,7 @@ function BulkMusicBrainzYearPage() {
     <Layout>
       <div className="max-w-7xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -265,28 +265,28 @@ function BulkMusicBrainzYearPage() {
 
         {/* 統計卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
             <div className="text-2xl font-bold text-white">{stats.total}</div>
-            <div className="text-sm text-gray-400">總歌曲數</div>
+            <div className="text-sm text-neutral-400">總歌曲數</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-red-900/50">
             <div className="text-2xl font-bold text-red-400">{stats.noYear}</div>
-            <div className="text-sm text-gray-400">❌ 無年份</div>
+            <div className="text-sm text-neutral-400">❌ 無年份</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-purple-900/50">
             <div className="text-2xl font-bold text-purple-400">{stats.withMbYear}</div>
-            <div className="text-sm text-gray-400">🧠 已有 MB 年份</div>
+            <div className="text-sm text-neutral-400">🧠 已有 MB 年份</div>
           </div>
           <div className="bg-[#121212] rounded-xl p-4 border border-green-900/50">
             <div className="text-2xl font-bold text-green-400">{stats.success}</div>
-            <div className="text-sm text-gray-400">✅ 本次成功</div>
+            <div className="text-sm text-neutral-400">✅ 本次成功</div>
           </div>
         </div>
 
         {/* 說明 */}
         <div className="mb-6 p-4 bg-[#1a1a2e] rounded-xl border border-purple-900/50">
           <h3 className="text-purple-300 font-medium mb-2">💡 為什麼用 MusicBrainz？</h3>
-          <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
+          <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
             <li><b>無配額限制</b>：不像 Spotify 有每日限制，可以大量處理</li>
             <li><b>準確年份</b>：找最早發行的版本（通常是原版）</li>
             <li><b>速度快</b>：每秒約 1 個請求，100 首歌約需 2 分鐘</li>
@@ -302,14 +302,14 @@ function BulkMusicBrainzYearPage() {
 
         {/* 操作區 */}
         {!showResults && (
-          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-gray-800">
+          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-neutral-800">
             <h3 className="text-white font-medium mb-4">開始批量處理</h3>
             
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <select
                 value={batchSize}
                 onChange={(e) => setBatchSize(Number(e.target.value))}
-                className="px-4 py-2 bg-black border border-gray-700 rounded-lg text-white"
+                className="px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white"
               >
                 <option value={50}>每次 50 首（穩定）</option>
                 <option value={100}>每次 100 首（推薦）</option>
@@ -339,7 +339,7 @@ function BulkMusicBrainzYearPage() {
               </button>
             </div>
             
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-neutral-500">
               💡 建議：{targetTabs.length > 0 ? `還有 ${targetTabs.length} 首需要處理` : '所有歌曲已有年份'}。
               每次處理後可以點「繼續下一批」直到全部完成。
             </p>
@@ -349,11 +349,11 @@ function BulkMusicBrainzYearPage() {
         {/* 處理結果 */}
         {showResults && results.length > 0 && (
           <div className="mb-6 bg-[#121212] rounded-xl border border-purple-500 overflow-hidden">
-            <div className="p-4 border-b border-gray-800 bg-purple-900/20">
+            <div className="p-4 border-b border-neutral-800 bg-purple-900/20">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-purple-300 font-medium">處理結果</h3>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-neutral-400">
                     成功: {results.filter(r => r.updated).length} / {results.length}
                   </p>
                 </div>
@@ -369,7 +369,7 @@ function BulkMusicBrainzYearPage() {
                   )}
                   <button
                     onClick={() => setShowResults(false)}
-                    className="px-4 py-2 text-gray-400 hover:text-white transition"
+                    className="px-4 py-2 text-neutral-400 hover:text-white transition"
                   >
                     返回
                   </button>
@@ -381,33 +381,33 @@ function BulkMusicBrainzYearPage() {
               <table className="w-full text-sm">
                 <thead className="bg-black sticky top-0 z-10">
                   <tr>
-                    <th className="text-left p-3 text-gray-400 font-medium">歌曲</th>
-                    <th className="text-center p-3 text-gray-400 font-medium">最早年份</th>
-                    <th className="text-left p-3 text-gray-400 font-medium">專輯</th>
-                    <th className="text-center p-3 text-gray-400 font-medium">狀態</th>
+                    <th className="text-left p-3 text-neutral-400 font-medium">歌曲</th>
+                    <th className="text-center p-3 text-neutral-400 font-medium">最早年份</th>
+                    <th className="text-left p-3 text-neutral-400 font-medium">專輯</th>
+                    <th className="text-center p-3 text-neutral-400 font-medium">狀態</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-neutral-800">
                   {results.map((item) => (
                     <tr key={item.tabId} className={`${
-                      item.updated ? 'bg-purple-900/10' : 'bg-gray-900/30'
+                      item.updated ? 'bg-purple-900/10' : 'bg-neutral-900/30'
                     }`}>
                       <td className="p-3">
                         <div className="text-white font-medium">{item.title}</div>
-                        <div className="text-gray-500 text-xs">{item.artist}</div>
+                        <div className="text-neutral-500 text-xs">{item.artist}</div>
                       </td>
                       <td className="p-3 text-center">
                         {item.year ? (
                           <span className="text-[#FFD700] font-bold text-lg">{item.year}</span>
                         ) : (
-                          <span className="text-gray-600">-</span>
+                          <span className="text-neutral-600">-</span>
                         )}
                       </td>
                       <td className="p-3">
                         {item.album ? (
-                          <span className="text-gray-400 text-sm">{item.album}</span>
+                          <span className="text-neutral-400 text-sm">{item.album}</span>
                         ) : (
-                          <span className="text-gray-600 text-sm">-</span>
+                          <span className="text-neutral-600 text-sm">-</span>
                         )}
                       </td>
                       <td className="p-3 text-center">
@@ -416,7 +416,7 @@ function BulkMusicBrainzYearPage() {
                         ) : item.error ? (
                           <span className="text-red-400">❌ 失敗</span>
                         ) : (
-                          <span className="text-gray-500">⏭️ 未找到</span>
+                          <span className="text-neutral-500">⏭️ 未找到</span>
                         )}
                       </td>
                     </tr>
@@ -429,17 +429,17 @@ function BulkMusicBrainzYearPage() {
 
         {/* 日誌 */}
         {logs.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800">
-            <div className="p-3 border-b border-gray-800 flex items-center justify-between">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800">
+            <div className="p-3 border-b border-neutral-800 flex items-center justify-between">
               <h3 className="font-medium text-white">處理日誌</h3>
-              <button onClick={() => setLogs([])} className="text-xs text-gray-500 hover:text-white">清除</button>
+              <button onClick={() => setLogs([])} className="text-xs text-neutral-500 hover:text-white">清除</button>
             </div>
             <div className="p-3 max-h-96 overflow-y-auto font-mono text-sm space-y-1">
               {logs.map((log, i) => (
                 <div key={i} className={`${
-                  log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-gray-300'
+                  log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-neutral-300'
                 }`}>
-                  <span className="text-gray-600">[{log.time}]</span> {log.message}
+                  <span className="text-neutral-600">[{log.time}]</span> {log.message}
                 </div>
               ))}
             </div>

@@ -100,7 +100,7 @@ export default function SongActionSheet({
         </div>
         <div className="pb-4 px-4 text-left">
           <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
-            <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+            <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
               {thumbnailUrl ? (
                 <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               ) : (
@@ -109,7 +109,7 @@ export default function SongActionSheet({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-white font-medium truncate">{title}</p>
-              <p className="text-gray-400 text-sm truncate">{artist}</p>
+              <p className="text-neutral-400 text-sm truncate">{artist}</p>
             </div>
           </div>
           <button type="button" onClick={onCopyShareLink} className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white">

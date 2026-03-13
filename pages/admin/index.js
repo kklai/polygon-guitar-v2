@@ -238,7 +238,7 @@ export default function AdminIndex() {
       title: '導航圖標設置',
       description: '自定義底部導航欄圖標',
       icon: '',
-      color: 'bg-gray-600',
+      color: 'bg-neutral-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR]
     },
     {
@@ -262,7 +262,7 @@ export default function AdminIndex() {
       title: '歌手管理（舊版）',
       description: '舊版歌手管理介面',
       icon: '',
-      color: 'bg-gray-600',
+      color: 'bg-neutral-600',
       roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER]
     },
     {
@@ -344,7 +344,7 @@ export default function AdminIndex() {
     }
     return { 
       label: ROLE_LABELS[userRole] || '管理員', 
-      color: ROLE_COLORS[userRole] || 'bg-gray-500' 
+      color: ROLE_COLORS[userRole] || 'bg-neutral-500' 
     }
   }
 

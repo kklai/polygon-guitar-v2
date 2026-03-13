@@ -115,7 +115,7 @@ function RoleSettings() {
     <Layout>
       <div className="max-w-6xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -143,28 +143,28 @@ function RoleSettings() {
         )}
 
         {/* Role Legend */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 mb-6">
-          <h2 className="text-sm font-medium text-gray-400 mb-3">角色說明</h2>
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-4 mb-6">
+          <h2 className="text-sm font-medium text-neutral-400 mb-3">角色說明</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="flex items-center gap-2 p-2 bg-gray-900 rounded">
+            <div className="flex items-center gap-2 p-2 bg-neutral-900 rounded">
               <span className="w-3 h-3 rounded-full bg-pink-500"></span>
               <div>
                 <span className="text-white text-sm font-medium">Art Director</span>
-                <p className="text-xs text-gray-500">Logo、相片、封面管理</p>
+                <p className="text-xs text-neutral-500">Logo、相片、封面管理</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-900 rounded">
+            <div className="flex items-center gap-2 p-2 bg-neutral-900 rounded">
               <span className="w-3 h-3 rounded-full bg-blue-500"></span>
               <div>
                 <span className="text-white text-sm font-medium">Score Checker</span>
-                <p className="text-xs text-gray-500">編輯樂譜、歌手資料</p>
+                <p className="text-xs text-neutral-500">編輯樂譜、歌手資料</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-900 rounded">
+            <div className="flex items-center gap-2 p-2 bg-neutral-900 rounded">
               <span className="w-3 h-3 rounded-full bg-green-500"></span>
               <div>
                 <span className="text-white text-sm font-medium">Playlist Maker</span>
-                <p className="text-xs text-gray-500">創建特色歌單</p>
+                <p className="text-xs text-neutral-500">創建特色歌單</p>
               </div>
             </div>
           </div>
@@ -182,11 +182,11 @@ function RoleSettings() {
         </div>
 
         {/* Super Admin */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-          <div className="p-4 border-b border-gray-800">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
+          <div className="p-4 border-b border-neutral-800">
             <h2 className="text-lg font-medium text-white">👑 超級管理員</h2>
           </div>
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-neutral-800">
             {superAdmins.map(admin => (
               <div key={admin.id} className="p-4 flex items-center gap-4">
                 <img 
@@ -196,7 +196,7 @@ function RoleSettings() {
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium truncate">{admin.displayName || '未知用戶'}</p>
-                  <p className="text-sm text-gray-500 truncate">{admin.email}</p>
+                  <p className="text-sm text-neutral-500 truncate">{admin.email}</p>
                 </div>
                 <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded">
                   SUPER ADMIN
@@ -208,11 +208,11 @@ function RoleSettings() {
 
         {/* Users with Roles */}
         {usersWithRoles.length > 0 && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-            <div className="p-4 border-b border-gray-800">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
+            <div className="p-4 border-b border-neutral-800">
               <h2 className="text-lg font-medium text-white">🎭 已設置角色 ({usersWithRoles.length})</h2>
             </div>
-            <div className="divide-y divide-gray-800">
+            <div className="divide-y divide-neutral-800">
               {usersWithRoles.map(u => (
                 <div key={u.id} className="p-4 flex items-center gap-4">
                   <img 
@@ -222,7 +222,7 @@ function RoleSettings() {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium truncate">{u.displayName || '未知用戶'}</p>
-                    <p className="text-sm text-gray-500 truncate">{u.email}</p>
+                    <p className="text-sm text-neutral-500 truncate">{u.email}</p>
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ function RoleSettings() {
                     <select
                       value={u.role || ''}
                       onChange={(e) => updateUserRole(u.id, e.target.value || null)}
-                      className="px-2 py-1 bg-gray-800 text-white text-sm rounded border border-gray-700"
+                      className="px-2 py-1 bg-neutral-800 text-white text-sm rounded border border-neutral-700"
                     >
                       <option value="">選擇角色...</option>
                       <option value={ROLES.ART_DIRECTOR}>Art Director</option>
@@ -255,19 +255,19 @@ function RoleSettings() {
         )}
 
         {/* Users without Roles */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800">
-          <div className="p-4 border-b border-gray-800">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800">
+          <div className="p-4 border-b border-neutral-800">
             <h2 className="text-lg font-medium text-white">👥 普通用戶 ({usersWithoutRoles.length})</h2>
           </div>
           
           {usersWithoutRoles.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-neutral-500">
               {searchTerm ? '找不到符合的用戶' : '暫時沒有普通用戶'}
             </div>
           ) : (
-            <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
+            <div className="divide-y divide-neutral-800 max-h-96 overflow-y-auto">
               {usersWithoutRoles.map(u => (
-                <div key={u.id} className="p-4 flex items-center gap-4 hover:bg-gray-900/50 transition">
+                <div key={u.id} className="p-4 flex items-center gap-4 hover:bg-neutral-900/50 transition">
                   <img 
                     src={u.photoURL || '/default-avatar.png'} 
                     alt={u.displayName}
@@ -275,9 +275,9 @@ function RoleSettings() {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium truncate">{u.displayName || '未知用戶'}</p>
-                    <p className="text-sm text-gray-500 truncate">{u.email}</p>
+                    <p className="text-sm text-neutral-500 truncate">{u.email}</p>
                     {u.createdAt && (
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-neutral-600">
                         註冊: {new Date(u.createdAt).toLocaleDateString('zh-HK')}
                       </p>
                     )}
@@ -303,7 +303,7 @@ function RoleSettings() {
         </div>
 
         {/* Info */}
-        <div className="mt-6 p-4 bg-gray-900 rounded-lg text-sm text-gray-400">
+        <div className="mt-6 p-4 bg-neutral-900 rounded-lg text-sm text-neutral-400">
           <p className="mb-2">💡 <span className="text-white">說明：</span></p>
           <ul className="space-y-1 list-disc list-inside">
             <li>設置角色後，用戶可以進入後台並根據角色獲得不同權限</li>

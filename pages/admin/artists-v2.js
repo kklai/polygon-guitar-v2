@@ -478,7 +478,7 @@ export default function ArtistsV2Page() {
 
           {/* 統計面板 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
+            <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
               <div className="text-2xl font-bold text-white">{stats.total}</div>
               <div className="text-[#B3B3B3] text-sm">總歌手數</div>
             </div>
@@ -513,7 +513,7 @@ export default function ArtistsV2Page() {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="bg-[#121212] text-white border border-gray-700 rounded-lg px-3 py-2 text-sm"
+                className="bg-[#121212] text-white border border-neutral-700 rounded-lg px-3 py-2 text-sm"
               >
                 <option value="all">全部 ({stats.total})</option>
                 <option value="noGender">未分類 ({stats.withoutGender})</option>
@@ -527,7 +527,7 @@ export default function ArtistsV2Page() {
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
-                className="bg-[#121212] text-white border border-gray-700 rounded-lg px-3 py-2 text-sm"
+                className="bg-[#121212] text-white border border-neutral-700 rounded-lg px-3 py-2 text-sm"
               >
                 <option value="name">按名稱</option>
                 <option value="tabsDesc">按譜數 (多到少)</option>
@@ -613,7 +613,7 @@ export default function ArtistsV2Page() {
                 <div
                   key={artist.id}
                   className={`bg-[#121212] rounded-lg border ${
-                    !artist.artistType && !artist.gender ? 'border-red-800/50' : 'border-gray-800'
+                    !artist.artistType && !artist.gender ? 'border-red-800/50' : 'border-neutral-800'
                   } ${selectedArtists.has(artist.id) ? 'ring-2 ring-[#FFD700]' : ''} p-4`}
                 >
                   <div className="flex items-center gap-4">
@@ -623,7 +623,7 @@ export default function ArtistsV2Page() {
                         type="checkbox"
                         checked={selectedArtists.has(artist.id)}
                         onChange={() => toggleSelection(artist.id)}
-                        className="w-5 h-5 rounded border-gray-600 text-[#FFD700] bg-[#1a1a1a]"
+                        className="w-5 h-5 rounded border-neutral-600 text-[#FFD700] bg-[#1a1a1a]"
                       />
                     )}
                     {/* 照片 */}
@@ -664,7 +664,7 @@ export default function ArtistsV2Page() {
                           </span>
                         )}
                       </div>
-                      <div className="text-gray-500 text-xs space-y-0.5">
+                      <div className="text-neutral-500 text-xs space-y-0.5">
                         <p>ID: {artist.id}</p>
                         <p>譜數: {artist.tabCount || 0}</p>
                         <div className="flex gap-2 mt-1">
@@ -712,7 +712,7 @@ export default function ArtistsV2Page() {
           {/* 編輯 Modal */}
           {selectedArtist && editForm && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-              <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#121212] rounded-xl border border-neutral-800 w-full max-w-lg max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-white">編輯歌手</h2>
@@ -734,7 +734,7 @@ export default function ArtistsV2Page() {
                         type="text"
                         value={editForm.name}
                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                        className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -743,7 +743,7 @@ export default function ArtistsV2Page() {
                       <select
                         value={editForm.artistType}
                         onChange={(e) => setEditForm({...editForm, artistType: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                        className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                       >
                         {GENDER_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -757,7 +757,7 @@ export default function ArtistsV2Page() {
                         value={editForm.bio}
                         onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
                         rows={3}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                        className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -770,7 +770,7 @@ export default function ArtistsV2Page() {
                           type="text"
                           value={editForm.photoURL}
                           onChange={(e) => setEditForm({...editForm, photoURL: e.target.value})}
-                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                          className="flex-1 bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                         />
                         <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer">
                           上傳
@@ -799,7 +799,7 @@ export default function ArtistsV2Page() {
                         type="text"
                         value={editForm.wikiPhotoURL}
                         onChange={(e) => setEditForm({...editForm, wikiPhotoURL: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                        className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -813,7 +813,7 @@ export default function ArtistsV2Page() {
                           value={editForm.birthYear}
                           onChange={(e) => setEditForm({...editForm, birthYear: e.target.value})}
                           placeholder="例如: 1990"
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                          className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                         />
                       </div>
                       <div>
@@ -825,7 +825,7 @@ export default function ArtistsV2Page() {
                           value={editForm.debutYear}
                           onChange={(e) => setEditForm({...editForm, debutYear: e.target.value})}
                           placeholder="例如: 2010"
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                          className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                         />
                       </div>
                     </div>
@@ -839,7 +839,7 @@ export default function ArtistsV2Page() {
                           value={editForm.heroPhoto}
                           onChange={(e) => setEditForm({...editForm, heroPhoto: e.target.value})}
                           rows={3}
-                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 text-xs font-mono"
+                          className="flex-1 bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2 text-xs font-mono"
                         />
                         <label className="flex-shrink-0 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition cursor-pointer self-start">
                           上傳
@@ -861,7 +861,7 @@ export default function ArtistsV2Page() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-800">
+                  <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-neutral-800">
                     <button
                       onClick={() => {
                         setSelectedArtist(null)

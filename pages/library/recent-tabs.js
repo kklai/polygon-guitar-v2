@@ -215,7 +215,7 @@ export default function RecentTabs() {
             <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
               最近瀏覽
             </h1>
-            <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
+            <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
               共 {tabs.length} 份
             </span>
           </div>
@@ -226,7 +226,7 @@ export default function RecentTabs() {
             {tabs.map((tab) => (
               <div key={tab.id} className="group flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition">
                 <Link href={`/tabs/${tab.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                  <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                  <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(tab) ? (
                       <img
                         src={getSongThumbnail(tab)}
@@ -265,7 +265,7 @@ export default function RecentTabs() {
           <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <Clock className="w-16 h-16 text-[#3E3E3E] mx-auto mb-4" />
             <h3 className="text-xl text-white mb-2">未有最近瀏覽</h3>
-            <p className="text-gray-500 mb-6">打開過嘅結他譜會顯示喺呢度（最多 20 份）</p>
+            <p className="text-neutral-500 mb-6">打開過嘅結他譜會顯示喺呢度（最多 20 份）</p>
             <Link
               href={backHref}
               className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"

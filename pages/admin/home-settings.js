@@ -760,8 +760,8 @@ function HomeSettings() {
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-800 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-800 rounded"></div>
+            <div className="h-8 bg-neutral-800 rounded w-1/3"></div>
+            <div className="h-64 bg-neutral-800 rounded"></div>
           </div>
         </div>
       </Layout>
@@ -773,7 +773,7 @@ function HomeSettings() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white mb-2">首頁設置</h1>
-          <p className="text-gray-500">自定義首頁顯示內容同排序</p>
+          <p className="text-neutral-500">自定義首頁顯示內容同排序</p>
         </div>
 
         {message && (
@@ -786,13 +786,13 @@ function HomeSettings() {
           </div>
         )}
 
-        <div className="flex border-b border-gray-800 mb-6">
+        <div className="flex border-b border-neutral-800 mb-6">
           <button
             onClick={() => setActiveTab('artists')}
             className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
               activeTab === 'artists'
                 ? 'text-[#FFD700] border-[#FFD700]'
-                : 'text-gray-400 border-transparent hover:text-white'
+                : 'text-neutral-400 border-transparent hover:text-white'
             }`}
           >
             👤 熱門歌手
@@ -802,7 +802,7 @@ function HomeSettings() {
             className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
               activeTab === 'tabs'
                 ? 'text-[#FFD700] border-[#FFD700]'
-                : 'text-gray-400 border-transparent hover:text-white'
+                : 'text-neutral-400 border-transparent hover:text-white'
             }`}
           >
             🎵 熱門歌曲
@@ -812,7 +812,7 @@ function HomeSettings() {
             className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
               activeTab === 'layout'
                 ? 'text-[#FFD700] border-[#FFD700]'
-                : 'text-gray-400 border-transparent hover:text-white'
+                : 'text-neutral-400 border-transparent hover:text-white'
             }`}
           >
             📐 頁面布局
@@ -823,31 +823,31 @@ function HomeSettings() {
         {activeTab === 'artists' && (
           <div className="space-y-6">
             {/* 設置選項 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
               <h2 className="text-lg font-medium text-white mb-4">顯示設置</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">排序方式</label>
+                  <label className="block text-sm text-neutral-400 mb-2">排序方式</label>
                   <select
                     value={settings.hotArtistSortBy}
                     onChange={(e) => {
                       setSettings(prev => ({ ...prev, hotArtistSortBy: e.target.value }))
                       setHasChanges(true)
                     }}
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
                   >
                     {SORT_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-neutral-500 mt-1">
                     {SORT_OPTIONS.find(o => o.value === settings.hotArtistSortBy)?.desc}
                   </p>
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">顯示數量</label>
+                  <label className="block text-sm text-neutral-400 mb-2">顯示數量</label>
                   <input
                     type="number"
                     value={settings.displayCount}
@@ -855,7 +855,7 @@ function HomeSettings() {
                       setSettings(prev => ({ ...prev, displayCount: parseInt(e.target.value) || 20 }))
                       setHasChanges(true)
                     }}
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
                     min="1"
                     max="50"
                   />
@@ -864,25 +864,25 @@ function HomeSettings() {
             </div>
 
             {/* 手動選擇 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800">
-              <div className="p-4 border-b border-gray-800">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800">
+              <div className="p-4 border-b border-neutral-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-medium text-white">手動揀選歌手</h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-neutral-500 mt-1">
                       揀選歌手組成「熱門歌手」列表，有揀選就優先顯示，冇就自動排序
                     </p>
                   </div>
                   {loadingArtists && (
-                    <span className="text-sm text-gray-400">Loading list…</span>
+                    <span className="text-sm text-neutral-400">Loading list…</span>
                   )}
                 </div>
               </div>
               
               {/* 分類 Tab */}
               {/* 分類篩選（只影響搜索結果，唔影響已選列表） */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800 overflow-x-auto">
-                <span className="text-sm text-gray-500 whitespace-nowrap">搜索篩選:</span>
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-800 overflow-x-auto">
+                <span className="text-sm text-neutral-500 whitespace-nowrap">搜索篩選:</span>
                 {[
                   { id: 'all', label: '全部' },
                   { id: 'male', label: '男歌手' },
@@ -898,7 +898,7 @@ function HomeSettings() {
                     className={`px-3 py-1.5 text-sm font-medium rounded-full transition whitespace-nowrap ${
                       activeArtistCategory === cat.id
                         ? 'bg-[#FFD700] text-black'
-                        : 'bg-[#282828] text-gray-400 hover:text-white'
+                        : 'bg-[#282828] text-neutral-400 hover:text-white'
                     }`}
                   >
                     {cat.label}
@@ -920,13 +920,13 @@ function HomeSettings() {
                   return allSelected.length > 0 ? (
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-gray-400">
+                      <h3 className="text-sm font-medium text-neutral-400">
                         已揀選 ({allSelected.length})
-                        <span className="ml-2 text-xs text-gray-500">
+                        <span className="ml-2 text-xs text-neutral-500">
                           男: {getSelectedCounts().male} / 女: {getSelectedCounts().female} / 組合: {getSelectedCounts().group}
                         </span>
                       </h3>
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <span className="text-xs text-neutral-500 flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                         </svg>
@@ -946,10 +946,10 @@ function HomeSettings() {
                             onDragStart={(e) => handleArtistDragStart(e, index)}
                             onDragOver={(e) => handleArtistDragOver(e, index)}
                             onDragEnd={handleArtistDragEnd}
-                            className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800 cursor-move transition-opacity ${draggingArtistIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
+                            className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-neutral-800 cursor-move transition-opacity ${draggingArtistIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
                           >
-                            <span className="text-gray-500 w-6 flex items-center gap-1">
-                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span className="text-neutral-500 w-6 flex items-center gap-1">
+                              <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                               </svg>
                               {index + 1}
@@ -980,7 +980,7 @@ function HomeSettings() {
                                   moveArtistOrder(index, 'up')
                                 }}
                                 disabled={index === 0}
-                                className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
+                                className="p-1.5 text-neutral-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
                               >
                                 ↑
                               </button>
@@ -991,7 +991,7 @@ function HomeSettings() {
                                   moveArtistOrder(index, 'down')
                                 }}
                                 disabled={index === allSelected.length - 1}
-                                className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
+                                className="p-1.5 text-neutral-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
                               >
                                 ↓
                               </button>
@@ -1009,18 +1009,18 @@ function HomeSettings() {
                     </div>
                   </div>
                   ) : (
-                    <div className="mb-6 p-8 bg-[#1a1a1a] rounded-lg border border-gray-800 text-center">
-                      <p className="text-gray-500">尚未揀選任何歌手</p>
-                      <p className="text-sm text-gray-600 mt-1">喺下面搜索添加歌手</p>
+                    <div className="mb-6 p-8 bg-[#1a1a1a] rounded-lg border border-neutral-800 text-center">
+                      <p className="text-neutral-500">尚未揀選任何歌手</p>
+                      <p className="text-sm text-neutral-600 mt-1">喺下面搜索添加歌手</p>
                     </div>
                   )
                 })()}
 
                 {/* 搜索添加 */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-3">
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">
                     添加歌手 
-                    <span className="text-xs text-gray-500 ml-1">
+                    <span className="text-xs text-neutral-500 ml-1">
                       ({activeArtistCategory === 'all' ? '顯示全部' : `只顯示${activeArtistCategory === 'male' ? '男歌手' : activeArtistCategory === 'female' ? '女歌手' : '組合'}`})
                     </span>
                   </h3>
@@ -1035,7 +1035,7 @@ function HomeSettings() {
                     {artistSearchTerm && (
                       <button
                         onClick={() => setArtistSearchTerm('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
                       >
                         ✕
                       </button>
@@ -1092,12 +1092,12 @@ function HomeSettings() {
         {activeTab === 'tabs' && (
           <div className="space-y-6">
             {/* 設置選項 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
               <h2 className="text-lg font-medium text-white mb-4">顯示設置</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">排序方式</label>
+                  <label className="block text-sm text-neutral-400 mb-2">排序方式</label>
                   <select
                     value={settings.hotTabs?.sortBy || 'viewCount'}
                     onChange={(e) => {
@@ -1107,7 +1107,7 @@ function HomeSettings() {
                       }))
                       setHasChanges(true)
                     }}
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
                   >
                     {TAB_SORT_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1116,7 +1116,7 @@ function HomeSettings() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">顯示數量</label>
+                  <label className="block text-sm text-neutral-400 mb-2">顯示數量</label>
                   <input
                     type="number"
                     value={settings.hotTabs?.displayCount || 20}
@@ -1127,7 +1127,7 @@ function HomeSettings() {
                       }))
                       setHasChanges(true)
                     }}
-                    className="w-full bg-[#282828] border border-gray-700 rounded-lg px-4 py-2 text-white"
+                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
                     min="1"
                     max="50"
                   />
@@ -1145,26 +1145,26 @@ function HomeSettings() {
                         }))
                         setHasChanges(true)
                       }}
-                      className="w-5 h-5 rounded border-gray-600 text-[#FFD700] bg-[#282828]"
+                      className="w-5 h-5 rounded border-neutral-600 text-[#FFD700] bg-[#282828]"
                     />
-                    <span className="text-sm text-gray-300">只顯示手動揀選</span>
+                    <span className="text-sm text-neutral-300">只顯示手動揀選</span>
                   </label>
                 </div>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-neutral-500">
                 {TAB_SORT_OPTIONS.find(o => o.value === (settings.hotTabs?.sortBy || 'viewCount'))?.desc}
               </p>
             </div>
 
             {/* 手動選擇歌曲 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
-                  <p className="text-sm text-gray-500 mt-1">揀選特定歌曲顯示喺熱門結他譜區</p>
+                  <p className="text-sm text-neutral-500 mt-1">揀選特定歌曲顯示喺熱門結他譜區</p>
                 </div>
                 {loadingTabs && (
-                  <span className="text-sm text-gray-400">Loading list…</span>
+                  <span className="text-sm text-neutral-400">Loading list…</span>
                 )}
               </div>
 
@@ -1174,10 +1174,10 @@ function HomeSettings() {
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-medium text-gray-400">
+                        <h3 className="text-sm font-medium text-neutral-400">
                           已揀選 ({selectedTabIds.length})
                         </h3>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="text-xs text-neutral-500 flex items-center gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                           </svg>
@@ -1209,10 +1209,10 @@ function HomeSettings() {
                           onDragStart={(e) => handleTabDragStart(e, index)}
                           onDragOver={(e) => handleTabDragOver(e, index)}
                           onDragEnd={handleTabDragEnd}
-                          className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-gray-800 cursor-move transition-opacity ${draggingTabIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
+                          className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-neutral-800 cursor-move transition-opacity ${draggingTabIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
                         >
-                          <span className="text-gray-500 w-6 flex items-center gap-1">
-                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <span className="text-neutral-500 w-6 flex items-center gap-1">
+                            <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                             </svg>
                             {index + 1}
@@ -1230,21 +1230,21 @@ function HomeSettings() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate">{tab.title}</p>
-                            <p className="text-sm text-gray-500">{tab.artistName}</p>
+                            <p className="text-sm text-neutral-500">{tab.artistName}</p>
                           </div>
                           
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => moveTabOrder(index, 'up')}
                               disabled={index === 0}
-                              className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded"
+                              className="p-1.5 text-neutral-400 hover:text-white disabled:opacity-30 rounded"
                             >
                               ↑
                             </button>
                             <button
                               onClick={() => moveTabOrder(index, 'down')}
                               disabled={index === selectedTabIds.length - 1}
-                              className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded"
+                              className="p-1.5 text-neutral-400 hover:text-white disabled:opacity-30 rounded"
                             >
                               ↓
                             </button>
@@ -1263,7 +1263,7 @@ function HomeSettings() {
 
                 {/* 搜索添加 */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-3">添加歌曲</h3>
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">添加歌曲</h3>
                   <div className="relative mb-3">
                     <input
                       type="text"
@@ -1275,7 +1275,7 @@ function HomeSettings() {
                     {tabSearchTerm && (
                       <button
                         onClick={() => setTabSearchTerm('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
                       >
                         ✕
                       </button>
@@ -1283,7 +1283,7 @@ function HomeSettings() {
                   </div>
                   
                   {tabSearchTerm && tabSearchTerm.trim().length > 0 && tabSearchResults.length === 0 && (
-                    <div className="text-center py-4 text-gray-500 text-sm">
+                    <div className="text-center py-4 text-neutral-500 text-sm">
                       找不到符合「{tabSearchTerm}」的歌曲
                     </div>
                   )}
@@ -1316,7 +1316,7 @@ function HomeSettings() {
                             <p className={`font-medium truncate ${isSelected ? 'text-[#FFD700]' : 'text-white'}`}>
                               {tab.title}
                             </p>
-                            <p className="text-xs text-gray-500">{tab.artistName}</p>
+                            <p className="text-xs text-neutral-500">{tab.artistName}</p>
                           </div>
                           {isSelected && <span className="text-[#FFD700]">✓</span>}
                         </button>
@@ -1331,11 +1331,11 @@ function HomeSettings() {
 
         {/* 頁面布局設置 */}
         {activeTab === 'layout' && (
-          <div className="bg-[#121212] rounded-xl border border-gray-800">
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800">
+            <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-medium text-white">📐 首頁區域排序</h2>
-                <p className="text-sm text-gray-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
+                <p className="text-sm text-neutral-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
               </div>
               <button
                 onClick={() => {
@@ -1355,7 +1355,7 @@ function HomeSettings() {
                     setHasChanges(true)
                   }
                 }}
-                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition text-sm"
+                className="px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg hover:bg-neutral-700 transition text-sm"
               >
                 🔄 重置為預設
               </button>
@@ -1365,14 +1365,14 @@ function HomeSettings() {
             <div className="px-4 mb-6 flex gap-3">
               <button
                 onClick={() => setShowPlaylistModal(true)}
-                className="flex-1 py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-[#FFD700] hover:text-[#FFD700] transition flex items-center justify-center gap-2"
+                className="flex-1 py-3 border-2 border-dashed border-neutral-700 rounded-lg text-neutral-400 hover:border-[#FFD700] hover:text-[#FFD700] transition flex items-center justify-center gap-2"
               >
                 <span className="text-xl">+</span>
                 新增單歌單區域
               </button>
               <button
                 onClick={() => setShowPlaylistGroupModal(true)}
-                className="flex-1 py-3 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-blue-500 hover:text-blue-400 transition flex items-center justify-center gap-2"
+                className="flex-1 py-3 border-2 border-dashed border-neutral-700 rounded-lg text-neutral-400 hover:border-blue-500 hover:text-blue-400 transition flex items-center justify-center gap-2"
               >
                 <span className="text-xl">+</span>
                 新增多歌單區域
@@ -1395,7 +1395,7 @@ function HomeSettings() {
                         className={`flex items-center gap-3 p-3 rounded-lg border ${
                           section.enabled 
                             ? 'bg-[#FFD700]/10 border-[#FFD700]/30' 
-                            : 'bg-gray-900/30 border-gray-800/50 opacity-50'
+                            : 'bg-neutral-900/30 border-neutral-800/50 opacity-50'
                         }`}
                       >
                         <span className="text-xl">{isGroup ? '📁' : '💿'}</span>
@@ -1409,9 +1409,9 @@ function HomeSettings() {
                               setSettings(prev => ({ ...prev, sectionOrder: newOrder }))
                               setHasChanges(true)
                             }}
-                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 transition px-1 -ml-1"
+                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-neutral-600 transition px-1 -ml-1"
                           />
-                          <p className="text-xs text-gray-500 ml-1">
+                          <p className="text-xs text-neutral-500 ml-1">
                             {isGroup ? '多歌單區域' : '單歌單區域'}
                           </p>
                         </div>
@@ -1420,14 +1420,14 @@ function HomeSettings() {
                           <button
                             onClick={() => moveSection(index, 'up')}
                             disabled={index === 0}
-                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
                           >
                             ↑
                           </button>
                           <button
                             onClick={() => moveSection(index, 'down')}
                             disabled={index === settings.sectionOrder.length - 1}
-                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
                           >
                             ↓
                           </button>
@@ -1436,7 +1436,7 @@ function HomeSettings() {
                             className={`px-3 py-1 rounded text-sm font-medium transition ${
                               section.enabled
                                 ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                             }`}
                           >
                             {section.enabled ? '顯示' : '隱藏'}
@@ -1472,8 +1472,8 @@ function HomeSettings() {
                       key={section.id}
                       className={`flex flex-col gap-3 p-3 rounded-lg border ${
                         section.enabled 
-                          ? 'bg-gray-900/50 border-gray-800' 
-                          : 'bg-gray-900/30 border-gray-800/50 opacity-50'
+                          ? 'bg-neutral-900/50 border-neutral-800' 
+                          : 'bg-neutral-900/30 border-neutral-800/50 opacity-50'
                       }`}
                     >
                       <div className="flex items-center gap-4">
@@ -1489,10 +1489,10 @@ function HomeSettings() {
                               setHasChanges(true)
                             }}
                             placeholder={option.label}
-                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-gray-600 transition px-1 -ml-1"
+                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-neutral-600 transition px-1 -ml-1"
                           />
                           {section.customLabel && (
-                            <span className="text-xs text-gray-500 ml-1">原名：{option.label}</span>
+                            <span className="text-xs text-neutral-500 ml-1">原名：{option.label}</span>
                           )}
                         </div>
                         
@@ -1500,14 +1500,14 @@ function HomeSettings() {
                           <button
                             onClick={() => moveSection(index, 'up')}
                             disabled={index === 0}
-                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
                           >
                             ↑
                           </button>
                           <button
                             onClick={() => moveSection(index, 'down')}
                             disabled={index === settings.sectionOrder.length - 1}
-                            className="p-2 text-gray-400 hover:text-white disabled:opacity-30"
+                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
                           >
                             ↓
                           </button>
@@ -1516,7 +1516,7 @@ function HomeSettings() {
                             className={`px-3 py-1 rounded text-sm font-medium transition ${
                               section.enabled
                                 ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                             }`}
                           >
                             {section.enabled ? '顯示' : '隱藏'}
@@ -1580,7 +1580,7 @@ function HomeSettings() {
           </button>
           <button
             onClick={() => router.push('/')}
-            className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+            className="px-6 py-3 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition"
           >
             查看首頁
           </button>
@@ -1589,12 +1589,12 @@ function HomeSettings() {
         {/* 選擇單歌單 Modal */}
         {showPlaylistModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-lg max-h-[80vh] flex flex-col">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 w-full max-w-lg max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <h3 className="text-lg font-medium text-white">選擇歌單</h3>
                 <button
                   onClick={() => setShowPlaylistModal(false)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-neutral-400 hover:text-white"
                 >
                   ✕
                 </button>
@@ -1625,9 +1625,9 @@ function HomeSettings() {
                       <button
                         key={playlist.id}
                         onClick={() => addSinglePlaylistSection(playlist)}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-900/50 hover:bg-gray-800 transition text-left"
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-900/50 hover:bg-neutral-800 transition text-left"
                       >
-                        <div className="w-12 h-12 rounded bg-gray-800 flex-shrink-0 overflow-hidden">
+                        <div className="w-12 h-12 rounded bg-neutral-800 flex-shrink-0 overflow-hidden">
                           {playlist.coverImage ? (
                             <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
                           ) : (
@@ -1636,7 +1636,7 @@ function HomeSettings() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">{playlist.title}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-neutral-500">
                             {playlist.songIds?.length || 0} 首
                             {playlist.source === 'auto' && ' • 自動生成'}
                             {playlist.source === 'manual' && playlist.curatedBy && ` • By ${playlist.curatedBy}`}
@@ -1651,7 +1651,7 @@ function HomeSettings() {
                   if (!playlistSearchTerm) return true
                   return p.title?.toLowerCase().includes(playlistSearchTerm.toLowerCase())
                 }).filter(p => !settings.customPlaylistSections?.some(s => s.playlistId === p.id)).length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-neutral-500">
                     {playlistSearchTerm ? '沒有符合的歌單' : '所有歌單已添加'}
                   </div>
                 )}
@@ -1663,8 +1663,8 @@ function HomeSettings() {
         {/* 多歌單區域 Modal */}
         {showPlaylistGroupModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-lg max-h-[80vh] flex flex-col">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 w-full max-w-lg max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <h3 className="text-lg font-medium text-white">新增多歌單區域</h3>
                 <button
                   onClick={() => {
@@ -1672,7 +1672,7 @@ function HomeSettings() {
                     setSelectedPlaylistIds([])
                     setPlaylistGroupTitle('')
                   }}
-                  className="text-gray-400 hover:text-white"
+                  className="text-neutral-400 hover:text-white"
                 >
                   ✕
                 </button>
@@ -1680,7 +1680,7 @@ function HomeSettings() {
               
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">區域名稱</label>
+                  <label className="block text-sm text-neutral-400 mb-2">區域名稱</label>
                   <input
                     type="text"
                     value={playlistGroupTitle}
@@ -1691,9 +1691,9 @@ function HomeSettings() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-neutral-400 mb-2">
                     選擇歌單 ({selectedPlaylistIds.length} 個)
-                    {loadingPlaylists && <span className="ml-2 text-gray-500">Loading…</span>}
+                    {loadingPlaylists && <span className="ml-2 text-neutral-500">Loading…</span>}
                   </label>
                   <input
                     type="text"
@@ -1724,15 +1724,15 @@ function HomeSettings() {
                             className={`w-full flex items-center gap-3 p-3 rounded-lg transition text-left ${
                               isSelected 
                                 ? 'bg-blue-900/50 border border-blue-700' 
-                                : 'bg-gray-900/50 hover:bg-gray-800'
+                                : 'bg-neutral-900/50 hover:bg-neutral-800'
                             }`}
                           >
                             <div className={`w-6 h-6 rounded border flex items-center justify-center ${
-                              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-600'
+                              isSelected ? 'bg-blue-500 border-blue-500' : 'border-neutral-600'
                             }`}>
                               {isSelected && <span className="text-white text-sm">✓</span>}
                             </div>
-                            <div className="w-12 h-12 rounded bg-gray-800 flex-shrink-0 overflow-hidden">
+                            <div className="w-12 h-12 rounded bg-neutral-800 flex-shrink-0 overflow-hidden">
                               {playlist.coverImage ? (
                                 <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
                               ) : (
@@ -1741,7 +1741,7 @@ function HomeSettings() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-white font-medium truncate">{playlist.title}</p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-neutral-500">
                                 {playlist.songIds?.length || 0} 首
                               </p>
                             </div>
@@ -1752,14 +1752,14 @@ function HomeSettings() {
                 </div>
               </div>
               
-              <div className="p-4 border-t border-gray-800 flex gap-3">
+              <div className="p-4 border-t border-neutral-800 flex gap-3">
                 <button
                   onClick={() => {
                     setShowPlaylistGroupModal(false)
                     setSelectedPlaylistIds([])
                     setPlaylistGroupTitle('')
                   }}
-                  className="flex-1 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+                  className="flex-1 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition"
                 >
                   取消
                 </button>

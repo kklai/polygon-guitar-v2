@@ -28,9 +28,9 @@ export default function SiteMap() {
     <Layout>
       <div className="min-h-screen bg-black pb-24">
         {/* Header */}
-        <div className="bg-[#121212] border-b border-gray-800 px-4 py-4">
+        <div className="bg-[#121212] border-b border-neutral-800 px-4 py-4">
           <h1 className="text-2xl font-bold text-white">🗺️ 網站地圖 & 說明書</h1>
-          <p className="text-gray-400 text-sm mt-1">給管理者的完整網站結構指南（含資料庫與安全規則）</p>
+          <p className="text-neutral-400 text-sm mt-1">給管理者的完整網站結構指南（含資料庫與安全規則）</p>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -43,7 +43,7 @@ export default function SiteMap() {
                 className={`p-3 rounded-lg text-sm font-medium transition ${
                   activeSection === item.id
                     ? 'bg-[#FFD700] text-black'
-                    : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#282828]'
+                    : 'bg-[#1a1a1a] text-neutral-300 hover:bg-[#282828]'
                 }`}
               >
                 <span className="block text-xl mb-1">{item.icon}</span>
@@ -77,7 +77,7 @@ function OverviewSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="🎯 網站定位" icon="🎯">
-        <p className="text-gray-300 leading-relaxed">
+        <p className="text-neutral-300 leading-relaxed">
           <strong className="text-[#FFD700]">Polygon Guitar</strong> 是一個專門給香港廣東歌結他譜的平台。
           用戶可以上傳、瀏覽、收藏結他譜，並追蹤喜歡的編譜者。
         </p>
@@ -85,7 +85,7 @@ function OverviewSection() {
 
       <SectionCard title="🏗️ 整體結構圖" icon="🏗️">
         <div className="bg-[#1a1a1a] p-4 rounded-lg overflow-x-auto">
-          <pre className="text-gray-300 text-sm whitespace-pre">
+          <pre className="text-neutral-300 text-sm whitespace-pre">
 {`
 ┌─────────────────────────────────────────────────────────────┐
 │                    Polygon Guitar 網站架構                     │
@@ -143,7 +143,7 @@ function HomepageSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="🏠 首頁結構詳解" icon="🏠">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           首頁是用戶進入網站的第一印象，由多個區域組成，每個區域都可以獨立配置。
         </p>
 
@@ -185,10 +185,10 @@ function HomepageSection() {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">歌手分類封面設置</h4>
-            <p className="text-gray-400 text-sm mb-2">
+            <p className="text-neutral-400 text-sm mb-2">
               前往：後台 → 分類封面管理
             </p>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 為男歌手/女歌手/組合上傳封面圖片</li>
               <li>• 或選擇代表性歌手作為封面</li>
               <li>• 卡片下方會顯示該類別前 5 位熱門歌手</li>
@@ -196,10 +196,10 @@ function HomepageSection() {
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">熱門歌手設置</h4>
-            <p className="text-gray-400 text-sm mb-2">
+            <p className="text-neutral-400 text-sm mb-2">
               前往：後台 → 首頁設置
             </p>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 選擇排序方式（瀏覽量/譜數/評分/混合）</li>
               <li>• 手動揀選特定歌手優先顯示</li>
               <li>• 設置顯示數量（默認 12 個）</li>
@@ -207,10 +207,10 @@ function HomepageSection() {
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">歌單推薦設置</h4>
-            <p className="text-gray-400 text-sm mb-2">
+            <p className="text-neutral-400 text-sm mb-2">
               前往：後台 → 歌單管理
             </p>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 創建精選歌單（自動/手動）</li>
               <li>• 選擇歌單類型（本月熱門/主題/歌手專輯）</li>
               <li>• 設置顯示順序和封面圖片</li>
@@ -218,10 +218,10 @@ function HomepageSection() {
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">最新上架設置</h4>
-            <p className="text-gray-400 text-sm mb-2">
+            <p className="text-neutral-400 text-sm mb-2">
               自動生成，無需設置
             </p>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 自動顯示最近上傳的譜</li>
               <li>• 按 createdAt 時間排序</li>
               <li>• 顯示前 N 個（可在代碼修改）</li>
@@ -238,13 +238,13 @@ function UsersSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="👤 用戶系統說明" icon="👤">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           用戶透過 Google 帳號登入。每個用戶有以下資料：
         </p>
         
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <h4 className="text-[#FFD700] font-medium mb-3">用戶資料欄位</h4>
-          <ul className="space-y-2 text-gray-300 text-sm">
+          <ul className="space-y-2 text-neutral-300 text-sm">
             <li><strong className="text-white">顯示名稱</strong> - 用戶自訂的名字（預設是 Google 名字）</li>
             <li><strong className="text-white">編譜筆名</strong> - 出譜時顯示的名稱（例如：結他小王子）</li>
             <li><strong className="text-white">頭像</strong> - 用戶上傳的照片或 Google 頭像</li>
@@ -257,11 +257,11 @@ function UsersSection() {
       </SectionCard>
 
       <SectionCard title="📍 個人主頁 (/profile/[id])" icon="📍">
-        <p className="text-gray-300 mb-4">每個用戶都有自己的公開主頁，顯示：</p>
+        <p className="text-neutral-300 mb-4">每個用戶都有自己的公開主頁，顯示：</p>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-white font-medium mb-2">📊 統計數據</h4>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 出譜數目 - 用戶上傳了多少份譜</li>
               <li>• 總瀏覽量 - 所有譜的瀏覽次數總和</li>
               <li>• 粉絲數 - 有多少人追蹤這個用戶</li>
@@ -269,7 +269,7 @@ function UsersSection() {
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-white font-medium mb-2">🎵 內容顯示</h4>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 熱門歌曲 - 瀏覽量最高的 5 首（有縮圖）</li>
               <li>• 所有歌曲 - 第 6 首起的列表（無縮圖）</li>
               <li>• 歌單 - 用戶建立的歌單</li>
@@ -305,7 +305,7 @@ function ArtistsSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="🎤 歌手系統說明" icon="🎤">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           歌手是網站的核心分類。每首歌都必須屬於一個歌手。
         </p>
 
@@ -314,7 +314,7 @@ function ArtistsSection() {
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-white mb-1">基本資料</p>
-              <ul className="text-gray-400 space-y-1">
+              <ul className="text-neutral-400 space-y-1">
                 <li>• 歌手名稱</li>
                 <li>• Slug（網址用，如 beyond、eason-chan）</li>
                 <li>• 類型（男/女/組合/其他）</li>
@@ -327,7 +327,7 @@ function ArtistsSection() {
             </div>
             <div>
               <p className="text-white mb-1">Spotify 資料（自動獲取）</p>
-              <ul className="text-gray-400 space-y-1">
+              <ul className="text-neutral-400 space-y-1">
                 <li>• Spotify ID</li>
                 <li>• 粉絲數（spotifyFollowers）</li>
                 <li>• 人氣度 0-100（spotifyPopularity）</li>
@@ -343,26 +343,26 @@ function ArtistsSection() {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">性別/類型分類</h4>
-            <ul className="text-gray-400 text-sm space-y-2">
+            <ul className="text-neutral-400 text-sm space-y-2">
               <li><span className="inline-block w-3 h-3 rounded-full bg-[#1fc3df] mr-2"></span>男歌手（male）</li>
               <li><span className="inline-block w-3 h-3 rounded-full bg-[#ff9b98] mr-2"></span>女歌手（female）</li>
               <li><span className="inline-block w-3 h-3 rounded-full bg-[#fed702] mr-2"></span>組合（group）</li>
-              <li><span className="inline-block w-3 h-3 rounded-full bg-gray-500 mr-2"></span>其他（other）</li>
+              <li><span className="inline-block w-3 h-3 rounded-full bg-neutral-500 mr-2"></span>其他（other）</li>
             </ul>
-            <p className="text-gray-500 text-xs mt-3">
+            <p className="text-neutral-500 text-xs mt-3">
               在歌手管理 V2 頁面可以批量設置歌手類型
             </p>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">地區分類</h4>
-            <ul className="text-gray-400 text-sm space-y-2">
+            <ul className="text-neutral-400 text-sm space-y-2">
               <li>🇭🇰 香港（hongkong）</li>
               <li>🇹🇼 台灣（taiwan）</li>
               <li>🇨🇳 中國（china）</li>
               <li>🌍 國際（international）</li>
               <li>❓ 未分類（null）</li>
             </ul>
-            <p className="text-gray-500 text-xs mt-3">
+            <p className="text-neutral-500 text-xs mt-3">
               在歌手地區設定頁面批量設置地區
             </p>
           </div>
@@ -373,19 +373,19 @@ function ArtistsSection() {
         <div className="space-y-4">
           <div className="bg-gradient-to-r from-[#1a1a1a] to-[#282828] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">Hero 區域</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               大背景圖片 + 歌手名稱 + 類型標籤 + Spotify 資料
             </p>
           </div>
           <div className="bg-gradient-to-r from-[#1a1a1a] to-[#282828] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">熱門歌曲</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               前 5 首瀏覽量最高的歌曲，顯示 YouTube 縮圖 + 歌曲資訊
             </p>
           </div>
           <div className="bg-gradient-to-r from-[#1a1a1a] to-[#282828] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">所有歌曲（年份分組）</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               按上傳年份分組（2021-2026、2016-2020 等），可排序
             </p>
           </div>
@@ -405,14 +405,14 @@ function TabsSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="🎸 樂譜 (Tab) 系統說明" icon="🎸">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           樂譜是網站的核心內容。一份樂譜包含歌詞、和弦、可能還有六線譜。
         </p>
 
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">樂譜基本資料</h4>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• <strong className="text-white">歌名</strong> - 歌曲名稱</li>
               <li>• <strong className="text-white">歌手</strong> - 關聯的歌手</li>
               <li>• <strong className="text-white">原調</strong> - 歌曲原本的 Key</li>
@@ -425,7 +425,7 @@ function TabsSection() {
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">歌曲資料（Spotify）</h4>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• <strong className="text-white">作曲</strong> - 作曲人</li>
               <li>• <strong className="text-white">填詞</strong> - 填詞人</li>
               <li>• <strong className="text-white">專輯</strong> - 所屬專輯</li>
@@ -440,8 +440,8 @@ function TabsSection() {
 
       <SectionCard title="📝 樂譜內容格式" icon="📝">
         <div className="bg-[#1a1a1a] p-4 rounded-lg font-mono text-sm">
-          <p className="text-gray-500 mb-2"># 簡譜格式範例</p>
-          <div className="text-gray-300 space-y-1">
+          <p className="text-neutral-500 mb-2"># 簡譜格式範例</p>
+          <div className="text-neutral-300 space-y-1">
             <p>|C G/B |Am F |</p>
             <p>(這)是(一)首(簡)單(的)歌</p>
             <p></p>
@@ -455,7 +455,7 @@ function TabsSection() {
           </div>
         </div>
         
-        <div className="mt-4 text-gray-400 text-sm">
+        <div className="mt-4 text-neutral-400 text-sm">
           <p className="mb-2"><strong className="text-white">段落標記支援：</strong></p>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
             <span className="bg-[#282828] px-2 py-1 rounded">/v = 主歌</span>
@@ -497,35 +497,35 @@ function LibrarySection() {
   return (
     <div className="space-y-6">
       <SectionCard title="📚 收藏系統說明" icon="📚">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           用戶可以收藏喜歡的樂譜，並建立自己的歌單。
         </p>
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">❤️ 喜愛歌曲</h4>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 點擊心形圖標收藏</li>
               <li>• 所有喜愛的歌曲會集中在這裡</li>
               <li>• 可以取消喜愛</li>
               <li>• 顯示在個人主頁（如果公開）</li>
             </ul>
-            <div className="mt-3 pt-3 border-t border-gray-700">
-              <p className="text-gray-500 text-xs">
+            <div className="mt-3 pt-3 border-t border-neutral-700">
+              <p className="text-neutral-500 text-xs">
                 資料儲存在：<code className="bg-[#282828] px-1 rounded">userLikedSongs</code> 集合
               </p>
             </div>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">🎵 個人歌單</h4>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 用戶可以創建多個歌單</li>
               <li>• 例如：「練習中」、「表演用」、「初學者」</li>
               <li>• 可以加入任何樂譜</li>
               <li>• 歌單可以分享給朋友</li>
             </ul>
-            <div className="mt-3 pt-3 border-t border-gray-700">
-              <p className="text-gray-500 text-xs">
+            <div className="mt-3 pt-3 border-t border-neutral-700">
+              <p className="text-neutral-500 text-xs">
                 資料儲存在：<code className="bg-[#282828] px-1 rounded">userPlaylists</code> 集合
               </p>
             </div>
@@ -534,7 +534,7 @@ function LibrarySection() {
       </SectionCard>
 
       <SectionCard title="🎵 精選歌單 (Playlists)" icon="🎵">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           除了用戶自建歌單，網站還有系統精選歌單，由管理員創建，顯示在首頁。
         </p>
 
@@ -543,7 +543,7 @@ function LibrarySection() {
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-white mb-2">自動生成</p>
-              <ul className="text-gray-400 space-y-1">
+              <ul className="text-neutral-400 space-y-1">
                 <li>• <strong>本月熱門</strong> - 自動計算瀏覽量最高</li>
                 <li>• <strong>本週新增</strong> - 最近 7 天上傳的譜</li>
                 <li>• <strong>趨勢上升</strong> - 瀏覽量急升的歌曲</li>
@@ -551,15 +551,15 @@ function LibrarySection() {
             </div>
             <div>
               <p className="text-white mb-2">手動精選</p>
-              <ul className="text-gray-400 space-y-1">
+              <ul className="text-neutral-400 space-y-1">
                 <li>• <strong>歌手專輯</strong> - 某歌手精選歌曲</li>
                 <li>• <strong>主題歌單</strong> - 如「畢業歌」、「情歌」</li>
                 <li>• <strong>難度分類</strong> - 如「新手入門」</li>
               </ul>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-gray-700">
-            <p className="text-gray-500 text-xs">
+          <div className="mt-4 pt-3 border-t border-neutral-700">
+            <p className="text-neutral-500 text-xs">
               資料儲存在：<code className="bg-[#282828] px-1 rounded">playlists</code> 集合（系統歌單）
               <br/>
               管理位置：後台 → 歌單管理
@@ -584,31 +584,31 @@ function SocialSection() {
         <div className="grid md:grid-cols-3 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">👥 追蹤系統</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               用戶可以追蹤喜歡的編譜者，被追蹤者會增加粉絲數。
               追蹤後可以在自己主頁看到對方的動態。
             </p>
-            <p className="text-gray-500 text-xs mt-2">
+            <p className="text-neutral-500 text-xs mt-2">
               儲存在 users/{'{userId}'}/followers 子集合
             </p>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">✋ 求譜功能</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               用戶可以要求某首歌的結他譜，其他人可以投票支持。
               投票數愈高的求譜會優先顯示，吸引編譜者製作。
             </p>
-            <p className="text-gray-500 text-xs mt-2">
+            <p className="text-neutral-500 text-xs mt-2">
               儲存在 tabRequests 集合
             </p>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">💬 留言系統</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               用戶可以在樂譜頁面留言討論，分享彈奏心得或問問題。
               這需要登入後才能使用。
             </p>
-            <p className="text-gray-500 text-xs mt-2">
+            <p className="text-neutral-500 text-xs mt-2">
               儲存在 comments 集合
             </p>
           </div>
@@ -641,7 +641,7 @@ function AdminSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="⚙️ 後台管理說明" icon="⚙️">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           後台係畀你（管理員）管理整個網站嘅地方。所有後台頁面都以 <code className="bg-[#282828] px-2 py-1 rounded">/admin/</code> 開頭。
         </p>
 
@@ -713,7 +713,7 @@ function DatabaseSection() {
   return (
     <div className="space-y-6">
       <SectionCard title="🗄️ Firestore 資料庫結構" icon="🗄️">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           網站使用 <strong className="text-[#FFD700]">Firebase Firestore</strong> 作為資料庫。
           以下係所有 Collection（資料集合）的結構說明：
         </p>
@@ -877,13 +877,13 @@ function SecuritySection() {
   return (
     <div className="space-y-6">
       <SectionCard title="🔒 Firebase 安全規則說明" icon="🔒">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           安全規則控制「誰可以讀寫什麼資料」。這是防止未授權訪問的重要保護。
         </p>
 
         <div className="bg-[#1a1a1a] p-4 rounded-lg mb-4">
           <h4 className="text-[#FFD700] font-medium mb-2">規則基本邏輯</h4>
-          <div className="space-y-2 text-gray-400 text-sm">
+          <div className="space-y-2 text-neutral-400 text-sm">
             <p><strong className="text-white">allow read:</strong> 誰可以讀取資料</p>
             <p><strong className="text-white">allow create:</strong> 誰可以新增資料</p>
             <p><strong className="text-white">allow update:</strong> 誰可以修改資料</p>
@@ -945,14 +945,14 @@ function SecuritySection() {
 
       <SectionCard title="👑 管理員權限" icon="👑">
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
-          <p className="text-gray-300 mb-3">
+          <p className="text-neutral-300 mb-3">
             目前管理員由電郵地址識別：
           </p>
-          <ul className="text-gray-400 text-sm space-y-1">
+          <ul className="text-neutral-400 text-sm space-y-1">
             <li>• kermit.tam@gmail.com</li>
             <li>• showroomchan@gmail.com</li>
           </ul>
-          <p className="text-gray-500 text-xs mt-3">
+          <p className="text-neutral-500 text-xs mt-3">
             管理員擁有所有資料的讀寫權限，可以修改或刪除任何內容。
           </p>
         </div>
@@ -962,21 +962,21 @@ function SecuritySection() {
         <div className="space-y-3">
           <div className="bg-red-900/20 border border-red-700/50 p-4 rounded-lg">
             <h4 className="text-red-400 font-medium mb-2">Q: 為什麼 viewCount 允許任何人更新？</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               A: 因為瀏覽計數需要每次頁面載入都更新。為了讓未登入用戶也計數，
               規則允許任何人更新 viewCount 欄位，但不能修改其他內容。
             </p>
           </div>
           <div className="bg-red-900/20 border border-red-700/50 p-4 rounded-lg">
             <h4 className="text-red-400 font-medium mb-2">Q: 如果用戶刪除自己的帳號，相關資料會怎樣？</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               A: 目前不會自動刪除。用戶上傳的樂譜會保留（因為有其他用戶收藏），
               但會顯示為「未知用戶」。喜愛歌曲和歌單會保留在資料庫中。
             </p>
           </div>
           <div className="bg-red-900/20 border border-red-700/50 p-4 rounded-lg">
             <h4 className="text-red-400 font-medium mb-2">Q: 如何防止用戶不斷投票？</h4>
-            <p className="text-gray-400 text-sm">
+            <p className="text-neutral-400 text-sm">
               A: tabRequests 的 voters 陣列會記錄已投票的用戶 ID，
               每個用戶只能投一次（由客戶端和規則雙重檢查）。
             </p>
@@ -997,7 +997,7 @@ function GlossarySection() {
   return (
     <div className="space-y-6">
       <SectionCard title="📖 常用術語表" icon="📖">
-        <p className="text-gray-300 mb-4">
+        <p className="text-neutral-300 mb-4">
           以下係網站開發同管理時常用嘅術語，方便你同 IT 人溝通：
         </p>
 
@@ -1010,7 +1010,7 @@ function GlossarySection() {
                 <th className="text-left p-3 text-[#FFD700]">例子</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-neutral-800">
               <GlossaryRow 
                 term="Tab / 樂譜"
                 desc="結他譜，包含和弦、歌詞、可能還有六線譜"
@@ -1095,7 +1095,7 @@ function GlossarySection() {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-green-400 font-medium mb-2">✅ 建議的說法</h4>
-            <ul className="text-gray-400 text-sm space-y-2">
+            <ul className="text-neutral-400 text-sm space-y-2">
               <li>「我想加個欄位『作曲』在樂譜資料」</li>
               <li>「歌手頁面要顯示多個 Spotify 粉絲數」</li>
               <li>「在首頁加個區域顯示『本月熱門』」</li>
@@ -1105,7 +1105,7 @@ function GlossarySection() {
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-red-400 font-medium mb-2">❌ 避免模糊的說法</h4>
-            <ul className="text-gray-400 text-sm space-y-2">
+            <ul className="text-neutral-400 text-sm space-y-2">
               <li>「個 page 有問題」- 請講清楚哪個頁面</li>
               <li>「啲嘢唔見咗」- 請講清楚是什麼內容</li>
               <li>「改返好佢」- 請講清楚應該是什麼樣</li>
@@ -1118,7 +1118,7 @@ function GlossarySection() {
 
       <SectionCard title="📸 報告問題時請提供" icon="📸">
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
-          <ul className="text-gray-300 space-y-2">
+          <ul className="text-neutral-300 space-y-2">
             <li>1️⃣ <strong>截圖</strong> - 顯示問題的畫面（用手機影都得）</li>
             <li>2️⃣ <strong>網址</strong> - 完整的網址，例如 <code className="bg-[#282828] px-2 py-1 rounded">https://polygon.guitars/tabs/abc123</code></li>
             <li>3️⃣ <strong>操作步驟</strong> - 你做了什麼導致問題出現</li>
@@ -1136,7 +1136,7 @@ function GlossarySection() {
 
 function SectionCard({ title, icon, children }) {
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <span>{icon}</span>
         {title}
@@ -1150,7 +1150,7 @@ function HomepageZone({ title, desc, editable }) {
   return (
     <div className="bg-[#1a1a1a] p-4 rounded-lg border-l-4 border-[#FFD700]">
       <h4 className="text-white font-medium mb-1">{title}</h4>
-      <p className="text-gray-400 text-sm mb-2">{desc}</p>
+      <p className="text-neutral-400 text-sm mb-2">{desc}</p>
       <p className="text-[#FFD700] text-xs">{editable}</p>
     </div>
   )
@@ -1160,16 +1160,16 @@ function UserTypeCard({ title, desc, canDo, cantDo, isAdmin }) {
   return (
     <div className={`p-4 rounded-lg ${isAdmin ? 'bg-[#FFD700]/10 border border-[#FFD700]/30' : 'bg-[#1a1a1a]'}`}>
       <h4 className={`font-bold mb-1 ${isAdmin ? 'text-[#FFD700]' : 'text-white'}`}>{title}</h4>
-      <p className="text-gray-500 text-sm mb-3">{desc}</p>
+      <p className="text-neutral-500 text-sm mb-3">{desc}</p>
       <div className="space-y-2">
         <p className="text-green-400 text-sm">✓ 可以做：</p>
-        <ul className="text-gray-400 text-sm space-y-1">
+        <ul className="text-neutral-400 text-sm space-y-1">
           {canDo.map((item, i) => <li key={i}>• {item}</li>)}
         </ul>
         {cantDo.length > 0 && (
           <>
             <p className="text-red-400 text-sm mt-3">✗ 不可以做：</p>
-            <ul className="text-gray-400 text-sm space-y-1">
+            <ul className="text-neutral-400 text-sm space-y-1">
               {cantDo.map((item, i) => <li key={i}>• {item}</li>)}
             </ul>
           </>
@@ -1181,21 +1181,21 @@ function UserTypeCard({ title, desc, canDo, cantDo, isAdmin }) {
 
 function FlowStep({ children }) {
   return (
-    <span className="bg-[#282828] text-gray-300 px-3 py-2 rounded-lg text-sm whitespace-nowrap">
+    <span className="bg-[#282828] text-neutral-300 px-3 py-2 rounded-lg text-sm whitespace-nowrap">
       {children}
     </span>
   )
 }
 
 function Arrow() {
-  return <span className="text-gray-500">→</span>
+  return <span className="text-neutral-500">→</span>
 }
 
 function FeatureCard({ title, desc }) {
   return (
     <div className="bg-[#1a1a1a] p-4 rounded-lg">
       <h4 className="text-white font-medium mb-1">{title}</h4>
-      <p className="text-gray-400 text-sm">{desc}</p>
+      <p className="text-neutral-400 text-sm">{desc}</p>
     </div>
   )
 }
@@ -1208,7 +1208,7 @@ function AdminToolCard({ title, tools }) {
         {tools.map((tool, i) => (
           <li key={i} className="text-sm">
             <span className="text-white">{tool.name}</span>
-            <span className="text-gray-500 text-xs block">{tool.desc}</span>
+            <span className="text-neutral-500 text-xs block">{tool.desc}</span>
           </li>
         ))}
       </ul>
@@ -1218,26 +1218,26 @@ function AdminToolCard({ title, tools }) {
 
 function CollectionCard({ name, desc, fields, note }) {
   return (
-    <div className="bg-[#1a1a1a] p-4 rounded-lg border border-gray-800">
+    <div className="bg-[#1a1a1a] p-4 rounded-lg border border-neutral-800">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-[#FFD700] font-mono font-bold">{name}</h4>
-        <span className="text-gray-500 text-xs">{desc}</span>
+        <span className="text-neutral-500 text-xs">{desc}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-neutral-800">
             {fields.map((field, i) => (
               <tr key={i}>
                 <td className="py-1.5 text-white font-mono w-1/3">{field.name}</td>
-                <td className="py-1.5 text-gray-500 w-1/6">{field.type}</td>
-                <td className="py-1.5 text-gray-400">{field.desc}</td>
+                <td className="py-1.5 text-neutral-500 w-1/6">{field.type}</td>
+                <td className="py-1.5 text-neutral-400">{field.desc}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {note && (
-        <p className="text-gray-500 text-xs mt-2 italic">{note}</p>
+        <p className="text-neutral-500 text-xs mt-2 italic">{note}</p>
       )}
     </div>
   )
@@ -1253,12 +1253,12 @@ function RuleCard({ collection, rules }) {
   }
 
   return (
-    <div className="bg-[#1a1a1a] p-4 rounded-lg border border-gray-800">
+    <div className="bg-[#1a1a1a] p-4 rounded-lg border border-neutral-800">
       <h4 className="text-white font-mono font-bold mb-3">{collection}</h4>
       <div className="grid grid-cols-2 gap-2 text-sm">
         {rules.map((rule, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="text-gray-500">{rule.action}:</span>
+            <span className="text-neutral-500">{rule.action}:</span>
             <span className={levelColors[rule.level]}>{rule.condition}</span>
           </div>
         ))}
@@ -1271,8 +1271,8 @@ function GlossaryRow({ term, desc, example }) {
   return (
     <tr className="hover:bg-[#1a1a1a]">
       <td className="p-3 text-white font-medium">{term}</td>
-      <td className="p-3 text-gray-400">{desc}</td>
-      <td className="p-3 text-gray-500 text-xs">{example}</td>
+      <td className="p-3 text-neutral-400">{desc}</td>
+      <td className="p-3 text-neutral-500 text-xs">{example}</td>
     </tr>
   )
 }

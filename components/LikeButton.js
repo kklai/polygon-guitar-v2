@@ -54,7 +54,7 @@ export default function LikeButton({ tab, onLikeToggle, compact = false }) {
         className={`flex items-center gap-1 px-2 py-1 rounded-lg transition ${
           liked
             ? 'bg-[#FFD700] text-black'
-            : 'bg-gray-800 text-[#B3B3B3]'
+            : 'bg-neutral-800 text-[#B3B3B3]'
         } ${isLoading ? 'opacity-50' : ''}`}
         title={liked ? '已收藏至喜愛結他譜' : '收藏至喜愛結他譜'}
       >
@@ -81,7 +81,7 @@ export default function LikeButton({ tab, onLikeToggle, compact = false }) {
       className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition ${
         liked
           ? 'bg-[#FFD700] text-black hover:opacity-90'
-          : 'bg-[#121212] text-[#B3B3B3] hover:text-white border border-gray-800'
+          : 'bg-[#121212] text-[#B3B3B3] hover:text-white border border-neutral-800'
       } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={liked ? '已收藏至喜愛結他譜' : '收藏至喜愛結他譜'}
     >

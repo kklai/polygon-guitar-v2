@@ -569,7 +569,7 @@ export default function UserPlaylistDetail() {
       <Layout fullWidth hideHeader>
         <div className="min-h-screen bg-black flex items-center justify-center px-4">
           <div className="text-center">
-            <p className="text-gray-400 mb-4">歌單不存在或你無權限查看</p>
+            <p className="text-neutral-400 mb-4">歌單不存在或你無權限查看</p>
             <Link
               href="/library"
               className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
@@ -641,7 +641,7 @@ export default function UserPlaylistDetail() {
             <h1 className="font-bold text-white truncate flex-1 min-w-0" style={{ fontSize: '1.5rem' }}>
               {playlist.title}
             </h1>
-            <div className="text-right flex-shrink-0 text-[12px] md:text-[14px] text-gray-500">
+            <div className="text-right flex-shrink-0 text-[12px] md:text-[14px] text-neutral-500">
               <div>共 {songs.length} 首</div>
               {user?.displayName && <div>By {user.displayName}</div>}
             </div>
@@ -704,7 +704,7 @@ export default function UserPlaylistDetail() {
                   onClick={() => handleSongClick(song.id)}
                   className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
                 >
-                  <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                  <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
                       <img
                         src={getSongThumbnail(song)}
@@ -741,7 +741,7 @@ export default function UserPlaylistDetail() {
           <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <span className="text-6xl block mb-4">🎸</span>
             <h3 className="text-xl text-white mb-2">呢個歌單暫時冇歌曲</h3>
-            <p className="text-gray-500 mb-6">去樂譜庫加啲歌入嚟啦</p>
+            <p className="text-neutral-500 mb-6">去樂譜庫加啲歌入嚟啦</p>
             <Link
               href="/library"
               className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
@@ -789,7 +789,7 @@ export default function UserPlaylistDetail() {
               <div className="pb-24 px-4 pt-0 text-left overflow-x-hidden min-w-0">
                 {selectedSong && (
                   <div className="mb-4 pb-4 border-b border-[#3E3E3E] flex items-center gap-3">
-                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                    <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                       {getSongThumbnail(selectedSong) ? (
                         <img
                           src={getSongThumbnail(selectedSong)}
@@ -802,7 +802,7 @@ export default function UserPlaylistDetail() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-white font-medium truncate">{selectedSong.title}</p>
-                      <p className="text-gray-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
+                      <p className="text-neutral-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
                     </div>
                   </div>
                 )}
@@ -1041,7 +1041,7 @@ export default function UserPlaylistDetail() {
                           >
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{tab.title}</p>
-                              <p className="text-gray-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{tab.artist}</p>
+                              <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{tab.artist}</p>
                             </div>
                             <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-[#FFD700] pointer-events-none">
                               {isAdding ? (
@@ -1160,7 +1160,7 @@ export default function UserPlaylistDetail() {
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{song.title}</p>
-                            <p className="text-gray-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{song.artist || song.artistName}</p>
+                            <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{song.artist || song.artistName}</p>
                           </div>
                           <span
                             className="cursor-grab active:cursor-grabbing p-1.5 -mr-1.5 text-[#666] md:hover:text-[#B3B3B3] flex-shrink-0 select-none touch-none"
@@ -1400,7 +1400,7 @@ export default function UserPlaylistDetail() {
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{orderedSongsForEdit[touchDragIndex].title}</p>
-                    <p className="text-gray-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{orderedSongsForEdit[touchDragIndex].artist || orderedSongsForEdit[touchDragIndex].artistName}</p>
+                    <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{orderedSongsForEdit[touchDragIndex].artist || orderedSongsForEdit[touchDragIndex].artistName}</p>
                   </div>
                   <div className="w-10 flex-shrink-0" />
                 </div>

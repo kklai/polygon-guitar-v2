@@ -293,7 +293,7 @@ export default function TestGpPlayer() {
           <div className="bg-red-900/50 border border-red-700 rounded-xl p-4 mb-4">
             <h3 className="text-red-400 font-medium mb-2">⚠️ 播放器錯誤</h3>
             <p className="text-red-300 text-sm mb-3">{initError}</p>
-            <p className="text-gray-400 text-xs mb-3">
+            <p className="text-neutral-400 text-xs mb-3">
               這可能是 SoundFont 加載問題。嘗試重新載入頁面或使用不同的音頻設置。
             </p>
           </div>
@@ -305,7 +305,7 @@ export default function TestGpPlayer() {
             <h2 className="text-lg font-medium text-white">選擇 GP 文件</h2>
             <button
               onClick={loadSampleFile}
-              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm"
+              className="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-sm"
             >
               🔄 重新載入
             </button>
@@ -314,7 +314,7 @@ export default function TestGpPlayer() {
             type="file"
             accept=".gp3,.gp4,.gp5,.gpx,.gp"
             onChange={handleFileSelect}
-            className="block w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-[#FFD700] file:text-black file:border-0"
+            className="block w-full text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-[#FFD700] file:text-black file:border-0"
           />
           {file && (
             <div className="mt-2 text-green-400 text-sm">{file.name}</div>
@@ -332,7 +332,7 @@ export default function TestGpPlayer() {
                 <button
                   onClick={stopPlayback}
                   disabled={!isReady}
-                  className="w-12 h-12 rounded-full bg-gray-700 text-white flex items-center justify-center disabled:opacity-50"
+                  className="w-12 h-12 rounded-full bg-neutral-700 text-white flex items-center justify-center disabled:opacity-50"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg>
                 </button>
@@ -341,7 +341,7 @@ export default function TestGpPlayer() {
                   onClick={togglePlay}
                   disabled={!isReady}
                   className={`w-16 h-16 rounded-full flex items-center justify-center disabled:opacity-50 ${
-                    apiRef.current?.player ? 'bg-[#FFD700] text-black' : 'bg-gray-600 text-gray-400'
+                    apiRef.current?.player ? 'bg-[#FFD700] text-black' : 'bg-neutral-600 text-neutral-400'
                   }`}
                 >
                   {isPlaying ? (
@@ -368,7 +368,7 @@ export default function TestGpPlayer() {
                 <div className="text-2xl font-mono text-[#FFD700]">
                   {formatTime(currentTime)} / {formatTime(totalTime)}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-neutral-400">
                   小節 {currentBar} / {totalBars}
                 </div>
               </div>
@@ -386,13 +386,13 @@ export default function TestGpPlayer() {
                     seekToBar(bar)
                   }}
                   disabled={!isReady}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                  className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
                 />
               </div>
               
               {/* 速度 */}
               <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-2">速度: {playbackSpeed}%</label>
+                <label className="block text-sm text-neutral-400 mb-2">速度: {playbackSpeed}%</label>
                 <input
                   type="range"
                   min={25}
@@ -401,13 +401,13 @@ export default function TestGpPlayer() {
                   value={playbackSpeed}
                   onChange={(e) => changeSpeed(parseInt(e.target.value))}
                   disabled={!isReady}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                  className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
                 />
               </div>
               
               {/* 音量 */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">音量: {volume}%</label>
+                <label className="block text-sm text-neutral-400 mb-2">音量: {volume}%</label>
                 <input
                   type="range"
                   min={0}
@@ -415,7 +415,7 @@ export default function TestGpPlayer() {
                   value={volume}
                   onChange={(e) => changeVolume(parseInt(e.target.value))}
                   disabled={!isReady}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                  className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
                 />
               </div>
             </div>
@@ -430,7 +430,7 @@ export default function TestGpPlayer() {
                     onClick={() => seekToBar(bar)}
                     disabled={!isReady}
                     className={`px-2 py-1 rounded text-sm ${
-                      currentBar === bar ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-white'
+                      currentBar === bar ? 'bg-[#FFD700] text-black' : 'bg-neutral-800 text-white'
                     } disabled:opacity-50`}
                   >
                     {bar}
@@ -449,19 +449,19 @@ export default function TestGpPlayer() {
                 ref={containerRef}
                 className="rounded-lg overflow-hidden bg-[#1a1a1a] min-h-[400px]"
               >
-                {!file && <div className="h-[400px] flex items-center justify-center text-gray-500">載入中...</div>}
+                {!file && <div className="h-[400px] flex items-center justify-center text-neutral-500">載入中...</div>}
                 {isLoading && <div className="h-[400px] flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full"/></div>}
               </div>
               
               {/* 日誌 */}
               <div className="mt-4 bg-black rounded-lg p-3">
                 <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-400">日誌</span>
-                  <button onClick={() => setLogs([])} className="text-xs text-gray-500">清除</button>
+                  <span className="text-sm text-neutral-400">日誌</span>
+                  <button onClick={() => setLogs([])} className="text-xs text-neutral-500">清除</button>
                 </div>
                 <div className="h-[150px] overflow-y-auto font-mono text-xs">
                   {logs.map((log, i) => (
-                    <div key={i} className={log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-green-400' : 'text-gray-400'}>
+                    <div key={i} className={log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-green-400' : 'text-neutral-400'}>
                       {log}
                     </div>
                   ))}

@@ -37,7 +37,7 @@ function MigratePage() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-gray-800">
+        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-neutral-800">
           <h1 className="text-2xl font-bold text-white mb-4">
             🔧 修復舊樂譜資料
           </h1>
@@ -76,11 +76,11 @@ function MigratePage() {
             <h2 className="text-[#FFD700] font-semibold mb-4">✅ 修復完成</h2>
             
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-black rounded-lg p-4 border border-gray-800">
+              <div className="bg-black rounded-lg p-4 border border-neutral-800">
                 <p className="text-sm text-[#B3B3B3]">樂譜總數</p>
                 <p className="text-2xl font-bold text-white">{result.total}</p>
               </div>
-              <div className="bg-black rounded-lg p-4 border border-gray-800">
+              <div className="bg-black rounded-lg p-4 border border-neutral-800">
                 <p className="text-sm text-[#B3B3B3]">已修復</p>
                 <p className="text-2xl font-bold text-[#FFD700]">{result.fixed}</p>
               </div>
@@ -91,7 +91,7 @@ function MigratePage() {
                 <h3 className="font-semibold text-white mb-3">已更新歌手：</h3>
                 <div className="space-y-2">
                   {Object.entries(result.artists).map(([artistId, data]) => (
-                    <div key={artistId} className="bg-black rounded-lg p-3 flex justify-between items-center border border-gray-800">
+                    <div key={artistId} className="bg-black rounded-lg p-3 flex justify-between items-center border border-neutral-800">
                       <span className="font-medium text-white">{data.name}</span>
                       <span className="text-sm text-[#B3B3B3]">+{data.count} 個譜</span>
                     </div>

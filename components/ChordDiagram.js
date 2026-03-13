@@ -333,10 +333,10 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
   if (!shape) {
     return (
       <div 
-        className={`flex items-center justify-center rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}
+        className={`flex items-center justify-center rounded-lg ${isDark ? 'bg-neutral-800' : 'bg-neutral-200'}`}
         style={{ width: size, height: size * 1.2 }}
       >
-        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{chord}</span>
+        <span className={`text-xs ${isDark ? 'text-neutral-500' : 'text-neutral-400'}`}>{chord}</span>
       </div>
     );
   }
@@ -511,13 +511,13 @@ export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
       {/* 彈窗內容 */}
       <div className={`relative rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden ${isDark ? 'bg-[#121212]' : 'bg-white'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <div className="flex items-center justify-between p-4 border-b border-neutral-700">
+          <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-neutral-900'}`}>
             本曲使用和弦 ({uniqueChords.length}個)
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white transition"
+            className="p-2 text-neutral-400 hover:text-white transition"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -531,7 +531,7 @@ export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
             {uniqueChords.map((chord, index) => (
               <div key={index} className="flex flex-col items-center">
                 <SingleChordDiagram chord={chord} size={70} theme={theme} />
-                <span className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <span className={`text-xs mt-1 ${isDark ? 'text-neutral-400' : 'text-neutral-600'}`}>
                   {chord}
                 </span>
               </div>
@@ -540,7 +540,7 @@ export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
         </div>
         
         {/* Footer */}
-        <div className="p-4 border-t border-gray-700 text-center">
+        <div className="p-4 border-t border-neutral-700 text-center">
           <button
             onClick={onClose}
             className="px-6 py-2 bg-[#FFD700] text-black rounded-lg font-light hover:opacity-90 transition"
@@ -579,11 +579,11 @@ export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) 
       {/* Hover 彈出框 */}
       {showDiagram && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
-          <div className={`p-2 rounded-lg shadow-xl ${isDark ? 'bg-gray-800' : 'bg-white'} border border-gray-600`}>
+          <div className={`p-2 rounded-lg shadow-xl ${isDark ? 'bg-neutral-800' : 'bg-white'} border border-neutral-600`}>
             <SingleChordDiagram chord={chord} size={100} theme={theme} />
           </div>
           {/* 箭頭 */}
-          <div className={`absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent ${isDark ? 'border-t-gray-800' : 'border-t-white'}`} />
+          <div className={`absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent ${isDark ? 'border-t-neutral-800' : 'border-t-white'}`} />
         </div>
       )}
     </span>

@@ -96,17 +96,17 @@ function NavIconsAdmin() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">底部導航圖標設置</h1>
-            <p className="text-gray-500 mt-1">圖標存於程式碼 <code className="text-[#FFD700]">lib/navIcons.js</code>。上傳後複製程式碼到該檔案並部署即可生效。</p>
+            <p className="text-neutral-500 mt-1">圖標存於程式碼 <code className="text-[#FFD700]">lib/navIcons.js</code>。上傳後複製程式碼到該檔案並部署即可生效。</p>
           </div>
-          <button onClick={() => router.push('/admin')} className="text-gray-400 hover:text-white">
+          <button onClick={() => router.push('/admin')} className="text-neutral-400 hover:text-white">
             返回後台
           </button>
         </div>
 
         {copySnippet && (
-          <div className="mb-6 p-4 bg-[#1a1a1a] rounded-lg border border-gray-700">
-            <p className="text-gray-400 text-sm mb-2">複製到 lib/navIcons.js：</p>
-            <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap break-all mb-2">{copySnippet}</pre>
+          <div className="mb-6 p-4 bg-[#1a1a1a] rounded-lg border border-neutral-700">
+            <p className="text-neutral-400 text-sm mb-2">複製到 lib/navIcons.js：</p>
+            <pre className="text-xs text-neutral-300 overflow-x-auto whitespace-pre-wrap break-all mb-2">{copySnippet}</pre>
             <button
               type="button"
               onClick={() => copyToClipboard(copySnippet)}
@@ -128,7 +128,7 @@ function NavIconsAdmin() {
             const url = icons[item.id]
             const isBusy = busy === item.id
             return (
-              <div key={item.id} className="bg-[#121212] rounded-lg p-4 border border-gray-800 flex items-center gap-4">
+              <div key={item.id} className="bg-[#121212] rounded-lg p-4 border border-neutral-800 flex items-center gap-4">
                 <div className="w-14 h-14 bg-[#FFD700] rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {url ? (
                     <img src={url} alt={item.label} className="w-9 h-9 object-contain" />
@@ -139,7 +139,7 @@ function NavIconsAdmin() {
 
                 <div className="flex-1 min-w-0">
                   <h3 className="text-white font-medium">{item.label}</h3>
-                  <p className="text-gray-500 text-xs truncate">
+                  <p className="text-neutral-500 text-xs truncate">
                     {url ? url : '未設置'}
                   </p>
                 </div>

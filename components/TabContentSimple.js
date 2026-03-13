@@ -88,10 +88,10 @@ export default function TabContentSimple({
               }
               // 分隔線
               if (char === '|') {
-                return <span key={i} className="text-gray-500">{char}</span>;
+                return <span key={i} className="text-neutral-500">{char}</span>;
               }
               // 其他
-              return <span key={i} className="text-gray-300">{char}</span>;
+              return <span key={i} className="text-neutral-300">{char}</span>;
             })}
           </div>
         );
@@ -114,12 +114,12 @@ export default function TabContentSimple({
                 );
               }
               if (char === '|') {
-                return <span key={i} className="text-gray-500">{char}</span>;
+                return <span key={i} className="text-neutral-500">{char}</span>;
               }
               if (char === '(' || char === ')' || char === '（' || char === '）') {
-                return <span key={i} className="text-gray-400">{char}</span>;
+                return <span key={i} className="text-neutral-400">{char}</span>;
               }
-              return <span key={i} className="text-gray-200">{char}</span>;
+              return <span key={i} className="text-neutral-200">{char}</span>;
             })}
           </div>
         );
@@ -127,7 +127,7 @@ export default function TabContentSimple({
       
       // 純文字行
       return (
-        <div key={index} className="text-gray-400 my-2 text-sm">
+        <div key={index} className="text-neutral-400 my-2 text-sm">
           {transposedLine}
         </div>
       );
@@ -137,7 +137,7 @@ export default function TabContentSimple({
   return (
     <div className="bg-black px-4 py-4">
       {/* Key 顯示 */}
-      <div className="text-gray-500 text-xs mb-4 font-mono">
+      <div className="text-neutral-500 text-xs mb-4 font-mono">
         Key: {originalKey} {playKey !== originalKey && `> Play ${playKey}`}
       </div>
       

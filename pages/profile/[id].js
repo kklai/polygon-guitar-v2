@@ -317,7 +317,7 @@ export default function PublicProfile() {
       <Layout hideHeader>
         <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center">
-            <p className="text-gray-400 mb-4">{error}</p>
+            <p className="text-neutral-400 mb-4">{error}</p>
             <Link href="/" className="inline-flex items-center text-[#FFD700] hover:underline" aria-label="返回首頁">
               <ArrowLeft className="w-4 h-4" />
             </Link>
@@ -368,7 +368,7 @@ export default function PublicProfile() {
                     onClick={handleFollow}
                     className={`px-4 py-1 rounded-full text-sm font-medium transition flex-shrink-0 ${
                       isFollowing 
-                        ? 'bg-gray-700 text-white' 
+                        ? 'bg-neutral-700 text-white' 
                         : 'bg-[#FFD700] text-black'
                     }`}
                   >
@@ -396,15 +396,15 @@ export default function PublicProfile() {
               <div className="flex items-center gap-4 md:gap-6">
                 <div className="flex items-baseline gap-1 whitespace-nowrap">
                   <span className="text-[#FFD700] text-lg md:text-xl font-bold">{uploads.length}</span>
-                  <span className="text-gray-400 text-xs md:text-sm">出譜</span>
+                  <span className="text-neutral-400 text-xs md:text-sm">出譜</span>
                 </div>
                 <div className="flex items-baseline gap-1 whitespace-nowrap">
                   <span className="text-[#FFD700] text-lg md:text-xl font-bold">{totalViews.toLocaleString()}</span>
-                  <span className="text-gray-400 text-xs md:text-sm">瀏覽</span>
+                  <span className="text-neutral-400 text-xs md:text-sm">瀏覽</span>
                 </div>
                 <div className="flex items-baseline gap-1 whitespace-nowrap">
                   <span className="text-[#FFD700] text-lg md:text-xl font-bold">{followerCount}</span>
-                  <span className="text-gray-400 text-xs md:text-sm">粉絲</span>
+                  <span className="text-neutral-400 text-xs md:text-sm">粉絲</span>
                 </div>
               </div>
             </div>
@@ -426,11 +426,11 @@ export default function PublicProfile() {
 
           {/* Bio - 優先顯示用戶自定義，否則顯示自動生成 */}
           {profile.bio ? (
-            <p className="text-gray-300 text-base mt-4 leading-relaxed whitespace-pre-wrap">
+            <p className="text-neutral-300 text-base mt-4 leading-relaxed whitespace-pre-wrap">
               {profile.bio}
             </p>
           ) : autoBio ? (
-            <p className="text-gray-500 text-base mt-4 leading-relaxed italic">
+            <p className="text-neutral-500 text-base mt-4 leading-relaxed italic">
               {autoBio}
             </p>
           ) : null}
@@ -445,19 +445,19 @@ export default function PublicProfile() {
                 const thumbnail = getSongThumbnail(tab)
                 return (
                   <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                    <div className="flex items-center gap-3 p-2 hover:bg-gray-900/50 rounded-lg transition cursor-pointer group">
+                    <div className="flex items-center gap-3 p-2 hover:bg-neutral-900/50 rounded-lg transition cursor-pointer group">
                       {/* 排名數字 */}
-                      <span className="text-gray-500 text-lg w-6 text-center flex-shrink-0">{index + 1}</span>
+                      <span className="text-neutral-500 text-lg w-6 text-center flex-shrink-0">{index + 1}</span>
                       
                       {/* 封面圖 - 更大 */}
                       {thumbnail ? (
                         <img
                           src={thumbnail}
                           alt={tab.title}
-                          className="w-16 h-16 rounded object-cover flex-shrink-0 bg-gray-800"
+                          className="w-16 h-16 rounded object-cover flex-shrink-0 bg-neutral-800"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
+                        <div className="w-16 h-16 rounded bg-neutral-800 flex items-center justify-center flex-shrink-0">
                           <span className="text-2xl">🎵</span>
                         </div>
                       )}
@@ -465,11 +465,11 @@ export default function PublicProfile() {
                       {/* 歌曲信息 */}
                       <div className="flex-1 min-w-0">
                         <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
-                        <p className="text-gray-500 text-sm">{tab.artist}</p>
+                        <p className="text-neutral-500 text-sm">{tab.artist}</p>
                       </div>
                       
                       {/* 瀏覽量 */}
-                      <div className="text-right text-sm text-gray-400 flex-shrink-0">
+                      <div className="text-right text-sm text-neutral-400 flex-shrink-0">
                         <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
                       </div>
                     </div>
@@ -487,13 +487,13 @@ export default function PublicProfile() {
             <div className="space-y-2">
               {uploads.slice(5).map((tab, index) => (
                 <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                  <div className="flex items-center gap-3 py-3 px-2 hover:bg-gray-900 rounded-lg transition cursor-pointer border-b border-gray-800">
-                    <span className="text-gray-500 text-sm w-6 text-center flex-shrink-0">{index + 6}</span>
+                  <div className="flex items-center gap-3 py-3 px-2 hover:bg-neutral-900 rounded-lg transition cursor-pointer border-b border-neutral-800">
+                    <span className="text-neutral-500 text-sm w-6 text-center flex-shrink-0">{index + 6}</span>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium truncate">{tab.title}</h3>
-                      <p className="text-gray-500 text-sm">{tab.artist}</p>
+                      <p className="text-neutral-500 text-sm">{tab.artist}</p>
                     </div>
-                    <div className="text-right text-xs text-gray-500 flex-shrink-0">
+                    <div className="text-right text-xs text-neutral-500 flex-shrink-0">
                       <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
                     </div>
                   </div>
@@ -512,7 +512,7 @@ export default function PublicProfile() {
                 <Link 
                   key={playlist.id}
                   href={`/library/playlist/${playlist.id}`}
-                  className="flex items-center gap-3 p-3 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
+                  className="flex items-center gap-3 p-3 bg-neutral-900 rounded-lg hover:bg-neutral-800 transition"
                 >
                   {playlist.coverImage ? (
                     <img 
@@ -527,7 +527,7 @@ export default function PublicProfile() {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium truncate">{playlist.title}</p>
-                    <p className="text-gray-500 text-sm">{playlist.songIds?.length || 0} 首歌</p>
+                    <p className="text-neutral-500 text-sm">{playlist.songIds?.length || 0} 首歌</p>
                   </div>
                 </Link>
               ))}

@@ -56,7 +56,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
               className={`p-3 rounded-lg border-2 text-left transition ${
                 style.includes(tag.id)
                   ? 'border-[#FFD700] bg-[#FFD700]/10'
-                  : 'border-gray-700 hover:border-gray-600'
+                  : 'border-neutral-700 hover:border-neutral-600'
               }`}
             >
               <div className="flex items-start gap-2">
@@ -65,7 +65,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
                   <div className={`font-medium ${style.includes(tag.id) ? 'text-[#FFD700]' : 'text-white'}`}>
                     {tag.label}
                   </div>
-                  <div className="text-xs text-gray-400">{tag.desc}</div>
+                  <div className="text-xs text-neutral-400">{tag.desc}</div>
                 </div>
               </div>
             </button>
@@ -87,7 +87,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
               className={`px-4 py-2 rounded-full border-2 transition ${
                 audience.includes(tag.id)
                   ? `border-[#FFD700] ${tag.color} text-white`
-                  : 'border-gray-700 text-gray-300 hover:border-gray-600'
+                  : 'border-neutral-700 text-neutral-300 hover:border-neutral-600'
               }`}
             >
               <span className="font-medium">{tag.label}</span>
@@ -111,7 +111,7 @@ export default function TabTagsSelector({ value = {}, onChange }) {
               className={`px-3 py-2 rounded-lg border transition ${
                 mood.includes(tag.id)
                   ? 'border-[#FFD700] bg-[#FFD700]/10 text-[#FFD700]'
-                  : 'border-gray-700 text-gray-300 hover:border-gray-600'
+                  : 'border-neutral-700 text-neutral-300 hover:border-neutral-600'
               }`}
             >
               <span className="mr-1">{tag.icon}</span>
@@ -123,8 +123,8 @@ export default function TabTagsSelector({ value = {}, onChange }) {
 
       {/* 已選摘要 */}
       {(style.length > 0 || audience.length > 0 || mood.length > 0) && (
-        <div className="p-4 bg-gray-900 rounded-lg">
-          <div className="text-sm text-gray-400 mb-2">已選標籤：</div>
+        <div className="p-4 bg-neutral-900 rounded-lg">
+          <div className="text-sm text-neutral-400 mb-2">已選標籤：</div>
           <div className="flex flex-wrap gap-2">
             {style.map(id => {
               const tag = STYLE_TAGS.find(t => t.id === id)

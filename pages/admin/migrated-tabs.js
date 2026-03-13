@@ -498,7 +498,7 @@ export default function MigratedTabsPage() {
 
           {/* 統計面板 */}
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-            <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
+            <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
               <div className="text-2xl font-bold text-white">{stats.total}</div>
               <div className="text-[#B3B3B3] text-sm">DB總數</div>
             </div>
@@ -514,11 +514,11 @@ export default function MigratedTabsPage() {
               <div className="text-2xl font-bold text-red-400">{stats.withIssues}</div>
               <div className="text-[#B3B3B3] text-sm">有問題</div>
             </div>
-            <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
+            <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
               <div className="text-2xl font-bold text-orange-400">{stats.noArtistId}</div>
               <div className="text-[#B3B3B3] text-sm">缺artistId</div>
             </div>
-            <div className="bg-[#121212] rounded-lg p-4 border border-gray-800">
+            <div className="bg-[#121212] rounded-lg p-4 border border-neutral-800">
               <div className="text-2xl font-bold text-purple-400">{stats.noContent}</div>
               <div className="text-[#B3B3B3] text-sm">缺內容</div>
             </div>
@@ -531,7 +531,7 @@ export default function MigratedTabsPage() {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="bg-[#121212] text-white border border-gray-700 rounded-lg px-3 py-2 text-sm"
+                className="bg-[#121212] text-white border border-neutral-700 rounded-lg px-3 py-2 text-sm"
               >
                 <option value="all">全部 Blogger ({stats.blogger})</option>
                 <option value="issues">有問題 ({stats.withIssues})</option>
@@ -566,9 +566,9 @@ export default function MigratedTabsPage() {
 
           {/* Debug 信息 */}
           {debugInfo && (
-            <div className="mb-6 bg-[#1a1a1a] rounded-lg p-4 border border-gray-800">
+            <div className="mb-6 bg-[#1a1a1a] rounded-lg p-4 border border-neutral-800">
               <h3 className="text-[#B3B3B3] text-sm font-medium mb-2">Debug 信息</h3>
-              <div className="text-xs text-gray-500 font-mono space-y-1">
+              <div className="text-xs text-neutral-500 font-mono space-y-1">
                 <p>資料庫總數: {debugInfo.totalInDB}</p>
                 <p>Blogger 來源: {debugInfo.bloggerCount}</p>
                 <p>前10筆樣本:</p>
@@ -597,7 +597,7 @@ export default function MigratedTabsPage() {
                 <div
                   key={tab.id}
                   className={`bg-[#121212] rounded-lg border ${
-                    tab.issues?.length > 0 ? 'border-red-800/50' : 'border-gray-800'
+                    tab.issues?.length > 0 ? 'border-red-800/50' : 'border-neutral-800'
                   } p-4`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -624,7 +624,7 @@ export default function MigratedTabsPage() {
                       <p className="text-[#B3B3B3] text-sm mb-2">
                         {tab.artist || '(無歌手)'}
                         {tab.artistId && (
-                          <span className="text-gray-500 ml-2">ID: {tab.artistId}</span>
+                          <span className="text-neutral-500 ml-2">ID: {tab.artistId}</span>
                         )}
                       </p>
                       {tab.issues?.length > 0 && (
@@ -639,7 +639,7 @@ export default function MigratedTabsPage() {
                           ))}
                         </div>
                       )}
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 text-xs text-neutral-500">
                         <span>調: {tab.originalKey || 'C'}</span>
                         {tab.capo && <span>Capo: {tab.capo}</span>}
                         <span>
@@ -650,7 +650,7 @@ export default function MigratedTabsPage() {
                               : '未知日期'
                           }
                         </span>
-                        <span className="text-gray-600">ID: {tab.id.slice(0, 8)}...</span>
+                        <span className="text-neutral-600">ID: {tab.id.slice(0, 8)}...</span>
                       </div>
                     </div>
 
@@ -692,7 +692,7 @@ export default function MigratedTabsPage() {
           {/* 編輯 Modal */}
           {selectedTab && editForm && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-              <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="bg-[#121212] rounded-xl border border-neutral-800 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-white">編輯樂譜</h2>
@@ -714,7 +714,7 @@ export default function MigratedTabsPage() {
                         type="text"
                         value={editForm.title}
                         onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                        className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                       />
                     </div>
 
@@ -725,17 +725,17 @@ export default function MigratedTabsPage() {
                           type="text"
                           value={editForm.artist}
                           onChange={(e) => setEditForm({...editForm, artist: e.target.value})}
-                          className="flex-1 bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                          className="flex-1 bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                         />
                         <button
                           onClick={handleWikiSearch}
                           disabled={searchingWiki || !editForm.artist}
-                          className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                         >
                           {searchingWiki ? '搜尋中...' : '🔍 維基'}
                         </button>
                       </div>
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-neutral-500 text-xs mt-1">
                         會自動生成 artistId: {editForm.artist.toLowerCase().replace(/\s+/g, '-')}
                       </p>
                       
@@ -760,7 +760,7 @@ export default function MigratedTabsPage() {
                                   </span>
                                 )}
                                 {wikiData.year && (
-                                  <span className="text-xs text-gray-500">{wikiData.year}年</span>
+                                  <span className="text-xs text-neutral-500">{wikiData.year}年</span>
                                 )}
                               </div>
                               <button
@@ -781,7 +781,7 @@ export default function MigratedTabsPage() {
                         <select
                           value={editForm.originalKey}
                           onChange={(e) => setEditForm({...editForm, originalKey: e.target.value})}
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                          className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                         >
                           {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(k => (
                             <option key={k} value={k}>{k}</option>
@@ -796,7 +796,7 @@ export default function MigratedTabsPage() {
                           max="12"
                           value={editForm.capo}
                           onChange={(e) => setEditForm({...editForm, capo: e.target.value})}
-                          className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2"
+                          className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2"
                         />
                       </div>
                     </div>
@@ -804,7 +804,7 @@ export default function MigratedTabsPage() {
                     <div>
                       <label className="block text-[#B3B3B3] text-sm mb-2">
                         樂譜內容 * 
-                        <span className="text-gray-500">
+                        <span className="text-neutral-500">
                           ({editForm.content.length} 字符)
                         </span>
                       </label>
@@ -812,12 +812,12 @@ export default function MigratedTabsPage() {
                         value={editForm.content}
                         onChange={(e) => setEditForm({...editForm, content: e.target.value})}
                         rows={15}
-                        className="w-full bg-[#0A0A0A] text-white border border-gray-700 rounded-lg px-4 py-2 font-mono text-sm"
+                        className="w-full bg-[#0A0A0A] text-white border border-neutral-700 rounded-lg px-4 py-2 font-mono text-sm"
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-800">
+                  <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-neutral-800">
                     <button
                       onClick={() => {
                         setSelectedTab(null)

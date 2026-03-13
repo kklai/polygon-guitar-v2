@@ -162,20 +162,20 @@ export default function YouTubeSearchModal({
       />
       
       {/* Modal 內容 */}
-      <div className="relative bg-[#121212] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-gray-800">
+      <div className="relative bg-[#121212] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-neutral-800">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-800">
           <div>
             <h2 className="text-lg font-bold text-white">
               YouTube 搜尋結果
             </h2>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-neutral-400">
               「{artistName} {songTitle}」
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white transition"
+            className="p-2 text-neutral-400 hover:text-white transition"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -191,7 +191,7 @@ export default function YouTubeSearchModal({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p className="text-gray-400">搜尋緊 YouTube...</p>
+              <p className="text-neutral-400">搜尋緊 YouTube...</p>
             </div>
           ) : error ? (
             <div className="text-center py-8">
@@ -224,7 +224,7 @@ export default function YouTubeSearchModal({
               <div className="flex gap-2 justify-center">
                 <button
                   onClick={searchYouTube}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                  className="px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 transition"
                 >
                   重試
                 </button>
@@ -245,7 +245,7 @@ export default function YouTubeSearchModal({
                 <button
                   key={video.videoId}
                   onClick={() => handleSelect(video)}
-                  className="group bg-black rounded-lg overflow-hidden border border-gray-800 hover:border-[#FFD700] transition text-left"
+                  className="group bg-black rounded-lg overflow-hidden border border-neutral-800 hover:border-[#FFD700] transition text-left"
                 >
                   {/* 縮圖 */}
                   <div className="relative aspect-video">
@@ -276,7 +276,7 @@ export default function YouTubeSearchModal({
                     <h3 className="text-sm font-medium text-white line-clamp-2 mb-1 group-hover:text-[#FFD700] transition">
                       {truncateTitle(video.title)}
                     </h3>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-neutral-500">
                       {video.channelTitle}
                     </p>
                   </div>
@@ -287,15 +287,15 @@ export default function YouTubeSearchModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-800 bg-black/50">
+        <div className="p-4 border-t border-neutral-800 bg-black/50">
           <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-neutral-500">
               搵唔到啱心水？可以自己去 YouTube 搜尋
             </p>
             <div className="flex gap-2">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-400 hover:text-white transition"
+                className="px-4 py-2 text-neutral-400 hover:text-white transition"
               >
                 取消
               </button>

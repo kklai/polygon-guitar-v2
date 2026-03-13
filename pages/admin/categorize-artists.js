@@ -297,7 +297,7 @@ export default function CategorizeArtists() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-2">歌手分類整理</h1>
-            <p className="text-gray-400">
+            <p className="text-neutral-400">
               快速將「其他」類別的歌手分類到男歌手、女歌手或組合
               <span className="text-[#FFD700] ml-2">({artists.length} 位待分類)</span>
             </p>
@@ -315,7 +315,7 @@ export default function CategorizeArtists() {
           )}
 
           {/* 搜尋同批次操作 */}
-          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-gray-800 space-y-4">
+          <div className="mb-6 p-4 bg-[#121212] rounded-xl border border-neutral-800 space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               {/* 全選 */}
               <label className="flex items-center gap-2 cursor-pointer">
@@ -323,18 +323,18 @@ export default function CategorizeArtists() {
                   type="checkbox"
                   checked={filteredArtists.length > 0 && selectedArtists.size === filteredArtists.length}
                   onChange={toggleSelectAll}
-                  className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
+                  className="w-5 h-5 rounded border-neutral-600 bg-neutral-800 text-[#FFD700]"
                 />
                 <span className="text-white text-sm">
                   全選 ({selectedArtists.size}/{filteredArtists.length})
                 </span>
               </label>
 
-              <div className="w-px h-6 bg-gray-700"></div>
+              <div className="w-px h-6 bg-neutral-700"></div>
 
               {/* 搜尋 */}
               <div className="flex-1 min-w-[200px] relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type="text"
                   placeholder="搜尋歌手名..."
@@ -347,8 +347,8 @@ export default function CategorizeArtists() {
 
             {/* 批次操作按 */}
             {selectedArtists.size > 0 && (
-              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-800">
-                <span className="text-gray-400 text-sm mr-2">批次操作:</span>
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-800">
+                <span className="text-neutral-400 text-sm mr-2">批次操作:</span>
                 
                 {CATEGORIES.map(cat => {
                   const Icon = cat.icon
@@ -365,7 +365,7 @@ export default function CategorizeArtists() {
                   )
                 })}
                 
-                <div className="w-px h-6 bg-gray-700 mx-1"></div>
+                <div className="w-px h-6 bg-neutral-700 mx-1"></div>
                 
                 <button
                   onClick={batchDelete}
@@ -380,38 +380,38 @@ export default function CategorizeArtists() {
           </div>
 
           {/* 歌手列表 */}
-          <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
             {loading ? (
               <div className="p-8 space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-800 rounded animate-pulse" />
+                  <div key={i} className="h-16 bg-neutral-800 rounded animate-pulse" />
                 ))}
               </div>
             ) : filteredArtists.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-gray-400 mb-4">沒有待分類的歌手</p>
+                <p className="text-neutral-400 mb-4">沒有待分類的歌手</p>
                 
                 {/* 調試信息 */}
                 <div className="bg-black/50 rounded-lg p-4 text-left text-sm">
-                  <p className="text-gray-500 mb-2">調試信息：</p>
-                  <p className="text-gray-400">總歌手數：{allArtistsCount}</p>
-                  <p className="text-gray-400 mt-2">類型分布：</p>
+                  <p className="text-neutral-500 mb-2">調試信息：</p>
+                  <p className="text-neutral-400">總歌手數：{allArtistsCount}</p>
+                  <p className="text-neutral-400 mt-2">類型分布：</p>
                   <div className="mt-1 space-y-1">
                     {Object.entries(typeStats).map(([type, count]) => (
                       <div key={type} className="flex justify-between text-xs">
-                        <span className="text-gray-500">{type}:</span>
-                        <span className={count > 0 ? 'text-[#FFD700]' : 'text-gray-600'}>{count}</span>
+                        <span className="text-neutral-500">{type}:</span>
+                        <span className={count > 0 ? 'text-[#FFD700]' : 'text-neutral-600'}>{count}</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 
-                <p className="text-xs text-gray-600 mt-4">
+                <p className="text-xs text-neutral-600 mt-4">
                   如果以上顯示有歌手但此處為空，可能是類型字段格式問題。
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-800">
+              <div className="divide-y divide-neutral-800">
                 {filteredArtists.map((artist) => {
                   const songCount = relatedSongsMap[artist.id] || 0
                   const isSelected = selectedArtists.has(artist.id)
@@ -428,11 +428,11 @@ export default function CategorizeArtists() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelect(artist.id)}
-                        className="w-5 h-5 rounded border-gray-600 bg-gray-800 text-[#FFD700]"
+                        className="w-5 h-5 rounded border-neutral-600 bg-neutral-800 text-[#FFD700]"
                       />
 
                       {/* 歌手圖片 */}
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-800 flex-shrink-0">
                         {artist.photoURL || artist.wikiPhotoURL ? (
                           <img
                             src={artist.photoURL || artist.wikiPhotoURL}
@@ -456,7 +456,7 @@ export default function CategorizeArtists() {
                               {songCount} 首歌
                             </span>
                           ) : (
-                            <span className="text-gray-500">無歌曲</span>
+                            <span className="text-neutral-500">無歌曲</span>
                           )}
                         </div>
                       </div>
@@ -477,7 +477,7 @@ export default function CategorizeArtists() {
                           )
                         })}
                         
-                        <div className="w-px h-6 bg-gray-700 mx-1"></div>
+                        <div className="w-px h-6 bg-neutral-700 mx-1"></div>
                         
                         <button
                           onClick={() => deleteSingle(artist)}
@@ -495,7 +495,7 @@ export default function CategorizeArtists() {
           </div>
 
           {/* 統計 */}
-          <div className="mt-4 text-sm text-gray-400">
+          <div className="mt-4 text-sm text-neutral-400">
             待分類歌手: <span className="text-[#FFD700]">{artists.length}</span> |
             有歌曲的歌手: <span className="text-amber-400">{Object.values(relatedSongsMap).filter(c => c > 0).length}</span> |
             已選擇: <span className="text-white">{selectedArtists.size}</span>
@@ -512,7 +512,7 @@ export default function CategorizeArtists() {
                   <h3 className="text-lg font-bold text-white">警告</h3>
                 </div>
                 
-                <p className="text-gray-300 mb-4">
+                <p className="text-neutral-300 mb-4">
                   以下歌手有相關歌曲，刪除後可能導致歌曲頁面顯示異常：
                 </p>
                 
@@ -525,14 +525,14 @@ export default function CategorizeArtists() {
                   ))}
                 </div>
                 
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="text-neutral-400 text-sm mb-6">
                   確定要刪除這 {selectedArtists.size} 位歌手嗎？
                 </p>
                 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+                    className="flex-1 px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition"
                   >
                     取消
                   </button>
@@ -549,7 +549,7 @@ export default function CategorizeArtists() {
           )}
 
           {/* 說明 */}
-          <div className="mt-6 p-4 bg-gray-800/50 rounded-lg text-sm text-gray-400">
+          <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg text-sm text-neutral-400">
             <h4 className="text-white font-medium mb-2">💡 使用說明</h4>
             <ul className="space-y-1 list-disc list-inside">
               <li>此頁面顯示所有未分類（「其他」類別）的歌手</li>

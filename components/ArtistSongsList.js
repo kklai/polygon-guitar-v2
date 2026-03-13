@@ -102,22 +102,22 @@ function SongItem({ song, index, artistPhoto }) {
   return (
     <Link
       href={`/tabs/${song.id}`}
-      className="flex items-center gap-3 p-3 hover:bg-gray-800/50 transition group"
+      className="flex items-center gap-3 p-3 hover:bg-neutral-800/50 transition group"
     >
       {/* 排名數字 - 縮細版 */}
       <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
         <span className={`
           text-xs font-bold
           ${rank === 1 ? 'text-[#FFD700]' : 
-            rank === 2 ? 'text-gray-300' : 
-            rank === 3 ? 'text-amber-600' : 'text-gray-500'}
+            rank === 2 ? 'text-neutral-300' : 
+            rank === 3 ? 'text-amber-600' : 'text-neutral-500'}
         `}>
           {rank}
         </span>
       </div>
 
       {/* 歌曲縮圖 */}
-      <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gray-800">
+      <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-neutral-800">
         {thumbnail ? (
           <img
             src={thumbnail}
@@ -138,7 +138,7 @@ function SongItem({ song, index, artistPhoto }) {
         <h4 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">
           {song.title}
         </h4>
-        <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+        <div className="flex items-center gap-2 text-xs text-neutral-400 mt-0.5">
           <span>{(song.viewCount || 0).toLocaleString()} 瀏覽</span>
           {likeCount > 0 && (
             <>
@@ -160,13 +160,13 @@ function SongItem({ song, index, artistPhoto }) {
           {keys.slice(0, 3).map((key, i) => (
             <span 
               key={i}
-              className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xs font-bold text-[#FFD700]"
+              className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs font-bold text-[#FFD700]"
             >
               {key}
             </span>
           ))}
           {keys.length > 3 && (
-            <span className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-800 flex items-center justify-center text-xs text-gray-400">
+            <span className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full bg-neutral-800 flex items-center justify-center text-xs text-neutral-400">
               +{keys.length - 3}
             </span>
           )}
@@ -180,7 +180,7 @@ function SongItem({ song, index, artistPhoto }) {
         className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition ${
           isLiked 
             ? 'bg-red-500/20 text-red-500' 
-            : 'bg-gray-800 text-gray-500 hover:bg-gray-700 hover:text-white'
+            : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700 hover:text-white'
         } ${isLoading ? 'opacity-50' : ''}`}
         title={isLiked ? '已收藏至喜愛結他譜' : '收藏至喜愛結他譜'}
       >
@@ -198,7 +198,7 @@ function SongItem({ song, index, artistPhoto }) {
       </button>
 
       {/* 箭頭 */}
-      <div className="flex-shrink-0 text-gray-600 group-hover:text-[#FFD700] transition">
+      <div className="flex-shrink-0 text-neutral-600 group-hover:text-[#FFD700] transition">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
@@ -211,12 +211,12 @@ export default function ArtistSongsList({ songs, artistPhoto }) {
   if (!songs || songs.length === 0) return null
 
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
-      <div className="p-4 border-b border-gray-800">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
+      <div className="p-4 border-b border-neutral-800">
         <h3 className="text-lg font-bold text-white">熱門歌曲</h3>
       </div>
       
-      <div className="divide-y divide-gray-800">
+      <div className="divide-y divide-neutral-800">
         {songs.map((song, index) => (
           <SongItem 
             key={song.id}

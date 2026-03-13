@@ -52,14 +52,14 @@ export default function TestSpotify() {
           <h1 className="text-3xl font-bold text-white mb-2">
             <span className="text-[#FFD700]">Spotify</span> API 測試
           </h1>
-          <p className="text-gray-400 mb-8">測試 Spotify Developer API 是否正常工作</p>
+          <p className="text-neutral-400 mb-8">測試 Spotify Developer API 是否正常工作</p>
 
           <button
             onClick={testSpotify}
             disabled={loading}
             className={`w-full py-4 rounded-lg font-bold text-lg transition ${
               loading
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                ? 'bg-neutral-700 text-neutral-400 cursor-not-allowed'
                 : 'bg-[#1DB954] text-white hover:bg-[#1ed760]'
             }`}
           >
@@ -73,7 +73,7 @@ export default function TestSpotify() {
                 <span className="text-2xl">✅</span>
                 <h2 className="text-xl font-bold text-green-400">API 正常工作！</h2>
               </div>
-              <div className="space-y-2 text-gray-300">
+              <div className="space-y-2 text-neutral-300">
                 <p>狀態碼: <span className="text-green-400">{result.status}</span></p>
                 <p>歌手: <span className="text-white font-medium">{result.artist}</span></p>
                 <p>圖片數量: <span className="text-white">{result.imageCount}</span></p>
@@ -101,12 +101,12 @@ export default function TestSpotify() {
                 <span className="text-2xl">❌</span>
                 <h2 className="text-xl font-bold text-red-400">API 錯誤</h2>
               </div>
-              <div className="space-y-2 text-gray-300">
+              <div className="space-y-2 text-neutral-300">
                 <p>狀態碼: <span className="text-red-400 font-mono">{error.status}</span></p>
                 <p>錯誤訊息: <span className="text-white">{error.message}</span></p>
                 {error.details && (
                   <div className="mt-4 p-3 bg-black/50 rounded overflow-auto">
-                    <pre className="text-xs text-gray-400">
+                    <pre className="text-xs text-neutral-400">
                       {JSON.stringify(error.details, null, 2)}
                     </pre>
                   </div>
@@ -136,9 +136,9 @@ export default function TestSpotify() {
           )}
 
           {/* 說明 */}
-          <div className="mt-8 p-6 bg-gray-900 rounded-xl">
+          <div className="mt-8 p-6 bg-neutral-900 rounded-xl">
             <h3 className="text-lg font-bold text-white mb-3">如何檢查</h3>
-            <ol className="space-y-2 text-gray-400 text-sm list-decimal list-inside">
+            <ol className="space-y-2 text-neutral-400 text-sm list-decimal list-inside">
               <li>點擊上方「測試 Spotify API」按鈕</li>
               <li>如果顯示 ✅ API 正常工作，則可使用</li>
               <li>如果顯示 ❌，根據錯誤訊息修正</li>

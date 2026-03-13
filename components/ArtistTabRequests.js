@@ -64,7 +64,7 @@ export default function ArtistTabRequests({ artistId, artistName }) {
   const pendingCount = requests.filter(r => r.status === 'pending').length
 
   return (
-    <div className="mt-8 pt-6 border-t border-gray-800">
+    <div className="mt-8 pt-6 border-t border-neutral-800">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">
           🙏 求譜 ({pendingCount} 待處理)
@@ -83,23 +83,23 @@ export default function ArtistTabRequests({ artistId, artistName }) {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-[#121212] rounded-lg p-4 mb-4 space-y-3">
           <div>
-            <label className="block text-gray-400 text-xs mb-1">歌曲名稱 *</label>
+            <label className="block text-neutral-400 text-xs mb-1">歌曲名稱 *</label>
             <input
               type="text"
               value={songTitle}
               onChange={(e) => setSongTitle(e.target.value)}
               placeholder={`想求 ${artistName} 嘅邊首歌？`}
-              className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-sm placeholder-gray-500 outline-none"
+              className="w-full bg-black border border-neutral-700 rounded-lg p-2.5 text-white text-sm placeholder-neutral-500 outline-none"
               maxLength={100}
             />
           </div>
           <div>
-            <label className="block text-gray-400 text-xs mb-1">補充說明（可選）</label>
+            <label className="block text-neutral-400 text-xs mb-1">補充說明（可選）</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="例如：想要簡單版、原調版本等..."
-              className="w-full bg-black border border-gray-700 rounded-lg p-2.5 text-white text-sm placeholder-gray-500 outline-none resize-none"
+              className="w-full bg-black border border-neutral-700 rounded-lg p-2.5 text-white text-sm placeholder-neutral-500 outline-none resize-none"
               rows={2}
               maxLength={200}
             />
@@ -108,7 +108,7 @@ export default function ArtistTabRequests({ artistId, artistName }) {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-gray-400 text-sm hover:text-white transition"
+              className="px-4 py-2 text-neutral-400 text-sm hover:text-white transition"
             >
               取消
             </button>
@@ -126,9 +126,9 @@ export default function ArtistTabRequests({ artistId, artistName }) {
       {/* 求譜列表 */}
       <div className="space-y-2">
         {loading ? (
-          <div className="text-gray-500 text-center py-4">載入中...</div>
+          <div className="text-neutral-500 text-center py-4">載入中...</div>
         ) : requests.length === 0 ? (
-          <div className="text-gray-500 text-center py-6 bg-[#121212] rounded-lg">
+          <div className="text-neutral-500 text-center py-6 bg-[#121212] rounded-lg">
             <p className="text-sm">暫時冇求譜</p>
             <p className="text-xs mt-1">有想聽嘅歌？快啲提出求譜！</p>
           </div>
@@ -157,11 +157,11 @@ export default function ArtistTabRequests({ artistId, artistName }) {
                     )}
                   </div>
                   {request.message && (
-                    <p className="text-gray-400 text-xs mb-1">
+                    <p className="text-neutral-400 text-xs mb-1">
                       {request.message}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2 text-xs text-neutral-500">
                     <span>{request.userName}</span>
                     <span>•</span>
                     <span>{formatTime(request.createdAt)}</span>
@@ -175,7 +175,7 @@ export default function ArtistTabRequests({ artistId, artistName }) {
 
       {!user && (
         <div className="text-center py-4 bg-[#121212] rounded-lg mt-4">
-          <p className="text-gray-400 text-sm mb-2">登入後即可求譜</p>
+          <p className="text-neutral-400 text-sm mb-2">登入後即可求譜</p>
           <a
             href="/login"
             className="text-[#FFD700] text-sm hover:underline"

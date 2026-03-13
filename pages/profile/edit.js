@@ -149,7 +149,7 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
   ]
 
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
       <div 
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -157,14 +157,14 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
         <div>
           <h2 className="text-lg font-medium text-white flex items-center gap-2">
             ✨ 自動生成簡介
-            <span className="text-xs font-normal text-gray-400">（可選）</span>
+            <span className="text-xs font-normal text-neutral-400">（可選）</span>
           </h2>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-neutral-400 text-sm mt-1">
             {isExpanded ? '回答問題，系統會幫你生成簡介' : '點擊展開，快速生成個人簡介'}
           </p>
         </div>
         <svg 
-          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
           fill="none" 
           viewBox="0 0 24 24" 
           stroke="currentColor"
@@ -177,7 +177,7 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
         <div className="mt-4 space-y-4">
           {/* 風格選擇 */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">選擇風格</label>
+            <label className="block text-sm text-neutral-400 mb-2">選擇風格</label>
             <div className="flex flex-wrap gap-2">
               {styles.map(style => (
                 <button
@@ -186,7 +186,7 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
                   className={`px-3 py-1.5 rounded-full text-sm transition ${
                     selectedStyle === style.id
                       ? 'bg-[#FFD700] text-black'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                   }`}
                 >
                   {style.name}
@@ -198,7 +198,7 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
           {/* 預覽 */}
           <div className="bg-black rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-500 text-xs">預覽：</span>
+              <span className="text-neutral-500 text-xs">預覽：</span>
               {generatedBio && (
                 <button
                   onClick={() => navigator.clipboard.writeText(generatedBio)}
@@ -225,21 +225,21 @@ function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
           </div>
 
           {/* 手動編輯區 */}
-          <div className="pt-4 border-t border-gray-800">
-            <label className="block text-sm text-gray-400 mb-2">
+          <div className="pt-4 border-t border-neutral-800">
+            <label className="block text-sm text-neutral-400 mb-2">
               或自行編輯
-              <span className="text-xs text-gray-500 ml-1">（可複製上方修改）</span>
+              <span className="text-xs text-neutral-500 ml-1">（可複製上方修改）</span>
             </label>
             <textarea
               value={formData.bio || ''}
               onChange={(e) => onBioChange(e.target.value)}
               placeholder="例如：大家好，我係Kermit，彈結他十年，鍾意自彈自唱，歡迎交流..."
-              className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none resize-none"
+              className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none resize-none"
               rows={4}
             />
           </div>
 
-          <p className="text-gray-500 text-xs">
+          <p className="text-neutral-500 text-xs">
             💡 小提示：不需要回答所有問題，選擇你想分享的即可。生成的簡介可以複製後自行修改。
           </p>
         </div>
@@ -446,7 +446,7 @@ export default function EditProfile() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">編輯個人資料</h1>
-            <p className="text-gray-400 text-sm">設定你的音樂人檔案</p>
+            <p className="text-neutral-400 text-sm">設定你的音樂人檔案</p>
           </div>
           <Link
             href={`/profile/${user.uid}`}
@@ -478,7 +478,7 @@ export default function EditProfile() {
         )}
 
         {/* Profile Photo */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
           <h2 className="text-lg font-medium text-white mb-4">個人頭像</h2>
           
           <div className="flex items-center gap-6">
@@ -512,7 +512,7 @@ export default function EditProfile() {
               {user?.photoURL && (
                 <button
                   onClick={handleUseGooglePhoto}
-                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition text-sm"
+                  className="w-full px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition text-sm"
                 >
                   🌐 使用 Google 頭像
                 </button>
@@ -522,18 +522,18 @@ export default function EditProfile() {
         </div>
 
         {/* Basic Info */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
           <h2 className="text-lg font-medium text-white mb-4">基本資料</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">顯示名稱</label>
+              <label className="block text-sm text-neutral-400 mb-2">顯示名稱</label>
               <input
                 type="text"
                 value={formData.displayName}
                 onChange={(e) => handleChange('displayName', e.target.value)}
                 placeholder="你的名稱"
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
               />
             </div>
 
@@ -547,37 +547,37 @@ export default function EditProfile() {
                 value={formData.penName}
                 onChange={(e) => handleChange('penName', e.target.value)}
                 placeholder="例如：結他小王子、Kermit Guitar"
-                className="w-full px-4 py-3 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-gray-500 outline-none"
+                className="w-full px-4 py-3 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-neutral-500 outline-none"
               />
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-neutral-400 mt-2">
                 出譜時會自動使用此筆名，顯示為「編譜：xxx」
               </p>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">個人簡介</label>
+              <label className="block text-sm text-neutral-400 mb-2">個人簡介</label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => handleChange('bio', e.target.value)}
                 placeholder="介紹一下自己，例如音樂風格、喜歡的歌手、聯絡方式..."
                 rows={4}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none resize-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none resize-none"
               />
             </div>
           </div>
         </div>
 
         {/* Social Media */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
           <h2 className="text-lg font-medium text-white mb-4">🔗 社交媒體</h2>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-neutral-400 mb-4">
             添加你的社交媒體帳號，讓其他人可以追蹤你
           </p>
           
           <div className="space-y-4">
             {SOCIAL_MEDIA_CONFIG.map(({ key, label, placeholder, icon }) => (
               <div key={key}>
-                <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+                <label className="block text-sm text-neutral-400 mb-2 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#FFD700] flex items-center justify-center text-black text-xs">
                     {icon}
                   </span>
@@ -588,7 +588,7 @@ export default function EditProfile() {
                   value={formData.socialMedia?.[key] || ''}
                   onChange={(e) => handleSocialMediaChange(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none"
+                  className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
                 />
               </div>
             ))}
@@ -596,16 +596,16 @@ export default function EditProfile() {
         </div>
 
         {/* Music Profile */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
           <h2 className="text-lg font-medium text-white mb-4">音樂人檔案</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">彈結他經驗</label>
+              <label className="block text-sm text-neutral-400 mb-2">彈結他經驗</label>
               <select
                 value={formData.guitarExperience}
                 onChange={(e) => handleChange('guitarExperience', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.experience.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -614,22 +614,22 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">最喜歡的歌手</label>
+              <label className="block text-sm text-neutral-400 mb-2">最喜歡的歌手</label>
               <input
                 type="text"
                 value={formData.favoriteArtist}
                 onChange={(e) => handleChange('favoriteArtist', e.target.value)}
                 placeholder="例如：陳奕迅、周杰倫、Taylor Swift..."
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">最喜歡的 Key</label>
+              <label className="block text-sm text-neutral-400 mb-2">最喜歡的 Key</label>
               <select
                 value={formData.favoriteKey}
                 onChange={(e) => handleChange('favoriteKey', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
               >
                 {FAVORITE_KEY_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -638,11 +638,11 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">演奏風格</label>
+              <label className="block text-sm text-neutral-400 mb-2">演奏風格</label>
               <select
                 value={formData.playingStyle}
                 onChange={(e) => handleChange('playingStyle', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.style.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -651,11 +651,11 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">最喜歡的和弦</label>
+              <label className="block text-sm text-neutral-400 mb-2">最喜歡的和弦</label>
               <select
                 value={formData.favoriteChords}
                 onChange={(e) => handleChange('favoriteChords', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.chords.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -664,11 +664,11 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">練習地點</label>
+              <label className="block text-sm text-neutral-400 mb-2">練習地點</label>
               <select
                 value={formData.practiceLocation}
                 onChange={(e) => handleChange('practiceLocation', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
               >
                 {bioOptions.location.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -686,7 +686,7 @@ export default function EditProfile() {
         />
 
         {/* Privacy Settings */}
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
           <h2 className="text-lg font-medium text-white mb-4">隱私設定</h2>
           
           <div className="space-y-3">

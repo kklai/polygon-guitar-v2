@@ -121,7 +121,7 @@ export default function NewTablaturePage() {
         {/* 標題 */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">上傳六線譜</h1>
-          <p className="text-gray-400">
+          <p className="text-neutral-400">
             支援 Guitar Pro、MIDI、MusicXML 格式，可在線播放與學習
           </p>
         </div>
@@ -130,7 +130,7 @@ export default function NewTablaturePage() {
           {/* 左側：上傳與表單 */}
           <div className="space-y-6">
             {/* 文件上傳 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -147,7 +147,7 @@ export default function NewTablaturePage() {
             </div>
 
             {/* 基本資訊表單 */}
-            <form onSubmit={handleSubmit} className="bg-[#121212] rounded-xl border border-gray-800 p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="bg-[#121212] rounded-xl border border-neutral-800 p-6 space-y-4">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -162,7 +162,7 @@ export default function NewTablaturePage() {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                   placeholder="例如：海闊天空"
                   required
                 />
@@ -175,7 +175,7 @@ export default function NewTablaturePage() {
                   name="artist"
                   value={formData.artist}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                   placeholder="例如：Beyond"
                   required
                 />
@@ -187,7 +187,7 @@ export default function NewTablaturePage() {
                   name="originalKey"
                   value={formData.originalKey}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                 >
                   {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(key => (
                     <option key={key} value={key}>{key}</option>
@@ -202,7 +202,7 @@ export default function NewTablaturePage() {
                   value={formData.description}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                   placeholder="簡介這份譜的難度、適合程度..."
                 />
               </div>
@@ -214,7 +214,7 @@ export default function NewTablaturePage() {
                   name="youtubeUrl"
                   value={formData.youtubeUrl}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white outline-none"
+                  className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white outline-none"
                   placeholder="https://youtube.com/watch?v=..."
                 />
               </div>
@@ -225,7 +225,7 @@ export default function NewTablaturePage() {
                   name="isPublic"
                   checked={formData.isPublic}
                   onChange={handleChange}
-                  className="w-4 h-4 rounded border-gray-700 bg-black text-[#FFD700]"
+                  className="w-4 h-4 rounded border-neutral-700 bg-black text-[#FFD700]"
                 />
                 <span className="text-white text-sm">公開分享這份譜</span>
               </div>
@@ -234,7 +234,7 @@ export default function NewTablaturePage() {
               <button
                 type="submit"
                 disabled={isSubmitting || !fileData}
-                className="w-full py-3 bg-[#FFD700] hover:bg-yellow-400 disabled:bg-gray-700 disabled:text-gray-500 text-black font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#FFD700] hover:bg-yellow-400 disabled:bg-neutral-700 disabled:text-neutral-500 text-black font-semibold rounded-lg transition flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -258,7 +258,7 @@ export default function NewTablaturePage() {
 
           {/* 右側：預覽 */}
           <div>
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 sticky top-24">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 sticky top-24">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -275,8 +275,8 @@ export default function NewTablaturePage() {
                   onError={(err) => console.error('載入失敗:', err)}
                 />
               ) : (
-                <div className="h-[500px] bg-black rounded-lg flex items-center justify-center border border-gray-800 border-dashed">
-                  <div className="text-center text-gray-500">
+                <div className="h-[500px] bg-black rounded-lg flex items-center justify-center border border-neutral-800 border-dashed">
+                  <div className="text-center text-neutral-500">
                     <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                     </svg>

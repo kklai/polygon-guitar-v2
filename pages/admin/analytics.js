@@ -506,7 +506,7 @@ function AnalyticsDashboard() {
     <Layout>
       <div className="max-w-7xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -525,28 +525,28 @@ function AnalyticsDashboard() {
 
         {/* 主要統計卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">今日瀏覽</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">今日瀏覽</p>
             <p className="text-2xl font-bold text-[#FFD700]">{stats.today.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">實時更新</p>
+            <p className="text-xs text-neutral-500 mt-1">實時更新</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">昨日瀏覽</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">昨日瀏覽</p>
             <p className="text-2xl font-bold text-white">{stats.yesterday.toLocaleString()}</p>
             {stats.today > stats.yesterday && (
               <p className="text-xs text-green-400 mt-1">↗ 較昨日多</p>
             )}
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">近7天</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">近7天</p>
             <p className="text-2xl font-bold text-white">{stats.last7Days.toLocaleString()}</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">近30天</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">近30天</p>
             <p className="text-2xl font-bold text-white">{stats.last30Days.toLocaleString()}</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">總瀏覽</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">總瀏覽</p>
             <p className="text-2xl font-bold text-blue-400">{stats.total.toLocaleString()}</p>
           </div>
         </div>
@@ -554,22 +554,22 @@ function AnalyticsDashboard() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-400">載入統計數據...</p>
+            <p className="text-neutral-400">載入統計數據...</p>
           </div>
         ) : (
           <>
             {/* 7天趨勢圖表 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 mb-6">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-white">📈 7天瀏覽趨勢</h2>
-                <span className="text-sm text-gray-500">最近7天每日瀏覽量</span>
+                <span className="text-sm text-neutral-500">最近7天每日瀏覽量</span>
               </div>
               <div className="p-6">
                 <div className="flex items-end gap-2 h-48">
                   {dailyTrend.map((day, idx) => (
                     <div key={idx} className="flex-1 flex flex-col items-center gap-2">
                       <div className="w-full flex flex-col items-center gap-1">
-                        <span className="text-xs text-gray-400">{day.count}</span>
+                        <span className="text-xs text-neutral-400">{day.count}</span>
                         <div 
                           className="w-full bg-[#FFD700] rounded-t transition-all duration-500"
                           style={{ 
@@ -580,7 +580,7 @@ function AnalyticsDashboard() {
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-white">{day.day}</p>
-                        <p className="text-[10px] text-gray-500">{day.date}</p>
+                        <p className="text-[10px] text-neutral-500">{day.date}</p>
                       </div>
                     </div>
                   ))}
@@ -590,13 +590,13 @@ function AnalyticsDashboard() {
 
             <div className="grid lg:grid-cols-2 gap-6 mb-6">
               {/* 頁面類型分布 - 圓環圖樣式 */}
-              <div className="bg-[#121212] rounded-xl border border-gray-800">
-                <div className="p-4 border-b border-gray-800">
+              <div className="bg-[#121212] rounded-xl border border-neutral-800">
+                <div className="p-4 border-b border-neutral-800">
                   <h2 className="text-lg font-medium text-white">🥧 頁面類型分布（30天）</h2>
                 </div>
                 <div className="p-4">
                   {pageTypeStats.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">暫無數據</p>
+                    <p className="text-neutral-500 text-center py-4">暫無數據</p>
                   ) : (
                     <>
                       {/* 簡單圓環圖 */}
@@ -647,7 +647,7 @@ function AnalyticsDashboard() {
                                   className="w-3 h-3 rounded-full"
                                   style={{ backgroundColor: getPageTypeColor(type) }}
                                 />
-                                <span className="text-gray-300 text-sm flex-1">{getPageTypeLabel(type)}</span>
+                                <span className="text-neutral-300 text-sm flex-1">{getPageTypeLabel(type)}</span>
                                 <span className="text-white text-sm font-medium">{percentage}%</span>
                               </div>
                             )
@@ -658,16 +658,16 @@ function AnalyticsDashboard() {
                       {/* 詳細列表 */}
                       <div className="space-y-2">
                         {pageTypeStats.map(({ type, count }) => (
-                          <div key={type} className="flex items-center justify-between p-2 hover:bg-gray-800 rounded">
+                          <div key={type} className="flex items-center justify-between p-2 hover:bg-neutral-800 rounded">
                             <div className="flex items-center gap-2">
                               <div 
                                 className="w-2 h-2 rounded-full"
                                 style={{ backgroundColor: getPageTypeColor(type) }}
                               />
-                              <span className="text-gray-300">{getPageTypeLabel(type)}</span>
+                              <span className="text-neutral-300">{getPageTypeLabel(type)}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
+                              <div className="w-24 h-2 bg-neutral-800 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full rounded-full"
                                   style={{ 
@@ -689,25 +689,25 @@ function AnalyticsDashboard() {
               </div>
 
               {/* 熱門頁面 - 帶詳細信息 */}
-              <div className="bg-[#121212] rounded-xl border border-gray-800">
-                <div className="p-4 border-b border-gray-800">
+              <div className="bg-[#121212] rounded-xl border border-neutral-800">
+                <div className="p-4 border-b border-neutral-800">
                   <h2 className="text-lg font-medium text-white">🔥 熱門頁面（30天）</h2>
                 </div>
                 <div className="p-4 max-h-[500px] overflow-y-auto">
                   {topPages.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">暫無數據</p>
+                    <p className="text-neutral-500 text-center py-4">暫無數據</p>
                   ) : (
                     <div className="space-y-2">
                       {topPages.map((page, index) => (
                         <div 
                           key={page.key}
-                          className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg cursor-pointer group"
+                          className="flex items-center gap-3 p-2 hover:bg-neutral-800 rounded-lg cursor-pointer group"
                           onClick={() => router.push(page.path)}
                         >
                           {/* 排名 */}
                           <span className={`
                             w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold
-                            ${index < 3 ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-gray-400'}
+                            ${index < 3 ? 'bg-[#FFD700] text-black' : 'bg-neutral-800 text-neutral-400'}
                           `}>
                             {index + 1}
                           </span>
@@ -717,10 +717,10 @@ function AnalyticsDashboard() {
                             <img 
                               src={page.thumbnail || page.photoURL} 
                               alt=""
-                              className="w-10 h-10 rounded object-cover bg-gray-800"
+                              className="w-10 h-10 rounded object-cover bg-neutral-800"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center text-lg">
+                            <div className="w-10 h-10 rounded bg-neutral-800 flex items-center justify-center text-lg">
                               {page.pageType === 'tab' ? '🎵' : 
                                page.pageType === 'artist' ? '👤' : 
                                page.pageType === 'home' ? '🏠' : '📄'}
@@ -732,7 +732,7 @@ function AnalyticsDashboard() {
                             <p className="text-white text-sm font-medium truncate group-hover:text-[#FFD700] transition">
                               {getPageDisplayName(page)}
                             </p>
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-xs text-neutral-500 truncate">
                               {getPageSubtitle(page)}
                             </p>
                           </div>
@@ -742,7 +742,7 @@ function AnalyticsDashboard() {
                             <span className="text-[#FFD700] font-bold">
                               {page.count.toLocaleString()}
                             </span>
-                            <p className="text-[10px] text-gray-500">瀏覽</p>
+                            <p className="text-[10px] text-neutral-500">瀏覽</p>
                           </div>
                         </div>
                       ))}
@@ -753,21 +753,21 @@ function AnalyticsDashboard() {
             </div>
 
             {/* 最近訪問 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800">
-              <div className="p-4 border-b border-gray-800">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800">
+              <div className="p-4 border-b border-neutral-800">
                 <h2 className="text-lg font-medium text-white">🕐 最近訪問（實時）</h2>
               </div>
               <div className="p-4 max-h-80 overflow-y-auto">
                 {recentViews.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">暫無數據</p>
+                  <p className="text-neutral-500 text-center py-4">暫無數據</p>
                 ) : (
                   <div className="space-y-2">
                     {recentViews.map((view) => (
                       <div 
                         key={view.id}
-                        className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-lg text-sm"
+                        className="flex items-center gap-3 p-2 hover:bg-neutral-800 rounded-lg text-sm"
                       >
-                        <span className="text-gray-500 w-16 text-xs">
+                        <span className="text-neutral-500 w-16 text-xs">
                           {formatTime(view.timestamp)}
                         </span>
                         <span className="text-blue-400 w-20 text-xs">
@@ -781,10 +781,10 @@ function AnalyticsDashboard() {
                             {view.pageName || cleanTitle(view.pageTitle) || getNameFromPath(view.pagePath, view.pageType) || view.pagePath}
                           </span>
                           {view.artistName && (
-                            <span className="text-gray-500 text-xs">🎤 {view.artistName}</span>
+                            <span className="text-neutral-500 text-xs">🎤 {view.artistName}</span>
                           )}
                         </div>
-                        <span className="text-gray-500 text-xs hidden md:block">
+                        <span className="text-neutral-500 text-xs hidden md:block">
                           {view.screenResolution}
                         </span>
                       </div>
@@ -799,7 +799,7 @@ function AnalyticsDashboard() {
         {/* 說明 */}
         <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-blue-900/50">
           <h3 className="text-blue-300 font-medium mb-2">💡 統計說明</h3>
-          <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
+          <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
             <li>統計包含<strong>所有訪客</strong>（包括未登入用戶）</li>
             <li>每次頁面載入都會記錄（包括刷新）</li>
             <li>熱門頁面會實時加載歌曲名和歌手名</li>

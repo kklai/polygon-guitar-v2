@@ -637,7 +637,7 @@ export default function TabRequestsPage() {
           <img src={request.albumImage} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
             </svg>
           </div>
@@ -657,12 +657,12 @@ export default function TabRequestsPage() {
               type="text"
               value={editFormData.artistName}
               onChange={(e) => setEditFormData({ ...editFormData, artistName: e.target.value })}
-              className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-gray-300 text-sm"
+              className="w-full bg-[#1a1a1a] border border-[#FFD700]/50 rounded px-2 py-1 text-neutral-300 text-sm"
               placeholder="歌手"
             />
             <div className="flex gap-2">
               <button onClick={saveEdit} className="px-2 py-1 bg-[#FFD700] text-black rounded text-xs font-medium">保存</button>
-              <button onClick={cancelEdit} className="px-2 py-1 bg-[#282828] text-gray-400 rounded text-xs">取消</button>
+              <button onClick={cancelEdit} className="px-2 py-1 bg-[#282828] text-neutral-400 rounded text-xs">取消</button>
             </div>
           </div>
         ) : (
@@ -672,7 +672,7 @@ export default function TabRequestsPage() {
                 {request.songTitle}
               </div>
             </div>
-            <div className="text-gray-500 text-sm truncate">{request.artistName}</div>
+            <div className="text-neutral-500 text-sm truncate">{request.artistName}</div>
             <div className="text-[#FFD700] text-xs mt-0.5 flex items-center gap-2 min-w-0">
               {request.status === 'fulfilled' ? (
                 <span className="text-green-400 truncate min-w-0">{request.voteCount ?? 0} 人求譜成功</span>
@@ -694,7 +694,7 @@ export default function TabRequestsPage() {
               onClick={() => voteForRequest(request.id)}
           className={`rounded-full flex items-center justify-center gap-1.5 h-9 transition-all duration-300 ease-out ${
             justCancelledId === request.id
-              ? 'bg-[#282828] text-gray-400 cursor-default px-3 py-2 min-w-[2.5rem] w-28'
+              ? 'bg-[#282828] text-neutral-400 cursor-default px-3 py-2 min-w-[2.5rem] w-28'
               : displayAsUnvotedId === request.id
                 ? 'w-9 bg-[#FFD700] text-black cursor-default'
                 : hasVoted(request)
@@ -704,7 +704,7 @@ export default function TabRequestsPage() {
           title={justCancelledId === request.id ? '已取消求譜' : displayAsUnvotedId === request.id ? '我要求譜' : hasVoted(request) ? '取消求譜' : '我要求譜'}
         >
           {justCancelledId === request.id ? (
-            <span className="text-gray-400 text-sm whitespace-nowrap">已取消求譜</span>
+            <span className="text-neutral-400 text-sm whitespace-nowrap">已取消求譜</span>
           ) : displayAsUnvotedId === request.id ? (
             <svg className="w-[1.375rem] h-[1.375rem] flex-shrink-0 -translate-y-[0.6px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={62} viewBox="0 0 634.7 905.9">
               <path d="M35.4,454v119.1c0,174.8,109.6,295.3,282,295.3" />
@@ -738,7 +738,7 @@ export default function TabRequestsPage() {
           onClick={() => openPasteLinkModal(request)}
           className={`h-9 px-3 py-1.5 rounded-full flex items-center justify-center transition text-sm font-medium ${
             hasVoted(request)
-              ? 'bg-[#1a1a1a] text-gray-500 cursor-default opacity-70'
+              ? 'bg-[#1a1a1a] text-neutral-500 cursor-default opacity-70'
               : 'bg-[#282828] text-[#FFD700] hover:bg-[#FFD700] hover:text-black'
           }`}
               title="出譜"
@@ -964,7 +964,7 @@ export default function TabRequestsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">POLYGON求譜區</h1>
-            <p className="text-gray-500 text-sm mt-1">搵人求譜．幫人出譜</p>
+            <p className="text-neutral-500 text-sm mt-1">搵人求譜．幫人出譜</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
@@ -989,9 +989,9 @@ export default function TabRequestsPage() {
         {showForm && (
           <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4 pointer-events-auto">
             <div className="bg-[#121212] rounded-2xl w-full max-w-md overflow-hidden">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white">提交求譜</h2>
-                <button onClick={() => setShowForm(false)} className="text-gray-400">
+                <button onClick={() => setShowForm(false)} className="text-neutral-400">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1000,7 +1000,7 @@ export default function TabRequestsPage() {
               
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">歌名</label>
+                  <label className="block text-neutral-400 text-sm mb-2">歌名</label>
                   <input
                     type="text"
                     value={formData.songTitle}
@@ -1011,7 +1011,7 @@ export default function TabRequestsPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-gray-400 text-sm mb-2">歌手（選填）</label>
+                  <label className="block text-neutral-400 text-sm mb-2">歌手（選填）</label>
                   <input
                     type="text"
                     value={formData.artistName}
@@ -1070,13 +1070,13 @@ export default function TabRequestsPage() {
                             {track.albumImage ? (
                               <img src={track.albumImage} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-600">🎵</div>
+                              <div className="w-full h-full flex items-center justify-center text-neutral-600">🎵</div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-white font-medium text-sm truncate">{track.name}</div>
-                            <div className="text-gray-500 text-xs truncate">{track.artists.map(a => a.name).join(', ')}</div>
-                            <div className="text-gray-600 text-xs truncate">{track.album} {track.releaseYear && `(${track.releaseYear})`}</div>
+                            <div className="text-neutral-500 text-xs truncate">{track.artists.map(a => a.name).join(', ')}</div>
+                            <div className="text-neutral-600 text-xs truncate">{track.album} {track.releaseYear && `(${track.releaseYear})`}</div>
                           </div>
                         </button>
                       ))}
@@ -1117,7 +1117,7 @@ export default function TabRequestsPage() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
                             </svg>
                           </div>
@@ -1125,9 +1125,9 @@ export default function TabRequestsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-white font-medium truncate">{searchResults.title}</div>
-                        <div className="text-gray-500 text-sm truncate">{searchResults.artist}</div>
+                        <div className="text-neutral-500 text-sm truncate">{searchResults.artist}</div>
                         {searchResults.albumName && (
-                          <div className="text-gray-600 text-xs truncate">{searchResults.albumName}</div>
+                          <div className="text-neutral-600 text-xs truncate">{searchResults.albumName}</div>
                         )}
                       </div>
                     </div>
@@ -1143,18 +1143,18 @@ export default function TabRequestsPage() {
                       </svg>
                       <div>
                         <p className="text-yellow-400 font-medium text-sm">找不到這首歌</p>
-                        <p className="text-gray-400 text-xs mt-1">
+                        <p className="text-neutral-400 text-xs mt-1">
                           在 Spotify 和 YouTube 上都找不到「{formData.songTitle} - {formData.artistName}」。
                         </p>
-                        <p className="text-gray-500 text-xs mt-2">
+                        <p className="text-neutral-500 text-xs mt-2">
                           可能原因：
                         </p>
-                        <ul className="text-gray-500 text-xs mt-1 list-disc list-inside">
+                        <ul className="text-neutral-500 text-xs mt-1 list-disc list-inside">
                           <li>歌名或歌手名輸入錯誤</li>
                           <li>歌曲尚未在這些平台發布</li>
                           <li>YouTube 搜尋配額暫時用完</li>
                         </ul>
-                        <p className="text-gray-400 text-xs mt-3 font-medium">
+                        <p className="text-neutral-400 text-xs mt-3 font-medium">
                           你確定要使用這個歌名和歌手名提交求譜嗎？
                         </p>
                       </div>
@@ -1198,10 +1198,10 @@ export default function TabRequestsPage() {
         {/* 未登入按「我要求譜」提示 — 登入 Modal */}
         {showLoginPrompt && (
           <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4 pointer-events-auto">
-            <div className="bg-[#121212] rounded-2xl w-full max-w-sm overflow-hidden border border-gray-800">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-[#121212] rounded-2xl w-full max-w-sm overflow-hidden border border-neutral-800">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white">請先登入</h2>
-                <button onClick={() => setShowLoginPrompt(false)} className="text-gray-400 hover:text-white">
+                <button onClick={() => setShowLoginPrompt(false)} className="text-neutral-400 hover:text-white">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1226,7 +1226,7 @@ export default function TabRequestsPage() {
                     }
                   }}
                   disabled={loginPromptLoading}
-                  className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-gray-800 text-white py-3 px-4 rounded-lg font-medium hover:border-[#FFD700] transition disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-3 bg-[#121212] border-2 border-neutral-800 text-white py-3 px-4 rounded-lg font-medium hover:border-[#FFD700] transition disabled:opacity-50"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -1250,7 +1250,7 @@ export default function TabRequestsPage() {
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-3 rounded-full bg-[#282828] text-gray-300 font-medium touch-manipulation"
+                  className="flex-1 py-3 rounded-full bg-[#282828] text-neutral-300 font-medium touch-manipulation"
                 >
                   取消
                 </button>
@@ -1281,7 +1281,7 @@ export default function TabRequestsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <p className="text-white text-center mb-1">請貼上結他譜連結</p>
-              <p className="text-gray-500 text-xs text-center mb-4">必須為 POLYGON 結他譜連結</p>
+              <p className="text-neutral-500 text-xs text-center mb-4">必須為 POLYGON 結他譜連結</p>
               <input
                 ref={pasteLinkInputRef}
                 type="url"
@@ -1311,12 +1311,12 @@ export default function TabRequestsPage() {
         ) : requests.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-[#1a1a1a] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
               </svg>
             </div>
-            <p className="text-gray-500">暫時未有求譜</p>
-            <p className="text-gray-600 text-sm mt-1">成為第一個求譜的人吧！</p>
+            <p className="text-neutral-500">暫時未有求譜</p>
+            <p className="text-neutral-600 text-sm mt-1">成為第一個求譜的人吧！</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -1325,7 +1325,7 @@ export default function TabRequestsPage() {
               <section>
                 <h2 className="text-[#FFD700] font-medium text-sm mb-3 px-0.5">你的求譜</h2>
                 {myRequests.length === 0 ? (
-                  <p className="text-gray-500 text-sm py-2">你尚未發起求譜</p>
+                  <p className="text-neutral-500 text-sm py-2">你尚未發起求譜</p>
                 ) : (
                   <div className="space-y-3">
                     {myRequests.map((request) => renderRequestCard(request))}
@@ -1339,9 +1339,9 @@ export default function TabRequestsPage() {
             )}
 
             {otherRequests.length === 0 && !user ? (
-              <p className="text-gray-500 text-sm py-2">暫時未有求譜</p>
+              <p className="text-neutral-500 text-sm py-2">暫時未有求譜</p>
             ) : otherRequests.length === 0 ? (
-              <p className="text-gray-500 text-sm py-2">暫無其他求譜</p>
+              <p className="text-neutral-500 text-sm py-2">暫無其他求譜</p>
             ) : (
               <div className="space-y-3">
                 {otherRequests.map((request) => renderRequestCard(request))}

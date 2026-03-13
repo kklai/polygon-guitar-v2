@@ -284,7 +284,7 @@ export default function LikedSongs() {
             <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
               喜愛結他譜
             </h1>
-            <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
+            <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
               共 {songs.length} 份
             </span>
           </div>
@@ -297,7 +297,7 @@ export default function LikedSongs() {
               <button
                 type="button"
                 onClick={() => setSortMode('default')}
-                className={`pl-0 pr-2.5 py-2.5 rounded transition shrink-0 outline-none ${sortMode === 'default' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`pl-0 pr-2.5 py-2.5 rounded transition shrink-0 outline-none ${sortMode === 'default' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="預設次序"
               >
                 <svg className="w-7 h-7 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 36.42 41.51" preserveAspectRatio="xMidYMid meet">
@@ -310,7 +310,7 @@ export default function LikedSongs() {
               <button
                 type="button"
                 onClick={() => setSortMode('artist')}
-                className={`-ml-2 p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'artist' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`-ml-2 p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'artist' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="按歌手排序"
               >
                 <svg className="w-7 h-7 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 36.42 41.51" preserveAspectRatio="xMidYMid meet">
@@ -321,7 +321,7 @@ export default function LikedSongs() {
               <button
                 type="button"
                 onClick={() => setSortMode('year')}
-                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'year' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'year' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="按年份排序"
               >
                 <svg className="w-6 h-6 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 34.26 32.9" preserveAspectRatio="xMidYMid meet">
@@ -341,7 +341,7 @@ export default function LikedSongs() {
                     setSortMode('shuffle');
                   }
                 }}
-                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'shuffle' ? 'text-[#FFD700]' : 'text-gray-400 hover:text-white'}`}
+                className={`p-2.5 rounded transition shrink-0 outline-none ${sortMode === 'shuffle' ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`}
                 title="隨機排序"
               >
                 <svg className="w-6 h-6 block shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" viewBox="35 5 34 34" preserveAspectRatio="xMidYMid meet">
@@ -364,7 +364,7 @@ export default function LikedSongs() {
                   onClick={() => handleSongClick(song.id)}
                   className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
                 >
-                  <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                  <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
                       <img
                         src={getSongThumbnail(song)}
@@ -401,7 +401,7 @@ export default function LikedSongs() {
           <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <Heart className="w-16 h-16 text-[#3E3E3E] mx-auto mb-4" />
             <h3 className="text-xl text-white mb-2">還沒有喜愛的歌曲</h3>
-            <p className="text-gray-500 mb-6">將結他譜加入「喜愛」後會顯示在這裡</p>
+            <p className="text-neutral-500 mb-6">將結他譜加入「喜愛」後會顯示在這裡</p>
             <Link
               href="/search"
               className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"

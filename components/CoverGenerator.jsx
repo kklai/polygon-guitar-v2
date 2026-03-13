@@ -217,20 +217,20 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
           ref={previewRef}
           onClick={pickColorFromPreview}
           className={`w-[200px] h-[200px] rounded-lg border overflow-hidden bg-[#0A0A0A] flex items-center justify-center flex-shrink-0 ${
-            eyedropperMode ? 'border-[#FFD700] cursor-crosshair' : 'border-gray-700'
+            eyedropperMode ? 'border-[#FFD700] cursor-crosshair' : 'border-neutral-700'
           }`}
         >
           {previewUrl ? (
             <img src={previewUrl} alt="Cover preview" className="w-full h-full object-cover" />
           ) : (
-            <p className="text-gray-600 text-xs text-center px-2">揀歌後自動預覽</p>
+            <p className="text-neutral-600 text-xs text-center px-2">揀歌後自動預覽</p>
           )}
         </div>
         <div className="flex-1 flex flex-col gap-2 h-[200px]">
           <button
             onClick={() => switchMode('single')}
             className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition ${
-              mode === 'single' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
+              mode === 'single' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-neutral-300 hover:bg-[#3E3E3E]'
             }`}
           >
             單圖
@@ -238,7 +238,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
           <button
             onClick={() => switchMode('collage')}
             className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition ${
-              mode === 'collage' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
+              mode === 'collage' ? 'bg-[#FFD700] text-black' : 'bg-[#282828] text-neutral-300 hover:bg-[#3E3E3E]'
             }`}
           >
             2x2
@@ -253,7 +253,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
             </button>
           )}
           {eyedropperMode && <p className="text-xs text-[#FFD700]">點擊封面揀顏色</p>}
-          {generating && <p className="text-xs text-gray-500">生成中...</p>}
+          {generating && <p className="text-xs text-neutral-500">生成中...</p>}
         </div>
       </div>
 
@@ -265,7 +265,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
               key={c.value}
               onClick={() => { setFrameColor(c.value); setEyedropperMode(false) }}
               className={`w-7 h-7 rounded-md border-2 transition flex-shrink-0 ${
-                frameColor === c.value ? 'border-white scale-110' : 'border-gray-600 hover:border-gray-400'
+                frameColor === c.value ? 'border-white scale-110' : 'border-neutral-600 hover:border-neutral-400'
               }`}
               style={{ backgroundColor: c.value }}
               title={c.label}
@@ -274,7 +274,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
           <button
             onClick={() => setEyedropperMode(!eyedropperMode)}
             className={`w-7 h-7 rounded-md border-2 flex items-center justify-center transition ${
-              eyedropperMode ? 'border-[#FFD700] bg-[#FFD700]/20' : 'border-gray-600 bg-[#282828] hover:border-gray-400'
+              eyedropperMode ? 'border-[#FFD700] bg-[#FFD700]/20' : 'border-neutral-600 bg-[#282828] hover:border-neutral-400'
             }`}
             title="從封面揀色"
           >
@@ -288,22 +288,22 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
       {/* Title text (single mode only) */}
       {mode === 'single' && (
         <div>
-          <p className="text-sm text-gray-500 mb-1">封面文字 <span className="text-gray-600">({titleText.length}/6)</span></p>
+          <p className="text-sm text-neutral-500 mb-1">封面文字 <span className="text-neutral-600">({titleText.length}/6)</span></p>
           <input
             type="text"
             value={titleText}
             onChange={e => setTitleText(e.target.value.slice(0, 6))}
             maxLength={6}
             placeholder="歌單名稱（最多6字）"
-            className="w-full px-3 py-2 bg-[#1A1A1A] border border-gray-700 rounded-lg text-white text-sm outline-none"
+            className="w-full px-3 py-2 bg-[#1A1A1A] border border-neutral-700 rounded-lg text-white text-sm outline-none"
           />
         </div>
       )}
 
       {/* Song picker */}
-      <div className="max-h-60 overflow-y-auto space-y-1 bg-[#0A0A0A] rounded-lg p-2 border border-gray-800">
+      <div className="max-h-60 overflow-y-auto space-y-1 bg-[#0A0A0A] rounded-lg p-2 border border-neutral-800">
         {songs.length === 0 ? (
-          <p className="text-gray-600 text-sm text-center py-4">歌單冇歌曲</p>
+          <p className="text-neutral-600 text-sm text-center py-4">歌單冇歌曲</p>
         ) : (
           songs.map(song => {
             const isSelected = selectedSongs.find(s => s.id === song.id)
@@ -319,16 +319,16 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
                     : 'hover:bg-[#1A1A1A] border border-transparent disabled:opacity-40'
                 }`}
               >
-                <div className="w-10 h-10 rounded bg-gray-800 overflow-hidden flex-shrink-0">
+                <div className="w-10 h-10 rounded bg-neutral-800 overflow-hidden flex-shrink-0">
                   {cover ? (
                     <img src={cover} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">N/A</div>
+                    <div className="w-full h-full flex items-center justify-center text-neutral-600 text-xs">N/A</div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm truncate">{song.title}</p>
-                  <p className="text-gray-500 text-xs truncate">{song.artistName || song.artist}</p>
+                  <p className="text-neutral-500 text-xs truncate">{song.artistName || song.artist}</p>
                 </div>
                 {isSelected && (
                   <span className="text-[#FFD700] text-xs font-bold flex-shrink-0">

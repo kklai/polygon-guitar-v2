@@ -125,7 +125,7 @@ function ArtistManagement() {
           <div className="flex items-center gap-3">
             <a 
               href="/admin/hero-photos"
-              className="inline-flex items-center px-3 py-2 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition text-sm"
+              className="inline-flex items-center px-3 py-2 bg-neutral-800 text-white rounded-lg font-medium hover:bg-neutral-700 transition text-sm"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -141,7 +141,7 @@ function ArtistManagement() {
               </svg>
               分類圖片
             </a>
-            <div className="text-sm text-[#B3B3B3] border-l border-gray-700 pl-3">
+            <div className="text-sm text-[#B3B3B3] border-l border-neutral-700 pl-3">
               共 {artists.length} 位歌手
             </div>
           </div>
@@ -163,7 +163,7 @@ function ArtistManagement() {
           {artists.map(artist => (
             <div 
               key={artist.id}
-              className="bg-[#121212] rounded-xl p-4 border border-gray-800"
+              className="bg-[#121212] rounded-xl p-4 border border-neutral-800"
             >
               <div className="flex items-center space-x-4">
                 {/* Photos - 雙相片顯示 */}
@@ -178,7 +178,7 @@ function ArtistManagement() {
                           className="w-16 h-16 rounded-full object-cover border-2 border-[#FFD700]"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-600">
+                        <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-dashed border-neutral-600">
                           <span className="text-2xl">📷</span>
                         </div>
                       )}
@@ -196,21 +196,21 @@ function ArtistManagement() {
                         <img 
                           src={artist.wikiPhotoURL} 
                           alt={`${artist.name} - 維基百科`}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-gray-600"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-neutral-600"
                         />
                       ) : artist.photo && !artist.photoURL ? (
                         <img 
                           src={artist.photo} 
                           alt={`${artist.name} - 維基百科`}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-gray-600"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-neutral-600"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-600">
+                        <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-dashed border-neutral-600">
                           <span className="text-2xl">🌐</span>
                         </div>
                       )}
                       {/* 標籤 */}
-                      <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-[9px] bg-gray-600 text-white px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                      <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-[9px] bg-neutral-600 text-white px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap">
                         維基百科
                       </span>
                     </div>
@@ -229,9 +229,9 @@ function ArtistManagement() {
                     {artist.photoURL ? (
                       <span className="text-[#FFD700]">✓ 使用用戶上傳相片</span>
                     ) : artist.wikiPhotoURL || artist.photo ? (
-                      <span className="text-gray-500">使用維基百科相片</span>
+                      <span className="text-neutral-500">使用維基百科相片</span>
                     ) : (
-                      <span className="text-gray-600">無相片</span>
+                      <span className="text-neutral-600">無相片</span>
                     )}
                   </p>
                 </div>
@@ -242,7 +242,7 @@ function ArtistManagement() {
                     className={`
                       inline-flex items-center px-4 py-2 rounded-lg font-medium cursor-pointer transition
                       ${uploadingId === artist.id 
-                        ? 'bg-gray-800 text-gray-400 cursor-not-allowed' 
+                        ? 'bg-neutral-800 text-neutral-400 cursor-not-allowed' 
                         : 'bg-[#FFD700] text-black hover:opacity-90'
                       }
                     `}
@@ -284,7 +284,7 @@ function ArtistManagement() {
         </div>
 
         {/* Info */}
-        <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+        <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
           <h3 className="font-semibold text-white mb-2">📌 設定資訊</h3>
           <ul className="text-sm text-[#B3B3B3] space-y-1 font-mono">
             <li>Cloud Name: drld2cjpo</li>

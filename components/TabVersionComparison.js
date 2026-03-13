@@ -48,9 +48,9 @@ export default function TabVersionComparison({ versions }) {
   }
 
   return (
-    <div className="bg-[#121212] rounded-xl border border-gray-800">
+    <div className="bg-[#121212] rounded-xl border border-neutral-800">
       {/* 標題同控制 */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-neutral-800">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h3 className="text-lg font-bold text-white">
             多個版本（{versions.length}）
@@ -61,7 +61,7 @@ export default function TabVersionComparison({ versions }) {
             <select
               value={filterLevel}
               onChange={(e) => setFilterLevel(e.target.value)}
-              className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm border border-gray-700"
+              className="bg-neutral-800 text-white px-3 py-1.5 rounded-lg text-sm border border-neutral-700"
             >
               <option value="all">全部難度</option>
               <option value="beginner">初階</option>
@@ -72,7 +72,7 @@ export default function TabVersionComparison({ versions }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm border border-gray-700"
+              className="bg-neutral-800 text-white px-3 py-1.5 rounded-lg text-sm border border-neutral-700"
             >
               <option value="recommended">推薦排序</option>
               <option value="popular">最熱門</option>
@@ -86,7 +86,7 @@ export default function TabVersionComparison({ versions }) {
       </div>
 
       {/* 版本列表 */}
-      <div className="divide-y divide-gray-800">
+      <div className="divide-y divide-neutral-800">
         {filteredVersions.map((version, index) => (
           <VersionCard 
             key={version.id} 
@@ -114,15 +114,15 @@ function VersionCard({ version, rank, isTop }) {
   return (
     <a
       href={`/tabs/${version.id}`}
-      className={`block p-4 hover:bg-gray-800/50 transition ${isTop ? 'bg-gray-800/20' : ''}`}
+      className={`block p-4 hover:bg-neutral-800/50 transition ${isTop ? 'bg-neutral-800/20' : ''}`}
     >
       <div className="flex items-start gap-4">
         {/* 排名 */}
         <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
           rank === 1 ? 'bg-yellow-500 text-black' :
-          rank === 2 ? 'bg-gray-300 text-black' :
+          rank === 2 ? 'bg-neutral-300 text-black' :
           rank === 3 ? 'bg-amber-600 text-white' :
-          'bg-gray-700 text-gray-400'
+          'bg-neutral-700 text-neutral-400'
         }`}>
           {rank}
         </div>
@@ -168,7 +168,7 @@ function VersionCard({ version, rank, isTop }) {
           </h4>
 
           {/* 難度同資訊 */}
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-400">
             <DifficultyBadge level={analysis.level} />
             
             <span>{analysis.chordCount}個和弦</span>
@@ -176,7 +176,7 @@ function VersionCard({ version, rank, isTop }) {
               <span>{analysis.barreCount}個橫按</span>
             )}
             
-            <span className="text-gray-600">|</span>
+            <span className="text-neutral-600">|</span>
             
             <span>{version.viewCount || 0}</span>
             <span>{version.likes || 0}</span>
@@ -184,7 +184,7 @@ function VersionCard({ version, rank, isTop }) {
             {/* 投票數 */}
             {(votes.goodForBeginners || votes.soundsLikeOriginal) && (
               <>
-                <span className="text-gray-600">|</span>
+                <span className="text-neutral-600">|</span>
                 {votes.goodForBeginners > 0 && (
                   <span className="text-green-400">{votes.goodForBeginners}</span>
                 )}
@@ -199,26 +199,26 @@ function VersionCard({ version, rank, isTop }) {
           {allTags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {allTags.slice(0, 4).map((tag, i) => (
-                <span key={i} className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
+                <span key={i} className="px-2 py-0.5 bg-neutral-700 text-neutral-300 text-xs rounded">
                   {tag}
                 </span>
               ))}
               {allTags.length > 4 && (
-                <span className="text-gray-500 text-xs">+{allTags.length - 4}</span>
+                <span className="text-neutral-500 text-xs">+{allTags.length - 4}</span>
               )}
             </div>
           )}
 
           {/* 摘要 */}
           {analysis.summary && (
-            <p className="text-gray-500 text-xs mt-2">
+            <p className="text-neutral-500 text-xs mt-2">
               {analysis.summary}
             </p>
           )}
         </div>
 
         {/* 箭頭 */}
-        <div className="text-gray-600">
+        <div className="text-neutral-600">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>

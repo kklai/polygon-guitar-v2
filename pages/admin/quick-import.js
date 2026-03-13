@@ -520,7 +520,7 @@ export default function QuickImport() {
       <Layout>
         <div className="max-w-4xl mx-auto p-8">
           <div className="bg-[#121212] rounded-xl p-8 text-center">
-            <p className="text-gray-400">請以管理員身份登入</p>
+            <p className="text-neutral-400">請以管理員身份登入</p>
           </div>
         </div>
       </Layout>
@@ -538,8 +538,8 @@ export default function QuickImport() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 左側：輸入區 */}
           <div className="space-y-4">
-            <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+            <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+              <label className="block text-sm font-medium text-neutral-400 mb-2">
                 貼上原始譜文字
               </label>
               <textarea
@@ -552,15 +552,15 @@ export default function QuickImport() {
               
               {/* 字體選擇 */}
               <div className="mt-4 flex items-center gap-3">
-                <Type className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-400">譜面字體：</span>
+                <Type className="w-4 h-4 text-neutral-400" />
+                <span className="text-sm text-neutral-400">譜面字體：</span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setDisplayFont('mono')}
                     className={`px-3 py-1.5 rounded-lg text-sm transition ${
                       displayFont === 'mono'
                         ? 'bg-[#FFD700] text-black font-medium'
-                        : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
+                        : 'bg-[#282828] text-neutral-300 hover:bg-[#3E3E3E]'
                     }`}
                   >
                     等寬字體
@@ -570,7 +570,7 @@ export default function QuickImport() {
                     className={`px-3 py-1.5 rounded-lg text-sm transition ${
                       displayFont === 'arial'
                         ? 'bg-[#FFD700] text-black font-medium'
-                        : 'bg-[#282828] text-gray-300 hover:bg-[#3E3E3E]'
+                        : 'bg-[#282828] text-neutral-300 hover:bg-[#3E3E3E]'
                     }`}
                   >
                     Arial
@@ -605,46 +605,46 @@ export default function QuickImport() {
             {parsedData && (
               <>
                 {/* 解析的資料 */}
-                <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+                <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
                   <h2 className="text-lg font-medium text-white mb-4">解析結果</h2>
                   
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">歌名</span>
+                      <span className="text-neutral-400">歌名</span>
                       <span className="text-white font-medium">{parsedData.title}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">歌手</span>
+                      <span className="text-neutral-400">歌手</span>
                       <span className="text-white">{parsedData.artists.join(' & ')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">作曲</span>
+                      <span className="text-neutral-400">作曲</span>
                       <span className="text-white">{parsedData.composer || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">填詞</span>
+                      <span className="text-neutral-400">填詞</span>
                       <span className="text-white">{parsedData.lyricist || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">原調</span>
+                      <span className="text-neutral-400">原調</span>
                       <span className="text-[#FFD700]">{parsedData.originalKey}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Capo</span>
+                      <span className="text-neutral-400">Capo</span>
                       <span className="text-white">{parsedData.capo}</span>
                     </div>
                     {parsedData.bpm && (
                       <div className="flex justify-between">
-                        <span className="text-gray-400">BPM</span>
+                        <span className="text-neutral-400">BPM</span>
                         <span className="text-white">{parsedData.bpm}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-400">上傳者</span>
+                      <span className="text-neutral-400">上傳者</span>
                       <span className="text-white">{parsedData.uploaderPenName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">譜內容行數</span>
+                      <span className="text-neutral-400">譜內容行數</span>
                       <span className="text-white">{parsedData.content.split('\n').length} 行</span>
                     </div>
                   </div>
@@ -652,8 +652,8 @@ export default function QuickImport() {
 
                 {/* YouTube 結果 */}
                 {youtubeResults.length > 0 && (
-                  <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-                    <h3 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                  <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+                    <h3 className="text-sm font-medium text-neutral-400 mb-3 flex items-center gap-2">
                       <Youtube className="w-4 h-4 text-red-500" />
                       YouTube 搜尋結果
                     </h3>
@@ -675,7 +675,7 @@ export default function QuickImport() {
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-white text-sm truncate">{video.title}</p>
-                            <p className="text-gray-500 text-xs">{video.channelTitle}</p>
+                            <p className="text-neutral-500 text-xs">{video.channelTitle}</p>
                           </div>
                           {selectedYoutube?.id === video.id && (
                             <Check className="w-5 h-5 text-red-500" />
@@ -688,7 +688,7 @@ export default function QuickImport() {
 
                 {/* Spotify 結果 */}
                 {spotifyResult && (
-                  <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
+                  <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
                     <h3 className="text-sm font-medium text-[#1DB954] mb-3">Spotify 搜尋結果</h3>
                     <div className="flex items-center gap-3">
                       {spotifyResult.albumImage && (
@@ -700,8 +700,8 @@ export default function QuickImport() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-white font-medium truncate">{spotifyResult.name}</p>
-                        <p className="text-gray-400 text-sm truncate">{spotifyResult.artist}</p>
-                        <p className="text-gray-500 text-xs truncate">{spotifyResult.album}</p>
+                        <p className="text-neutral-400 text-sm truncate">{spotifyResult.artist}</p>
+                        <p className="text-neutral-500 text-xs truncate">{spotifyResult.album}</p>
                       </div>
                     </div>
                   </div>
@@ -728,9 +728,9 @@ export default function QuickImport() {
                 </div>
 
                 {/* 譜內容預覽 */}
-                <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-                  <h3 className="text-sm font-medium text-gray-400 mb-3">譜內容預覽</h3>
-                  <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap max-h-64 overflow-y-auto bg-[#1a1a1a] p-3 rounded">
+                <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">譜內容預覽</h3>
+                  <pre className="text-xs text-neutral-300 font-mono whitespace-pre-wrap max-h-64 overflow-y-auto bg-[#1a1a1a] p-3 rounded">
                     {parsedData.content.slice(0, 1000)}
                     {parsedData.content.length > 1000 && '...'}
                   </pre>

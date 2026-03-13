@@ -9,8 +9,10 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
   const router = useRouter()
   const { isAdmin } = useAuth()
   const currentPath = router.pathname
-  // 搜尋頁不顯示頂部 nav：用 pathname 判斷，路由一變即隱藏，避免切換時閃一下
-  const showHeader = !hideHeader && currentPath !== '/search'
+  // 搜尋頁、樂譜詳情頁、歌詞分享頁不顯示頂部 nav
+  const isTabDetailPage = currentPath === '/tabs/[id]'
+  const isTabSharePage = currentPath === '/tools/tab-share'
+  const showHeader = !hideHeader && currentPath !== '/search' && !isTabDetailPage && !isTabSharePage
 
   // 檢查當前頁面是否激活
   const isActive = (path) => {

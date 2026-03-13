@@ -339,27 +339,27 @@ function CategoryImagesAdmin() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">分類封面管理</h1>
-            <p className="text-gray-400">手動更新首頁歌手分類顯示的封面圖片</p>
+            <p className="text-neutral-400">手動更新首頁歌手分類顯示的封面圖片</p>
           </div>
-          <Link href="/admin" className="inline-flex items-center text-gray-400 hover:text-white" aria-label="返回管理員">
+          <Link href="/admin" className="inline-flex items-center text-neutral-400 hover:text-white" aria-label="返回管理員">
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-6 mb-8">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-white mb-1">自動更新封面</h2>
-              <p className="text-gray-400 text-sm">
+              <p className="text-neutral-400 text-sm">
                 系統會獲取各類別最熱門的歌手相片作為封面<br/>
-                <span className="text-gray-500">（組合會檢查 group / band 兩種類型）</span>
+                <span className="text-neutral-500">（組合會檢查 group / band 兩種類型）</span>
               </p>
             </div>
             <button
               onClick={handleUpdate}
               disabled={updating}
               className={`px-6 py-3 rounded-lg font-medium whitespace-nowrap ${
-                updating ? 'bg-gray-700 cursor-not-allowed text-gray-400' : 'bg-[#FFD700] text-black hover:opacity-90'
+                updating ? 'bg-neutral-700 cursor-not-allowed text-neutral-400' : 'bg-[#FFD700] text-black hover:opacity-90'
               }`}
             >
               {updating ? '更新中...' : '立即更新'}
@@ -381,7 +381,7 @@ function CategoryImagesAdmin() {
             const isCustom = data?.custom === true
             
             return (
-              <div key={cat.id} className="bg-[#121212] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition">
+              <div key={cat.id} className="bg-[#121212] border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-700 transition">
                 {/* 圖片區域 */}
                 <div className="relative aspect-square group">
                   {data?.image ? (
@@ -490,7 +490,7 @@ function CategoryImagesAdmin() {
                       </span>
                     </div>
                   )}
-                  {!data && <p className="text-gray-500 text-sm text-center py-2">尚未設定封面</p>}
+                  {!data && <p className="text-neutral-500 text-sm text-center py-2">尚未設定封面</p>}
                   
                   {/* 選擇歌手按鈕 */}
                   <button
@@ -511,14 +511,14 @@ function CategoryImagesAdmin() {
         {/* 歌手選擇模態框 */}
         {selectedCatForArtist && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-            <div className="bg-[#121212] rounded-xl border border-gray-800 w-full max-w-md max-h-[80vh] flex flex-col">
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 w-full max-w-md max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">
                   選擇{categories.find(c => c.id === selectedCatForArtist)?.name}封面
                 </h3>
                 <button 
                   onClick={() => setSelectedCatForArtist(null)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-neutral-400 hover:text-white"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -527,7 +527,7 @@ function CategoryImagesAdmin() {
               </div>
               
               {/* 搜索框 */}
-              <div className="p-4 border-b border-gray-800">
+              <div className="p-4 border-b border-neutral-800">
                 <input
                   type="text"
                   placeholder="搜索歌手名..."
@@ -540,9 +540,9 @@ function CategoryImagesAdmin() {
               {/* 歌手列表 */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {loadingArtists ? (
-                  <div className="text-center py-8 text-gray-500">載入中...</div>
+                  <div className="text-center py-8 text-neutral-500">載入中...</div>
                 ) : filteredArtists.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">找不到歌手</div>
+                  <div className="text-center py-8 text-neutral-500">找不到歌手</div>
                 ) : (
                   filteredArtists.map(artist => {
                     const hasPhoto = artist.photoURL || artist.photo || artist.wikiPhotoURL
@@ -566,13 +566,13 @@ function CategoryImagesAdmin() {
                             className="w-12 h-12 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center">
                             <span className="text-xl">🎤</span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">{artist.name}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-neutral-500">
                             {artist.tabCount || 0} 首譜
                             {!hasPhoto && ' • 無相片'}
                           </p>
@@ -593,9 +593,9 @@ function CategoryImagesAdmin() {
           </div>
         )}
 
-        <div className="mt-8 bg-[#121212] border border-gray-800 rounded-xl p-4">
+        <div className="mt-8 bg-[#121212] border border-neutral-800 rounded-xl p-4">
           <h3 className="text-lg font-medium text-white mb-2">說明</h3>
-          <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
+          <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
             <li>點擊圖片區域可直接上傳自訂封面（會顯示「自訂」標籤）</li>
             <li>點擊「選擇歌手相片」可手動揀選該分類下的歌手作為封面</li>
             <li>按「立即更新」會自動從各類別最熱門歌手獲取圖片（會顯示「自動」標籤）</li>

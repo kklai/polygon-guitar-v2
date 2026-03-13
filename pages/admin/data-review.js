@@ -251,7 +251,7 @@ function DataReview() {
     <Layout>
       <div className="max-w-6xl mx-auto px-4 pb-8">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -270,24 +270,24 @@ function DataReview() {
 
         {/* 統計卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">歌手總數</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">歌手總數</p>
             <p className="text-2xl font-bold text-white">{artists.length}</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">可疑歌手</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">可疑歌手</p>
             <p className="text-2xl font-bold text-[#FFD700]">{suspiciousArtists.length}</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">歌曲總數</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">歌曲總數</p>
             <p className="text-2xl font-bold text-white">{tabs.length}</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">可疑歌曲</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">可疑歌曲</p>
             <p className="text-2xl font-bold text-[#FFD700]">{suspiciousTabs.length}</p>
           </div>
-          <div className="bg-[#121212] rounded-xl p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm">已審查</p>
+          <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
+            <p className="text-neutral-400 text-sm">已審查</p>
             <p className="text-2xl font-bold text-green-400">
               {artists.filter(a => a.reviewedAt || a.isReviewed).length + tabs.filter(t => t.reviewedAt || t.isReviewed).length}
             </p>
@@ -298,7 +298,7 @@ function DataReview() {
         <div className="bg-[#1a1a2e] rounded-xl p-4 border border-blue-900/50 mb-6">
           <p className="text-sm text-blue-300">
             <span className="font-medium">💡 使用提示：</span>
-            <span className="text-gray-400 ml-2">
+            <span className="text-neutral-400 ml-2">
               「✓ 正確」按鈕會標記項目為已審查，以後不再顯示在此列表。
               刪除或標記後頁面不會重新載入，保持捲動位置。
             </span>
@@ -306,7 +306,7 @@ function DataReview() {
         </div>
 
         {/* 分頁標籤 */}
-        <div className="flex gap-2 mb-6 border-b border-gray-800">
+        <div className="flex gap-2 mb-6 border-b border-neutral-800">
           {[
             { id: 'artists', label: `👤 歌手 (${suspiciousArtists.length})` },
             { id: 'tabs', label: `🎵 歌曲 (${suspiciousTabs.length})` }
@@ -321,7 +321,7 @@ function DataReview() {
               className={`px-4 py-3 font-medium transition border-b-2 ${
                 activeTab === tab.id
                   ? 'text-[#FFD700] border-[#FFD700]'
-                  : 'text-gray-400 border-transparent hover:text-white'
+                  : 'text-neutral-400 border-transparent hover:text-white'
               }`}
             >
               {tab.label}
@@ -332,7 +332,7 @@ function DataReview() {
         {/* 過濾器 */}
         {activeFilters.length > 0 && (
           <div className="mb-6">
-            <p className="text-gray-400 text-sm mb-3">過濾條件（點擊篩選）：</p>
+            <p className="text-neutral-400 text-sm mb-3">過濾條件（點擊篩選）：</p>
             <div className="flex flex-wrap gap-2">
               {activeFilters.map(filter => (
                 <button
@@ -349,7 +349,7 @@ function DataReview() {
                       ? selectedFilters.includes(filter.id)
                         ? 'bg-[#FFD700] text-black'
                         : 'bg-[#282828] text-white hover:bg-[#3E3E3E]'
-                      : 'bg-[#1a1a1a] text-gray-600'
+                      : 'bg-[#1a1a1a] text-neutral-600'
                   }`}
                 >
                   <span>{filter.icon}</span>
@@ -359,7 +359,7 @@ function DataReview() {
               {selectedFilters.length > 0 && (
                 <button
                   onClick={() => setSelectedFilters([])}
-                  className="px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+                  className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white"
                 >
                   清除篩選
                 </button>
@@ -374,13 +374,13 @@ function DataReview() {
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleAll}
-                className="text-sm text-gray-400 hover:text-white"
+                className="text-sm text-neutral-400 hover:text-white"
               >
                 {selectedItems.size === (activeTab === 'artists' ? filteredArtists : filteredTabs).length
                   ? '取消全選'
                   : '全選'}
               </button>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-neutral-500">
                 已選 {selectedItems.size} 項
               </span>
             </div>
@@ -400,7 +400,7 @@ function DataReview() {
         {isLoading && (
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-400">載入數據中...</p>
+            <p className="text-neutral-400">載入數據中...</p>
           </div>
         )}
 
@@ -408,7 +408,7 @@ function DataReview() {
         {!isLoading && activeTab === 'artists' && (
           <div className="space-y-3">
             {filteredArtists.length === 0 ? (
-              <div className="text-center py-12 bg-[#121212] rounded-xl border border-gray-800">
+              <div className="text-center py-12 bg-[#121212] rounded-xl border border-neutral-800">
                 <span className="text-4xl mb-4 block">✅</span>
                 <h3 className="text-lg font-medium text-white mb-2">
                   {selectedFilters.length > 0 ? '沒有符合條件的歌手' : '沒有發現可疑歌手'}
@@ -424,7 +424,7 @@ function DataReview() {
                   className={`bg-[#121212] rounded-xl p-4 border transition ${
                     selectedItems.has(artist.id) 
                       ? 'border-[#FFD700] bg-[#FFD700]/5' 
-                      : 'border-gray-800'
+                      : 'border-neutral-800'
                   }`}
                 >
                   <div className="flex items-start gap-4">
@@ -432,7 +432,7 @@ function DataReview() {
                       type="checkbox"
                       checked={selectedItems.has(artist.id)}
                       onChange={() => toggleSelection(artist.id)}
-                      className="mt-1 w-4 h-4 rounded border-gray-600 text-[#FFD700]"
+                      className="mt-1 w-4 h-4 rounded border-neutral-600 text-[#FFD700]"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -440,16 +440,16 @@ function DataReview() {
                           <img
                             src={artist.wikiPhotoURL || artist.photoURL}
                             alt={artist.name}
-                            className="w-12 h-12 rounded-full object-cover bg-gray-800"
+                            className="w-12 h-12 rounded-full object-cover bg-neutral-800"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center">
                             <span className="text-xl">🎤</span>
                           </div>
                         )}
                         <div>
                           <h3 className="text-white font-medium">{artist.name}</h3>
-                          <p className="text-sm text-gray-500">ID: {artist.id}</p>
+                          <p className="text-sm text-neutral-500">ID: {artist.id}</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-3">
@@ -463,7 +463,7 @@ function DataReview() {
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 text-sm text-neutral-400">
                         <span>歌曲: {artist.songCount || artist.tabCount || 0}</span>
                         {artist.spotifyFollowers && (
                           <span>Spotify 粉絲: {artist.spotifyFollowers.toLocaleString()}</span>
@@ -502,7 +502,7 @@ function DataReview() {
         {!isLoading && activeTab === 'tabs' && (
           <div className="space-y-3">
             {filteredTabs.length === 0 ? (
-              <div className="text-center py-12 bg-[#121212] rounded-xl border border-gray-800">
+              <div className="text-center py-12 bg-[#121212] rounded-xl border border-neutral-800">
                 <span className="text-4xl mb-4 block">✅</span>
                 <h3 className="text-lg font-medium text-white mb-2">
                   {selectedFilters.length > 0 ? '沒有符合條件的歌曲' : '沒有發現可疑歌曲'}
@@ -518,7 +518,7 @@ function DataReview() {
                   className={`bg-[#121212] rounded-xl p-4 border transition ${
                     selectedItems.has(tab.id) 
                       ? 'border-[#FFD700] bg-[#FFD700]/5' 
-                      : 'border-gray-800'
+                      : 'border-neutral-800'
                   }`}
                 >
                   <div className="flex items-start gap-4">
@@ -526,12 +526,12 @@ function DataReview() {
                       type="checkbox"
                       checked={selectedItems.has(tab.id)}
                       onChange={() => toggleSelection(tab.id)}
-                      className="mt-1 w-4 h-4 rounded border-gray-600 text-[#FFD700]"
+                      className="mt-1 w-4 h-4 rounded border-neutral-600 text-[#FFD700]"
                     />
                     <div className="flex-1">
                       <div className="mb-2">
                         <h3 className="text-white font-medium">{tab.title}</h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-neutral-500">
                           {tab.artist} • ID: {tab.id}
                         </p>
                       </div>
@@ -547,7 +547,7 @@ function DataReview() {
                         ))}
                       </div>
                       {tab.content && (
-                        <div className="bg-black rounded p-3 text-xs text-gray-400 font-mono line-clamp-2">
+                        <div className="bg-black rounded p-3 text-xs text-neutral-400 font-mono line-clamp-2">
                           {tab.content.substring(0, 200)}
                           {tab.content.length > 200 && '...'}
                         </div>

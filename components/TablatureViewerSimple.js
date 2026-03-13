@@ -10,7 +10,7 @@ export default function TablatureViewerSimple({ lines = [] }) {
 
   return (
     <div className="bg-[#0a0a0a] rounded-lg p-4 overflow-x-auto font-mono text-sm">
-      <div className="text-gray-300 whitespace-pre">
+      <div className="text-neutral-300 whitespace-pre">
         {lines.map((line, i) => (
           <div key={i} className="leading-tight">
             {line}

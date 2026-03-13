@@ -168,7 +168,7 @@ function NewPlaylist() {
       <Layout>
         <div className="max-w-4xl mx-auto text-center py-16">
           <h1 className="text-2xl font-bold text-white mb-4">無權訪問</h1>
-          <p className="text-gray-500">只有管理員可以創建歌單</p>
+          <p className="text-neutral-500">只有管理員可以創建歌單</p>
         </div>
       </Layout>
     )
@@ -181,11 +181,11 @@ function NewPlaylist() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">新增精選歌單</h1>
-            <p className="text-gray-500">人工策劃的音樂旅程</p>
+            <p className="text-neutral-500">人工策劃的音樂旅程</p>
           </div>
           <Link
             href="/admin/playlists"
-            className="inline-flex items-center text-gray-400 hover:text-white transition"
+            className="inline-flex items-center text-neutral-400 hover:text-white transition"
           >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -198,11 +198,11 @@ function NewPlaylist() {
           {/* Left: Basic Info */}
           <div className="lg:col-span-1 space-y-6">
             {/* Cover Upload */}
-            <div className="p-6 bg-[#121212] rounded-xl border border-gray-800">
+            <div className="p-6 bg-[#121212] rounded-xl border border-neutral-800">
               <label className="block text-sm font-medium text-white mb-3">
                 歌單封面
               </label>
-              <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden mb-3">
+              <div className="aspect-square bg-neutral-800 rounded-lg overflow-hidden mb-3">
                 {formData.coverImage ? (
                   <img
                     src={formData.coverImage}
@@ -224,8 +224,8 @@ function NewPlaylist() {
                 />
                 <span className={`block w-full py-2 px-4 text-center rounded-lg cursor-pointer transition ${
                   isUploading 
-                    ? 'bg-gray-700 text-gray-400' 
-                    : 'bg-gray-700 text-white hover:bg-gray-600'
+                    ? 'bg-neutral-700 text-neutral-400' 
+                    : 'bg-neutral-700 text-white hover:bg-neutral-600'
                 }`}>
                   {isUploading ? '上傳中...' : '上傳封面'}
                 </span>
@@ -233,7 +233,7 @@ function NewPlaylist() {
             </div>
 
             {/* Basic Info Form */}
-            <div className="p-6 bg-[#121212] rounded-xl border border-gray-800 space-y-4">
+            <div className="p-6 bg-[#121212] rounded-xl border border-neutral-800 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   歌單名稱 <span className="text-red-500">*</span>
@@ -244,7 +244,7 @@ function NewPlaylist() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="例如：陳奕迅結他精選"
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-neutral-600"
                   required
                 />
               </div>
@@ -259,7 +259,7 @@ function NewPlaylist() {
                   onChange={handleChange}
                   placeholder="簡短描述這個歌單..."
                   rows={3}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-neutral-600"
                 />
               </div>
 
@@ -271,7 +271,7 @@ function NewPlaylist() {
                   name="manualType"
                   value={formData.manualType}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                 >
                   <option value="artist">🎤 歌手精選</option>
                   <option value="theme">🎵 主題歌單</option>
@@ -290,7 +290,7 @@ function NewPlaylist() {
                   value={formData.curatedBy}
                   onChange={handleChange}
                   placeholder="你的名字"
-                  className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-600"
+                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-neutral-600"
                 />
               </div>
 
@@ -319,11 +319,11 @@ function NewPlaylist() {
           {/* Right: Song Selector */}
           <div className="lg:col-span-2 space-y-6">
             {/* Selected Songs */}
-            <div className="p-6 bg-[#121212] rounded-xl border border-gray-800">
+            <div className="p-6 bg-[#121212] rounded-xl border border-neutral-800">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-white">
                   已選歌曲
-                  <span className="ml-2 text-sm text-gray-500">({selectedSongs.length})</span>
+                  <span className="ml-2 text-sm text-neutral-500">({selectedSongs.length})</span>
                 </h3>
                 {selectedSongs.length > 0 && (
                   <button
@@ -337,7 +337,7 @@ function NewPlaylist() {
               </div>
 
               {selectedSongs.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-neutral-500">
                   <span className="text-4xl block mb-2">🎸</span>
                   <p>從左側選擇歌曲加入歌單</p>
                 </div>
@@ -348,10 +348,10 @@ function NewPlaylist() {
                       key={song.id}
                       className="flex items-center gap-3 p-3 bg-black rounded-lg group"
                     >
-                      <span className="text-gray-600 w-6 text-center">{index + 1}</span>
+                      <span className="text-neutral-600 w-6 text-center">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{song.title}</p>
-                        <p className="text-gray-500 text-xs truncate">{song.artist}</p>
+                        <p className="text-neutral-500 text-xs truncate">{song.artist}</p>
                       </div>
                       {/* Reorder & Remove Buttons */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -359,7 +359,7 @@ function NewPlaylist() {
                           type="button"
                           onClick={() => moveSongUp(index)}
                           disabled={index === 0}
-                          className="p-1 text-gray-500 hover:text-white disabled:opacity-30"
+                          className="p-1 text-neutral-500 hover:text-white disabled:opacity-30"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -369,7 +369,7 @@ function NewPlaylist() {
                           type="button"
                           onClick={() => moveSongDown(index)}
                           disabled={index === selectedSongs.length - 1}
-                          className="p-1 text-gray-500 hover:text-white disabled:opacity-30"
+                          className="p-1 text-neutral-500 hover:text-white disabled:opacity-30"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -392,7 +392,7 @@ function NewPlaylist() {
             </div>
 
             {/* Search Songs */}
-            <div className="p-6 bg-[#121212] rounded-xl border border-gray-800">
+            <div className="p-6 bg-[#121212] rounded-xl border border-neutral-800">
               <h3 className="text-lg font-medium text-white mb-4">選擇歌曲</h3>
               
               {/* Search Input */}
@@ -419,7 +419,7 @@ function NewPlaylist() {
                 {isLoading ? (
                   <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-14 bg-gray-800 rounded animate-pulse" />
+                      <div key={i} className="h-14 bg-neutral-800 rounded animate-pulse" />
                     ))}
                   </div>
                 ) : searchResults.length > 0 ? (
@@ -434,15 +434,15 @@ function NewPlaylist() {
                         className={`w-full flex items-center gap-4 p-3 rounded-lg transition text-left ${
                           isSelected 
                             ? 'bg-green-900/20 opacity-50 cursor-not-allowed' 
-                            : 'bg-black hover:bg-gray-800'
+                            : 'bg-black hover:bg-neutral-800'
                         }`}
                       >
-                        <span className="text-gray-500 w-6 text-center">{index + 1}</span>
+                        <span className="text-neutral-500 w-6 text-center">{index + 1}</span>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-medium truncate">{song.title}</h3>
-                          <p className="text-sm text-gray-500">{song.artist}</p>
+                          <p className="text-sm text-neutral-500">{song.artist}</p>
                           {(song.composer || song.lyricist || song.arranger) && (
-                            <p className="text-xs text-gray-600 mt-0.5">
+                            <p className="text-xs text-neutral-600 mt-0.5">
                               {song.composer && <span>曲：{song.composer} </span>}
                               {song.lyricist && <span>詞：{song.lyricist} </span>}
                               {song.arranger && <span>編：{song.arranger}</span>}
@@ -458,7 +458,7 @@ function NewPlaylist() {
                     )
                   })
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-neutral-500">
                     <p>找不到符合的歌曲</p>
                   </div>
                 )}

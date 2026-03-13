@@ -288,7 +288,7 @@ export default function Library() {
                 <Heart className="w-12 h-12 sm:w-14 sm:h-14 text-white fill-white" />
               </div>
               <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>喜愛結他譜</div>
-              <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {likedCount}份譜</div>
+              <div className="text-neutral-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {likedCount}份譜</div>
             </div>
 
             {/* 最近瀏覽（結他譜，第一首歌做封面） */}
@@ -308,7 +308,7 @@ export default function Library() {
                 )}
               </div>
               <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>最近瀏覽</div>
-              <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>結他譜</div>
+              <div className="text-neutral-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>結他譜</div>
             </div>
 
             {/* 已排序：歌手 / 已收藏歌單 / 用戶歌單 */}
@@ -337,7 +337,7 @@ export default function Library() {
                       )}
                     </div>
                     <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>{ar.name}</div>
-                    <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌手</div>
+                    <div className="text-neutral-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌手</div>
                   </div>
                 );
               }
@@ -365,7 +365,7 @@ export default function Library() {
                       )}
                     </div>
                     <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>{pl.title}</div>
-                    <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {pl.curatedBy || 'Polygon'}</div>
+                    <div className="text-neutral-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {pl.curatedBy || 'Polygon'}</div>
                   </div>
                 );
               }
@@ -401,7 +401,7 @@ export default function Library() {
                       )}
                     </div>
                     <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>{playlist.title}</div>
-                    <div className="text-gray-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {user?.displayName || '你'}</div>
+                    <div className="text-neutral-500 truncate" style={{ fontSize: 13, lineHeight: '16px' }}>歌單 • {user?.displayName || '你'}</div>
                   </div>
                 </div>
               );

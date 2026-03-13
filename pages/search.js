@@ -278,7 +278,7 @@ export default function Search() {
               <h2 className="font-bold text-white truncate text-[1.3rem] md:text-[1.375rem]">
                 搜尋記錄
               </h2>
-              <span className="text-[12px] md:text-[14px] text-gray-500 whitespace-nowrap flex-shrink-0">
+              <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
                 共 {searchHistory.length} 項
               </span>
             </div>
@@ -298,7 +298,7 @@ export default function Search() {
               >
                 {entry.type === 'song' ? (
                   <Link href={`/tabs/${entry.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                    <div className="w-[49px] h-[49px] rounded-[5px] bg-gray-800 flex-shrink-0 overflow-hidden">
+                    <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                       {thumbnailDisplay ? (
                         <img
                           src={thumbnailDisplay}
@@ -325,7 +325,7 @@ export default function Search() {
                   </Link>
                 ) : (
                   <Link href={`/artists/${entry.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                    <div className="w-[49px] h-[49px] rounded-full bg-gray-800 flex-shrink-0 overflow-hidden">
+                    <div className="w-[49px] h-[49px] rounded-full bg-neutral-800 flex-shrink-0 overflow-hidden">
                       {entry.photo ? (
                         <img
                           src={entry.photo}
@@ -369,14 +369,14 @@ export default function Search() {
                         href={`/playlist/${pl.id}`}
                         className="flex-shrink-0 flex flex-col items-center"
                       >
-                        <div className="w-20 h-20 rounded-[4px] overflow-hidden bg-gray-800 mb-2">
+                        <div className="w-20 h-20 rounded-[4px] overflow-hidden bg-neutral-800 mb-2">
                           {pl.coverImage ? (
                             <img src={pl.coverImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl">📋</div>
                           )}
                         </div>
-                        <span className="text-sm text-gray-300 truncate max-w-[80px] text-center">{pl.title}</span>
+                        <span className="text-sm text-neutral-300 truncate max-w-[80px] text-center">{pl.title}</span>
                       </Link>
                     ))}
                   </div>
@@ -396,7 +396,7 @@ export default function Search() {
                       onClick={() => handleArtistClick(artist)}
                       className="flex-shrink-0 flex flex-col items-center cursor-pointer"
                     >
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-800 mb-2">
+                      <div className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 mb-2">
                         {getArtistPhoto(artist) ? (
                           <img
                             src={getArtistPhoto(artist)}
@@ -409,7 +409,7 @@ export default function Search() {
                           <div className="w-full h-full flex items-center justify-center text-2xl">🎤</div>
                         )}
                       </div>
-                      <span className="text-sm text-gray-300 truncate max-w-[80px]">{artist.name}</span>
+                      <span className="text-sm text-neutral-300 truncate max-w-[80px]">{artist.name}</span>
                     </button>
                   ))}
                   </div>
@@ -433,9 +433,9 @@ export default function Search() {
                     >
                       <div className="flex-1 min-w-0">
                         <h3 className="text-white font-medium truncate">{song.title}</h3>
-                        <p className="text-sm text-gray-500 truncate">{song.artist}</p>
+                        <p className="text-sm text-neutral-500 truncate">{song.artist}</p>
                         {(song.composer || song.lyricist || song.arranger) && (
-                          <p className="text-xs text-gray-600 mt-0.5 truncate">
+                          <p className="text-xs text-neutral-600 mt-0.5 truncate">
                             {song.composer && <span>曲：{song.composer} </span>}
                             {song.lyricist && <span>詞：{song.lyricist} </span>}
                             {song.arranger && <span>編：{song.arranger}</span>}
@@ -461,7 +461,7 @@ export default function Search() {
             {!isLoading && filteredSongs.length === 0 && filteredArtists.length === 0 && filteredPlaylists.length === 0 && (
               <div className="text-center py-12">
                 <span className="text-4xl mb-4 block">🔍</span>
-                <p className="text-gray-500">找不到「{searchQuery}」的結果</p>
+                <p className="text-neutral-500">找不到「{searchQuery}」的結果</p>
               </div>
             )}
           </div>

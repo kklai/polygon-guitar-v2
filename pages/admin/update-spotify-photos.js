@@ -142,11 +142,11 @@ export default function UpdateSpotifyPhotos() {
               <h1 className="text-3xl font-bold text-white mb-2">
                 <span className="text-[#FFD700]">Spotify</span> 歌手相片更新
               </h1>
-              <p className="text-gray-400">從 Spotify 獲取歌手相片並更新到資料庫</p>
+              <p className="text-neutral-400">從 Spotify 獲取歌手相片並更新到資料庫</p>
             </div>
             <Link 
               href="/admin" 
-              className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700"
+              className="px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700"
             >
               返回後台
             </Link>
@@ -155,7 +155,7 @@ export default function UpdateSpotifyPhotos() {
           {/* 統計卡片 */}
           <div className="grid grid-cols-4 gap-4 mb-8">
             <div className="bg-[#121212] p-4 rounded-lg">
-              <p className="text-gray-400 text-sm">總歌手數</p>
+              <p className="text-neutral-400 text-sm">總歌手數</p>
               <p className="text-3xl font-bold text-white">{artists.length}</p>
             </div>
             <div className="bg-green-900/30 p-4 rounded-lg border border-green-800">
@@ -177,11 +177,11 @@ export default function UpdateSpotifyPhotos() {
             <h2 className="text-xl font-bold text-white mb-4">更新設置</h2>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-gray-400 text-sm mb-2">批次大小</label>
+                <label className="block text-neutral-400 text-sm mb-2">批次大小</label>
                 <select 
                   value={batchSize} 
                   onChange={(e) => setBatchSize(Number(e.target.value))}
-                  className="w-full bg-black border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-black border border-neutral-700 rounded-lg px-4 py-2 text-white"
                   disabled={isLoading}
                 >
                   <option value={10}>10 個（測試）</option>
@@ -191,17 +191,17 @@ export default function UpdateSpotifyPhotos() {
                 </select>
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-2">開始位置</label>
+                <label className="block text-neutral-400 text-sm mb-2">開始位置</label>
                 <input 
                   type="number" 
                   value={startIndex}
                   onChange={(e) => setStartIndex(Number(e.target.value))}
                   min={0}
                   max={artists.length}
-                  className="w-full bg-black border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-black border border-neutral-700 rounded-lg px-4 py-2 text-white"
                   disabled={isLoading}
                 />
-                <p className="text-xs text-gray-500 mt-1">跳過前 {startIndex} 個歌手</p>
+                <p className="text-xs text-neutral-500 mt-1">跳過前 {startIndex} 個歌手</p>
               </div>
             </div>
           </div>
@@ -213,13 +213,13 @@ export default function UpdateSpotifyPhotos() {
                 <span className="text-white">更新進度</span>
                 <span className="text-[#FFD700]">{progress.current} / {progress.total}</span>
               </div>
-              <div className="w-full bg-gray-800 rounded-full h-2">
+              <div className="w-full bg-neutral-800 rounded-full h-2">
                 <div 
                   className="bg-[#FFD700] h-2 rounded-full transition-all"
                   style={{ width: `${(progress.current / progress.total) * 100}%` }}
                 />
               </div>
-              <p className="text-gray-400 text-sm mt-2">正在處理: {progress.artist}</p>
+              <p className="text-neutral-400 text-sm mt-2">正在處理: {progress.artist}</p>
             </div>
           )}
 
@@ -229,7 +229,7 @@ export default function UpdateSpotifyPhotos() {
             disabled={isLoading}
             className={`w-full py-4 rounded-lg font-bold text-lg transition ${
               isLoading 
-                ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
+                ? 'bg-neutral-700 text-neutral-400 cursor-not-allowed' 
                 : 'bg-[#FFD700] text-black hover:bg-yellow-400'
             }`}
           >
@@ -239,10 +239,10 @@ export default function UpdateSpotifyPhotos() {
           {/* 日誌 */}
           {log.length > 0 && (
             <div className="mt-8 bg-[#121212] rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-              <div className="sticky top-0 bg-[#1a1a1a] px-4 py-2 border-b border-gray-800">
+              <div className="sticky top-0 bg-[#1a1a1a] px-4 py-2 border-b border-neutral-800">
                 <span className="text-white font-medium">處理日誌</span>
               </div>
-              <div className="divide-y divide-gray-800">
+              <div className="divide-y divide-neutral-800">
                 {log.map((item, index) => (
                   <div key={index} className="px-4 py-2 flex items-center gap-3">
                     <span className={`text-xs px-2 py-0.5 rounded ${
@@ -253,7 +253,7 @@ export default function UpdateSpotifyPhotos() {
                       {item.status === 'success' ? '✓' : item.status === 'failed' ? '✗' : '⏭'}
                     </span>
                     <span className="text-white flex-1">{item.name}</span>
-                    <span className="text-gray-500 text-sm">{item.msg}</span>
+                    <span className="text-neutral-500 text-sm">{item.msg}</span>
                   </div>
                 ))}
               </div>
@@ -263,7 +263,7 @@ export default function UpdateSpotifyPhotos() {
           {/* 說明 */}
           <div className="mt-8 bg-[#121212] p-6 rounded-lg">
             <h3 className="text-lg font-bold text-white mb-3">使用說明</h3>
-            <ul className="text-gray-400 space-y-2 text-sm">
+            <ul className="text-neutral-400 space-y-2 text-sm">
               <li>• 歌手按歌曲數排序，熱門歌手優先更新</li>
               <li>• 已有用戶上傳相片的歌手會自動跳過</li>
               <li>• 每次請求間隔 0.5 秒，避免 rate limit</li>

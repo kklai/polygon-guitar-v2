@@ -464,12 +464,12 @@ function BioSettingsAdmin() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">個人簡介設定</h1>
-            <p className="text-gray-400 text-sm">設計問答流程，創作多種風格的簡介模板</p>
+            <p className="text-neutral-400 text-sm">設計問答流程，創作多種風格的簡介模板</p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={resetToDefault}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
+              className="px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 flex items-center gap-2"
             >
               <RotateCcw size={16} />
               重置
@@ -495,7 +495,7 @@ function BioSettingsAdmin() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-800">
+        <div className="flex gap-2 mb-6 border-b border-neutral-800">
           {[
             { id: 'questions', label: '問題設計', icon: '📝' },
             { id: 'styles', label: '風格設定', icon: '🎨' },
@@ -507,7 +507,7 @@ function BioSettingsAdmin() {
               className={`px-4 py-3 flex items-center gap-2 border-b-2 transition ${
                 activeTab === tab.id 
                   ? 'border-[#FFD700] text-[#FFD700]' 
-                  : 'border-transparent text-gray-400 hover:text-white'
+                  : 'border-transparent text-neutral-400 hover:text-white'
               }`}
             >
               <span>{tab.icon}</span>
@@ -520,8 +520,8 @@ function BioSettingsAdmin() {
         {activeTab === 'questions' && (
           <div className="space-y-6">
             {config.questions.map((q, qIdx) => (
-              <div key={q.id} className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
-                <div className="p-4 border-b border-gray-800 bg-gray-800/30">
+              <div key={q.id} className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
+                <div className="p-4 border-b border-neutral-800 bg-neutral-800/30">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{['🎸', '🎵', '📍', '🎼'][qIdx]}</span>
                     <div className="flex-1">
@@ -543,7 +543,7 @@ function BioSettingsAdmin() {
                           newQuestions[qIdx].question = e.target.value
                           setConfig({ ...config, questions: newQuestions })
                         }}
-                        className="bg-transparent text-gray-400 text-sm w-full outline-none mt-1"
+                        className="bg-transparent text-neutral-400 text-sm w-full outline-none mt-1"
                       />
                     </div>
                   </div>
@@ -564,7 +564,7 @@ function BioSettingsAdmin() {
                               newQuestions[qIndex].options[oIndex].label = e.target.value
                               setConfig({ ...config, questions: newQuestions })
                             }}
-                            className="flex-1 bg-gray-800 text-white rounded px-3 py-2 text-sm"
+                            className="flex-1 bg-neutral-800 text-white rounded px-3 py-2 text-sm"
                           />
                           <button
                             onClick={() => removeOption(q.id, opt.value)}
@@ -578,12 +578,12 @@ function BioSettingsAdmin() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                           {config.styles.map(style => (
                             <div key={style.id} className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500 whitespace-nowrap">{style.name}</span>
+                              <span className="text-xs text-neutral-500 whitespace-nowrap">{style.name}</span>
                               <input
                                 type="text"
                                 value={opt.sentences[style.id] || ''}
                                 onChange={(e) => updateSentence(q.id, opt.value, style.id, e.target.value)}
-                                className="flex-1 bg-gray-900 text-yellow-400 rounded px-2 py-1 text-xs"
+                                className="flex-1 bg-neutral-900 text-yellow-400 rounded px-2 py-1 text-xs"
                               />
                             </div>
                           ))}
@@ -594,7 +594,7 @@ function BioSettingsAdmin() {
                   
                   <button
                     onClick={() => addOption(q.id)}
-                    className="mt-3 w-full py-2 border border-dashed border-gray-600 text-gray-400 rounded-lg hover:border-[#FFD700] hover:text-[#FFD700] flex items-center justify-center gap-2"
+                    className="mt-3 w-full py-2 border border-dashed border-neutral-600 text-neutral-400 rounded-lg hover:border-[#FFD700] hover:text-[#FFD700] flex items-center justify-center gap-2"
                   >
                     <Plus size={16} />
                     添加選項
@@ -609,7 +609,7 @@ function BioSettingsAdmin() {
         {activeTab === 'styles' && (
           <div className="space-y-4">
             {config.styles.map(style => (
-              <div key={style.id} className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+              <div key={style.id} className="bg-[#121212] rounded-xl border border-neutral-800 p-4">
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
@@ -617,19 +617,19 @@ function BioSettingsAdmin() {
                         type="text"
                         value={style.name}
                         onChange={(e) => updateStyle(style.id, 'name', e.target.value)}
-                        className="bg-gray-800 text-white font-bold rounded px-3 py-2"
+                        className="bg-neutral-800 text-white font-bold rounded px-3 py-2"
                       />
                       <input
                         type="text"
                         value={style.desc}
                         onChange={(e) => updateStyle(style.id, 'desc', e.target.value)}
-                        className="flex-1 bg-gray-800 text-gray-400 text-sm rounded px-3 py-2"
+                        className="flex-1 bg-neutral-800 text-neutral-400 text-sm rounded px-3 py-2"
                       />
                     </div>
                     
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-gray-500 text-xs">開頭</label>
+                        <label className="text-neutral-500 text-xs">開頭</label>
                         <input
                           type="text"
                           value={style.prefix}
@@ -638,7 +638,7 @@ function BioSettingsAdmin() {
                         />
                       </div>
                       <div>
-                        <label className="text-gray-500 text-xs">連接符</label>
+                        <label className="text-neutral-500 text-xs">連接符</label>
                         <input
                           type="text"
                           value={style.connector}
@@ -647,7 +647,7 @@ function BioSettingsAdmin() {
                         />
                       </div>
                       <div>
-                        <label className="text-gray-500 text-xs">結尾</label>
+                        <label className="text-neutral-500 text-xs">結尾</label>
                         <input
                           type="text"
                           value={style.suffix}
@@ -667,15 +667,15 @@ function BioSettingsAdmin() {
         {activeTab === 'preview' && (
           <div className="grid lg:grid-cols-2 gap-6">
             {/* 選擇區 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-4">
               <h3 className="text-white font-bold mb-4">選擇風格與答案</h3>
               
               <div className="mb-4">
-                <label className="text-gray-400 text-sm">選擇風格</label>
+                <label className="text-neutral-400 text-sm">選擇風格</label>
                 <select
                   value={previewStyle}
                   onChange={(e) => setPreviewStyle(e.target.value)}
-                  className="w-full mt-1 bg-gray-800 text-white rounded-lg px-3 py-2"
+                  className="w-full mt-1 bg-neutral-800 text-white rounded-lg px-3 py-2"
                 >
                   {config.styles.map(s => (
                     <option key={s.id} value={s.id}>{s.name} - {s.desc}</option>
@@ -686,11 +686,11 @@ function BioSettingsAdmin() {
               <div className="space-y-3">
                 {config.questions.map(q => (
                   <div key={q.id}>
-                    <label className="text-gray-400 text-sm">{q.question}</label>
+                    <label className="text-neutral-400 text-sm">{q.question}</label>
                     <select
                       value={previewAnswers[q.id] || ''}
                       onChange={(e) => setPreviewAnswers({ ...previewAnswers, [q.id]: e.target.value })}
-                      className="w-full mt-1 bg-gray-800 text-white rounded-lg px-3 py-2"
+                      className="w-full mt-1 bg-neutral-800 text-white rounded-lg px-3 py-2"
                     >
                       <option value="">（不選擇）</option>
                       {q.options.map(o => (
@@ -703,25 +703,25 @@ function BioSettingsAdmin() {
             </div>
             
             {/* 預覽結果 */}
-            <div className="bg-[#121212] rounded-xl border border-gray-800 p-4">
+            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-4">
               <h3 className="text-white font-bold mb-4">生成結果</h3>
               
               <div className="bg-black rounded-lg p-4 mb-4">
-                <p className="text-gray-500 text-xs mb-2">預覽：</p>
+                <p className="text-neutral-500 text-xs mb-2">預覽：</p>
                 <p className="text-white text-lg leading-relaxed">{generatePreview()}</p>
               </div>
               
               <div className="flex gap-2">
                 <button
                   onClick={() => navigator.clipboard.writeText(generatePreview())}
-                  className="flex-1 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 flex items-center justify-center gap-2"
+                  className="flex-1 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 flex items-center justify-center gap-2"
                 >
                   <Copy size={16} />
                   複製文字
                 </button>
               </div>
               
-              <p className="text-gray-500 text-xs mt-4">
+              <p className="text-neutral-500 text-xs mt-4">
                 💡 用戶可以選擇只回答部分問題，系統會自動組合。<br/>
                 生成的句子可以複製後自行修改。
               </p>

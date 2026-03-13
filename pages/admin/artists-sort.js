@@ -168,7 +168,7 @@ export default function ArtistsSortPage() {
       <Layout>
         <div className="max-w-4xl mx-auto text-center py-16">
           <h1 className="text-2xl font-bold text-white mb-4">無權訪問</h1>
-          <p className="text-gray-500">只有管理員可以使用此功能</p>
+          <p className="text-neutral-500">只有管理員可以使用此功能</p>
         </div>
       </Layout>
     )
@@ -178,7 +178,7 @@ export default function ArtistsSortPage() {
     { id: 'male', label: '男歌手', color: 'bg-blue-500' },
     { id: 'female', label: '女歌手', color: 'bg-pink-500' },
     { id: 'group', label: '組合', color: 'bg-purple-500' },
-    { id: 'other', label: '其他', color: 'bg-gray-500' }
+    { id: 'other', label: '其他', color: 'bg-neutral-500' }
   ]
 
   return (
@@ -187,16 +187,16 @@ export default function ArtistsSortPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">歌手排序</h1>
-            <p className="text-gray-500">
+            <p className="text-neutral-500">
               次序：<strong className="text-[#FFD700]">Tier 1→2→3→4→5</strong>，同 Tier 以譜數多→少。
             </p>
           </div>
-          <Link href="/admin/artists-v2" className="text-gray-400 hover:text-white transition">
+          <Link href="/admin/artists-v2" className="text-neutral-400 hover:text-white transition">
             返回歌手管理
           </Link>
         </div>
 
-        <div className="bg-[#121212] rounded-xl border border-gray-800 p-4 space-y-4">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-4 space-y-4">
           <div className="relative">
             <input
               type="text"
@@ -215,7 +215,7 @@ export default function ArtistsSortPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
-                  activeTab === tab.id ? 'bg-[#FFD700] text-black' : 'bg-gray-800 text-gray-400 hover:text-white'
+                  activeTab === tab.id ? 'bg-[#FFD700] text-black' : 'bg-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -238,7 +238,7 @@ export default function ArtistsSortPage() {
             onClick={saveChanges}
             disabled={saving || !hasChanges}
             className={`px-5 py-2.5 rounded-lg font-medium transition disabled:opacity-50 flex items-center gap-2 ${
-              hasChanges ? 'bg-[#FFD700] text-black hover:opacity-90' : 'bg-gray-600 text-gray-300'
+              hasChanges ? 'bg-[#FFD700] text-black hover:opacity-90' : 'bg-neutral-600 text-neutral-300'
             }`}
           >
             {saving ? (
@@ -258,29 +258,29 @@ export default function ArtistsSortPage() {
           </button>
         </div>
 
-        <div className="bg-[#121212] rounded-xl border border-gray-800 overflow-hidden">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
           {loading ? (
             <div className="p-6 space-y-0">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-11 bg-gray-800 rounded animate-pulse" />
+                <div key={i} className="h-11 bg-neutral-800 rounded animate-pulse" />
               ))}
             </div>
           ) : filteredArtists.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">找不到符合的歌手</div>
+            <div className="p-8 text-center text-neutral-500">找不到符合的歌手</div>
           ) : (
-            <div className="divide-y divide-gray-800">
+            <div className="divide-y divide-neutral-800">
               {filteredArtists.map((artist, index) => {
                 const type = artist.artistType || artist.gender || 'other'
                 const count = artist.songCount || artist.tabCount || 0
                 const badgeColor =
                   type === 'male' ? 'bg-blue-600/80 text-white' :
                   type === 'female' ? 'bg-pink-600/80 text-white' :
-                  type === 'group' ? 'bg-amber-600/80 text-white' : 'bg-gray-600 text-gray-200'
+                  type === 'group' ? 'bg-amber-600/80 text-white' : 'bg-neutral-600 text-neutral-200'
                 const currentTier = artist.tier ?? DEFAULT_TIER
                 return (
                   <div
                     key={artist.id}
-                    className={`flex items-center gap-3 py-2.5 px-4 hover:bg-gray-800/30 ${dragId === artist.id ? 'opacity-60' : ''}`}
+                    className={`flex items-center gap-3 py-2.5 px-4 hover:bg-neutral-800/30 ${dragId === artist.id ? 'opacity-60' : ''}`}
                     onDragOver={handleDragOver}
                     onDrop={e => handleDrop(e, artist.id)}
                   >
@@ -288,16 +288,16 @@ export default function ArtistsSortPage() {
                       draggable
                       onDragStart={e => handleDragStart(e, artist.id)}
                       onDragEnd={handleDragEnd}
-                      className="shrink-0 p-1 rounded cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none"
+                      className="shrink-0 p-1 rounded cursor-grab active:cursor-grabbing text-neutral-500 hover:text-neutral-300 touch-none"
                       title="拖曳改變次序"
                     >
                       <GripVertical className="w-4 h-4" />
                     </div>
-                    <span className={`w-6 text-center text-sm font-bold shrink-0 ${index < 3 ? 'text-[#FFD700]' : 'text-gray-500'}`}>
+                    <span className={`w-6 text-center text-sm font-bold shrink-0 ${index < 3 ? 'text-[#FFD700]' : 'text-neutral-500'}`}>
                       {index + 1}
                     </span>
 
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-800 flex-shrink-0">
                       {artist.photoURL || artist.wikiPhotoURL ? (
                         <img src={artist.photoURL || artist.wikiPhotoURL} alt={artist.name} className="w-full h-full object-cover" />
                       ) : (
@@ -321,7 +321,7 @@ export default function ArtistsSortPage() {
                           className={`w-8 h-7 rounded text-xs font-bold transition ${
                             currentTier === t
                               ? 'bg-[#FFD700] text-black'
-                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white'
+                              : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white'
                           }`}
                           title={`Tier ${t}`}
                         >

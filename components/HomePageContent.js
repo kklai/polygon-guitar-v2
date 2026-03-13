@@ -229,9 +229,9 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs }) 
         {showSkeleton ? (
           [...Array(Math.min(count, 12))].map((_, i) => (
             <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-              <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-              <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
-              <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+              <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+              <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse mb-1" />
+              <div className="h-3 bg-neutral-800 rounded w-1/2 animate-pulse" />
             </div>
           ))
         ) : (
@@ -323,7 +323,7 @@ function HomeCategoryCard({ category, hotArtists }) {
       href={`/artists?category=${category.id}`}
       className="flex-shrink-0 flex flex-col cursor-pointer w-[32vw] md:w-36"
     >
-      <div className="relative w-[32vw] md:w-36 h-[32vw] md:h-36 rounded-[4px] overflow-hidden bg-gray-800">
+      <div className="relative w-[32vw] md:w-36 h-[32vw] md:h-36 rounded-[4px] overflow-hidden bg-neutral-800">
         {showImage ? (
           <img
             src={category.image}
@@ -334,14 +334,14 @@ function HomeCategoryCard({ category, hotArtists }) {
           />
         ) : category.image ? (
           <>
-            <div className="absolute inset-0 bg-gray-800 animate-pulse" />
+            <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl opacity-50">🎵</span>
             </div>
           </>
         ) : (
           <>
-            <div className="absolute inset-0 bg-gray-800 animate-pulse" />
+            <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl opacity-50">🎵</span>
             </div>
@@ -358,7 +358,7 @@ function HomeCategoryCard({ category, hotArtists }) {
         </div>
       </div>
       <div className="w-[32vw] md:w-36 mt-2 px-1">
-        <p className="text-xs text-gray-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
+        <p className="text-xs text-neutral-400 text-left line-clamp-2" style={{ lineHeight: 1.3 }}>
           {hotArtists[category.id]?.slice(0, 5).map(a => a.name).join(' · ')}
         </p>
       </div>
@@ -433,8 +433,8 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex-shrink-0 flex flex-col w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 rounded-[4px] overflow-hidden bg-gray-800 animate-pulse" />
-                    <div className="w-[32vw] md:w-36 mt-2 h-3 bg-gray-800 rounded animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 rounded-[4px] overflow-hidden bg-neutral-800 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 mt-2 h-3 bg-neutral-800 rounded animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -465,9 +465,9 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
-                    <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                    <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse mb-1" />
+                    <div className="h-3 bg-neutral-800 rounded w-1/2 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -501,8 +501,8 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-full animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-full animate-pulse mb-2" />
+                    <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -535,8 +535,8 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                    <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -569,9 +569,9 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
-                    <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                    <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse mb-1" />
+                    <div className="h-3 bg-neutral-800 rounded w-1/2 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -605,8 +605,8 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                    <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -644,9 +644,9 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
               <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                    <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
-                    <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                    <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                    <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse mb-1" />
+                    <div className="h-3 bg-neutral-800 rounded w-1/2 animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -669,9 +669,9 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                      <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                      <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse mb-1" />
-                      <div className="h-3 bg-gray-800 rounded w-1/2 animate-pulse" />
+                      <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                      <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse mb-1" />
+                      <div className="h-3 bg-neutral-800 rounded w-1/2 animate-pulse" />
                     </div>
                   ))}
                 </div>
@@ -704,8 +704,8 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3 md:gap-4" style={{ paddingLeft: '1rem' }}>
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex-shrink-0 w-[32vw] md:w-36">
-                      <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-gray-800 rounded-[4px] animate-pulse mb-2" />
-                      <div className="h-4 bg-gray-800 rounded w-3/4 animate-pulse" />
+                      <div className="w-[32vw] md:w-36 h-[32vw] md:h-36 bg-neutral-800 rounded-[4px] animate-pulse mb-2" />
+                      <div className="h-4 bg-neutral-800 rounded w-3/4 animate-pulse" />
                     </div>
                   ))}
                 </div>

@@ -58,8 +58,8 @@ export default function RatingSystem({ tabId, averageRating = 0, ratingCount = 0
   const displayAvg = localAvg || 0;
 
   return (
-    <div className="flex items-center space-x-1">
-      <div className="flex items-center space-x-0.5">
+    <div className="px-4 py-4 flex flex-col items-center gap-3 bg-[#1a1a1a]">
+      <div className="flex items-center gap-3">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -70,27 +70,19 @@ export default function RatingSystem({ tabId, averageRating = 0, ratingCount = 0
             className="outline-none transition-transform hover:scale-110 disabled:opacity-50"
           >
             <Star
-              className={`${starSizes[size]} ${
+              className={`w-6 h-6 ${
                 star <= displayRating
                   ? 'text-[#FFD700] fill-[#FFD700]'
                   : star <= displayAvg
                     ? 'text-[#FFD700] fill-[#FFD700] opacity-40'
-                    : 'text-[#3E3E3E]'
+                    : 'text-neutral-500'
               }`}
+              strokeWidth={1.2}
             />
           </button>
         ))}
       </div>
-      
-      {showCount && (
-        <span className="text-[#B3B3B3] text-xs ml-1">
-          {localCount > 0 ? `${displayAvg.toFixed(1)} (${localCount})` : '暫無評分'}
-        </span>
-      )}
-      
-      {userRating > 0 && !hoverRating && (
-        <span className="text-[#FFD700] text-xs ml-1 hidden sm:inline">你已評 {userRating} 星</span>
-      )}
+
     </div>
   );
 }

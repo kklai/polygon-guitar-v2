@@ -449,10 +449,10 @@ function EditArtist() {
       <Layout>
         <div className="max-w-3xl mx-auto px-4 pb-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-800 rounded w-1/3"></div>
-            <div className="h-12 bg-gray-800 rounded"></div>
-            <div className="h-12 bg-gray-800 rounded"></div>
-            <div className="h-32 bg-gray-800 rounded"></div>
+            <div className="h-8 bg-neutral-800 rounded w-1/3"></div>
+            <div className="h-12 bg-neutral-800 rounded"></div>
+            <div className="h-12 bg-neutral-800 rounded"></div>
+            <div className="h-32 bg-neutral-800 rounded"></div>
           </div>
         </div>
       </Layout>
@@ -463,7 +463,7 @@ function EditArtist() {
     <Layout>
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-gray-800 -mx-4 px-4 py-4 mb-6 flex items-center justify-between">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-neutral-800 -mx-4 px-4 py-4 mb-6 flex items-center justify-between">
           <div className="flex items-center">
             <Link
               href={`/artists/${id}`}
@@ -505,7 +505,7 @@ function EditArtist() {
         </div>
 
         {/* Form */}
-        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-gray-800">
+        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-neutral-800">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
             <div>
@@ -519,7 +519,7 @@ function EditArtist() {
                 value={formData.name}
                 onChange={handleNameChange}
                 className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] ${
-                  errors.name ? 'border-red-500' : 'border-gray-800'
+                  errors.name ? 'border-red-500' : 'border-neutral-800'
                 } ${showNameChangeWarning ? 'border-yellow-600' : ''}`}
               />
               {errors.name && (
@@ -577,7 +577,7 @@ function EditArtist() {
                 name="artistType"
                 value={formData.artistType}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value="">請選擇...</option>
                 <option value="male">👨‍🎤 男歌手</option>
@@ -589,16 +589,16 @@ function EditArtist() {
             {/* Regions */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                地區 <span className="text-gray-500">(最多 3 個)</span>
+                地區 <span className="text-neutral-500">(最多 3 個)</span>
               </label>
-              <div className="p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
+              <div className="p-3 bg-[#1a1a1a] rounded-lg border border-neutral-700">
                 <div className="flex flex-wrap gap-2 mb-3">
                   {formData.regions?.map((region, idx) => {
                     const regionConfig = REGIONS.find(r => r.value === region)
                     return (
                       <span 
                         key={region}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${regionConfig?.color || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${regionConfig?.color || 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30'}`}
                       >
                         <MapPin className="w-3 h-3" />
                         {idx + 1}. {regionConfig?.label || region}
@@ -629,7 +629,7 @@ function EditArtist() {
                         }))
                       }
                     }}
-                    className="w-full bg-black text-white text-sm px-3 py-2 rounded border border-gray-700 outline-none"
+                    className="w-full bg-black text-white text-sm px-3 py-2 rounded border border-neutral-700 outline-none"
                   >
                     <option value="">+ 添加地區 ({(formData.regions?.length || 0) + 1}/3)</option>
                     {REGIONS.filter(r => !formData.regions?.includes(r.value)).map(r => (
@@ -638,19 +638,19 @@ function EditArtist() {
                   </select>
                 )}
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-neutral-500">
                 第一個地區會作為主要顯示地區
               </p>
             </div>
 
             {/* Wikipedia Search */}
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">從 Wikipedia 自動獲取資料</h3>
               <button
                 type="button"
                 onClick={handleSearchWikipedia}
                 disabled={isSearching || !formData.name}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 transition disabled:opacity-50"
               >
                 {isSearching ? (
                   <>
@@ -685,14 +685,14 @@ function EditArtist() {
                     <div className="flex-1">
                       <p className="text-white font-medium">{searchPreview.name}</p>
                       {(searchPreview.birthYear || searchPreview.debutYear) && (
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-neutral-400 text-sm">
                           {searchPreview.birthYear && <span>出生：{searchPreview.birthYear}年 </span>}
                           {searchPreview.debutYear && <span>出道：{searchPreview.debutYear}年</span>}
                         </p>
                       )}
                     </div>
                   </div>
-                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                  <p className="text-neutral-300 text-sm mb-4 line-clamp-3">
                     {searchPreview.bio}
                   </p>
                   <div className="flex gap-3">
@@ -706,7 +706,7 @@ function EditArtist() {
                     <button
                       type="button"
                       onClick={() => setSearchPreview(null)}
-                      className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+                      className="px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 transition"
                     >
                       取消
                     </button>
@@ -746,12 +746,12 @@ function EditArtist() {
                 {uploadError && (
                   <p className="text-xs text-red-400 mt-1">{uploadError}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   支援 JPG、PNG、GIF，最大 10MB
                 </p>
                 {formData.photoURL && (
                   <div className="mt-3">
-                    <p className="text-sm text-gray-400 mb-2">預覽：</p>
+                    <p className="text-sm text-neutral-400 mb-2">預覽：</p>
                     <img 
                       src={formData.photoURL} 
                       alt="用戶上傳相片"
@@ -769,7 +769,7 @@ function EditArtist() {
               {/* 維基百科相片 (wikiPhotoURL) */}
               <div>
                 <label htmlFor="wikiPhotoURL" className="block text-sm font-medium text-white mb-1">
-                  <span className="text-gray-400">維基百科相片</span> (wikiPhotoURL)
+                  <span className="text-neutral-400">維基百科相片</span> (wikiPhotoURL)
                 </label>
                 <input
                   type="url"
@@ -778,18 +778,18 @@ function EditArtist() {
                   value={formData.wikiPhotoURL}
                   onChange={handleChange}
                   placeholder="https://..."
-                  className="w-full px-4 py-2 bg-black border border-gray-700 rounded-lg text-white placeholder-[#B3B3B3]"
+                  className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white placeholder-[#B3B3B3]"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   當無用戶上傳相片時顯示
                 </p>
                 {formData.wikiPhotoURL && (
                   <div className="mt-3">
-                    <p className="text-sm text-gray-400 mb-2">預覽：</p>
+                    <p className="text-sm text-neutral-400 mb-2">預覽：</p>
                     <img 
                       src={formData.wikiPhotoURL} 
                       alt="維基百科相片"
-                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-600"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-neutral-600"
                       onError={(e) => {
                         e.target.style.display = 'none'
                         e.target.nextSibling.style.display = 'block'
@@ -826,12 +826,12 @@ function EditArtist() {
                   />
                 </label>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-neutral-500 mt-1">
                 建議尺寸：1200 x 800 像素或以上
               </p>
               {formData.heroPhoto && (
                 <div className="mt-3">
-                  <p className="text-sm text-gray-400 mb-2">預覽：</p>
+                  <p className="text-sm text-neutral-400 mb-2">預覽：</p>
                   <img 
                     src={formData.heroPhoto} 
                     alt="Hero 照片"
@@ -858,9 +858,9 @@ function EditArtist() {
                 value={formData.birthYear}
                 onChange={handleChange}
                 placeholder="例如：1990 或 1990-05-15"
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]"
               />
-              <p className="text-xs text-gray-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
+              <p className="text-xs text-neutral-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
             </div>
 
             {/* 出道日期 */}
@@ -875,9 +875,9 @@ function EditArtist() {
                 value={formData.debutYear}
                 onChange={handleChange}
                 placeholder="例如：2022 或 2022-07-12"
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]"
               />
-              <p className="text-xs text-gray-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
+              <p className="text-xs text-neutral-500 mt-1">可只填年份，或填完整日期（YYYY-MM-DD）</p>
             </div>
 
             {/* Fix Songs Data Button */}
@@ -934,7 +934,7 @@ function EditArtist() {
                 onChange={handleChange}
                 rows={6}
                 placeholder="歌手簡介..."
-                className="w-full px-4 py-2 bg-black border border-gray-800 rounded-lg text-white placeholder-[#B3B3B3]"
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]"
               />
               <p className="mt-1 text-sm text-[#B3B3B3]">
                 {formData.bio.length} 字
@@ -952,14 +952,14 @@ function EditArtist() {
               </button>
               <Link
                 href={`/artists/${id}`}
-                className="px-6 py-3 border border-gray-800 rounded-lg font-medium text-[#B3B3B3] hover:text-white hover:border-[#FFD700] transition"
+                className="px-6 py-3 border border-neutral-800 rounded-lg font-medium text-[#B3B3B3] hover:text-white hover:border-[#FFD700] transition"
               >
                 取消
               </Link>
             </div>
 
             {/* 刪除按鈕 - 僅管理員可見 */}
-            <div className="pt-6 mt-6 border-t border-gray-800">
+            <div className="pt-6 mt-6 border-t border-neutral-800">
               <button
                 type="button"
                 onClick={handleDeleteArtist}
@@ -975,7 +975,7 @@ function EditArtist() {
                   </span>
                 )}
               </button>
-              <p className="mt-2 text-xs text-gray-500 text-center">
+              <p className="mt-2 text-xs text-neutral-500 text-center">
                 警告：刪除後無法復原。如有歌曲使用此歌手，建議先轉移歌曲至其他歌手。
               </p>
             </div>
