@@ -207,6 +207,7 @@ export default function Search() {
           className="fixed top-0 left-0 right-0 z-50 bg-black"
           style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
+          <div className="max-w-[1050px] mx-auto">
           <div className="flex items-center gap-2 pt-4 pb-2" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             <div className="relative flex-1 min-w-0">
               <input
@@ -263,6 +264,7 @@ export default function Search() {
               為歌單加歌：揀一首會加入歌單並返回
             </p>
           )}
+          </div>
         </div>
 
         {/* 搜尋記錄（無輸入時顯示，style 同 recent-tabs） */}

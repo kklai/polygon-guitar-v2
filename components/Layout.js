@@ -176,50 +176,52 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
             <Link 
               key={item.path}
               href={item.path}
+              prefetch={true}
               onClick={() => {
                 if (item.path === '/search') {
                   try { sessionStorage.setItem('pg_focus_search', '1') } catch (_) {}
                   document.body.classList.add('pg-hide-top-nav')
                 }
               }}
-              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] group ${
-                isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
+              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] ${
+                isActive(item.path) ? 'text-black font-bold' : 'text-black/60 active:text-black'
               }`}
             >
-              <Icon 
-                name={item.icon} 
-                iconUrl={navIcons[item.icon]}
-                label={item.label}
-                active={isActive(item.path)}
-                className={item.icon === 'hand' ? 'w-[25px] h-[25px] translate-y-[2.8px]' : 'w-[32px] h-[32px]'}
-              />
-              <span className={`text-xs font-medium ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
+              <div className="pointer-events-none">
+                <Icon 
+                  name={item.icon} 
+                  iconUrl={navIcons[item.icon]}
+                  label={item.label}
+                  active={isActive(item.path)}
+                  className={item.icon === 'hand' ? 'w-[25px] h-[25px] translate-y-[2.8px]' : 'w-[32px] h-[32px]'}
+                />
+              </div>
+              <span className={`text-xs font-medium pointer-events-none ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
             </Link>
           ))}
         </div>
       </nav>
 
       {/* 桌面版底部導航 - 黃底黑字設計 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-50 hidden md:block">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#FFD700] z-[100] hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
             {desktopNavItems.map((item) => (
                 <Link 
                   key={item.path}
                   href={item.path}
-                  onClick={(e) => {
-                    e.preventDefault()
+                  prefetch={true}
+                  onClick={() => {
                     if (item.path === '/search') {
                       try { sessionStorage.setItem('pg_focus_search', '1') } catch (_) {}
                       document.body.classList.add('pg-hide-top-nav')
                     }
-                    router.push(item.path)
                   }}
-                  className={`flex flex-col items-center group ${
+                  className={`flex flex-col items-center px-3 py-1 ${
                     isActive(item.path) ? 'text-black font-bold' : 'text-black/60 hover:text-black'
                   }`}
                 >
-                  <div className={`flex items-center justify-center shrink-0 ${item.icon === 'hand' ? 'h-[25px] w-[25px]' : 'h-8 w-8'}`}>
+                  <div className={`flex items-center justify-center shrink-0 pointer-events-none ${item.icon === 'hand' ? 'h-[25px] w-[25px]' : 'h-8 w-8'}`}>
                     <Icon 
                       name={item.icon} 
                       iconUrl={navIcons[item.icon]}
@@ -228,7 +230,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                       className={item.icon === 'hand' ? 'w-[25px] h-[25px] translate-y-[2.8px]' : 'w-[32px] h-[32px]'}
                     />
                   </div>
-                  <span className={`text-xs font-medium ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
+                  <span className={`text-xs font-medium pointer-events-none ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
                 </Link>
             ))}
           </div>
