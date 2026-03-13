@@ -6,8 +6,8 @@ import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
 const ARTISTS_CACHE_VERSION = 2 // bump to invalidate when API shape changes (e.g. region/regions)
-const ARTISTS_CACHE_TTL = 10 * 60 * 1000 // 10 min
-const ARTISTS_CACHE_FRESH = 2 * 60 * 1000 // 2 min = skip fetch
+const ARTISTS_CACHE_TTL = 3 * 60 * 1000 // 3 min
+const ARTISTS_CACHE_FRESH = 60 * 1000 // 1 min = skip fetch
 
 function saveArtistsCache(data) {
   try {

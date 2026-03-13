@@ -7,6 +7,7 @@
 
 import { doc, getDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
+import { pacificTime } from '@/lib/logTime'
 import { getArtistBySlug, getTabsByArtist, slimTabForArtistPage } from '@/lib/tabs'
 import { getArtistPageCache, setArtistPageCache } from '@/lib/artistPageCache'
 
@@ -29,6 +30,7 @@ export default async function handler(req, res) {
   try {
     let cached = await getArtistPageCache(id)
     if (cached) {
+      console.log(`[artist-page API] cache hit for ${id} at ${pacificTime()}`)
       res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
       return res.json(cached)
     }
@@ -50,6 +52,7 @@ export default async function handler(req, res) {
       return res.json(cached)
     }
 
+    console.log(`[artist-page API] cache miss for ${id}, building... at ${pacificTime()}`)
     const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId)
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     const slimTabs = tabs.map(slimTabForArtistPage)
@@ -59,6 +62,7 @@ export default async function handler(req, res) {
       allTabs: slimTabs
     }
     await setArtistPageCache(artistId, payload)
+    console.log(`[artist-page API] built ${id}: ${slimTabs.length} tabs, cached at ${pacificTime()}`)
 
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
     return res.json(serializePayload(payload))

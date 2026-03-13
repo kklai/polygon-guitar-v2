@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { pacificTime } from '@/lib/logTime'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
@@ -37,6 +38,7 @@ function AnalyticsDashboard() {
   const [dateRange, setDateRange] = useState('7days')
 
   useEffect(() => {
+    console.log('[analytics] full stats load started', pacificTime())
     loadStats()
     loadTrendData()
     loadDailyUsers()

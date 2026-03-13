@@ -12,7 +12,7 @@ import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { ArrowLeft } from 'lucide-react'
 
@@ -435,6 +435,17 @@ export default function NewTab() {
         uploaderPenName: (formData.uploaderPenName || '').trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
+      // Incrementally patch Firestore caches (fire-and-forget)
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ tab: newTab, action: 'create' })
+          })
+        }
+      } catch (_) {}
       router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)

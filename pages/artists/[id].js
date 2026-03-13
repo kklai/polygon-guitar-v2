@@ -1,5 +1,6 @@
 // pages/artists/[id].js
 import { useState, useEffect } from 'react';
+import { pacificTime } from '@/lib/logTime';
 import { useRouter } from 'next/router';
 import Link from '@/components/Link';
 import { db } from '../../lib/firebase';
@@ -21,8 +22,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 // No module-level Firestore: prefetch only loads the route chunk; data loads in useEffect after navigation.
 
-const ARTIST_CACHE_TTL = 10 * 60 * 1000; // 10 min max age
-const ARTIST_CACHE_FRESH = 2 * 60 * 1000; // 2 min = skip fetch entirely
+const ARTIST_CACHE_TTL = 3 * 60 * 1000; // 3 min max age
+const ARTIST_CACHE_FRESH = 60 * 1000; // 1 min = skip fetch entirely
 
 function saveArtistCache(artistId, data) {
   try {
@@ -130,6 +131,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     }
 
     try {
+      const startMs = Date.now()
       const res = await fetch(`/api/artist-page?id=${encodeURIComponent(id)}`);
       if (res.status === 404) {
         router.push('/artists');
@@ -142,6 +144,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
       const artistData = data.artist;
       const hotTabs = data.hotTabs || [];
       const allTabs = data.allTabs || [];
+      console.log(`[artist/${id}] loaded ${allTabs.length} tabs in ${Date.now() - startMs}ms at ${pacificTime()}`)
       setArtist(artistData);
       setHotTabs(hotTabs);
       setAllTabs(allTabs);

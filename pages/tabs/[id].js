@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { pacificTime } from '@/lib/logTime'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
@@ -239,7 +240,9 @@ export default function TabDetail({ initialTab }) {
 
   const loadTab = async () => {
     try {
+      const startMs = Date.now()
       const data = await getTab(id)
+      console.log(`[tab/${id}] getTab in ${Date.now() - startMs}ms at ${pacificTime()}`)
       if (data) {
         if (!data.youtubeVideoId && data.youtubeUrl) {
           data.youtubeVideoId = extractYouTubeId(data.youtubeUrl)

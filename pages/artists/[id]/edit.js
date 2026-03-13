@@ -8,6 +8,7 @@ import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
 import { nameToSlug, getArtistBySlug, invalidateArtistCaches } from '@/lib/tabs'
+import { auth } from '@/lib/firebase'
 import { X, MapPin, ArrowLeft } from 'lucide-react'
 
 const REGIONS = [
@@ -174,6 +175,19 @@ function EditArtist() {
       if (typeof window !== 'undefined') {
         invalidateArtistCaches()
         fetch('/api/search-data?bust=1').catch(() => {})
+        try {
+          const token = await auth.currentUser?.getIdToken?.()
+          if (token) {
+            await fetch('/api/patch-caches-on-new-tab', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                artist: { id: docId, name: formData.name, photoURL: formData.photoURL, wikiPhotoURL: formData.wikiPhotoURL, artistType: formData.artistType, regions: formData.regions },
+                action: 'update-artist'
+              })
+            })
+          }
+        } catch (_) {}
       }
 
       // 跳去新嘅歌手 URL（用新 slug）

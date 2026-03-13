@@ -12,7 +12,7 @@ import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
 
 // 1-hour local cache for home payload (cache/homePage snapshot) — reload reads from here
 const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
-const HOMEPAGE_LOCAL_CACHE_TTL_MS = 60 * 60 * 1000
+const HOMEPAGE_LOCAL_CACHE_TTL_MS = 3 * 60 * 1000
 
 function getHomeDataFromLocalCache() {
   if (typeof window === 'undefined') return null

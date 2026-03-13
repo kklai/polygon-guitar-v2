@@ -12,6 +12,7 @@ import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
+import { auth } from '@/lib/firebase'
 import { ArrowLeft } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -353,18 +354,29 @@ export default function EditTab() {
       }
       
       console.log('Submitting data:', submitData)
-      await updateTab(id, submitData, user.uid, isAdmin)
+      const updatedTab = await updateTab(id, submitData, user.uid, isAdmin)
       // 清除 cache，等樂譜頁／歌手頁／搜尋即時反映改動
       if (typeof window !== 'undefined') {
         clearTabCache(id)
         invalidateArtistCaches()
         const primaryName = (formData.artists?.[0]?.name || formData.artist || '').trim()
-        const artistId = formData.artists?.[0]?.id || formData.artistId || (primaryName && normalizeArtistId(primaryName))
+        const artistId = updatedTab?.artistId || formData.artists?.[0]?.id || formData.artistId || (primaryName && normalizeArtistId(primaryName))
         if (artistId) {
           try { localStorage.removeItem(`pg_artist_${artistId}`) } catch (e) {}
           invalidateArtistTabsCache(artistId)
         }
         fetch('/api/search-data?bust=1').catch(() => {})
+        // Incrementally patch Firestore caches with updated tab metadata
+        try {
+          const token = await auth.currentUser?.getIdToken?.()
+          if (token) {
+            await fetch('/api/patch-caches-on-new-tab', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ tab: updatedTab || { id, ...submitData }, action: 'update' })
+            })
+          }
+        } catch (_) {}
         await fetch(`/api/revalidate-tab?id=${id}`).catch(() => {})
       }
       // 用 ?updated=1 + sessionStorage 令樂譜頁強制從 Firestore 重載（localhost 上 router.query 可能未就緒）

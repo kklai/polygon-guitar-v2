@@ -5,6 +5,7 @@ import TablatureUploader from '@/components/TablatureUploader';
 import TablatureViewer from '@/components/TablatureViewer';
 import { createTab } from '@/lib/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { auth } from '@/lib/firebase';
 
 /**
  * 上傳六線譜頁面
@@ -103,8 +104,16 @@ export default function NewTablaturePage() {
       };
       
       const newTab = await createTab(tabData, user.uid);
-      
-      // 跳轉到新譜頁面
+      try {
+        const token = await auth.currentUser?.getIdToken?.();
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ tab: newTab, action: 'create' })
+          });
+        }
+      } catch (_) {}
       router.push(`/tabs/${newTab.id}`);
       
     } catch (error) {

@@ -14,7 +14,7 @@ import {
   getDoc,
   writeBatch
 } from '@/lib/firestore-tracked'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
 import { ArrowLeft } from 'lucide-react'
@@ -338,6 +338,17 @@ export default function ArtistsV2Page() {
       
       await updateDoc(artistRef, updateData)
       invalidateArtistCaches()
+      const token = await auth.currentUser?.getIdToken?.()
+      if (token) {
+        fetch('/api/patch-caches-on-new-tab', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            artist: { id: selectedArtist.id, name: editForm.name, photoURL: editForm.photoURL, wikiPhotoURL: editForm.wikiPhotoURL, artistType: editForm.artistType },
+            action: 'update-artist'
+          })
+        }).catch(() => {})
+      }
       console.log('Artist updated successfully')
 
       const message = nameChanged 

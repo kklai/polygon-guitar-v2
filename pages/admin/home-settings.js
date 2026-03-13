@@ -401,6 +401,7 @@ function HomeSettings() {
         return
       }
       setMessage('✅ 首頁快取已重建，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取')
+      try { localStorage.removeItem('pg_home_cache_v2') } catch (_) {}
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)
@@ -428,6 +429,11 @@ function HomeSettings() {
         return
       }
       setMessage('✅ 搜尋快取已重建，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取')
+      try {
+        localStorage.removeItem('searchPageData')
+        localStorage.removeItem('pg_artists_list')
+        localStorage.setItem('pg_artists_bust', String(Date.now()))
+      } catch (_) {}
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)

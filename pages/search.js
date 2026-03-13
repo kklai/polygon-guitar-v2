@@ -10,8 +10,8 @@ import { getTab } from '@/lib/tabs'
 import { ArrowLeft } from 'lucide-react'
 
 const STORAGE_KEY = 'searchPageData'
-const CACHE_TTL = 10 * 60 * 1000   // 10 min 內用 cache
-const FRESH_TTL = 2 * 60 * 1000    // 2 min 內唔再 fetch
+const CACHE_TTL = 3 * 60 * 1000    // 3 min 內用 cache
+const FRESH_TTL = 60 * 1000        // 1 min 內唔再 fetch
 
 function readCache() {
   try {
