@@ -397,7 +397,18 @@ export default function EditTab() {
     }
     
     try {
+      const deletedTab = { id, artistId: formData.artists?.[0]?.id }
       await deleteTab(id, user.uid, isAdmin)
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ tab: deletedTab, action: 'delete' })
+          })
+        }
+      } catch (e) { console.warn('[patch-caches] delete patch failed:', e) }
       alert('✅ 樂譜已刪除')
       router.push('/library')
     } catch (error) {

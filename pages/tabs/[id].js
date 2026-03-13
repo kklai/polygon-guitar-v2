@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { pacificTime } from '@/lib/logTime'
+import { auth } from '@/lib/firebase'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
@@ -273,7 +274,18 @@ export default function TabDetail({ initialTab }) {
     if (!confirm('確定要刪除這個譜嗎？')) return
     setIsDeleting(true)
     try {
+      const deletedTab = tab ? { id, artistId: tab.artistId } : { id }
       await deleteTab(id, user.uid, isAdmin)
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ tab: deletedTab, action: 'delete' })
+          })
+        }
+      } catch (e) { console.warn('[patch-caches] delete patch failed:', e) }
       router.push('/')
     } catch (error) {
       alert('刪除失敗：' + error.message)

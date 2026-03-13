@@ -5,7 +5,7 @@
  * instead of doing a full rebuild (~3,700 reads).
  *
  * Tab actions:
- *   { tab: { id, title, artist, ... }, action: 'create' | 'update' }
+ *   { tab: { id, title, artist, ... }, action: 'create' | 'update' | 'delete' }
  *   Patches: searchData, homePage. Deletes: artistPage_{artistId}.
  *   (allTabs is skipped — it's only used by admin pages and is too large to patch safely.)
  *
@@ -132,9 +132,13 @@ async function handleTabAction(adminDb, tab, action) {
   const results = {}
 
   results.searchData = await patchCacheDoc(adminDb, 'searchData', (payload) => {
-    const slim = toSearchTabSlim(tab)
     const tabs = Array.isArray(payload.tabs) ? payload.tabs : []
 
+    if (action === 'delete') {
+      const filtered = tabs.filter(t => t.id !== tab.id)
+      return filtered.length === tabs.length ? null : { ...payload, tabs: filtered }
+    }
+    const slim = toSearchTabSlim(tab)
     if (action === 'create') {
       return { ...payload, tabs: [slim, ...tabs] }
     }
@@ -146,8 +150,14 @@ async function handleTabAction(adminDb, tab, action) {
   })
 
   results.homePage = await patchCacheDoc(adminDb, 'homePage', (payload) => {
+    if (action === 'delete') {
+      const filterArr = (arr) => Array.isArray(arr) ? arr.filter(t => t.id !== tab.id) : arr
+      const latestSongs = filterArr(payload.latestSongs)
+      const hotTabs = filterArr(payload.hotTabs)
+      const changed = latestSongs?.length !== payload.latestSongs?.length || hotTabs?.length !== payload.hotTabs?.length
+      return changed ? { ...payload, latestSongs, hotTabs } : null
+    }
     const slim = toHomeSlim(tab)
-
     if (action === 'create') {
       const latestSongs = Array.isArray(payload.latestSongs) ? payload.latestSongs : []
       return { ...payload, latestSongs: [slim, ...latestSongs].slice(0, 10) }
@@ -212,7 +222,7 @@ export default async function handler(req, res) {
   }
 
   const { tab, artist, action } = req.body || {}
-  const validActions = ['create', 'update', 'create-artist', 'update-artist']
+  const validActions = ['create', 'update', 'delete', 'create-artist', 'update-artist']
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` })
   }
@@ -226,9 +236,9 @@ export default async function handler(req, res) {
   const startMs = Date.now()
   let results
 
-  if (action === 'create' || action === 'update') {
-    if (!tab?.id || !tab?.title) {
-      return res.status(400).json({ error: 'Missing tab.id or tab.title' })
+  if (action === 'create' || action === 'update' || action === 'delete') {
+    if (!tab?.id) {
+      return res.status(400).json({ error: 'Missing tab.id' })
     }
     results = await handleTabAction(adminDb, tab, action)
     console.log(`[patch-caches] ${action} tab ${tab.id} "${tab.title}" — searchData:${results.searchData}, homePage:${results.homePage}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
