@@ -863,7 +863,7 @@ export async function getStaticProps({ params }) {
   if (!id) return { notFound: true }
   try {
     const { getTab } = await import('@/lib/tabs')
-    const data = await getTab(id)
+    const data = await getTab(id, { skipCache: true })
     if (!data) return { notFound: true }
     if (!data.youtubeVideoId && data.youtubeUrl) {
       const m = data.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)

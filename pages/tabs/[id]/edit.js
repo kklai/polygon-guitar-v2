@@ -365,6 +365,7 @@ export default function EditTab() {
           invalidateArtistTabsCache(artistId)
         }
         fetch('/api/search-data?bust=1').catch(() => {})
+        await fetch(`/api/revalidate-tab?id=${id}`).catch(() => {})
       }
       // 用 ?updated=1 + sessionStorage 令樂譜頁強制從 Firestore 重載（localhost 上 router.query 可能未就緒）
       try { sessionStorage.setItem('pg_tab_just_updated', id) } catch (e) {}
