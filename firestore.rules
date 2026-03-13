@@ -146,6 +146,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ==================== User Library Cache (denormalised read-view for /library page) ====================
+    match /userLibraryCache/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated() && isOwner(userId);
+    }
+
     // ==================== Cache (homePage, searchData, allTabs, playlist_*, tabRequestsList) ====================
     // Read: anyone (SSR/API use these for 1-read home, search, getAllTabs, playlist page). Write: via Firebase Admin only.
     match /cache/{docId} {

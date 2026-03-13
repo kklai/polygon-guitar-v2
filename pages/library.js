@@ -5,69 +5,11 @@ import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, serverTimestamp } from '@/lib/firestore-tracked';
 import { Plus, Heart, Music, X, User, ArrowUpDown, Clock } from 'lucide-react';
-import { getUserPlaylists, getUserLikedSongs, getSavedPlaylistsWithMeta, getSavedArtistsWithMeta } from '../lib/playlistApi';
-import { getTabsByIds } from '../lib/tabs';
 import { getLastViewedAt, getRecentTabIds } from '../lib/libraryRecentViews';
 import { getSongThumbnail } from '../lib/getSongThumbnail';
 import Layout from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
-
-/** 後備：直接 Firestore 查詢（當 API 唔可用時） */
-async function fetchLibraryDataLegacy(userId) {
-  const [userPlaylists, savedList, artistsList, likedSongs] = await Promise.all([
-    getUserPlaylists(userId),
-    getSavedPlaylistsWithMeta(userId),
-    getSavedArtistsWithMeta(userId),
-    getUserLikedSongs(userId)
-  ]);
-  const tabIdsToFetch = [];
-  const playlistTabIds = userPlaylists.map((pl) => (pl.songIds || []).slice(0, 4));
-  const seen = new Set();
-  for (const ids of playlistTabIds) {
-    for (const id of ids) {
-      if (!seen.has(id)) {
-        seen.add(id);
-        tabIdsToFetch.push(id);
-      }
-    }
-  }
-  const tabList = tabIdsToFetch.length ? await getTabsByIds(tabIdsToFetch) : [];
-  const tabMap = new Map(tabList.map((t) => [t.id, t]));
-  const playlists = userPlaylists.map((pl) => {
-    const ids = (pl.songIds || []).slice(0, 4);
-    const coverSongs = ids.map((id) => tabMap.get(id)).filter(Boolean);
-    return { ...pl, coverSongs };
-  });
-  return { playlists, savedPlaylists: savedList, savedArtists: artistsList, likedCount: likedSongs.length };
-}
-
-/**
- * 一次過攞收藏頁所需數據：優先用 /api/me/library（一個 request 攞齊 liked / playlists / saved playlists / saved artists），
- * 然後 client 只係 fetch cover tabs。失敗或無 token 時用後備 Firestore 查詢。
- */
-async function fetchLibraryData(userId) {
-  try {
-    const token = await auth.currentUser?.getIdToken?.();
-    if (token) {
-      const res = await fetch('/api/me/library', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // API 已包含 coverSongs，唔使再 client 再 call getTabsByIds
-        return {
-          playlists: data.playlists ?? [],
-          savedPlaylists: data.savedPlaylists ?? [],
-          savedArtists: data.savedArtists ?? [],
-          likedCount: (data.likedSongIds ?? []).length
-        };
-      }
-    }
-  } catch (_) {
-    // fall through to legacy
-  }
-  return fetchLibraryDataLegacy(userId);
-}
+import { getUserLibrary, patchCacheAddPlaylist } from '../lib/userLibraryCache';
 
 export default function Library() {
   const router = useRouter();
@@ -86,11 +28,11 @@ export default function Library() {
   const libraryKey = user ? `library-${user.uid}` : null;
   const { data, error, isLoading: swrLoading, isValidating, mutate } = useSWR(
     libraryKey,
-    (key) => fetchLibraryData(key.replace('library-', '')),
+    () => getUserLibrary(user.uid),
     {
-      revalidateOnFocus: true,   // 切返嚟 tab 時背景更新
-      dedupingInterval: 20000,  // 20 秒內唔重複 request，第二次入頁即出 cache
-      keepPreviousData: true    // 重新驗證時保留上一次 data，唔會閃 loading
+      revalidateOnFocus: true,
+      dedupingInterval: 20000,
+      keepPreviousData: true,
     }
   );
   const playlists = data?.playlists ?? [];
@@ -158,7 +100,7 @@ export default function Library() {
     if (!newPlaylistName.trim() || !user) return;
     
     try {
-      await addDoc(collection(db, 'userPlaylists'), {
+      const docRef = await addDoc(collection(db, 'userPlaylists'), {
         userId: user.uid,
         title: newPlaylistName.trim(),
         description: '',
@@ -170,9 +112,10 @@ export default function Library() {
         updatedAt: serverTimestamp()
       });
       
+      await patchCacheAddPlaylist(user.uid, { id: docRef.id, title: newPlaylistName.trim() });
       setNewPlaylistName('');
       setShowCreateModal(false);
-      mutate(); // 令 SWR 重新攞數據，新歌單即時出現
+      mutate();
     } catch (error) {
       console.error('創建歌單失敗:', error);
       alert('創建失敗，請重試');
@@ -214,7 +157,7 @@ export default function Library() {
         id: pl.id,
         data: pl,
         lastViewedAt: typeof window !== 'undefined' ? getLastViewedAt('userPlaylist', pl.id) : 0,
-        addedAt: pl.createdAt?.toMillis?.() ?? 0
+        addedAt: pl.createdAtMs ?? pl.createdAt?.toMillis?.() ?? 0
       });
     });
     const key = sortMode === 'recent' ? 'lastViewedAt' : 'addedAt';
@@ -377,9 +320,9 @@ export default function Library() {
                     className="cursor-pointer group"
                   >
                     <div className="aspect-square rounded-full overflow-hidden mb-2 bg-[#282828] shadow-lg relative max-w-full">
-                      {ar.photoURL || ar.wikiPhotoURL ? (
+                      {ar.photoURL ? (
                         <img
-                          src={ar.photoURL || ar.wikiPhotoURL}
+                          src={ar.photoURL}
                           alt=""
                           className="w-full h-full object-cover"
                           loading="lazy"
@@ -442,11 +385,10 @@ export default function Library() {
                         Array.from({ length: 4 }, (_, i) => {
                           const song = coverSongs[i];
                           if (!song) return <div key={`empty-${playlist.id}-${i}`} className="w-full h-full min-h-0 bg-[#282828]" aria-hidden />;
-                          const thumb = getSongThumbnail(song);
                           return (
                             <div key={`${playlist.id}-${song.id}`} className="relative w-full h-full min-h-0 bg-[#282828]">
-                              {thumb ? (
-                                <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                              {song.thumbnail ? (
+                                <img src={song.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E] text-lg">🎸</div>
                               )}
