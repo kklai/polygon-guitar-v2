@@ -14,7 +14,7 @@ import GpSegmentPlayer from '@/components/GpSegmentPlayer'
 import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
 import { recordTabView } from '@/lib/libraryRecentViews'
-import { Share, Heart, Music, Plus, Copy, ArrowLeft, PenLine, Star } from 'lucide-react'
+import { Share, Heart, Music, Plus, Copy, ArrowLeft, PenLine, Star, Bookmark } from 'lucide-react'
 
 const SongInfoIcon = ({ className }) => (
   <svg className={className} viewBox="0 0 100 100" fill="currentColor" aria-hidden xmlns="http://www.w3.org/2000/svg">
@@ -676,6 +676,10 @@ export default function TabDetail({ initialTab, artist }) {
       for (const playlistId of idsToRemove) {
         await removeSongFromPlaylist(playlistId, tab.id)
       }
+      const netChange = idsToAdd.length - idsToRemove.length
+      if (netChange !== 0) {
+        setTab(prev => prev ? { ...prev, playlistCount: Math.max(0, (prev.playlistCount || 0) + netChange) } : prev)
+      }
       setShowAddToPlaylist(false)
       setAddToPlaylistSelectedIds([])
       setAddToPlaylistInitialIds([])
@@ -697,6 +701,7 @@ export default function TabDetail({ initialTab, artist }) {
       const result = await createPlaylist(user.uid, newPlaylistName.trim());
       // 創建後直接加入歌曲
       await addSongToPlaylist(result.playlistId, tab.id);
+      setTab(prev => prev ? { ...prev, playlistCount: (prev.playlistCount || 0) + 1 } : prev);
       setShowCreatePlaylistInput(false);
       setShowAddToPlaylist(false);
       setNewPlaylistName('');
@@ -1002,7 +1007,6 @@ export default function TabDetail({ initialTab, artist }) {
                       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                       <path d="m15 5 4 4" />
                     </svg>
-                    編輯
                   </Link>
                 )}
               </div>
@@ -1034,15 +1038,23 @@ export default function TabDetail({ initialTab, artist }) {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
-                    <Star className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
-                    {ratingData.averageRating ? ratingData.averageRating.toFixed(1) : '0'}
-                    <span className="text-sm text-neutral-500">({ratingData.ratingCount || 0})</span>
-                  </span>
+                  {(ratingData.ratingCount > 20 || isAdmin) && (
+                    <span className={`flex items-center gap-0.5 text-neutral-500 text-sm ${isAdmin && ratingData.ratingCount <= 20 ? 'line-through' : ''}`}>
+                      <Star className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                      {ratingData.averageRating ? ratingData.averageRating.toFixed(1) : '0'}
+                      <span className="text-sm text-neutral-500">({ratingData.ratingCount})</span>
+                    </span>
+                  )}
                   <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
                     <Heart className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
                     {likesCount}
                   </span>
+                  {(tab.playlistCount > 0 || (isAdmin && tab.playlistCount != null)) && (
+                    <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
+                      <Bookmark className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                      {tab.playlistCount}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

@@ -746,15 +746,7 @@ export default function UserPlaylistDetail() {
           </div>
         ) : (
           <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
-            <span className="text-6xl block mb-4">🎸</span>
-            <h3 className="text-xl text-white mb-2">呢個歌單暫時冇歌曲</h3>
-            <p className="text-neutral-500 mb-6">去樂譜庫加啲歌入嚟啦</p>
-            <Link
-              href="/library"
-              className="inline-flex items-center px-6 py-3 bg-[#FFD700] text-black rounded-full font-medium hover:opacity-90 transition"
-            >
-              返回收藏
-            </Link>
+            <p className="text-neutral-500">暫無歌曲</p>
           </div>
         )}
 
