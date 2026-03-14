@@ -3,6 +3,7 @@ import Link from '@/components/Link'
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, hasPermission } from '@/lib/roles'
+import Layout from '@/components/Layout'
 
 const sections = [
   {
@@ -83,7 +84,7 @@ export default function AdminIndex() {
     : (ROLE_COLORS[userRole] || 'bg-neutral-500')
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <Layout>
       <Head>
         <title>後台 | Polygon Guitar</title>
       </Head>
@@ -129,6 +130,6 @@ export default function AdminIndex() {
 
         <p className="text-center text-[#B3B3B3] text-xs mt-8 mb-4">Polygon Guitar v2</p>
       </div>
-    </div>
+    </Layout>
   )
 }

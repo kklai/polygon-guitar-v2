@@ -1495,7 +1495,8 @@ const TabContent = ({
   externalHideNotation,
   externalHideBrackets,
   onHideNotationChange,
-  onHideBracketsChange
+  onHideBracketsChange,
+  scrollSmoothRef
 }) => {
   // 緩存 YouTube src，防止轉調時重新渲染 iframe
   const youtubeSrc = useMemo(() => {
@@ -1606,25 +1607,54 @@ const TabContent = ({
     };
   }, []);
 
-  // 自動滾動 - 成個頁面一齊滾動
+  // 自動滾動 - rAF + sub-pixel transform 實現真正平滑滾動
   useEffect(() => {
+    const el = (scrollSmoothRef && scrollSmoothRef.current) || containerRef.current;
     if (isAutoScroll) {
-      // 速度：1–4 對應 0.5 / 0.9 / 1.2 / 1.5 px（每 50ms）
-      const speeds = [0, 0.5, 0.9, 1.2, 1.5];
-      const speed = Math.max(1, Math.min(4, scrollSpeed));
-      autoScrollRef.current = setInterval(() => {
-        window.scrollBy({ top: speeds[speed] || 0.5, behavior: 'auto' });
-      }, 50);
+      const pxPerSec = [0, 8, 14, 20, 26, 32][Math.max(1, Math.min(5, scrollSpeed))] || 14;
+      const pxPerMs = pxPerSec / 1000;
+      let lastTime = 0;
+      let accum = 0;
+
+      if (el) el.style.willChange = 'transform';
+
+      let atBottom = false;
+      const tick = (now) => {
+        if (lastTime) {
+          const maxY = document.documentElement.scrollHeight - window.innerHeight;
+          if (window.scrollY >= maxY - 1) {
+            if (!atBottom) {
+              atBottom = true;
+              accum = 0;
+              if (el) el.style.transform = '';
+            }
+          } else {
+            atBottom = false;
+            accum += (now - lastTime) * pxPerMs;
+            const steps = Math.floor(accum);
+            if (steps > 0) {
+              window.scrollBy(0, steps);
+              accum -= steps;
+            }
+            if (el) el.style.transform = accum > 0 ? `translateY(${-accum}px)` : '';
+          }
+        }
+        lastTime = now;
+        autoScrollRef.current = requestAnimationFrame(tick);
+      };
+      autoScrollRef.current = requestAnimationFrame(tick);
     } else {
       if (autoScrollRef.current) {
-        clearInterval(autoScrollRef.current);
+        cancelAnimationFrame(autoScrollRef.current);
         autoScrollRef.current = null;
       }
+      if (el) { el.style.willChange = ''; el.style.transform = ''; }
     }
     return () => {
-      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
+      if (el) { el.style.willChange = ''; el.style.transform = ''; }
     };
-  }, [isAutoScroll, scrollSpeed]);
+  }, [isAutoScroll, scrollSpeed, scrollSmoothRef]);
 
   const handleFontSize = (delta) => {
     const newSize = Math.max(12, Math.min(28, fontSize + delta));
@@ -2812,9 +2842,9 @@ const TabContent = ({
               </button>
               {isAutoScroll && (
                 <div className="flex items-center gap-0.5">
-                  <button onClick={() => setScrollSpeed(Math.max(0, scrollSpeed - 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-neutral-700 text-white text-xs md:text-sm" disabled={scrollSpeed <= 0}>−</button>
+                  <button onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-neutral-700 text-white text-xs md:text-sm" disabled={scrollSpeed <= 1}>−</button>
                   <span className="w-4 md:w-5 text-center text-xs md:text-sm text-neutral-400">{scrollSpeed}</span>
-                  <button onClick={() => setScrollSpeed(Math.min(4, scrollSpeed + 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-neutral-700 text-white text-xs md:text-sm" disabled={scrollSpeed >= 4}>+</button>
+                  <button onClick={() => setScrollSpeed(Math.min(5, scrollSpeed + 1))} className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded bg-neutral-700 text-white text-xs md:text-sm" disabled={scrollSpeed >= 5}>+</button>
                 </div>
               )}
               <div className="w-px h-5 md:h-6 bg-neutral-700 mx-1" />

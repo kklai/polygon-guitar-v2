@@ -100,17 +100,30 @@ export default function TabDetail({ initialTab }) {
   // 底部黃 bar + TabContent 受控 state（樂譜頁 layout）
   const [tabPageFontSize, setTabPageFontSize] = useState(16)
   const [tabPageIsAutoScroll, setTabPageIsAutoScroll] = useState(false)
-  const [tabPageScrollSpeed, setTabPageScrollSpeed] = useState(3)
+  const [tabPageScrollSpeed, setTabPageScrollSpeed] = useState(2)
   const [tabPageHideNotation, setTabPageHideNotation] = useState(true)
   const [tabPageHideBrackets, setTabPageHideBrackets] = useState(false)
   const [showChordDiagram, setShowChordDiagram] = useState(false)
   const [showFloatingControls, setShowFloatingControls] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [ytPlaying, setYtPlaying] = useState(false)
+  const [ytCurrentTime, setYtCurrentTime] = useState(0)
+  const [ytDuration, setYtDuration] = useState(0)
+  const [ytReady, setYtReady] = useState(false)
+  const [showYtBar, setShowYtBar] = useState(false)
+  const [infoStartTime, setInfoStartTime] = useState(0)
+  const [infoAutoPlay, setInfoAutoPlay] = useState(false)
 
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
   const topBarRef = useRef(null)
+  const ytPlayerRef = useRef(null)
+  const ytIntervalRef = useRef(null)
+  const ytContainerRef = useRef(null)
+  const ytInfoIframeRef = useRef(null)
+  const lastInfoSyncRef = useRef(0)
   const [topBarHeight, setTopBarHeight] = useState(44)
+  const pageWrapRef = useRef(null)
   // Fallback: when tab has no artistPhoto, get from search-data API (cache, no extra Firestore reads). Remove after backfill.
   const [fallbackArtistPhoto, setFallbackArtistPhoto] = useState(null)
 
@@ -207,6 +220,15 @@ export default function TabDetail({ initialTab }) {
     if (!url) return null
     const match = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
     return match ? match[1] : null
+  }
+
+  const videoId = tab ? (tab.youtubeVideoId || extractYouTubeId(tab.youtubeUrl)) : null
+
+  const formatYtTime = (sec) => {
+    if (!sec || !isFinite(sec)) return '0:00'
+    const m = Math.floor(sec / 60)
+    const s = Math.floor(sec % 60)
+    return `${m}:${s.toString().padStart(2, '0')}`
   }
 
   const fireSideEffects = (data) => {
@@ -341,6 +363,209 @@ export default function TabDetail({ initialTab }) {
   useEffect(() => {
     if (topBarRef.current) setTopBarHeight(topBarRef.current.offsetHeight);
   });
+
+  // Pre-load YouTube IFrame API script
+  useEffect(() => {
+    if (!videoId) return
+    if (window.YT?.Player) return
+    if (document.querySelector('script[src*="youtube.com/iframe_api"]')) return
+    const tag = document.createElement('script')
+    tag.src = 'https://www.youtube.com/iframe_api'
+    document.head.appendChild(tag)
+  }, [videoId])
+
+  // Cleanup YouTube player when video changes or unmount
+  useEffect(() => {
+    return () => {
+      clearInterval(ytIntervalRef.current)
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.destroy() } catch(_) {}
+        ytPlayerRef.current = null
+      }
+      setYtPlaying(false)
+      setYtCurrentTime(0)
+      setYtDuration(0)
+      setYtReady(false)
+      setShowYtBar(false)
+    }
+  }, [videoId])
+
+  // Update progress while playing
+  useEffect(() => {
+    if (ytPlaying && ytPlayerRef.current) {
+      ytIntervalRef.current = setInterval(() => {
+        try {
+          const t = ytPlayerRef.current.getCurrentTime()
+          if (typeof t === 'number') setYtCurrentTime(t)
+        } catch(_) {}
+      }, 500)
+    }
+    return () => clearInterval(ytIntervalRef.current)
+  }, [ytPlaying])
+
+  const initAndPlayYt = () => {
+    if (!videoId || !ytContainerRef.current) return
+    const create = () => {
+      if (!window.YT?.Player || !ytContainerRef.current) return
+      const el = document.createElement('div')
+      ytContainerRef.current.innerHTML = ''
+      ytContainerRef.current.appendChild(el)
+      try {
+        new window.YT.Player(el, {
+          videoId,
+          height: '1',
+          width: '1',
+          playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1 },
+          events: {
+            onReady: (e) => {
+              ytPlayerRef.current = e.target
+              setYtReady(true)
+              setShowYtBar(true)
+              try { setYtDuration(e.target.getDuration() || 0) } catch(_) {}
+              e.target.playVideo()
+            },
+            onStateChange: (e) => {
+              if (e.data === window.YT.PlayerState.PLAYING) {
+                setYtPlaying(true)
+                try { setYtDuration(e.target.getDuration() || 0) } catch(_) {}
+              } else {
+                setYtPlaying(false)
+              }
+            }
+          }
+        })
+      } catch(e) { console.warn('[yt-player]', e) }
+    }
+    if (window.YT?.Player) {
+      create()
+    } else {
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const tag = document.createElement('script')
+        tag.src = 'https://www.youtube.com/iframe_api'
+        document.head.appendChild(tag)
+      }
+      const prev = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof prev === 'function') prev()
+        create()
+      }
+    }
+  }
+
+  const syncInfoIframe = (func, args) => {
+    try {
+      const iframe = ytInfoIframeRef.current
+      if (!iframe?.contentWindow) return
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command', func, args: args != null ? args : ''
+      }), '*')
+    } catch(_) {}
+  }
+
+  // Mute hidden player when info panel shows video, unmute when it closes
+  useEffect(() => {
+    if (!ytPlayerRef.current) return
+    try {
+      if (showInfo) {
+        ytPlayerRef.current.mute()
+      } else {
+        ytPlayerRef.current.unMute()
+      }
+    } catch(_) {}
+  }, [showInfo])
+
+  // Listen for info panel YouTube iframe events → sync back to hidden player
+  useEffect(() => {
+    if (!showInfo || !videoId) return
+
+    const handleMessage = (e) => {
+      if (e.origin !== 'https://www.youtube.com') return
+      let data
+      try {
+        data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data
+      } catch(_) { return }
+      if (!data?.event) return
+
+      if (data.event === 'onStateChange') {
+        const state = typeof data.info === 'object' ? data.info : data.info
+        if (!ytPlayerRef.current) return
+        if (state === 1) {
+          try { ytPlayerRef.current.playVideo() } catch(_) {}
+          setShowYtBar(true)
+        } else if (state === 2) {
+          try { ytPlayerRef.current.pauseVideo() } catch(_) {}
+        }
+      }
+
+      if (data.event === 'infoDelivery' && data.info?.currentTime != null) {
+        const now = Date.now()
+        if (now - lastInfoSyncRef.current < 2000) return
+        const infoTime = data.info.currentTime
+        if (!ytPlayerRef.current) return
+        try {
+          const hiddenTime = ytPlayerRef.current.getCurrentTime()
+          if (Math.abs(infoTime - hiddenTime) > 3) {
+            ytPlayerRef.current.seekTo(infoTime, true)
+            setYtCurrentTime(infoTime)
+            lastInfoSyncRef.current = now
+          }
+        } catch(_) {}
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+
+    const sendListening = () => {
+      try {
+        const iframe = ytInfoIframeRef.current
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*')
+        }
+      } catch(_) {}
+    }
+    const t1 = setTimeout(sendListening, 500)
+    const t2 = setTimeout(sendListening, 1500)
+    const t3 = setTimeout(sendListening, 3000)
+
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+    }
+  }, [showInfo, videoId])
+
+  const toggleShowInfo = () => {
+    if (!showInfo) {
+      setInfoStartTime(Math.floor(ytCurrentTime || 0))
+      setInfoAutoPlay(ytPlaying)
+    }
+    setShowInfo(!showInfo)
+  }
+
+  const toggleYtPlay = () => {
+    if (!ytPlayerRef.current) {
+      initAndPlayYt()
+      return
+    }
+    if (ytPlaying) {
+      ytPlayerRef.current.pauseVideo()
+      syncInfoIframe('pauseVideo')
+    } else {
+      ytPlayerRef.current.playVideo()
+      syncInfoIframe('playVideo')
+      setShowYtBar(true)
+    }
+  }
+
+  const handleYtSeek = (e) => {
+    const time = parseFloat(e.target.value)
+    if (ytPlayerRef.current?.seekTo) {
+      ytPlayerRef.current.seekTo(time, true)
+      setYtCurrentTime(time)
+    }
+    syncInfoIframe('seekTo', [time, true])
+  }
 
   const copyToClipboard = (text) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -563,7 +788,7 @@ export default function TabDetail({ initialTab }) {
       </Head>
       
       <Layout>
-        <div className="w-full">
+        <div ref={pageWrapRef} className="w-full">
         {/* 頂bar（固定，唔跟住滾動） */}
         <div ref={topBarRef} className="sticky top-0 z-20 bg-black pt-1.5 relative">
           <div className="px-4 pb-1.5 flex items-center justify-between gap-1 sm:gap-2 border-b border-[#1a1a1a]">
@@ -571,8 +796,22 @@ export default function TabDetail({ initialTab }) {
             <ArrowLeft className="w-6 h-6" strokeWidth={1.75} />
           </button>
           <div className="flex items-center gap-0.5 sm:gap-1">
+          {videoId && (
+            <button onClick={toggleYtPlay} className={`p-1.5 transition ${ytPlaying ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`} title={ytPlaying ? '暫停' : '播放'}>
+              {ytPlaying ? (
+                <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <rect x="6" y="4" width="4" height="16" rx="1" />
+                  <rect x="14" y="4" width="4" height="16" rx="1" />
+                </svg>
+              ) : (
+                <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+          )}
           {(tab?.youtubeVideoId || tab?.youtubeUrl || hasSongInfo) && (
-            <button onClick={() => setShowInfo(!showInfo)} className={`p-1.5 transition ${showInfo ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`} title={showInfo ? '收起歌曲資訊' : '歌曲資訊'}>
+            <button onClick={toggleShowInfo} className={`p-1.5 transition ${showInfo ? 'text-[#FFD700]' : 'text-neutral-400 hover:text-white'}`} title={showInfo ? '收起歌曲資訊' : '歌曲資訊'}>
               <SongInfoIcon className="w-[22px] h-[22px]" />
             </button>
           )}
@@ -598,17 +837,66 @@ export default function TabDetail({ initialTab }) {
           </button>
           </div>
           </div>
+          {/* YouTube 播放操作列 */}
+          {showYtBar && videoId && (
+            <div className="px-3 py-1.5 flex items-center gap-2 border-b border-[#1a1a1a]">
+              <button onClick={toggleYtPlay} className="text-white shrink-0 w-6 h-6 flex items-center justify-center">
+                {ytPlaying ? (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <rect x="5" y="3" width="5" height="18" rx="1" />
+                    <rect x="14" y="3" width="5" height="18" rx="1" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </button>
+              <span className="text-[10px] text-neutral-500 shrink-0 tabular-nums w-8 text-right font-mono">{formatYtTime(ytCurrentTime)}</span>
+              <div className="flex-1 relative h-5 flex items-center">
+                <div className="absolute inset-x-0 h-[3px] bg-neutral-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#FFD700] rounded-full" style={{ width: ytDuration > 0 ? `${(ytCurrentTime / ytDuration) * 100}%` : '0%' }} />
+                </div>
+                <div
+                  className="absolute w-3 h-3 bg-[#FFD700] rounded-full shadow -translate-x-1/2 pointer-events-none"
+                  style={{ left: ytDuration > 0 ? `${(ytCurrentTime / ytDuration) * 100}%` : '0%' }}
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={ytDuration || 1}
+                  step={0.5}
+                  value={ytCurrentTime}
+                  onChange={handleYtSeek}
+                  className="absolute inset-0 w-full opacity-0 cursor-pointer"
+                  aria-label="播放進度"
+                />
+              </div>
+              <span className="text-[10px] text-neutral-500 shrink-0 tabular-nums w-8 font-mono">{formatYtTime(ytDuration)}</span>
+              <button
+                onClick={() => { if (ytPlayerRef.current && ytPlaying) ytPlayerRef.current.pauseVideo(); setShowYtBar(false) }}
+                className="shrink-0 w-6 h-6 flex items-center justify-center text-neutral-500 hover:text-white transition"
+                title="關閉播放列"
+                aria-label="關閉播放列"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
           {/* 歌曲資訊：跟頂 bar sticky，唔會隨 scroll 移動，唔影響背景 */}
           {showInfo && (tab?.youtubeVideoId || tab?.youtubeUrl || hasSongInfo) && (
-            <div className="absolute left-0 right-0 top-full bg-[#111111] rounded-b-2xl shadow-xl z-10 min-[600px]:max-w-3xl min-[600px]:left-auto">
+            <div className="absolute left-0 right-0 top-full bg-[#111111] rounded-b-2xl shadow-xl z-10 min-[600px]:max-w-[400px] min-[600px]:left-auto">
               <div className="px-4 py-3">
                 <div className="space-y-3">
-                  {(extractYouTubeId(tab.youtubeUrl) || tab.youtubeVideoId) && (
+                  {videoId && (
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
                       <iframe
+                        ref={ytInfoIframeRef}
                         width="100%"
                         height="100%"
-                        src={`https://www.youtube.com/embed/${tab.youtubeVideoId || extractYouTubeId(tab.youtubeUrl)}?enablejsapi=1`}
+                        src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&start=${infoStartTime}${infoAutoPlay ? '&autoplay=1' : ''}&playsinline=1`}
                         title="YouTube"
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -793,7 +1081,7 @@ export default function TabDetail({ initialTab }) {
           gpSegments={tab.gpSegments || []}
           gpTheme={tab.gpTheme || 'dark'}
           showInfo={showInfo}
-          setShowInfo={setShowInfo}
+          setShowInfo={toggleShowInfo}
           hideKeyRowAndBottomBar
           externalFontSize={tabPageFontSize}
           onFontSizeChange={setTabPageFontSize}
@@ -805,136 +1093,8 @@ export default function TabDetail({ initialTab }) {
           externalHideBrackets={tabPageHideBrackets}
           onHideNotationChange={setTabPageHideNotation}
           onHideBracketsChange={setTabPageHideBrackets}
+          scrollSmoothRef={pageWrapRef}
         />
-
-        {/* 顯示設定（收埋時右下角兩粒；撳開展開浮動視窗） */}
-        {showFloatingControls && (
-          <div className="fixed inset-0" style={{ zIndex: 29 }} onClick={() => setShowFloatingControls(false)} />
-        )}
-        <div className="fixed bottom-20 right-4 z-30 md:bottom-20 md:right-6 flex flex-col items-end gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
-          {showFloatingControls ? (
-            <div className="rounded-2xl bg-[#1a1a1a] shadow-xl p-3 w-[190px] border border-neutral-700">
-              <div className="space-y-3">
-                {/* 字體大小：A − 16 + */}
-                <div className="flex items-center">
-                  <span className="w-8 shrink-0 flex items-center justify-center text-neutral-400 relative left-4">
-                    <svg className="w-6 h-6" viewBox="0 0 37.47 45.21" fill="currentColor" stroke="currentColor" strokeWidth="2">
-                      <path d="M37.36,43.14L20.12.93c-.23-.56-.78-.93-1.39-.93s-1.16.37-1.39.93L.11,43.14c-.31.77.05,1.64.82,1.96.77.32,1.64-.05,1.96-.82l8.24-20.17h15.22l8.24,20.17c.24.58.8.93,1.39.93.19,0,.38-.04.57-.11.77-.31,1.13-1.19.82-1.96ZM12.35,21.11l6.38-15.64,6.38,15.64h-12.77Z"/>
-                    </svg>
-                  </span>
-                  <div className="flex-1 flex items-center justify-center gap-2 relative -top-2 left-2">
-                    <button
-                      onClick={() => setTabPageFontSize(Math.max(12, tabPageFontSize - 1))}
-                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
-                    >−</button>
-                    <span className="text-[#FFD700] text-xl font-medium w-6 text-center">{tabPageFontSize}</span>
-                    <button
-                      onClick={() => setTabPageFontSize(Math.min(24, tabPageFontSize + 1))}
-                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
-                    >+</button>
-                  </div>
-                </div>
-
-                {/* 自動滾動速度：↓ − 2 + */}
-                <div className="flex items-center">
-                  <button
-                    onClick={() => setTabPageIsAutoScroll(!tabPageIsAutoScroll)}
-                    className={`w-8 shrink-0 flex items-center justify-center transition relative left-4 ${tabPageIsAutoScroll ? 'text-[#FFD700]' : 'text-neutral-400'}`}
-                    title={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
-                  >
-                    <svg className="w-8 h-8" viewBox="0 0 35.38 47.33" fill="currentColor" stroke="none">
-                      <path d="M21.9,23.81l-.02-8.2c0-.78-.55-1.37-1.26-1.41-.68-.04-1.44.51-1.44,1.32l-.02,5.55c0,.76-.7,1.27-1.38,1.24-.61-.03-1.29-.54-1.29-1.33V4.15c0-.83-.54-1.42-1.3-1.44s-1.38.56-1.38,1.45v24.9c0,.84-.68,1.35-1.32,1.37-.86.02-1.38-.63-1.38-1.48v-1.87c0-.81-.67-1.37-1.34-1.37-.84,0-1.38.65-1.37,1.51l.04,5.18c.04,4.77,3.59,9.65,7.34,12.4.64.47.97,1.2.47,1.97-.35.53-1.26.83-1.95.32-4.67-3.41-8.36-8.72-8.59-14.7l.03-5.59c.01-2.66,2.7-4.37,5.36-3.63l.07-19.57C11.15,1.49,13.19.04,15.05,0c1.99-.05,4.04,1.44,4.06,3.55l.09,8.11c2.35-.69,4.56.54,5.25,2.79,1.26-.45,2.51-.33,3.67.36.93.55,1.58,1.74,1.89,2.89,1.19-.2,2.62-.25,3.75.65.89.71,1.64,1.86,1.64,3.21v4.85c-.02,5.64-.7,16.41-5.04,20.46-.61.57-1.5.58-2.01,0-.58-.65-.4-1.49.24-2.08,2.55-2.38,3.49-8.8,3.82-12.21.34-3.58.29-7.08.29-10.68,0-.83-.34-1.52-1.16-1.63-.75-.1-1.53.44-1.53,1.33v3.3c0,.84-.59,1.45-1.34,1.44-.8,0-1.36-.6-1.36-1.44v-6.73c0-.77-.73-1.29-1.35-1.28-.67,0-1.34.52-1.35,1.29l-.03,5.58c0,.7-.64,1.19-1.25,1.24-.53.05-1.41-.41-1.41-1.21Z"/>
-                      <path d="M5.07,21.53c-.6.6-1.45.61-2.02.04l-2.71-2.73c-.56-.57-.39-1.49.12-1.9.68-.56,1.41-.37,2.22.34V1.5c0-.83.48-1.42,1.22-1.49s1.49.46,1.49,1.35v16c.62-.72,1.45-1,2.14-.49s.73,1.47.07,2.13l-2.54,2.54Z"/>
-                    </svg>
-                  </button>
-                  <div className="flex-1 flex items-center justify-center gap-2 relative -top-2 left-2">
-                    <button
-                      onClick={() => { setTabPageScrollSpeed(Math.max(1, tabPageScrollSpeed - 1)); if (!tabPageIsAutoScroll) setTabPageIsAutoScroll(true); }}
-                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
-                    >−</button>
-                    <span className="text-[#FFD700] text-xl font-medium w-6 text-center">{tabPageScrollSpeed}</span>
-                    <button
-                      onClick={() => { setTabPageScrollSpeed(Math.min(4, tabPageScrollSpeed + 1)); if (!tabPageIsAutoScroll) setTabPageIsAutoScroll(true); }}
-                      className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
-                    >+</button>
-                  </div>
-                </div>
-
-                {/* 分隔線 */}
-                <div className="border-b border-neutral-600" />
-
-                {/* 底部 4 個圓形按鈕 */}
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => setShowChordDiagram(true)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white"
-                    title="本曲使用和弦"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${theme === 'night' ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
-                    title={theme === 'night' ? '日間模式' : '夜間模式'}
-                  >
-                    {theme === 'night' ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                      </svg>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setTabPageHideNotation(!tabPageHideNotation)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideNotation ? 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
-                    title={tabPageHideNotation ? '顯示簡譜' : '隱藏簡譜'}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabPageHideNotation ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setTabPageHideBrackets(!tabPageHideBrackets)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideBrackets ? 'bg-[#FFD700] text-black' : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'}`}
-                    title={tabPageHideBrackets ? '顯示括號' : '隱藏括號'}
-                  >
-                    <span className="text-xs font-mono font-bold">( )</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setTabPageIsAutoScroll(!tabPageIsAutoScroll)}
-                className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition opacity-60 hover:opacity-100 focus:opacity-100 ${tabPageIsAutoScroll ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-neutral-800 border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-white'}`}
-                title={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
-                aria-label={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
-              >
-                <svg className="w-7 h-7" viewBox="0 0 35.38 47.33" fill="currentColor" stroke="none">
-                  <path d="M21.9,23.81l-.02-8.2c0-.78-.55-1.37-1.26-1.41-.68-.04-1.44.51-1.44,1.32l-.02,5.55c0,.76-.7,1.27-1.38,1.24-.61-.03-1.29-.54-1.29-1.33V4.15c0-.83-.54-1.42-1.3-1.44s-1.38.56-1.38,1.45v24.9c0,.84-.68,1.35-1.32,1.37-.86.02-1.38-.63-1.38-1.48v-1.87c0-.81-.67-1.37-1.34-1.37-.84,0-1.38.65-1.37,1.51l.04,5.18c.04,4.77,3.59,9.65,7.34,12.4.64.47.97,1.2.47,1.97-.35.53-1.26.83-1.95.32-4.67-3.41-8.36-8.72-8.59-14.7l.03-5.59c.01-2.66,2.7-4.37,5.36-3.63l.07-19.57C11.15,1.49,13.19.04,15.05,0c1.99-.05,4.04,1.44,4.06,3.55l.09,8.11c2.35-.69,4.56.54,5.25,2.79,1.26-.45,2.51-.33,3.67.36.93.55,1.58,1.74,1.89,2.89,1.19-.2,2.62-.25,3.75.65.89.71,1.64,1.86,1.64,3.21v4.85c-.02,5.64-.7,16.41-5.04,20.46-.61.57-1.5.58-2.01,0-.58-.65-.4-1.49.24-2.08,2.55-2.38,3.49-8.8,3.82-12.21.34-3.58.29-7.08.29-10.68,0-.83-.34-1.52-1.16-1.63-.75-.1-1.53.44-1.53,1.33v3.3c0,.84-.59,1.45-1.34,1.44-.8,0-1.36-.6-1.36-1.44v-6.73c0-.77-.73-1.29-1.35-1.28-.67,0-1.34.52-1.35,1.29l-.03,5.58c0,.7-.64,1.19-1.25,1.24-.53.05-1.41-.41-1.41-1.21Z"/>
-                  <path d="M5.07,21.53c-.6.6-1.45.61-2.02.04l-2.71-2.73c-.56-.57-.39-1.49.12-1.9.68-.56,1.41-.37,2.22.34V1.5c0-.83.48-1.42,1.22-1.49s1.49.46,1.49,1.35v16c.62-.72,1.45-1,2.14-.49s.73,1.47.07,2.13l-2.54,2.54Z"/>
-                </svg>
-              </button>
-              <button
-                onClick={() => setShowFloatingControls(true)}
-                className="w-14 h-14 rounded-full bg-[#FFD700] text-black shadow-lg flex items-center justify-center hover:bg-yellow-400 transition opacity-60 hover:opacity-100 focus:opacity-100"
-                title="顯示設定"
-                aria-label="展開顯示設定"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
 
         {/* 星星評分 */}
         {tab && (
@@ -1099,6 +1259,142 @@ export default function TabDetail({ initialTab }) {
           </>
         )}
       </div>
+      {/* 浮動按鈕放喺 pageWrapRef 之外，避免 transform 影響 fixed 定位 */}
+      {showFloatingControls && (
+        <div className="fixed inset-0" style={{ zIndex: 29 }} onClick={() => setShowFloatingControls(false)} />
+      )}
+      <div className="fixed bottom-20 right-4 z-30 md:bottom-20 md:right-6 flex flex-col items-end gap-3" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+        {showFloatingControls ? (
+          <div className="rounded-2xl bg-[#1a1a1a] shadow-xl p-3 w-[190px] border border-neutral-700">
+            <div className="space-y-3">
+              {/* 字體大小：A − 16 + */}
+              <div className="flex items-center">
+                <span className="w-8 shrink-0 flex items-center justify-center text-neutral-400 relative left-4">
+                  <svg className="w-6 h-6" viewBox="0 0 37.47 45.21" fill="currentColor" stroke="currentColor" strokeWidth="2">
+                    <path d="M37.36,43.14L20.12.93c-.23-.56-.78-.93-1.39-.93s-1.16.37-1.39.93L.11,43.14c-.31.77.05,1.64.82,1.96.77.32,1.64-.05,1.96-.82l8.24-20.17h15.22l8.24,20.17c.24.58.8.93,1.39.93.19,0,.38-.04.57-.11.77-.31,1.13-1.19.82-1.96ZM12.35,21.11l6.38-15.64,6.38,15.64h-12.77Z"/>
+                  </svg>
+                </span>
+                <div className="flex-1 flex items-center justify-center gap-2 relative -top-2 left-2">
+                  <button
+                    onClick={() => setTabPageFontSize(Math.max(12, tabPageFontSize - 1))}
+                    className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                  >−</button>
+                  <span className="text-[#FFD700] text-xl font-medium w-6 text-center">{tabPageFontSize}</span>
+                  <button
+                    onClick={() => setTabPageFontSize(Math.min(24, tabPageFontSize + 1))}
+                    className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                  >+</button>
+                </div>
+              </div>
+
+              {/* 自動滾動速度：↓ − 2 + */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => setTabPageIsAutoScroll(!tabPageIsAutoScroll)}
+                  className={`w-8 shrink-0 flex items-center justify-center transition relative left-4 ${tabPageIsAutoScroll ? 'text-[#FFD700]' : 'text-neutral-400'}`}
+                  title={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
+                >
+                  <svg className="w-8 h-8" viewBox="0 0 35.38 47.33" fill="currentColor" stroke="none">
+                    <path d="M21.9,23.81l-.02-8.2c0-.78-.55-1.37-1.26-1.41-.68-.04-1.44.51-1.44,1.32l-.02,5.55c0,.76-.7,1.27-1.38,1.24-.61-.03-1.29-.54-1.29-1.33V4.15c0-.83-.54-1.42-1.3-1.44s-1.38.56-1.38,1.45v24.9c0,.84-.68,1.35-1.32,1.37-.86.02-1.38-.63-1.38-1.48v-1.87c0-.81-.67-1.37-1.34-1.37-.84,0-1.38.65-1.37,1.51l.04,5.18c.04,4.77,3.59,9.65,7.34,12.4.64.47.97,1.2.47,1.97-.35.53-1.26.83-1.95.32-4.67-3.41-8.36-8.72-8.59-14.7l.03-5.59c.01-2.66,2.7-4.37,5.36-3.63l.07-19.57C11.15,1.49,13.19.04,15.05,0c1.99-.05,4.04,1.44,4.06,3.55l.09,8.11c2.35-.69,4.56.54,5.25,2.79,1.26-.45,2.51-.33,3.67.36.93.55,1.58,1.74,1.89,2.89,1.19-.2,2.62-.25,3.75.65.89.71,1.64,1.86,1.64,3.21v4.85c-.02,5.64-.7,16.41-5.04,20.46-.61.57-1.5.58-2.01,0-.58-.65-.4-1.49.24-2.08,2.55-2.38,3.49-8.8,3.82-12.21.34-3.58.29-7.08.29-10.68,0-.83-.34-1.52-1.16-1.63-.75-.1-1.53.44-1.53,1.33v3.3c0,.84-.59,1.45-1.34,1.44-.8,0-1.36-.6-1.36-1.44v-6.73c0-.77-.73-1.29-1.35-1.28-.67,0-1.34.52-1.35,1.29l-.03,5.58c0,.7-.64,1.19-1.25,1.24-.53.05-1.41-.41-1.41-1.21Z"/>
+                    <path d="M5.07,21.53c-.6.6-1.45.61-2.02.04l-2.71-2.73c-.56-.57-.39-1.49.12-1.9.68-.56,1.41-.37,2.22.34V1.5c0-.83.48-1.42,1.22-1.49s1.49.46,1.49,1.35v16c.62-.72,1.45-1,2.14-.49s.73,1.47.07,2.13l-2.54,2.54Z"/>
+                  </svg>
+                </button>
+                <div className="flex-1 flex items-center justify-center gap-2 relative -top-2 left-2">
+                  <button
+                    onClick={() => { setTabPageScrollSpeed(Math.max(1, tabPageScrollSpeed - 1)); if (!tabPageIsAutoScroll) setTabPageIsAutoScroll(true); }}
+                    className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                  >−</button>
+                  <span className="text-[#FFD700] text-xl font-medium w-6 text-center">{tabPageScrollSpeed}</span>
+                  <button
+                    onClick={() => { setTabPageScrollSpeed(Math.min(5, tabPageScrollSpeed + 1)); if (!tabPageIsAutoScroll) setTabPageIsAutoScroll(true); }}
+                    className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition text-xl"
+                  >+</button>
+                </div>
+              </div>
+
+              {/* 分隔線 */}
+              <div className="border-b border-neutral-600" />
+
+              {/* 底部 4 個圓形按鈕 */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowChordDiagram(true)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white"
+                  title="本曲使用和弦"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${theme === 'night' ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
+                  title={theme === 'night' ? '日間模式' : '夜間模式'}
+                >
+                  {theme === 'night' ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  onClick={() => setTabPageHideNotation(!tabPageHideNotation)}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideNotation ? 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
+                  title={tabPageHideNotation ? '顯示簡譜' : '隱藏簡譜'}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabPageHideNotation ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setTabPageHideBrackets(!tabPageHideBrackets)}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideBrackets ? 'bg-[#FFD700] text-black' : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'}`}
+                  title={tabPageHideBrackets ? '顯示括號' : '隱藏括號'}
+                >
+                  <span className="text-xs font-mono font-bold">( )</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setTabPageIsAutoScroll(!tabPageIsAutoScroll)}
+              className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition opacity-60 hover:opacity-100 focus:opacity-100 ${tabPageIsAutoScroll ? 'bg-[#FFD700] text-black hover:bg-yellow-400' : 'bg-neutral-800 border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-white'}`}
+              title={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
+              aria-label={tabPageIsAutoScroll ? '關閉自動滾動' : '開啟自動滾動'}
+            >
+              {tabPageIsAutoScroll ? (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <rect x="7" y="5" width="3" height="14" rx="1" />
+                  <rect x="14" y="5" width="3" height="14" rx="1" />
+                </svg>
+              ) : (
+                <svg className="w-7 h-7" viewBox="0 0 35.38 47.33" fill="currentColor" stroke="none">
+                  <path d="M21.9,23.81l-.02-8.2c0-.78-.55-1.37-1.26-1.41-.68-.04-1.44.51-1.44,1.32l-.02,5.55c0,.76-.7,1.27-1.38,1.24-.61-.03-1.29-.54-1.29-1.33V4.15c0-.83-.54-1.42-1.3-1.44s-1.38.56-1.38,1.45v24.9c0,.84-.68,1.35-1.32,1.37-.86.02-1.38-.63-1.38-1.48v-1.87c0-.81-.67-1.37-1.34-1.37-.84,0-1.38.65-1.37,1.51l.04,5.18c.04,4.77,3.59,9.65,7.34,12.4.64.47.97,1.2.47,1.97-.35.53-1.26.83-1.95.32-4.67-3.41-8.36-8.72-8.59-14.7l.03-5.59c.01-2.66,2.7-4.37,5.36-3.63l.07-19.57C11.15,1.49,13.19.04,15.05,0c1.99-.05,4.04,1.44,4.06,3.55l.09,8.11c2.35-.69,4.56.54,5.25,2.79,1.26-.45,2.51-.33,3.67.36.93.55,1.58,1.74,1.89,2.89,1.19-.2,2.62-.25,3.75.65.89.71,1.64,1.86,1.64,3.21v4.85c-.02,5.64-.7,16.41-5.04,20.46-.61.57-1.5.58-2.01,0-.58-.65-.4-1.49.24-2.08,2.55-2.38,3.49-8.8,3.82-12.21.34-3.58.29-7.08.29-10.68,0-.83-.34-1.52-1.16-1.63-.75-.1-1.53.44-1.53,1.33v3.3c0,.84-.59,1.45-1.34,1.44-.8,0-1.36-.6-1.36-1.44v-6.73c0-.77-.73-1.29-1.35-1.28-.67,0-1.34.52-1.35,1.29l-.03,5.58c0,.7-.64,1.19-1.25,1.24-.53.05-1.41-.41-1.41-1.21Z"/>
+                  <path d="M5.07,21.53c-.6.6-1.45.61-2.02.04l-2.71-2.73c-.56-.57-.39-1.49.12-1.9.68-.56,1.41-.37,2.22.34V1.5c0-.83.48-1.42,1.22-1.49s1.49.46,1.49,1.35v16c.62-.72,1.45-1,2.14-.49s.73,1.47.07,2.13l-2.54,2.54Z"/>
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setShowFloatingControls(true)}
+              className="w-14 h-14 rounded-full bg-[#FFD700] text-black shadow-lg flex items-center justify-center hover:bg-yellow-400 transition opacity-60 hover:opacity-100 focus:opacity-100"
+              title="顯示設定"
+              aria-label="展開顯示設定"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
+      <div ref={ytContainerRef} className="fixed -left-full top-0 w-px h-px overflow-hidden pointer-events-none" aria-hidden="true" />
     </Layout>
     </>
   )
