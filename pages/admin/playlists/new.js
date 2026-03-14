@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
@@ -23,6 +23,7 @@ function NewPlaylist() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [allSongs, setAllSongs] = useState([])
+  const artistMapRef = useRef(new Map())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -40,14 +41,22 @@ function NewPlaylist() {
     }
   }, [user])
 
+  const getArtistName = useCallback((song) => {
+    if (song.artist) return song.artist
+    return artistMapRef.current.get(song.artistId) || song.artistId || ''
+  }, [])
+
   const loadSongs = async () => {
     try {
-      const res = await fetch('/api/search-data?only=tabs')
+      const res = await fetch('/api/search-data')
       if (!res.ok) throw new Error('Failed to load songs')
-      const { tabs } = await res.json()
-      const songs = tabs || []
+      const data = await res.json()
+      const songs = data.tabs || []
+      const map = new Map()
+      ;(data.artists || []).forEach(a => { if (a.id && a.name) map.set(a.id, a.name) })
+      artistMapRef.current = map
       setAllSongs(songs)
-      setSearchResults(songs.slice(0, 50)) // 預設顯示前 50 首
+      setSearchResults(songs.slice(0, 50))
     } catch (error) {
       console.error('Error loading songs:', error)
     } finally {
@@ -63,18 +72,18 @@ function NewPlaylist() {
     }
     
     const query = searchQuery.toLowerCase()
-    const filtered = allSongs.filter(song =>
-      song.title.toLowerCase().includes(query) ||
-      song.artist.toLowerCase().includes(query) ||
+    const filtered = allSongs.filter(song => {
+      const artistName = getArtistName(song)
+      return song.title.toLowerCase().includes(query) ||
+      (artistName && artistName.toLowerCase().includes(query)) ||
       (song.composer && song.composer.toLowerCase().includes(query)) ||
       (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
       (song.arranger && song.arranger.toLowerCase().includes(query)) ||
       (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
-    )
-    // 顯示所有符合條件的歌曲，唔限制數量
+    })
     
     setSearchResults(filtered)
-  }, [searchQuery, allSongs])
+  }, [searchQuery, allSongs, getArtistName])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -351,7 +360,7 @@ function NewPlaylist() {
                       <span className="text-neutral-600 w-6 text-center">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{song.title}</p>
-                        <p className="text-neutral-500 text-xs truncate">{song.artist}</p>
+                        <p className="text-neutral-500 text-xs truncate">{getArtistName(song)}</p>
                       </div>
                       {/* Reorder & Remove Buttons */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -440,7 +449,7 @@ function NewPlaylist() {
                         <span className="text-neutral-500 w-6 text-center">{index + 1}</span>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-medium truncate">{song.title}</h3>
-                          <p className="text-sm text-neutral-500">{song.artist}</p>
+                          <p className="text-sm text-neutral-500">{getArtistName(song)}</p>
                           {(song.composer || song.lyricist || song.arranger) && (
                             <p className="text-xs text-neutral-600 mt-0.5">
                               {song.composer && <span>曲：{song.composer} </span>}

@@ -63,6 +63,7 @@ export default function UserPlaylistDetail() {
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [addSongSearchQuery, setAddSongSearchQuery] = useState('');
   const [addSongCatalog, setAddSongCatalog] = useState([]);
+  const addSongArtistMap = useRef(new Map());
   const [addSongLoading, setAddSongLoading] = useState(false);
   const [addingSongId, setAddingSongId] = useState(null);
   const [addSongDragY, setAddSongDragY] = useState(0);
@@ -112,9 +113,12 @@ export default function UserPlaylistDetail() {
   useEffect(() => {
     if (!showAddSongModal) return;
     setAddSongLoading(true);
-    fetch('/api/search-data?only=tabs')
+    fetch('/api/search-data')
       .then((r) => r.json())
       .then((data) => {
+        const map = new Map();
+        (data.artists || []).forEach(a => { if (a.id && a.name) map.set(a.id, a.name) });
+        addSongArtistMap.current = map;
         setAddSongCatalog(data.tabs || data.hotTabs || []);
       })
       .catch(() => setAddSongCatalog([]))
@@ -186,8 +190,8 @@ export default function UserPlaylistDetail() {
       const q = addSongSearchQuery.trim().toLowerCase();
       if (!q) return true;
       const title = (tab.title || '').toLowerCase();
-      const artist = (tab.artist || '').toLowerCase();
-      return title.includes(q) || artist.includes(q);
+      const artistName = (tab.artist || addSongArtistMap.current.get(tab.artistId) || '').toLowerCase();
+      return title.includes(q) || artistName.includes(q);
     })
     .sort((a, b) => (b.uploadYear || 0) - (a.uploadYear || 0))
     .slice(0, 20);
@@ -1043,7 +1047,7 @@ export default function UserPlaylistDetail() {
                           >
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                               <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{tab.title}</p>
-                              <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{tab.artist}</p>
+                              <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{tab.artist || addSongArtistMap.current.get(tab.artistId) || tab.artistId}</p>
                             </div>
                             <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-[#FFD700] pointer-events-none">
                               {isAdding ? (

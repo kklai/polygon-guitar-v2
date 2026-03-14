@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
@@ -24,6 +24,7 @@ function EditPlaylist() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [allSongs, setAllSongs] = useState([])
+  const artistMapRef = useRef(new Map())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -63,10 +64,13 @@ function EditPlaylist() {
         viewMode: playlist.viewMode || 'list'
       })
 
-      const res = await fetch('/api/search-data?only=tabs')
+      const res = await fetch('/api/search-data')
       if (!res.ok) throw new Error('Failed to load songs')
-      const { tabs } = await res.json()
-      const songs = tabs || []
+      const searchData = await res.json()
+      const songs = searchData.tabs || []
+      const map = new Map()
+      ;(searchData.artists || []).forEach(a => { if (a.id && a.name) map.set(a.id, a.name) })
+      artistMapRef.current = map
       setAllSongs(songs)
       setSearchResults(songs.slice(0, 10))
 
@@ -84,7 +88,11 @@ function EditPlaylist() {
     }
   }
 
-  // 搜尋歌曲（與 /search 頁面一致）
+  const getArtistName = useCallback((song) => {
+    if (song.artist) return song.artist
+    return artistMapRef.current.get(song.artistId) || song.artistId || ''
+  }, [])
+
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setSearchResults(allSongs.slice(0, 10))
@@ -92,17 +100,18 @@ function EditPlaylist() {
     }
     
     const query = searchQuery.toLowerCase()
-    const filtered = allSongs.filter(song =>
-      song.title.toLowerCase().includes(query) ||
-      song.artist.toLowerCase().includes(query) ||
+    const filtered = allSongs.filter(song => {
+      const artistName = getArtistName(song)
+      return song.title.toLowerCase().includes(query) ||
+      (artistName && artistName.toLowerCase().includes(query)) ||
       (song.composer && song.composer.toLowerCase().includes(query)) ||
       (song.lyricist && song.lyricist.toLowerCase().includes(query)) ||
       (song.arranger && song.arranger.toLowerCase().includes(query)) ||
       (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(query))
-    ).slice(0, 20)
+    }).slice(0, 20)
     
     setSearchResults(filtered)
-  }, [searchQuery, allSongs])
+  }, [searchQuery, allSongs, getArtistName])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -397,7 +406,7 @@ function EditPlaylist() {
                       <span className="text-neutral-600 w-6 text-center">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{song.title}</p>
-                        <p className="text-neutral-500 text-xs truncate">{song.artist}</p>
+                        <p className="text-neutral-500 text-xs truncate">{getArtistName(song)}</p>
                       </div>
                       {/* Reorder & Remove Buttons */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -479,7 +488,7 @@ function EditPlaylist() {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium truncate">{song.title}</p>
-                          <p className="text-neutral-500 text-xs truncate">{song.artist}</p>
+                          <p className="text-neutral-500 text-xs truncate">{getArtistName(song)}</p>
                           {(song.composer || song.lyricist || song.arranger || song.uploaderPenName) && (
                             <p className="text-neutral-600 text-[10px] truncate mt-0.5">
                               {song.composer && <span>曲:{song.composer} </span>}

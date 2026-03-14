@@ -51,9 +51,15 @@ export default function Search() {
   const inputRef = useRef(null)
   const thumbnailBackfillRequested = useRef(new Set())
 
+  const artistMapRef = useRef(new Map())
+
   const applyData = useCallback((data) => {
+    const artistList = data.artists || []
+    const map = new Map()
+    artistList.forEach(a => { if (a.id && a.name) map.set(a.id, a.name) })
+    artistMapRef.current = map
     setSongs(data.tabs || [])
-    setArtists(data.artists || [])
+    setArtists(artistList)
     setPlaylists(data.playlists || [])
   }, [])
 
@@ -86,6 +92,11 @@ export default function Search() {
     return () => { cancelled = true }
   }, [applyData])
 
+  const getArtistName = useCallback((song) => {
+    if (song.artist) return song.artist
+    return artistMapRef.current.get(song.artistId) || song.artistId || ''
+  }, [])
+
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredSongs([])
@@ -96,14 +107,16 @@ export default function Search() {
     const q = searchQuery.toLowerCase()
     setFilteredSongs(
       songs.filter(
-        (song) =>
-          song.title?.toLowerCase().includes(q) ||
-          song.artist?.toLowerCase().includes(q) ||
+        (song) => {
+          const artistName = getArtistName(song)
+          return song.title?.toLowerCase().includes(q) ||
+          (artistName && artistName.toLowerCase().includes(q)) ||
           (song.composer && song.composer.toLowerCase().includes(q)) ||
           (song.lyricist && song.lyricist.toLowerCase().includes(q)) ||
           (song.arranger && song.arranger.toLowerCase().includes(q)) ||
           (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(q)) ||
           (song.arrangedBy && song.arrangedBy.toLowerCase().includes(q))
+        }
       )
     )
     setFilteredArtists(artists.filter((artist) => artist.name?.toLowerCase().includes(q)))
@@ -177,7 +190,7 @@ export default function Search() {
       addSearchHistorySong({
         id: song.id,
         title: song.title,
-        artist: song.artist,
+        artist: getArtistName(song),
         thumbnail: getSongThumbnail(song),
         uploaderPenName: song.uploaderPenName,
         arrangedBy: song.arrangedBy,
@@ -444,7 +457,7 @@ export default function Search() {
                     >
                       <div className="flex-1 min-w-0">
                         <h3 className="text-white font-medium truncate">{song.title}</h3>
-                        <p className="text-sm text-neutral-500 truncate">{song.artist}</p>
+                        <p className="text-sm text-neutral-500 truncate">{getArtistName(song)}</p>
                         {(song.composer || song.lyricist || song.arranger) && (
                           <p className="text-xs text-neutral-600 mt-0.5 truncate">
                             {song.composer && <span>曲：{song.composer} </span>}

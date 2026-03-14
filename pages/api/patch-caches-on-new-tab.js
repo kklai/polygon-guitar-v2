@@ -34,7 +34,6 @@ function toSearchTabSlim(tab) {
   return stripUndefined({
     id: tab.id,
     title: tab.title || '',
-    artist: tab.artist || tab.artistName || '',
     artistId: tab.artistId || '',
     composer: tab.composer || '',
     lyricist: tab.lyricist || '',
@@ -230,37 +229,13 @@ async function handleArtistAction(adminDb, artist, action) {
     const artists = Array.isArray(payload.artists) ? payload.artists : []
     const idx = artists.findIndex(a => a.id === artist.id)
 
-    let updatedArtists
     if (idx === -1) {
-      updatedArtists = [...artists, slim]
-    } else {
-      updatedArtists = [...artists]
-      updatedArtists[idx] = { ...updatedArtists[idx], ...slim }
+      return { ...payload, artists: [...artists, slim] }
     }
-
-    // Update artist name (and artistId slug) on matching tabs
-    const oldName = idx !== -1 ? artists[idx].name : null
-    const newName = artist.name
-    const newSlug = artist.normalizedName || ''
-    const docId = artist.id
-    let updatedTabs = payload.tabs
-    if (newName && Array.isArray(payload.tabs)) {
-      let tabsChanged = false
-      updatedTabs = payload.tabs.map(t => {
-        // Match by Firestore doc ID, current slug, or old display name
-        const match = t.artistId === docId
-          || (newSlug && t.artistId === newSlug)
-          || (oldName && oldName !== newName && t.artist === oldName)
-        if (match) {
-          tabsChanged = true
-          return { ...t, artist: newName, ...(newSlug ? { artistId: newSlug } : {}) }
-        }
-        return t
-      })
-      if (!tabsChanged) updatedTabs = payload.tabs
-    }
-
-    return { ...payload, artists: updatedArtists, tabs: updatedTabs }
+    const updated = [...artists]
+    updated[idx] = { ...updated[idx], ...slim }
+    return { ...payload, artists: updated }
+    // No need to patch tabs — artist name is resolved from the artists array at read time
   })
 
   results.artistPageDeleted = await deleteArtistPageCache(adminDb, artist.id)
