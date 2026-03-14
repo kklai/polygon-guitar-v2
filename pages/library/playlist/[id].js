@@ -700,9 +700,11 @@ export default function UserPlaylistDetail() {
           <div style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
             {sortedSongs.map((song) => (
               <div key={song.id} className="group">
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleSongClick(song.id)}
-                  className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
+                  className="w-full flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition cursor-pointer"
                 >
                   <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
                     {getSongThumbnail(song) ? (
@@ -733,7 +735,7 @@ export default function UserPlaylistDetail() {
                       <circle cx="13.69" cy="1.27" r="1.27" />
                     </svg>
                   </button>
-                </button>
+                </div>
               </div>
             ))}
           </div>

@@ -1,5 +1,5 @@
 // pages/library.js
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { auth, db } from '../lib/firebase';
@@ -9,7 +9,7 @@ import { getLastViewedAt, getRecentTabIds } from '../lib/libraryRecentViews';
 import { getSongThumbnail } from '../lib/getSongThumbnail';
 import Layout from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserLibrary, patchCacheAddPlaylist } from '../lib/userLibraryCache';
+import { getUserLibrary, patchCacheAddPlaylist, isLibraryCacheStale } from '../lib/userLibraryCache';
 
 export default function Library() {
   const router = useRouter();
@@ -55,7 +55,8 @@ export default function Library() {
     return () => clearTimeout(t);
   }, []);
 
-  // 最近瀏覽結他譜數量 + 第一份做封面（client 讀 localStorage 再 fetch）
+  // 最近瀏覽結他譜數量 + 第一份做封面（優先用 localStorage 元數據，無圖時才 fallback fetch 一次）
+  const recentCoverFetchedRef = useRef(null);
   useEffect(() => {
     const ids = getRecentTabIds();
     setRecentTabsCount(ids.length);
@@ -63,13 +64,17 @@ export default function Library() {
       setRecentCoverTab(null);
       return;
     }
-    const loadRecentCover = async () => {
-      const firstId = ids[0]?.id;
-      if (!firstId) return;
-      const snap = await getDoc(doc(db, 'tabs', firstId));
-      setRecentCoverTab(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-    };
-    loadRecentCover();
+    const first = ids[0];
+    if (!first?.id) return;
+    const hasThumbnail = first.thumbnail || first.youtubeUrl || first.artistPhoto;
+    if (hasThumbnail) {
+      setRecentCoverTab({ id: first.id, ...first });
+    } else if (recentCoverFetchedRef.current !== first.id) {
+      recentCoverFetchedRef.current = first.id;
+      getDoc(doc(db, 'tabs', first.id)).then((snap) => {
+        setRecentCoverTab(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+      });
+    }
   }, [sortRefreshKey]);
 
   useEffect(() => {
@@ -79,6 +84,13 @@ export default function Library() {
     });
     return () => unsubscribe();
   }, []);
+
+  // sessionStorage 被 patch 清空後，強制 SWR 重新 fetch（跳過 dedupingInterval）
+  useEffect(() => {
+    if (user?.uid && data && isLibraryCacheStale(user.uid)) {
+      mutate();
+    }
+  });
 
   // 頁面重新顯示時重算「最近瀏覽」排序（localStorage），SWR 會自己 revalidateOnFocus
   useEffect(() => {

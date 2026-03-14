@@ -212,7 +212,7 @@ export default function TabDetail({ initialTab }) {
     setFallbackArtistPhoto(null)
     const effects = []
     effects.push(incrementViewCount(id))
-    recordTabView(id) // 收藏頁「最近瀏覽」結他譜（localStorage，最多 20 份）
+    recordTabView(id, data)
     if (user) effects.push(recordSongView(user.uid, data))
     effects.push(
       recordPageView('tab', id, data.title, {
@@ -232,7 +232,10 @@ export default function TabDetail({ initialTab }) {
           const artists = payload?.artists || []
           const artistId = data.artistId || (data.artist || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-\u4e00-\u9fa5]/g, '')
           const artist = artists.find(a => a.id === artistId) || artists.find(a => (a.name || '').toLowerCase() === (data.artist || '').toLowerCase())
-          if (artist?.photo) setFallbackArtistPhoto(artist.photo)
+          if (artist?.photo) {
+            setFallbackArtistPhoto(artist.photo)
+            recordTabView(id, { ...data, artistPhoto: artist.photo })
+          }
         })
         .catch(() => {})
     }

@@ -425,7 +425,7 @@ export default function TabRequestsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">POLYGON求譜區</h1>
+            <h1 className="text-2xl font-bold text-white">求譜區</h1>
             <p className="text-neutral-500 text-sm mt-1">搵人求譜．幫人出譜</p>
           </div>
           <button
