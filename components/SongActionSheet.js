@@ -9,7 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from '@/components/Link';
-import { Copy, Heart, User } from 'lucide-react';
+import { Copy, Heart, User, Pencil } from 'lucide-react';
 
 const InstagramIcon = ({ className }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -34,6 +34,7 @@ export default function SongActionSheet({
   onSelectLyricsShare,
   onAddToLiked,
   onAddToPlaylist,
+  onEdit,
   artistHref,
   paddingBottom = 'calc(6rem + env(safe-area-inset-bottom, 0))'
 }) {
@@ -112,6 +113,14 @@ export default function SongActionSheet({
               <p className="text-neutral-400 text-sm truncate">{artist}</p>
             </div>
           </div>
+          {onEdit && (
+            <button type="button" onClick={onEdit} className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white">
+              <span className="flex items-center gap-3">
+                <Pencil className="w-5 h-5 text-[#B3B3B3]" />
+                編輯結他譜
+              </span>
+            </button>
+          )}
           <button type="button" onClick={onCopyShareLink} className="w-full flex items-center justify-between py-3.5 rounded-2xl text-left pl-0 pr-4 md:hover:bg-white/5 transition text-white">
             <span className="flex items-center gap-3">
               <Copy className="w-5 h-5 text-[#B3B3B3]" />

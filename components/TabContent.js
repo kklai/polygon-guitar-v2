@@ -1611,7 +1611,7 @@ const TabContent = ({
   useEffect(() => {
     const el = (scrollSmoothRef && scrollSmoothRef.current) || containerRef.current;
     if (isAutoScroll) {
-      const pxPerSec = [0, 8, 14, 20, 26, 32][Math.max(1, Math.min(5, scrollSpeed))] || 14;
+      const pxPerSec = [0, 5, 9, 14, 19, 25][Math.max(1, Math.min(5, scrollSpeed))] || 9;
       const pxPerMs = pxPerSec / 1000;
       let lastTime = 0;
       let accum = 0;
