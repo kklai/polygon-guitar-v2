@@ -12,9 +12,6 @@ function UpdateTrackInfoPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [logs, setLogs] = useState([])
   
-  // 數據源選擇
-  const [dataSource, setDataSource] = useState('musicbrainz') // 'spotify' | 'musicbrainz'
-  
   // 批量更新狀態
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
@@ -29,18 +26,10 @@ function UpdateTrackInfoPage() {
   const [previewResults, setPreviewResults] = useState([])
   const [showPreview, setShowPreview] = useState(false)
   
-  // 記錄搜尋失敗的歌曲 ID（分開 Spotify 同 MusicBrainz）
-  const [spotifyFailedIds, setSpotifyFailedIds] = useState(() => {
+  // 記錄搜尋失敗的歌曲 ID
+  const [failedTabIds, setFailedTabIds] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('spotifySearchFailedIds_v2')
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
-  
-  const [musicbrainzFailedIds, setMusicbrainzFailedIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('musicbrainzSearchFailedIds')
       return saved ? JSON.parse(saved) : []
     }
     return []
@@ -53,28 +42,17 @@ function UpdateTrackInfoPage() {
     }
     return true
   })
-  
-  // 根據當前數據源獲取對應嘅失敗列表
-  const failedTabIds = dataSource === 'spotify' ? spotifyFailedIds : musicbrainzFailedIds
-  const setFailedTabIds = dataSource === 'spotify' ? setSpotifyFailedIds : setMusicbrainzFailedIds
 
   useEffect(() => {
     loadData()
   }, [])
   
-  // 保存 Spotify 失敗列表到 localStorage
+  // 保存失敗列表到 localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('spotifySearchFailedIds_v2', JSON.stringify(spotifyFailedIds))
+      localStorage.setItem('spotifySearchFailedIds_v2', JSON.stringify(failedTabIds))
     }
-  }, [spotifyFailedIds])
-  
-  // 保存 MusicBrainz 失敗列表到 localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('musicbrainzSearchFailedIds', JSON.stringify(musicbrainzFailedIds))
-    }
-  }, [musicbrainzFailedIds])
+  }, [failedTabIds])
   
   // 保存跳過設置到 localStorage
   useEffect(() => {
@@ -100,46 +78,6 @@ function UpdateTrackInfoPage() {
 
   const addLog = (message, type = 'info') => {
     setLogs(prev => [...prev.slice(-49), { message, type, time: new Date().toLocaleTimeString() }])
-  }
-
-  // ===== MusicBrainz 搜尋 =====
-  const searchMusicBrainz = async (artist, title) => {
-    try {
-      const res = await fetch('/api/musicbrainz/track-details', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artist, title })
-      })
-      
-      const data = await res.json()
-      
-      if (!res.ok || !data.result) {
-        return { found: false, error: data.error || '未找到' }
-      }
-      
-      const firstRelease = data.result.releases?.[0]
-      return {
-        found: true,
-        track: {
-          id: data.result.id,
-          name: data.result.title,
-          artist: data.result.artist,
-          album: firstRelease?.title || null,
-          albumImage: null, // MusicBrainz 沒有專輯封面
-          releaseYear: firstRelease?.date ? firstRelease.date.split('-')[0] : null,
-          spotifyUrl: null
-        },
-        details: {
-          bpm: data.result.audioFeatures?.bpm,
-          key: data.result.audioFeatures?.key,
-          composers: data.result.credits?.composers?.join(', ') || null,
-          lyricists: data.result.credits?.lyricists?.join(', ') || null,
-          arrangers: data.result.credits?.arrangers?.join(', ') || null
-        }
-      }
-    } catch (error) {
-      return { found: false, error: error.message }
-    }
   }
 
   // ===== Spotify 搜尋 =====
@@ -169,7 +107,7 @@ function UpdateTrackInfoPage() {
         found: true,
         track: bestMatch,
         details: {
-          bpm: null, // Spotify 冇 BPM，要用 MusicBrainz
+          bpm: null,
           key: null,
           composers: null,
           lyricists: null
@@ -194,15 +132,14 @@ function UpdateTrackInfoPage() {
     setPreviewResults([])
     
     const results = []
-    const failedTabs = [] // 記錄失敗嘅歌曲
-    const searchFn = dataSource === 'spotify' ? searchSpotify : searchMusicBrainz
+    const failedTabs = []
     
     for (let i = 0; i < targetTabs.length; i++) {
       const tab = targetTabs[i]
       setProgress({ current: i + 1, total: targetTabs.length })
       
       try {
-        const result = await searchFn(tab.artist, tab.title)
+        const result = await searchSpotify(tab.artist, tab.title)
         
         if (!result.found) {
           // 搜尋失敗，放到失敗列表
@@ -240,9 +177,7 @@ function UpdateTrackInfoPage() {
       // 顯示進度：成功 + 失敗
       setPreviewResults([...results, ...failedTabs])
       
-      // MusicBrainz 限制較寬，可以快啲；Spotify 要慢啲
-      // 每 10 首後多等一陣，避免 rate limit
-      const baseDelay = dataSource === 'spotify' ? 1500 : 800
+      const baseDelay = 1500
       const extraDelay = (i > 0 && i % 10 === 0) ? 2000 : 0
       await new Promise(r => setTimeout(r, baseDelay + extraDelay))
     }
@@ -305,12 +240,9 @@ function UpdateTrackInfoPage() {
   
   // 清除失敗記錄
   const clearFailedHistory = () => {
-    // 清除兩個 API 的失敗記錄
-    setSpotifyFailedIds([])
-    setMusicbrainzFailedIds([])
+    setFailedTabIds([])
     localStorage.removeItem('spotifySearchFailedIds_v2')
-    localStorage.removeItem('musicbrainzSearchFailedIds')
-    addLog('已清除所有失敗記錄 (Spotify + MusicBrainz)', 'info')
+    addLog('已清除所有失敗記錄', 'info')
   }
 
   // ===== 執行批量更新 =====
@@ -338,30 +270,14 @@ function UpdateTrackInfoPage() {
         const details = item.details
         
         const updateData = {
-          // 基本資訊
           songYear: track.releaseYear || details?.releaseYear,
           album: track.album,
-          
-          // Spotify 專有
-          ...(dataSource === 'spotify' && {
-            spotifyTrackId: track.id,
-            spotifyAlbumId: track.albumId,
-            spotifyArtistId: track.artistId,
-            spotifyUrl: track.spotifyUrl,
-            albumImage: track.albumImage,
-            duration: track.duration,
-          }),
-          
-          // MusicBrainz 專有（作曲填詞 BPM）
-          ...(dataSource === 'musicbrainz' && {
-            musicbrainzId: track.id,
-            bpm: details?.bpm || null,
-            songKey: details?.key || null,
-            composer: details?.composers || null,
-            lyricist: details?.lyricists || null,
-            arranger: details?.arrangers || null,
-          }),
-          
+          spotifyTrackId: track.id,
+          spotifyAlbumId: track.albumId,
+          spotifyArtistId: track.artistId,
+          spotifyUrl: track.spotifyUrl,
+          albumImage: track.albumImage,
+          duration: track.duration,
           updatedAt: new Date().toISOString()
         }
         
@@ -417,7 +333,7 @@ function UpdateTrackInfoPage() {
                 <span>🎵</span> 批量更新歌曲資訊
               </h1>
               <p className="text-sm text-[#B3B3B3]">
-                🧠 MusicBrainz：作曲、填詞、BPM &nbsp;|&nbsp; 🎧 Spotify：專輯封面、連結
+                🎧 Spotify：專輯封面、連結、年份
               </p>
             </div>
             <button onClick={() => router.push('/admin')} className="text-[#B3B3B3] hover:text-white transition">
@@ -427,7 +343,7 @@ function UpdateTrackInfoPage() {
         </div>
 
         {/* 統計卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800">
             <div className="text-2xl font-bold text-white">{tabs.length}</div>
             <div className="text-sm text-neutral-400">總歌曲數</div>
@@ -440,39 +356,20 @@ function UpdateTrackInfoPage() {
             <div className="text-2xl font-bold text-yellow-400">{tabs.filter(t => t.bpm).length}</div>
             <div className="text-sm text-neutral-400">有 BPM</div>
           </div>
-          {/* Spotify 失敗記錄 */}
+          {/* 失敗記錄 */}
           <div className="bg-[#121212] rounded-xl p-4 border border-red-900/50 relative">
-            <div className="text-2xl font-bold text-red-400">{spotifyFailedIds.length}</div>
-            <div className="text-sm text-neutral-400">Spotify 失敗</div>
-            {spotifyFailedIds.length > 0 && (
+            <div className="text-2xl font-bold text-red-400">{failedTabIds.length}</div>
+            <div className="text-sm text-neutral-400">搜尋失敗</div>
+            {failedTabIds.length > 0 && (
               <button 
                 onClick={() => {
-                  if (confirm('確定清除 Spotify 失敗記錄？')) {
-                    setSpotifyFailedIds([])
+                  if (confirm('確定清除失敗記錄？')) {
+                    setFailedTabIds([])
                     localStorage.removeItem('spotifySearchFailedIds_v2')
                   }
                 }}
                 className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-300"
-                title="清除 Spotify 記錄"
-              >
-                清除
-              </button>
-            )}
-          </div>
-          {/* MusicBrainz 失敗記錄 */}
-          <div className="bg-[#121212] rounded-xl p-4 border border-orange-900/50 relative">
-            <div className="text-2xl font-bold text-orange-400">{musicbrainzFailedIds.length}</div>
-            <div className="text-sm text-neutral-400">MusicBrainz 失敗</div>
-            {musicbrainzFailedIds.length > 0 && (
-              <button 
-                onClick={() => {
-                  if (confirm('確定清除 MusicBrainz 失敗記錄？')) {
-                    setMusicbrainzFailedIds([])
-                    localStorage.removeItem('musicbrainzSearchFailedIds')
-                  }
-                }}
-                className="absolute top-2 right-2 text-xs text-orange-500 hover:text-orange-300"
-                title="清除 MusicBrainz 記錄"
+                title="清除失敗記錄"
               >
                 清除
               </button>
@@ -488,32 +385,8 @@ function UpdateTrackInfoPage() {
         {!showPreview && (
           <div className="mb-6 p-4 bg-[#1a1a2e] rounded-xl border border-purple-900/50">
             <h3 className="text-purple-300 font-medium mb-4 flex items-center gap-2">
-              <span>🧠</span> 批量搜尋 MusicBrainz（推薦）
+              <span>🎧</span> 批量搜尋 Spotify
             </h3>
-            
-            {/* 數據源選擇 */}
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setDataSource('musicbrainz')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  dataSource === 'musicbrainz' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                }`}
-              >
-                🧠 MusicBrainz（作曲/填詞/BPM）
-              </button>
-              <button
-                onClick={() => setDataSource('spotify')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  dataSource === 'spotify' 
-                    ? 'bg-[#1DB954] text-white' 
-                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                }`}
-              >
-                🎧 Spotify（專輯封面/連結）
-              </button>
-            </div>
             
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <select
@@ -547,15 +420,8 @@ function UpdateTrackInfoPage() {
                 />
                 <span className="text-sm">
                   跳過失敗記錄
-                  {(spotifyFailedIds.length > 0 || musicbrainzFailedIds.length > 0) && (
-                    <span className="ml-1">
-                      {spotifyFailedIds.length > 0 && (
-                        <span className="text-red-400">(S:{spotifyFailedIds.length})</span>
-                      )}
-                      {musicbrainzFailedIds.length > 0 && (
-                        <span className="text-orange-400">(M:{musicbrainzFailedIds.length})</span>
-                      )}
-                    </span>
+                  {failedTabIds.length > 0 && (
+                    <span className="ml-1 text-red-400">({failedTabIds.length})</span>
                   )}
                 </span>
               </label>
@@ -583,11 +449,7 @@ function UpdateTrackInfoPage() {
             </div>
             
             <p className="text-sm text-neutral-500">
-              {dataSource === 'musicbrainz' ? (
-                <>💡 MusicBrainz 提供作曲、填詞、BPM 等資訊。建議先用 50 首測試，穩定後再用 200 首。</>
-              ) : (
-                <>⚠️ Spotify 已棄用 Audio Features API，只能獲取專輯封面和連結。</>
-              )}
+              💡 從 Spotify 獲取專輯封面、連結和年份。建議先用 50 首測試，穩定後再用 200 首。
             </p>
           </div>
         )}
@@ -735,8 +597,7 @@ function UpdateTrackInfoPage() {
         <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-purple-900/50">
           <h3 className="text-purple-300 font-medium mb-2">💡 使用說明</h3>
           <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
-            <li>建議使用 <b>MusicBrainz</b> 獲取作曲、填詞、BPM 等資訊</li>
-            <li>Spotify 只提供專輯封面和連結（Audio Features API 已棄用）</li>
+            <li>從 Spotify 獲取專輯封面、連結和年份</li>
             <li>選擇「無作曲/填詞」可快速找到需要更新的歌曲</li>
             <li>每次處理 50-200 首，建議先用 50 首測試</li>
             <li>勾選要更新的項目，點「確認更新」寫入資料庫</li>

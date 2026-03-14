@@ -7,61 +7,6 @@ import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import Link from '@/components/Link'
 import { useRouter } from 'next/router'
 
-// 默認選項（會從資料庫覆蓋）
-const DEFAULT_OPTIONS = {
-  experience: [
-    { value: '', label: '請選擇...' },
-    { value: 'beginner', label: '初學者（少於1年）' },
-    { value: '1-2', label: '1-2年' },
-    { value: '3-5', label: '3-5年' },
-    { value: '6-10', label: '6-10年' },
-    { value: '10+', label: '10年以上' },
-    { value: 'pro', label: '專業演奏' }
-  ],
-  style: [
-    { value: '', label: '請選擇...' },
-    { value: 'sing-play', label: '自彈自唱' },
-    { value: 'accompaniment', label: '伴奏' },
-    { value: 'fingerstyle', label: '指彈' },
-    { value: 'lead', label: '主音結他' },
-    { value: 'all', label: '全部都有' }
-  ],
-  location: [
-    { value: '', label: '請選擇...' },
-    { value: 'home', label: '家中' },
-    { value: 'studio', label: 'Band房/練習室' },
-    { value: 'school', label: '學校' },
-    { value: 'park', label: '公園/街頭' },
-    { value: 'cafe', label: '咖啡廳' },
-    { value: 'church', label: '教會' },
-    { value: 'online', label: '線上直播' }
-  ],
-  chords: [
-    { value: '', label: '請選擇...' },
-    { value: 'open', label: '開放和弦 (C, G, D, Am, Em)' },
-    { value: 'barre', label: 'Barre 和弦 (F, Bm)' },
-    { value: 'jazz', label: 'Jazz 和弦 (maj7, m7, 9th)' },
-    { value: 'power', label: 'Power Chords' },
-    { value: 'sus', label: 'Sus4 / Add9 和弦' },
-    { value: 'all', label: '全部我都鍾意' }
-  ]
-}
-
-const FAVORITE_KEY_OPTIONS = [
-  { value: '', label: '請選擇...' },
-  { value: 'C', label: 'C Major' },
-  { value: 'G', label: 'G Major' },
-  { value: 'D', label: 'D Major' },
-  { value: 'A', label: 'A Major' },
-  { value: 'E', label: 'E Major' },
-  { value: 'F', label: 'F Major' },
-  { value: 'Bb', label: 'Bb Major' },
-  { value: 'Am', label: 'A Minor' },
-  { value: 'Em', label: 'E Minor' },
-  { value: 'Dm', label: 'D Minor' },
-  { value: 'all', label: '全部都可以' }
-]
-
 // 社交媒體配置
 const SOCIAL_MEDIA_CONFIG = [
   { key: 'facebook', label: 'Facebook', placeholder: '用戶名或完整網址', icon: 'f' },
@@ -74,180 +19,6 @@ const SOCIAL_MEDIA_CONFIG = [
   { key: 'website', label: '個人網站', placeholder: 'https://...', icon: '🌐' }
 ]
 
-// 自動生成簡介組件
-function AutoBioGenerator({ formData, bioOptions, onBioChange }) {
-  const [bioConfig, setBioConfig] = useState(null)
-  const [selectedStyle, setSelectedStyle] = useState('normal')
-  const [generatedBio, setGeneratedBio] = useState('')
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  // 載入 Bio 配置
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const { doc, getDoc } = await import('@/lib/firestore-tracked')
-        const { db } = await import('@/lib/firebase')
-        const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
-        if (bioDoc.exists()) {
-          setBioConfig(bioDoc.data())
-        }
-      } catch (e) {
-        console.log('Bio config not found')
-      }
-    }
-    loadConfig()
-  }, [])
-
-  // 生成簡介
-  useEffect(() => {
-    if (!bioConfig) return
-    
-    const style = bioConfig.styles?.find(s => s.id === selectedStyle) || {
-      prefix: '「',
-      suffix: '。」',
-      connector: '，'
-    }
-    
-    const parts = []
-    
-    // 根據問題 ID 對應 formData 欄位
-    const fieldMap = {
-      'experience': 'guitarExperience',
-      'style': 'playingStyle',
-      'location': 'practiceLocation',
-      'chords': 'favoriteChords'
-    }
-    
-    bioConfig.questions?.forEach(q => {
-      const fieldName = fieldMap[q.id]
-      const answer = formData[fieldName]
-      if (answer) {
-        const option = q.options.find(o => o.value === answer)
-        if (option && option.sentences?.[selectedStyle]) {
-          parts.push(option.sentences[selectedStyle])
-        }
-      }
-    })
-    
-    const bio = parts.length > 0 
-      ? style.prefix + parts.join(style.connector) + style.suffix
-      : ''
-    
-    setGeneratedBio(bio)
-  }, [formData, bioConfig, selectedStyle])
-
-  const applyGeneratedBio = () => {
-    onBioChange(generatedBio)
-  }
-
-  const styles = bioConfig?.styles || [
-    { id: 'normal', name: '普通' },
-    { id: 'humor', name: '幽默' },
-    { id: 'serious', name: '認真' },
-    { id: 'sincere', name: '誠懇' },
-    { id: 'teacher', name: '老師' }
-  ]
-
-  return (
-    <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-      <div 
-        className="flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div>
-          <h2 className="text-lg font-medium text-white flex items-center gap-2">
-            ✨ 自動生成簡介
-            <span className="text-xs font-normal text-neutral-400">（可選）</span>
-          </h2>
-          <p className="text-neutral-400 text-sm mt-1">
-            {isExpanded ? '回答問題，系統會幫你生成簡介' : '點擊展開，快速生成個人簡介'}
-          </p>
-        </div>
-        <svg 
-          className={`w-5 h-5 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-          fill="none" 
-          viewBox="0 0 24 24" 
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-
-      {isExpanded && (
-        <div className="mt-4 space-y-4">
-          {/* 風格選擇 */}
-          <div>
-            <label className="block text-sm text-neutral-400 mb-2">選擇風格</label>
-            <div className="flex flex-wrap gap-2">
-              {styles.map(style => (
-                <button
-                  key={style.id}
-                  onClick={() => setSelectedStyle(style.id)}
-                  className={`px-3 py-1.5 rounded-full text-sm transition ${
-                    selectedStyle === style.id
-                      ? 'bg-[#FFD700] text-black'
-                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
-                  }`}
-                >
-                  {style.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 預覽 */}
-          <div className="bg-black rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-neutral-500 text-xs">預覽：</span>
-              {generatedBio && (
-                <button
-                  onClick={() => navigator.clipboard.writeText(generatedBio)}
-                  className="text-xs text-[#FFD700] hover:underline"
-                >
-                  複製
-                </button>
-              )}
-            </div>
-            <p className="text-white min-h-[3rem]">
-              {generatedBio || '（回答上方的音樂檔案問題，這裡會顯示生成的簡介）'}
-            </p>
-          </div>
-
-          {/* 操作按鈜 */}
-          <div className="flex gap-3">
-            <button
-              onClick={applyGeneratedBio}
-              disabled={!generatedBio}
-              className="flex-1 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              使用這段簡介
-            </button>
-          </div>
-
-          {/* 手動編輯區 */}
-          <div className="pt-4 border-t border-neutral-800">
-            <label className="block text-sm text-neutral-400 mb-2">
-              或自行編輯
-              <span className="text-xs text-neutral-500 ml-1">（可複製上方修改）</span>
-            </label>
-            <textarea
-              value={formData.bio || ''}
-              onChange={(e) => onBioChange(e.target.value)}
-              placeholder="例如：大家好，我係Kermit，彈結他十年，鍾意自彈自唱，歡迎交流..."
-              className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none resize-none"
-              rows={4}
-            />
-          </div>
-
-          <p className="text-neutral-500 text-xs">
-            💡 小提示：不需要回答所有問題，選擇你想分享的即可。生成的簡介可以複製後自行修改。
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function EditProfile() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -257,12 +28,6 @@ export default function EditProfile() {
     displayName: '',
     penName: '',
     bio: '',
-    guitarExperience: '',
-    favoriteArtist: '',
-    favoriteKey: '',
-    playingStyle: '',
-    favoriteChords: '',
-    practiceLocation: '',
     photoURL: '',
     isPublicProfile: true,
     showPlaylists: true,
@@ -271,7 +36,6 @@ export default function EditProfile() {
   })
   
   const [originalData, setOriginalData] = useState(null)
-  const [bioOptions, setBioOptions] = useState(DEFAULT_OPTIONS)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -290,22 +54,6 @@ export default function EditProfile() {
 
   const loadUserProfile = async () => {
     try {
-      // 同時載入 Bio 配置
-      try {
-        const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
-        if (bioDoc.exists()) {
-          const config = bioDoc.data()
-          setBioOptions({
-            experience: [{ value: '', label: '請選擇...' }, ...(config.experience?.options || DEFAULT_OPTIONS.experience.slice(1))],
-            style: [{ value: '', label: '請選擇...' }, ...(config.style?.options || DEFAULT_OPTIONS.style.slice(1))],
-            location: [{ value: '', label: '請選擇...' }, ...(config.location?.options || DEFAULT_OPTIONS.location.slice(1))],
-            chords: [{ value: '', label: '請選擇...' }, ...(config.chords?.options || DEFAULT_OPTIONS.chords.slice(1))]
-          })
-        }
-      } catch (e) {
-        console.log('Bio config not found')
-      }
-      
       const userDoc = await getDoc(doc(db, 'users', user.uid))
       if (userDoc.exists()) {
         const data = userDoc.data()
@@ -313,12 +61,6 @@ export default function EditProfile() {
           displayName: data.displayName || user.displayName || '',
           penName: data.penName || data.displayName || user.displayName || '',
           bio: data.bio || '',
-          guitarExperience: data.guitarExperience || '',
-          favoriteArtist: data.favoriteArtist || '',
-          favoriteKey: data.favoriteKey || '',
-          playingStyle: data.playingStyle || '',
-          favoriteChords: data.favoriteChords || '',
-          practiceLocation: data.practiceLocation || '',
           photoURL: data.photoURL || user.photoURL || '',
           isPublicProfile: data.isPublicProfile !== false,
           showPlaylists: data.showPlaylists !== false,
@@ -332,12 +74,6 @@ export default function EditProfile() {
           displayName: user.displayName || '',
           penName: user.displayName || '',
           bio: '',
-          guitarExperience: '',
-          favoriteArtist: '',
-          favoriteKey: '',
-          playingStyle: '',
-          favoriteChords: '',
-          practiceLocation: '',
           photoURL: user.photoURL || '',
           isPublicProfile: true,
           showPlaylists: true,
@@ -446,7 +182,7 @@ export default function EditProfile() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">編輯個人資料</h1>
-            <p className="text-neutral-400 text-sm">設定你的音樂人檔案</p>
+            <p className="text-neutral-400 text-sm">設定你的個人資料</p>
           </div>
           <Link
             href={`/profile/${user.uid}`}
@@ -594,96 +330,6 @@ export default function EditProfile() {
             ))}
           </div>
         </div>
-
-        {/* Music Profile */}
-        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-4">音樂人檔案</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">彈結他經驗</label>
-              <select
-                value={formData.guitarExperience}
-                onChange={(e) => handleChange('guitarExperience', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
-              >
-                {bioOptions.experience.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">最喜歡的歌手</label>
-              <input
-                type="text"
-                value={formData.favoriteArtist}
-                onChange={(e) => handleChange('favoriteArtist', e.target.value)}
-                placeholder="例如：陳奕迅、周杰倫、Taylor Swift..."
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">最喜歡的 Key</label>
-              <select
-                value={formData.favoriteKey}
-                onChange={(e) => handleChange('favoriteKey', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
-              >
-                {FAVORITE_KEY_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">演奏風格</label>
-              <select
-                value={formData.playingStyle}
-                onChange={(e) => handleChange('playingStyle', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
-              >
-                {bioOptions.style.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">最喜歡的和弦</label>
-              <select
-                value={formData.favoriteChords}
-                onChange={(e) => handleChange('favoriteChords', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
-              >
-                {bioOptions.chords.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">練習地點</label>
-              <select
-                value={formData.practiceLocation}
-                onChange={(e) => handleChange('practiceLocation', e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white outline-none"
-              >
-                {bioOptions.location.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Auto Bio Generator */}
-        <AutoBioGenerator 
-          formData={formData}
-          bioOptions={bioOptions}
-          onBioChange={(bio) => handleChange('bio', bio)}
-        />
 
         {/* Privacy Settings */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">

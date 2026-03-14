@@ -27,8 +27,6 @@ const sections = [
     items: [
       { href: '/admin/spotify-manager', label: 'Spotify 管理', roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR] },
       { href: '/admin/update-track-info', label: '批量更新歌曲資訊', roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER] },
-      { href: '/admin/update-spotify-photos', label: '更新歌手相片', roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR] },
-      { href: '/admin/bulk-youtube', label: '批量添加 YouTube', roles: [ROLES.SUPER_ADMIN] },
     ]
   },
   {
@@ -36,9 +34,6 @@ const sections = [
     items: [
       { href: '/admin/home-settings', label: '首頁設置', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/category-images', label: '分類封面', roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR] },
-      { href: '/admin/logo', label: 'Logo & 圖標', roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR] },
-      { href: '/admin/nav-icons', label: '導航圖標', roles: [ROLES.SUPER_ADMIN, ROLES.ART_DIRECTOR] },
-      { href: '/admin/profile-bio-settings', label: '個人簡介設定', roles: [ROLES.SUPER_ADMIN] },
     ]
   },
   {
@@ -47,7 +42,6 @@ const sections = [
       { href: '/admin/analytics', label: '瀏覽統計', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/daily-uploads', label: '每日上傳', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/artist-report', label: '歌手報表', roles: [ROLES.SUPER_ADMIN] },
-      { href: '/admin/analyze', label: '樂譜分析', roles: [ROLES.SUPER_ADMIN] },
     ]
   },
   {
@@ -56,8 +50,6 @@ const sections = [
       { href: '/admin/admins', label: '管理員設定', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/role-settings', label: '角色權限', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/site-map', label: '網站地圖', roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER, ROLES.ART_DIRECTOR, ROLES.PLAYLIST_MAKER] },
-      { href: '/admin/tech-stack', label: '技術架構', roles: [ROLES.SUPER_ADMIN] },
-      { href: '/admin/test-rating', label: '評分測試', roles: [ROLES.SUPER_ADMIN] },
     ]
   },
 ]

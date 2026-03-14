@@ -249,7 +249,7 @@ function UsersSection() {
             <li><strong className="text-white">編譜筆名</strong> - 出譜時顯示的名稱（例如：結他小王子）</li>
             <li><strong className="text-white">頭像</strong> - 用戶上傳的照片或 Google 頭像</li>
             <li><strong className="text-white">個人簡介</strong> - 用戶自填的介紹文字</li>
-            <li><strong className="text-white">音樂人檔案</strong> - 彈結他年資、風格、喜歡的 Key 等</li>
+
             <li><strong className="text-white">社交媒體</strong> - Facebook、IG、YouTube 等連結</li>
             <li><strong className="text-white">隱私設定</strong> - 是否公開主頁、顯示出譜/歌單</li>
           </ul>
@@ -658,7 +658,6 @@ function AdminSection() {
           <AdminToolCard 
             title="🎸 樂譜管理"
             tools={[
-              { name: "樂譜分析", path: "/admin/analyze", desc: "分析樂譜質素和問題" },
             ]}
           />
           <AdminToolCard 
@@ -672,23 +671,19 @@ function AdminSection() {
             title="⚙️ 網站設置"
             tools={[
               { name: "首頁設置", path: "/admin/home-settings", desc: "設置首頁顯示內容" },
-              { name: "導航圖標", path: "/admin/nav-icons", desc: "自定義底部導航圖標" },
               { name: "管理員設置", path: "/admin/admins", desc: "添加/移除管理員" },
-              { name: "Logo 上傳", path: "/admin/logo", desc: "上傳網站 Logo" },
             ]}
           />
           <AdminToolCard 
             title="🎵 Spotify 整合"
             tools={[
               { name: "Spotify 管理", path: "/admin/spotify-manager", desc: "批量更新歌手 Spotify 資料" },
-              { name: "更新封面", path: "/admin/update-spotify-photos", desc: "更新歌手 Spotify 相片" },
               { name: "更新曲目", path: "/admin/update-track-info", desc: "更新歌曲 Spotify 資料" },
             ]}
           />
           <AdminToolCard 
             title="🛠️ 其他工具"
             tools={[
-              { name: "批量 YouTube", path: "/admin/bulk-youtube", desc: "批量更新 YouTube 連結" },
               { name: "歌單管理", path: "/admin/playlists", desc: "管理精選歌單" },
             ]}
           />

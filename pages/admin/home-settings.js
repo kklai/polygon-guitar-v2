@@ -14,7 +14,7 @@ import {
   orderBy,
   limit
 } from '@/lib/firestore-tracked'
-import { getHotTabs } from '@/lib/tabs'
+import { getHotTabs, getTabsByIds } from '@/lib/tabs'
 import { getAllPlaylists } from '@/lib/playlists'
 
 // 首頁設置頁面資料：24 小時內使用快取，減少 Firestore 讀取
@@ -69,13 +69,13 @@ function HomeSettings() {
   
   // 首頁區域選項
   const SECTION_OPTIONS = [
-    { id: 'categories', label: '歌手分類', icon: '🎭' },
-    { id: 'recent', label: '最近瀏覽', icon: '🕐' },
-    { id: 'hotTabs', label: '熱門結他譜', icon: '🔥' },
-    { id: 'hotArtists', label: '熱門歌手', icon: '⭐' },
-    { id: 'autoPlaylists', label: '推薦歌單', icon: '📻' },
-    { id: 'latest', label: '最新上架', icon: '🆕' },
-    { id: 'manualPlaylists', label: '精選歌單', icon: '💿' }
+    { id: 'categories', label: '歌手分類' },
+    { id: 'recent', label: '最近瀏覽' },
+    { id: 'hotTabs', label: '熱門結他譜' },
+    { id: 'hotArtists', label: '熱門歌手' },
+    { id: 'autoPlaylists', label: '推薦歌單' },
+    { id: 'latest', label: '最新上架' },
+    { id: 'manualPlaylists', label: '精選歌單' }
   ]
 
   const [settings, setSettings] = useState({
@@ -256,18 +256,19 @@ function HomeSettings() {
     }
   }
 
-  /** Load tabs when user opens the "熱門歌曲" tab. Uses 24h cache if available. */
+  /** Load tabs when user opens the "熱門歌曲" tab. Uses 24h cache if available, then supplements missing selected tabs. */
   const loadTabsIfNeeded = async () => {
     if (listsLoaded.tabs) return
-    const cached = getHomeSettingsFromCache()
-    if (cached?.tabs?.length) {
-      setTabs(cached.tabs)
-      setListsLoaded(prev => ({ ...prev, tabs: true }))
-      return
-    }
     setLoadingTabs(true)
     try {
-      const tabsData = await getHotTabs(100)
+      const cached = getHomeSettingsFromCache()
+      let tabsData = cached?.tabs?.length ? cached.tabs : await getHotTabs(100)
+      const loadedIds = new Set(tabsData.map(t => t.id))
+      const missingIds = selectedTabIds.filter(id => !loadedIds.has(id))
+      if (missingIds.length > 0) {
+        const missingTabs = await getTabsByIds(missingIds)
+        tabsData = [...tabsData, ...missingTabs]
+      }
       setTabs(tabsData)
       setListsLoaded(prev => ({ ...prev, tabs: true }))
       setHomeSettingsCache({ tabs: tabsData })
@@ -373,11 +374,11 @@ function HomeSettings() {
       await setDoc(doc(db, 'settings', 'home'), dedupedSettings)
       setHasChanges(false)  // 保存成功後重置改動狀態
       try { localStorage.removeItem(HOME_SETTINGS_CACHE_KEY) } catch (_) {} // 下次載入會取最新資料
-      setMessage('✅ 設置已保存')
+      setMessage('設置已保存')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {
       console.error('Error saving:', error)
-      setMessage('❌ 保存失敗')
+      setMessage('保存失敗')
     } finally {
       setSaving(false)
     }
@@ -388,7 +389,7 @@ function HomeSettings() {
     try {
       const token = await auth.currentUser?.getIdToken?.()
       if (!token) {
-        setMessage('❌ 請先登入')
+        setMessage('請先登入')
         return
       }
       const res = await fetch('/api/admin/rebuild-home-cache', {
@@ -397,15 +398,15 @@ function HomeSettings() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMessage(data.error || '❌ 重建快取失敗')
+        setMessage(data.error || '重建快取失敗')
         return
       }
-      setMessage('✅ 首頁快取已重建，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取')
+      setMessage('首頁快取已重建，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取')
       try { localStorage.removeItem('pg_home_cache_v2') } catch (_) {}
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)
-      setMessage('❌ 重建快取失敗')
+      setMessage('重建快取失敗')
     } finally {
       setRebuildingCache(false)
     }
@@ -416,7 +417,7 @@ function HomeSettings() {
     try {
       const token = await auth.currentUser?.getIdToken?.()
       if (!token) {
-        setMessage('❌ 請先登入')
+        setMessage('請先登入')
         return
       }
       const res = await fetch('/api/admin/rebuild-search-cache', {
@@ -425,10 +426,10 @@ function HomeSettings() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMessage(data.error || '❌ 重建搜尋快取失敗')
+        setMessage(data.error || '重建搜尋快取失敗')
         return
       }
-      setMessage('✅ 搜尋快取已重建，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取')
+      setMessage('搜尋快取已重建，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取')
       try {
         localStorage.removeItem('searchPageData')
         localStorage.removeItem('pg_artists_list')
@@ -437,7 +438,7 @@ function HomeSettings() {
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)
-      setMessage('❌ 重建搜尋快取失敗')
+      setMessage('重建搜尋快取失敗')
     } finally {
       setRebuildingSearchCache(false)
     }
@@ -448,7 +449,7 @@ function HomeSettings() {
     try {
       const token = await auth.currentUser?.getIdToken?.()
       if (!token) {
-        setMessage('❌ 請先登入')
+        setMessage('請先登入')
         return
       }
       const res = await fetch('/api/admin/rebuild-all-tabs-cache', {
@@ -457,14 +458,14 @@ function HomeSettings() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMessage(data.error || '❌ 重建樂譜列表快取失敗')
+        setMessage(data.error || '重建樂譜列表快取失敗')
         return
       }
-      setMessage(`✅ 樂譜列表快取已重建（${data.count ?? 0} 份），約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取`)
+      setMessage(`樂譜列表快取已重建（${data.count ?? 0} 份），約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取`)
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)
-      setMessage('❌ 重建樂譜列表快取失敗')
+      setMessage('重建樂譜列表快取失敗')
     } finally {
       setRebuildingAllTabsCache(false)
     }
@@ -714,13 +715,19 @@ function HomeSettings() {
     setShowPlaylistGroupModal(false)
   }
 
-  // 過濾搜索結果
+  const sortByTier = (list) =>
+    [...list].sort((a, b) => {
+      const ta = a.tier ?? 99
+      const tb = b.tier ?? 99
+      if (ta !== tb) return ta - tb
+      return (b.songCount || 0) - (a.songCount || 0)
+    })
+
   const filteredArtists = (category) => {
-    // category 為 null 時返回所有歌手
     const categoryArtists = category ? getArtistsByCategory(category) : artists
-    if (!artistSearchTerm) return categoryArtists
-    
-    return categoryArtists.filter(a => 
+    const sorted = sortByTier(categoryArtists)
+    if (!artistSearchTerm) return sorted
+    return sorted.filter(a => 
       a.name?.toLowerCase().includes(artistSearchTerm.toLowerCase())
     )
   }
@@ -784,7 +791,7 @@ function HomeSettings() {
 
         {message && (
           <div className={`mb-4 p-4 rounded-lg ${
-            message.startsWith('✅') 
+            !message.includes('失敗') && !message.includes('請先登入')
               ? 'bg-green-900/50 text-green-400 border border-green-700' 
               : 'bg-red-900/50 text-red-400 border border-red-700'
           }`}>
@@ -801,7 +808,7 @@ function HomeSettings() {
                 : 'text-neutral-400 border-transparent hover:text-white'
             }`}
           >
-            👤 熱門歌手
+            熱門歌手
           </button>
           <button
             onClick={() => setActiveTab('tabs')}
@@ -811,7 +818,7 @@ function HomeSettings() {
                 : 'text-neutral-400 border-transparent hover:text-white'
             }`}
           >
-            🎵 熱門歌曲
+            熱門歌曲
           </button>
           <button
             onClick={() => setActiveTab('layout')}
@@ -821,63 +828,84 @@ function HomeSettings() {
                 : 'text-neutral-400 border-transparent hover:text-white'
             }`}
           >
-            📐 頁面布局
+            頁面布局
+          </button>
+          <button
+            onClick={() => setActiveTab('cache')}
+            className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
+              activeTab === 'cache'
+                ? 'text-[#FFD700] border-[#FFD700]'
+                : 'text-neutral-400 border-transparent hover:text-white'
+            }`}
+          >
+            清除快取
           </button>
         </div>
 
         {/* 熱門歌手設置 */}
         {activeTab === 'artists' && (
           <div className="space-y-6">
-            {/* 設置選項 */}
-            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
-              <h2 className="text-lg font-medium text-white mb-4">顯示設置</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">排序方式</label>
-                  <select
-                    value={settings.hotArtistSortBy}
-                    onChange={(e) => {
-                      setSettings(prev => ({ ...prev, hotArtistSortBy: e.target.value }))
-                      setHasChanges(true)
-                    }}
-                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
-                  >
-                    {SORT_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    {SORT_OPTIONS.find(o => o.value === settings.hotArtistSortBy)?.desc}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">顯示數量</label>
-                  <input
-                    type="number"
-                    value={settings.displayCount}
-                    onChange={(e) => {
-                      setSettings(prev => ({ ...prev, displayCount: parseInt(e.target.value) || 20 }))
-                      setHasChanges(true)
-                    }}
-                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
-                    min="1"
-                    max="50"
-                  />
-                </div>
+            {/* 自動揀選 */}
+            <div className={`bg-[#121212] rounded-xl border p-4 ${!(settings.hotArtistUseManual) ? 'border-[#FFD700]/50' : 'border-neutral-800 opacity-60'}`}>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotArtistUseManual: false })); setHasChanges(true) }}>
+                  <input type="radio" checked={!(settings.hotArtistUseManual)} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
+                  <h2 className="text-lg font-medium text-white">自動揀選歌手</h2>
+                </label>
+                <select
+                  value={settings.hotArtistSortBy}
+                  onChange={(e) => {
+                    setSettings(prev => ({ ...prev, hotArtistSortBy: e.target.value }))
+                    setHasChanges(true)
+                  }}
+                  className="bg-[#282828] border border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-white"
+                >
+                  {SORT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  value={settings.displayCount}
+                  onChange={(e) => {
+                    setSettings(prev => ({ ...prev, displayCount: parseInt(e.target.value) || 20 }))
+                    setHasChanges(true)
+                  }}
+                  className="w-16 bg-[#282828] border border-neutral-700 rounded-lg px-2 py-1.5 text-sm text-white text-center"
+                  min="1"
+                  max="50"
+                />
               </div>
             </div>
 
             {/* 手動選擇 */}
-            <div className="bg-[#121212] rounded-xl border border-neutral-800">
+            <div className={`bg-[#121212] rounded-xl border ${settings.hotArtistUseManual ? 'border-[#FFD700]/50' : 'border-neutral-800'}`}>
               <div className="p-4 border-b border-neutral-800">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-medium text-white">手動揀選歌手</h2>
-                    <p className="text-sm text-neutral-500 mt-1">
-                      揀選歌手組成「熱門歌手」列表，有揀選就優先顯示，冇就自動排序
-                    </p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotArtistUseManual: true })); setHasChanges(true) }}>
+                      <input type="radio" checked={settings.hotArtistUseManual || false} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
+                      <h2 className="text-lg font-medium text-white">手動揀選歌手</h2>
+                      {getSelectedArtists().length > 0 && (
+                        <span className="text-sm text-neutral-400 ml-1">
+                          ({getSelectedArtists().length})
+                          <span className="text-xs text-neutral-500 ml-1">
+                            男: {getSelectedCounts().male} / 女: {getSelectedCounts().female} / 組合: {getSelectedCounts().group}
+                          </span>
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      value={settings.displayCount}
+                      onChange={(e) => {
+                        setSettings(prev => ({ ...prev, displayCount: parseInt(e.target.value) || 20 }))
+                        setHasChanges(true)
+                      }}
+                      className="w-16 bg-[#282828] border border-neutral-700 rounded-lg px-2 py-1.5 text-sm text-white text-center"
+                      min="1"
+                      max="50"
+                    />
                   </div>
                   {loadingArtists && (
                     <span className="text-sm text-neutral-400">Loading list…</span>
@@ -885,39 +913,6 @@ function HomeSettings() {
                 </div>
               </div>
               
-              {/* 分類 Tab */}
-              {/* 分類篩選（只影響搜索結果，唔影響已選列表） */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-800 overflow-x-auto">
-                <span className="text-sm text-neutral-500 whitespace-nowrap">搜索篩選:</span>
-                {[
-                  { id: 'all', label: '全部' },
-                  { id: 'male', label: '男歌手' },
-                  { id: 'female', label: '女歌手' },
-                  { id: 'group', label: '組合' }
-                ].map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setActiveArtistCategory(cat.id)
-                      setArtistSearchTerm('')
-                    }}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-full transition whitespace-nowrap ${
-                      activeArtistCategory === cat.id
-                        ? 'bg-[#FFD700] text-black'
-                        : 'bg-[#282828] text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {cat.label}
-                    {cat.id !== 'all' && (() => {
-                      const counts = getSelectedCounts()
-                      const count = counts[cat.id] || 0
-                      return count > 0 ? (
-                        <span className="ml-1.5 text-xs">({count})</span>
-                      ) : null
-                    })()}
-                  </button>
-                ))}
-              </div>
 
               <div className="p-4">
                 {/* 已選歌手列表（統一顯示所有已選，不分分類） */}
@@ -925,20 +920,6 @@ function HomeSettings() {
                   const allSelected = getSelectedArtists()
                   return allSelected.length > 0 ? (
                   <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-neutral-400">
-                        已揀選 ({allSelected.length})
-                        <span className="ml-2 text-xs text-neutral-500">
-                          男: {getSelectedCounts().male} / 女: {getSelectedCounts().female} / 組合: {getSelectedCounts().group}
-                        </span>
-                      </h3>
-                      <span className="text-xs text-neutral-500 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                        </svg>
-                        拖曳可排序
-                      </span>
-                    </div>
                     <div className="space-y-2">
                       {allSelected.map((artist, index) => {
                         const artistType = artist.artistType || artist.gender
@@ -960,17 +941,6 @@ function HomeSettings() {
                               </svg>
                               {index + 1}
                             </span>
-                            {artist.photoURL || artist.wikiPhotoURL ? (
-                              <img 
-                                src={artist.photoURL || artist.wikiPhotoURL} 
-                                alt="" 
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-[#282828] flex items-center justify-center">
-                                <span className="text-lg">🎤</span>
-                              </div>
-                            )}
                             <span className="flex-1 text-white font-medium">{artist.name}</span>
                             
                             {/* 分類標籤 */}
@@ -1024,12 +994,37 @@ function HomeSettings() {
 
                 {/* 搜索添加 */}
                 <div>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-3">
-                    添加歌手 
-                    <span className="text-xs text-neutral-500 ml-1">
-                      ({activeArtistCategory === 'all' ? '顯示全部' : `只顯示${activeArtistCategory === 'male' ? '男歌手' : activeArtistCategory === 'female' ? '女歌手' : '組合'}`})
-                    </span>
-                  </h3>
+                  <h3 className="text-sm font-medium text-neutral-400 mb-3">添加歌手</h3>
+                  <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                    {[
+                      { id: 'all', label: '全部' },
+                      { id: 'male', label: '男歌手' },
+                      { id: 'female', label: '女歌手' },
+                      { id: 'group', label: '組合' }
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => {
+                          setActiveArtistCategory(cat.id)
+                          setArtistSearchTerm('')
+                        }}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-full transition whitespace-nowrap ${
+                          activeArtistCategory === cat.id
+                            ? 'bg-[#FFD700] text-black'
+                            : 'bg-[#282828] text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        {cat.label}
+                        {cat.id !== 'all' && (() => {
+                          const counts = getSelectedCounts()
+                          const count = counts[cat.id] || 0
+                          return count > 0 ? (
+                            <span className="ml-1.5 text-xs">({count})</span>
+                          ) : null
+                        })()}
+                      </button>
+                    ))}
+                  </div>
                   <div className="relative mb-3">
                     <input
                       type="text"
@@ -1065,17 +1060,6 @@ function HomeSettings() {
                               : 'hover:bg-[#282828]'
                           }`}
                         >
-                          {artist.photoURL || artist.wikiPhotoURL ? (
-                            <img 
-                              src={artist.photoURL || artist.wikiPhotoURL} 
-                              alt="" 
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center">
-                              <span>🎤</span>
-                            </div>
-                          )}
                           <span className={`flex-1 ${isSelected ? 'text-[#FFD700]' : 'text-white'}`}>
                             {artist.name}
                           </span>
@@ -1083,7 +1067,7 @@ function HomeSettings() {
                           <span className={`px-1.5 py-0.5 text-xs font-medium text-black rounded ${typeColor}`}>
                             {typeLabel}
                           </span>
-                          {isSelected && <span className="text-[#FFD700]">✓</span>}
+                          {isSelected && <svg className="w-4 h-4 text-[#FFD700] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.5 12.75l6 6 9-13.5" /></svg>}
                         </button>
                       )
                     })}
@@ -1097,32 +1081,56 @@ function HomeSettings() {
         {/* 熱門歌曲設置 */}
         {activeTab === 'tabs' && (
           <div className="space-y-6">
-            {/* 設置選項 */}
-            <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
-              <h2 className="text-lg font-medium text-white mb-4">顯示設置</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">排序方式</label>
-                  <select
-                    value={settings.hotTabs?.sortBy || 'viewCount'}
-                    onChange={(e) => {
-                      setSettings(prev => ({
-                        ...prev,
-                        hotTabs: { ...prev.hotTabs, sortBy: e.target.value }
-                      }))
-                      setHasChanges(true)
-                    }}
-                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
-                  >
-                    {TAB_SORT_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-2">顯示數量</label>
+            {/* 自動揀選 */}
+            <div className={`bg-[#121212] rounded-xl border p-4 ${!(settings.hotTabs?.useManual) ? 'border-[#FFD700]/50' : 'border-neutral-800 opacity-60'}`}>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotTabs: { ...prev.hotTabs, useManual: false } })); setHasChanges(true) }}>
+                  <input type="radio" checked={!(settings.hotTabs?.useManual)} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
+                  <h2 className="text-lg font-medium text-white">自動揀選歌曲</h2>
+                </label>
+                <select
+                  value={settings.hotTabs?.sortBy || 'viewCount'}
+                  onChange={(e) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      hotTabs: { ...prev.hotTabs, sortBy: e.target.value }
+                    }))
+                    setHasChanges(true)
+                  }}
+                  className="bg-[#282828] border border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-white"
+                >
+                  {TAB_SORT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  value={settings.hotTabs?.displayCount || 20}
+                  onChange={(e) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      hotTabs: { ...prev.hotTabs, displayCount: parseInt(e.target.value) || 20 }
+                    }))
+                    setHasChanges(true)
+                  }}
+                  className="w-16 bg-[#282828] border border-neutral-700 rounded-lg px-2 py-1.5 text-sm text-white text-center"
+                  min="1"
+                  max="50"
+                />
+              </div>
+            </div>
+
+            {/* 手動選擇歌曲 */}
+            <div className={`bg-[#121212] rounded-xl border ${settings.hotTabs?.useManual ? 'border-[#FFD700]/50' : 'border-neutral-800'}`}>
+              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotTabs: { ...prev.hotTabs, useManual: true } })); setHasChanges(true) }}>
+                    <input type="radio" checked={settings.hotTabs?.useManual || false} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
+                    <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
+                    {selectedTabIds.length > 0 && (
+                      <span className="text-sm text-neutral-400 ml-1">({selectedTabIds.length})</span>
+                    )}
+                  </label>
                   <input
                     type="number"
                     value={settings.hotTabs?.displayCount || 20}
@@ -1133,41 +1141,10 @@ function HomeSettings() {
                       }))
                       setHasChanges(true)
                     }}
-                    className="w-full bg-[#282828] border border-neutral-700 rounded-lg px-4 py-2 text-white"
+                    className="w-16 bg-[#282828] border border-neutral-700 rounded-lg px-2 py-1.5 text-sm text-white text-center"
                     min="1"
                     max="50"
                   />
-                </div>
-
-                <div className="flex items-end">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.hotTabs?.useManual || false}
-                      onChange={(e) => {
-                        setSettings(prev => ({
-                          ...prev,
-                          hotTabs: { ...prev.hotTabs, useManual: e.target.checked }
-                        }))
-                        setHasChanges(true)
-                      }}
-                      className="w-5 h-5 rounded border-neutral-600 text-[#FFD700] bg-[#282828]"
-                    />
-                    <span className="text-sm text-neutral-300">只顯示手動揀選</span>
-                  </label>
-                </div>
-              </div>
-              <p className="text-xs text-neutral-500">
-                {TAB_SORT_OPTIONS.find(o => o.value === (settings.hotTabs?.sortBy || 'viewCount'))?.desc}
-              </p>
-            </div>
-
-            {/* 手動選擇歌曲 */}
-            <div className="bg-[#121212] rounded-xl border border-neutral-800">
-              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
-                  <p className="text-sm text-neutral-500 mt-1">揀選特定歌曲顯示喺熱門結他譜區</p>
                 </div>
                 {loadingTabs && (
                   <span className="text-sm text-neutral-400">Loading list…</span>
@@ -1223,20 +1200,20 @@ function HomeSettings() {
                             </svg>
                             {index + 1}
                           </span>
-                          {tab.thumbnail || tab.youtubeVideoId ? (
-                            <img 
-                              src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/default.jpg`} 
-                              alt="" 
-                              className="w-12 h-9 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-9 rounded bg-[#282828] flex items-center justify-center">
-                              <span className="text-xs">🎵</span>
-                            </div>
-                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate">{tab.title}</p>
-                            <p className="text-sm text-neutral-500">{tab.artistName}</p>
+                            <p className="text-sm text-neutral-500 truncate">
+                              {tab.artistName || tab.artist}
+                              {(tab.uploaderPenName || tab.arrangedBy) && (
+                                <span className="text-[#FFD700] text-[10px] ml-1.5 inline-flex items-center gap-0.5 align-middle">
+                                  <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                    <path d="m15 5 4 4" />
+                                  </svg>
+                                  {tab.uploaderPenName || tab.arrangedBy}
+                                </span>
+                              )}
+                            </p>
                           </div>
                           
                           <div className="flex items-center gap-1">
@@ -1307,24 +1284,24 @@ function HomeSettings() {
                               : 'hover:bg-[#282828]'
                           }`}
                         >
-                          {tab.thumbnail || tab.youtubeVideoId ? (
-                            <img 
-                              src={tab.thumbnail || `https://img.youtube.com/vi/${tab.youtubeVideoId}/default.jpg`} 
-                              alt="" 
-                              className="w-10 h-8 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-8 rounded bg-[#282828] flex items-center justify-center">
-                              <span className="text-xs">🎵</span>
-                            </div>
-                          )}
                           <div className="flex-1 min-w-0">
                             <p className={`font-medium truncate ${isSelected ? 'text-[#FFD700]' : 'text-white'}`}>
                               {tab.title}
                             </p>
-                            <p className="text-xs text-neutral-500">{tab.artistName}</p>
+                            <p className="text-xs text-neutral-500 truncate">
+                              {tab.artistName || tab.artist}
+                              {(tab.uploaderPenName || tab.arrangedBy) && (
+                                <span className="text-[#FFD700] text-[10px] ml-1.5 inline-flex items-center gap-0.5 align-middle">
+                                  <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                    <path d="m15 5 4 4" />
+                                  </svg>
+                                  {tab.uploaderPenName || tab.arrangedBy}
+                                </span>
+                              )}
+                            </p>
                           </div>
-                          {isSelected && <span className="text-[#FFD700]">✓</span>}
+                          {isSelected && <svg className="w-4 h-4 text-[#FFD700] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.5 12.75l6 6 9-13.5" /></svg>}
                         </button>
                       )
                     })}
@@ -1340,8 +1317,7 @@ function HomeSettings() {
           <div className="bg-[#121212] rounded-xl border border-neutral-800">
             <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-medium text-white">📐 首頁區域排序</h2>
-                <p className="text-sm text-neutral-500 mt-1">調整區域顯示順序，或隱藏不需要的區域</p>
+                <h2 className="text-lg font-medium text-white">首頁區域排序</h2>
               </div>
               <button
                 onClick={() => {
@@ -1363,25 +1339,27 @@ function HomeSettings() {
                 }}
                 className="px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg hover:bg-neutral-700 transition text-sm"
               >
-                🔄 重置為預設
+                重置為預設
               </button>
             </div>
             
             {/* 新增區域按鈕 */}
-            <div className="px-4 mb-6 flex gap-3">
+            <div className="px-4 pt-4 flex gap-3">
               <button
                 onClick={() => setShowPlaylistModal(true)}
-                className="flex-1 py-3 border-2 border-dashed border-neutral-700 rounded-lg text-neutral-400 hover:border-[#FFD700] hover:text-[#FFD700] transition flex items-center justify-center gap-2"
+                className="flex-1 py-2 bg-[#282828] text-neutral-300 rounded-lg hover:bg-[#3E3E3E] hover:text-white transition flex items-center justify-center gap-2 text-sm"
               >
-                <span className="text-xl">+</span>
-                新增單歌單區域
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg>
+                單歌單區域
               </button>
               <button
                 onClick={() => setShowPlaylistGroupModal(true)}
-                className="flex-1 py-3 border-2 border-dashed border-neutral-700 rounded-lg text-neutral-400 hover:border-blue-500 hover:text-blue-400 transition flex items-center justify-center gap-2"
+                className="flex-1 py-2 bg-[#282828] text-neutral-300 rounded-lg hover:bg-[#3E3E3E] hover:text-white transition flex items-center justify-center gap-2 text-sm"
               >
-                <span className="text-xl">+</span>
-                新增多歌單區域
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
+                多歌單區域
               </button>
             </div>
 
@@ -1404,7 +1382,7 @@ function HomeSettings() {
                             : 'bg-neutral-900/30 border-neutral-800/50 opacity-50'
                         }`}
                       >
-                        <span className="text-xl">{isGroup ? '📁' : '💿'}</span>
+                        <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={isGroup ? "M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" : "M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z"} /></svg>
                         <div className="flex-1">
                           <input
                             type="text"
@@ -1417,9 +1395,6 @@ function HomeSettings() {
                             }}
                             className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-neutral-600 transition px-1 -ml-1"
                           />
-                          <p className="text-xs text-neutral-500 ml-1">
-                            {isGroup ? '多歌單區域' : '單歌單區域'}
-                          </p>
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -1483,7 +1458,6 @@ function HomeSettings() {
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <span className="text-xl">{option.icon}</span>
                         <div className="flex-1">
                           <input
                             type="text"
@@ -1497,9 +1471,6 @@ function HomeSettings() {
                             placeholder={option.label}
                             className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-neutral-600 transition px-1 -ml-1"
                           />
-                          {section.customLabel && (
-                            <span className="text-xs text-neutral-500 ml-1">原名：{option.label}</span>
-                          )}
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -1537,52 +1508,62 @@ function HomeSettings() {
           </div>
         )}
 
+        {/* 清除快取 */}
+        {activeTab === 'cache' && (
+          <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
+            <h2 className="text-lg font-medium text-white mb-2">快取管理</h2>
+            <p className="text-sm text-neutral-500 mb-6">重建各項快取以減少 Firestore 讀取次數</p>
+            <div className="space-y-3">
+              <button
+                onClick={rebuildHomeCache}
+                disabled={rebuildingCache}
+                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
+              >
+                <div className="font-medium">{rebuildingCache ? '重建中...' : '重建首頁快取'}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取</div>
+              </button>
+              <button
+                onClick={rebuildSearchCache}
+                disabled={rebuildingSearchCache}
+                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
+              >
+                <div className="font-medium">{rebuildingSearchCache ? '重建中...' : '重建搜尋快取'}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取</div>
+              </button>
+              <button
+                onClick={rebuildAllTabsCache}
+                disabled={rebuildingAllTabsCache}
+                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
+              >
+                <div className="font-medium">{rebuildingAllTabsCache ? '重建中...' : '重建樂譜列表快取'}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取</div>
+              </button>
+              <button
+                onClick={() => {
+                  try { localStorage.removeItem(HOME_SETTINGS_CACHE_KEY) } catch (_) {}
+                  setLoading(true)
+                  loadData()
+                }}
+                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition text-left"
+              >
+                <div className="font-medium">立即更新此頁資料</div>
+                <div className="text-xs text-neutral-500 mt-0.5">清除此頁 24 小時快取，從 Firestore 重新載入</div>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-4 mt-8">
           <button
             onClick={saveSettings}
             disabled={saving}
             className={`flex-1 min-w-[140px] py-3 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 ${
               hasChanges 
-                ? 'bg-[#FFD700] text-black'  // 有改動 = 黃色
-                : 'bg-green-600 text-white'   // 已保存 = 綠色
+                ? 'bg-[#FFD700] text-black'
+                : 'bg-green-600 text-white'
             }`}
           >
-            {saving ? '保存中...' : hasChanges ? '💾 保存設置' : '✅ 已保存'}
-          </button>
-          <button
-            onClick={rebuildHomeCache}
-            disabled={rebuildingCache}
-            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50"
-            title="重建首頁快取後，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取"
-          >
-            {rebuildingCache ? '重建中...' : '🔄 重建首頁快取'}
-          </button>
-          <button
-            onClick={rebuildSearchCache}
-            disabled={rebuildingSearchCache}
-            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50"
-            title="重建搜尋快取後，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取；可隨時按此打破快取"
-          >
-            {rebuildingSearchCache ? '重建中...' : '🔄 重建搜尋快取'}
-          </button>
-          <button
-            onClick={rebuildAllTabsCache}
-            disabled={rebuildingAllTabsCache}
-            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50"
-            title="重建樂譜列表快取後，約 24 小時內後台 getAllTabs（Spotify 管理、修復歌手等）只會用 1 次 Firestore 讀取"
-          >
-            {rebuildingAllTabsCache ? '重建中...' : '🔄 重建樂譜列表快取'}
-          </button>
-          <button
-            onClick={() => {
-              try { localStorage.removeItem(HOME_SETTINGS_CACHE_KEY) } catch (_) {}
-              setLoading(true)
-              loadData()
-            }}
-            className="px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition"
-            title="清除此頁 24 小時快取，立即從 Firestore 重新載入歌手/歌曲列表"
-          >
-            🔄 立即更新此頁資料
+            {saving ? '保存中...' : hasChanges ? '保存設置' : '已保存'}
           </button>
           <button
             onClick={() => router.push('/')}
@@ -1637,7 +1618,7 @@ function HomeSettings() {
                           {playlist.coverImage ? (
                             <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
+                            <div className="w-full h-full flex items-center justify-center"><svg className="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg></div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1736,13 +1717,13 @@ function HomeSettings() {
                             <div className={`w-6 h-6 rounded border flex items-center justify-center ${
                               isSelected ? 'bg-blue-500 border-blue-500' : 'border-neutral-600'
                             }`}>
-                              {isSelected && <span className="text-white text-sm">✓</span>}
+                              {isSelected && <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.5 12.75l6 6 9-13.5" /></svg>}
                             </div>
                             <div className="w-12 h-12 rounded bg-neutral-800 flex-shrink-0 overflow-hidden">
                               {playlist.coverImage ? (
                                 <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-xl">🎵</div>
+                                <div className="w-full h-full flex items-center justify-center"><svg className="w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg></div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">

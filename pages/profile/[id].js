@@ -9,60 +9,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { ArrowLeft } from 'lucide-react'
 
-// Bio 配置（會從資料庫載入）
-const DEFAULT_BIO_CONFIG = {
-  experience: {
-    options: [
-      { value: 'beginner', sentence: '初學結他' },
-      { value: '1-2', sentence: '彈結他1-2年' },
-      { value: '3-5', sentence: '彈結他3-5年' },
-      { value: '6-10', sentence: '有6-10年結他經驗' },
-      { value: '10+', sentence: '彈結他超過10年' },
-      { value: 'pro', sentence: '專業結他手' }
-    ]
-  },
-  style: {
-    options: [
-      { value: 'sing-play', sentence: '鍾意自彈自唱' },
-      { value: 'accompaniment', sentence: '主力伴奏' },
-      { value: 'fingerstyle', sentence: '鍾意指彈' },
-      { value: 'lead', sentence: '玩主音結他' },
-      { value: 'all', sentence: '什麼風格都玩' }
-    ]
-  },
-  location: {
-    options: [
-      { value: 'home', sentence: '平時喺屋企練習' },
-      { value: 'studio', sentence: '喺Band房練習' },
-      { value: 'school', sentence: '喺學校練習' },
-      { value: 'park', sentence: '鍾意喺街頭彈結他' },
-      { value: 'cafe', sentence: '喺咖啡廳彈結他' },
-      { value: 'church', sentence: '喺教會彈結他' },
-      { value: 'online', sentence: '會做線上直播' }
-    ]
-  },
-  chords: {
-    options: [
-      { value: 'open', sentence: '最愛用開放和弦' },
-      { value: 'barre', sentence: '最愛用Barre Chord' },
-      { value: 'jazz', sentence: '鍾意用Jazz和弦' },
-      { value: 'power', sentence: '愛用Power Chords' },
-      { value: 'sus', sentence: '鍾意用Sus4同Add9' },
-      { value: 'all', sentence: '什麼和弦都用' }
-    ]
-  },
-  templates: {
-    prefix: '「',
-    suffix: '。』'
-  }
-}
-
-// 由 DEFAULT_BIO_CONFIG 衍生的 label 對照（供 generateBioSentence 使用）
-const EXPERIENCE_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.experience.options.map(o => [o.value, o.sentence]))
-const STYLE_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.style.options.map(o => [o.value, o.sentence]))
-const LOCATION_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.location.options.map(o => [o.value, o.sentence]))
-const CHORDS_LABELS = Object.fromEntries(DEFAULT_BIO_CONFIG.chords.options.map(o => [o.value, o.sentence]))
-
 // 社交媒體圖標組件
 const SocialIcon = ({ platform, url }) => {
   if (!url) return null
@@ -144,33 +90,6 @@ const SocialIcon = ({ platform, url }) => {
   )
 }
 
-// 生成自動簡介句子
-const generateBioSentence = (profile) => {
-  if (!profile) return ''
-  
-  const parts = []
-  
-  if (profile.guitarExperience && EXPERIENCE_LABELS[profile.guitarExperience]) {
-    parts.push(EXPERIENCE_LABELS[profile.guitarExperience])
-  }
-  
-  if (profile.playingStyle && STYLE_LABELS[profile.playingStyle]) {
-    parts.push(STYLE_LABELS[profile.playingStyle])
-  }
-  
-  if (profile.practiceLocation && LOCATION_LABELS[profile.practiceLocation]) {
-    parts.push(LOCATION_LABELS[profile.practiceLocation])
-  }
-  
-  if (profile.favoriteChords && CHORDS_LABELS[profile.favoriteChords]) {
-    parts.push(CHORDS_LABELS[profile.favoriteChords])
-  }
-  
-  if (parts.length === 0) return ''
-  
-  return '「' + parts.join('，') + '。」'
-}
-
 export default function PublicProfile() {
   const router = useRouter()
   const { id } = router.query
@@ -183,7 +102,6 @@ export default function PublicProfile() {
   const [error, setError] = useState(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
-  const [bioConfig, setBioConfig] = useState(DEFAULT_BIO_CONFIG)
 
   useEffect(() => {
     if (id) {
@@ -194,16 +112,6 @@ export default function PublicProfile() {
   const loadProfile = async () => {
     setIsLoading(true)
     try {
-      // 同時載入 Bio 配置
-      try {
-        const bioDoc = await getDoc(doc(db, 'settings', 'profileBio'))
-        if (bioDoc.exists()) {
-          setBioConfig({ ...DEFAULT_BIO_CONFIG, ...bioDoc.data() })
-        }
-      } catch (e) {
-        console.log('Bio config not found, using default')
-      }
-      
       const userDoc = await getDoc(doc(db, 'users', id))
       
       if (!userDoc.exists()) {
@@ -298,7 +206,6 @@ export default function PublicProfile() {
 
   const totalViews = uploads.reduce((sum, tab) => sum + (tab.viewCount || 0), 0)
   const isOwnProfile = currentUser?.uid === id
-  const autoBio = generateBioSentence(profile, bioConfig)
   const socialMedia = profile?.socialMedia || {}
   const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
 
@@ -424,16 +331,12 @@ export default function PublicProfile() {
             </div>
           )}
 
-          {/* Bio - 優先顯示用戶自定義，否則顯示自動生成 */}
-          {profile.bio ? (
+          {/* Bio */}
+          {profile.bio && (
             <p className="text-neutral-300 text-base mt-4 leading-relaxed whitespace-pre-wrap">
               {profile.bio}
             </p>
-          ) : autoBio ? (
-            <p className="text-neutral-500 text-base mt-4 leading-relaxed italic">
-              {autoBio}
-            </p>
-          ) : null}
+          )}
         </div>
 
         {/* Popular Tabs - 熱門（前5首有縮圖，參考設計風格）*/}
