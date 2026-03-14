@@ -180,6 +180,39 @@ async function handleTabAction(adminDb, tab, action) {
     return changed ? patched : null
   })
 
+  // When creating or updating a tab, ensure all associated artists exist in the search cache's artists array
+  if (action === 'create' || action === 'update') {
+    const artistIds = Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length > 0
+      ? tab.collaboratorIds
+      : tab.artistId ? [tab.artistId] : []
+    const artistNames = Array.isArray(tab.collaborators) && tab.collaborators.length > 0
+      ? tab.collaborators
+      : tab.artist ? [tab.artist] : []
+
+    if (artistIds.length > 0) {
+      results.searchDataArtists = await patchCacheDoc(adminDb, 'searchData', (payload) => {
+        const artists = Array.isArray(payload.artists) ? payload.artists : []
+        const existingIds = new Set(artists.map(a => a.id))
+        const newArtists = []
+        for (let i = 0; i < artistIds.length; i++) {
+          if (existingIds.has(artistIds[i])) continue
+          newArtists.push(stripUndefined({
+            id: artistIds[i],
+            name: artistNames[i] || '',
+            photo: (i === 0 ? tab.artistPhoto : null) || null,
+            artistType: (i === 0 ? tab.artistType : '') || 'other',
+            regions: [],
+            displayOrder: null,
+            tier: 5,
+            tabCount: 1
+          }))
+        }
+        if (newArtists.length === 0) return null
+        return { ...payload, artists: [...artists, ...newArtists] }
+      })
+    }
+  }
+
   const artistId = tab.artistId
   if (artistId) {
     results.artistPageDeleted = await deleteArtistPageCache(adminDb, artistId)
@@ -194,12 +227,13 @@ async function handleArtistAction(adminDb, artist, action) {
   results.searchData = await patchCacheDoc(adminDb, 'searchData', (payload) => {
     const slim = toSearchArtistSlim(artist)
     const artists = Array.isArray(payload.artists) ? payload.artists : []
+    const idx = artists.findIndex(a => a.id === artist.id)
 
-    if (action === 'create-artist') {
+    if (idx === -1) {
+      // Artist not in cache — append regardless of create-artist vs update-artist
       return { ...payload, artists: [...artists, slim] }
     }
-    const idx = artists.findIndex(a => a.id === artist.id)
-    if (idx === -1) return null
+    // Already in cache — update in place (handles both create-artist and update-artist)
     const updated = [...artists]
     updated[idx] = { ...updated[idx], ...slim }
     return { ...payload, artists: updated }

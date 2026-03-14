@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     // Optional: return only tabs or only artists to reduce payload for single-purpose callers (same 1 read)
     const only = req.query.only === 'artists' ? 'artists' : req.query.only === 'tabs' ? 'tabs' : null
     const body = only === 'artists' ? { artists: data.artists } : only === 'tabs' ? { tabs: data.tabs } : data
-    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
     return res.json(body)
   } catch (err) {
     console.error('search-data API error:', err)
