@@ -11,6 +11,7 @@ import { getTabsByArtist, getArtistBySlug, slimTabForArtistPage } from '../../li
 import { getArtistPageCache, setArtistPageCache } from '../../lib/artistPageCache';
 import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
+import { isArtistSavedInCache } from '../../lib/userLibraryCache';
 import { recordArtistView } from '../../lib/recentViews';
 import { recordPageView } from '../../lib/analytics';
 import { recordView } from '../../lib/libraryRecentViews';
@@ -95,10 +96,15 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
     loadArtistData();
   }, [id, initialArtist, initialHotTabs, initialAllTabs]);
 
-  // 載入「是否已收藏歌手」
+  // 載入「是否已收藏歌手」— 優先用 sessionStorage cache，無 cache 才 Firestore
   useEffect(() => {
     if (!id || !user?.uid) {
       setIsArtistSaved(false);
+      return;
+    }
+    const cached = isArtistSavedInCache(user.uid, id);
+    if (cached !== null) {
+      setIsArtistSaved(cached);
       return;
     }
     let cancelled = false;

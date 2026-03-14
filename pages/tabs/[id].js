@@ -30,6 +30,7 @@ const InstagramIcon = ({ className }) => (
   </svg>
 )
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '@/lib/playlistApi'
+import { isSongLikedInCache, getPlaylistsFromCache } from '@/lib/userLibraryCache'
 import Head from 'next/head'
 import { generateTabTitle, generateTabDescription, generateTabSchema, generateBreadcrumbSchema, getAbsoluteOgImage } from '@/lib/seo'
 import { siteConfig } from '@/lib/seo'
@@ -304,16 +305,26 @@ export default function TabDetail({ initialTab }) {
 
   useEffect(() => {
     if (user && tab?.id) {
-      checkIsLiked(user.uid, tab.id).then(setMenuTabLiked);
+      const cached = isSongLikedInCache(user.uid, tab.id);
+      if (cached !== null) {
+        setMenuTabLiked(cached);
+      } else {
+        checkIsLiked(user.uid, tab.id).then(setMenuTabLiked);
+      }
     } else {
       setMenuTabLiked(false);
     }
   }, [user, tab?.id]);
 
-  // 加入歌單需要歌單列表：user 登入時載入
+  // 加入歌單需要歌單列表：優先用 cache，無 cache 才 Firestore
   useEffect(() => {
     if (user) {
-      getUserPlaylists(user.uid).then(setUserPlaylists);
+      const cached = getPlaylistsFromCache(user.uid);
+      if (cached) {
+        setUserPlaylists(cached);
+      } else {
+        getUserPlaylists(user.uid).then(setUserPlaylists);
+      }
     }
   }, [user]);
 
