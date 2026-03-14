@@ -186,9 +186,9 @@ export default function TabDetail({ initialTab }) {
   }, [tab])
 
   const analyzeChords = (content, originalKey) => {
-    const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)?\b/g
+    const chordPattern = /\b[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)?\b/g
     const matches = content.match(chordPattern) || []
-    const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/
+    const validChordPattern = /^[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/
     const chords = matches.filter(c => validChordPattern.test(c))
     const uniqueChords = [...new Set(chords)]
     

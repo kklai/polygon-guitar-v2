@@ -314,11 +314,11 @@ export function getChordShape(chord) {
 export function extractChords(content) {
   if (!content) return [];
   
-  const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?\d*(?=\s|$|\||\b)/g;
+  const chordPattern = /\b[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?\d*(?=\s|$|\||\b)/g;
   const matches = content.match(chordPattern) || [];
   
   // 過濾有效和弦
-  const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/;
+  const validChordPattern = /^[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)*$/;
   const validChords = matches.filter(c => validChordPattern.test(c.replace(/\/.*/, '')));
   
   // 返回獨特和弦列表
@@ -605,7 +605,7 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
   
   // 解析和弦行，分離和弦和非和弦部分（支援 slash chord 如 E/G#）
   const parts = [];
-  const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
+  const chordPattern = /\b[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?(\/[A-G][#b]?)?(?=\s|$|\||\b)/g;
   
   let lastIndex = 0;
   let match;

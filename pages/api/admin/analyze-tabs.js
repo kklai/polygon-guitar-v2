@@ -12,11 +12,11 @@ function analyzeDifficulty(content) {
   if (!content) return null;
   
   // 提取所有和弦
-  const chordPattern = /\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)?\b/g;
+  const chordPattern = /\b[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)?\b/g;
   const allMatches = content.match(chordPattern) || [];
   
   // 過濾有效和弦並統計
-  const validChordPattern = /^[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*$/;
+  const validChordPattern = /^[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*$/;
   const allChords = allMatches.filter(chord => validChordPattern.test(chord));
   const uniqueChords = [...new Set(allChords)];
   

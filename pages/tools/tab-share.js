@@ -168,7 +168,8 @@ export default function TabShareTool() {
     if (!content) return { chords: [], lyrics: [] }
     const lines = content.split('\n')
     const isChord = (t) => {
-      const n = t.replace(/[｜]/g, '|')
+      const n = t.replace(/[｜]/g, '|').replace(/\bN\.?C\.?\b/gi, '').trim()
+      if (!n) return false
       if (!/[A-G][#b]?/.test(n)) return false
       const chinese = (n.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length
       if (chinese >= 2) return false

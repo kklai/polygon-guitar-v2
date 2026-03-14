@@ -29,7 +29,7 @@ const BARRE_CHORDS = /Fmaj7|Bm|Bbm|Cm|C#m|C#|F#m|F#|G#m|Gm|Bbm|Bm7|C#7|F#7|B7/;
 function analyzeDifficulty(content) {
   if (!content) return null;
   
-  const chordMatches = content.match(/[A-G][#b]?(m|maj|7|sus|dim|aug|add)?[0-9]?(\/[A-G][#b]?)?/g) || [];
+  const chordMatches = content.match(/[A-G][#b]?(maj|mj|m|7|sus|dim|aug|add)?[0-9]?(\/[A-G][#b]?)?/g) || [];
   const uniqueChords = [...new Set(chordMatches)];
   
   let easyCount = 0, mediumCount = 0, hardCount = 0, barreCount = 0;

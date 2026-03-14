@@ -8,7 +8,7 @@ function transposeChord(chord, fromKey, toKey) {
   if (!chord || fromKey === toKey) return chord;
   
   const getIndex = (key) => {
-    const cleanKey = key.replace(/m|maj|min|dim|aug|sus|add|7|9|11|13/g, '');
+    const cleanKey = key.replace(/maj|mj|m|min|dim|aug|sus|add|7|9|11|13/g, '');
     return NOTES.indexOf(cleanKey);
   };
   
@@ -28,7 +28,7 @@ function transposeChord(chord, fromKey, toKey) {
 function transposeLine(line, fromKey, toKey) {
   if (!line || fromKey === toKey) return line;
   
-  return line.replace(/\b[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)?\b/g, (match) => {
+  return line.replace(/\b[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?[0-9]*(\/[A-G][#b]?)?\b/g, (match) => {
     return transposeChord(match, fromKey, toKey);
   });
 }
@@ -67,7 +67,7 @@ export default function TabContentSimple({
       const transposedLine = transposeLine(line, originalKey, playKey);
       
       // 檢查係咪純和弦行（有 | 或只有和弦）
-      const hasChords = /[A-G][#b]?(m|maj|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?/.test(transposedLine);
+      const hasChords = /[A-G][#b]?(maj|mj|m|min|dim|aug|sus|add|m7|maj7|7|9|11|13)?/.test(transposedLine);
       const isChordLine = hasChords && !/[\u4e00-\u9fa5]/.test(transposedLine); // 冇中文字
       
       if (isChordLine) {
