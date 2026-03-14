@@ -290,6 +290,7 @@ export default function EditTab() {
         spotifyArtistId: data.spotifyArtistId || null,
         spotifyUrl: data.spotifyUrl || null
       })
+      if (data.artistId) setUseExistingArtistSelected(true)
     } catch (error) {
       console.error('Error loading tab:', error)
     } finally {
@@ -719,6 +720,7 @@ export default function EditTab() {
             <div>
               <ArtistInputSimple
                 value={{ artists: formData.artists }}
+                hidePreview={useExistingArtistSelected}
                 onChange={({ artists, displayName, primaryArtist }) => {
                   setFormData(prev => ({
                     ...prev,
@@ -727,6 +729,7 @@ export default function EditTab() {
                     artistId: primaryArtist?.id || null,
                     artistPhoto: primaryArtist?.photo || ''
                   }))
+                  setUseExistingArtistSelected(!!primaryArtist?.id)
                 }}
               />
               {errors.artist && (
@@ -745,35 +748,24 @@ export default function EditTab() {
               )}
             </div>
 
-            {/* Artist Type */}
+            {/* Artist Type — hidden when an existing artist is selected */}
+            {!useExistingArtistSelected && (
             <div>
               <label htmlFor="artistType" className="block text-sm font-medium text-white mb-1">
-                歌手類型 <span className="text-[#FFD700]">*</span>
+                歌手類型
               </label>
-              {useExistingArtistSelected && formData.artistType ? (
-                <div className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white flex items-center gap-2">
-                  <span className="text-green-400">✓</span>
-                  <span>
-                    {formData.artistType === 'male' && '男歌手'}
-                    {formData.artistType === 'female' && '女歌手'}
-                    {formData.artistType === 'group' && '組合'}
-                  </span>
-                  <span className="text-xs text-neutral-400 ml-auto">（已綁定現有歌手）</span>
-                </div>
-              ) : (
-                <select
-                  id="artistType"
-                  name="artistType"
-                  value={formData.artistType}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
-                >
-                  <option value="">請選擇...</option>
-                  <option value="male">男歌手</option>
-                  <option value="female">女歌手</option>
-                  <option value="group">組合</option>
-                </select>
-              )}
+              <select
+                id="artistType"
+                name="artistType"
+                value={formData.artistType}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
+              >
+                <option value="">請選擇...</option>
+                <option value="male">男歌手</option>
+                <option value="female">女歌手</option>
+                <option value="group">組合</option>
+              </select>
               
               {/* 已填入的歌手資料預覽 */}
               {(formData.artistPhoto || formData.artistYear || formData.artistType) && (
@@ -821,6 +813,7 @@ export default function EditTab() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Song Info Search - Spotify */}
             <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">

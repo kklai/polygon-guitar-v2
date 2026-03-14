@@ -690,6 +690,7 @@ E|----------------------------------------------------------------|
         <div>
           <ArtistInputSimple
             value={{ artists: formData.artists }}
+            hidePreview={useExistingArtistSelected}
             onChange={({ artists, displayName, primaryArtist }) => {
               setFormData(prev => ({
                 ...prev,
@@ -698,6 +699,7 @@ E|----------------------------------------------------------------|
                 artistId: primaryArtist?.id || null,
                 artistPhoto: primaryArtist?.photo || ''
               }))
+              setUseExistingArtistSelected(!!primaryArtist?.id)
             }}
           />
           {errors.artist && <p className="mt-1 text-sm text-red-400">{errors.artist}</p>}
@@ -714,32 +716,22 @@ E|----------------------------------------------------------------|
           )}
         </div>
         
-        {/* 歌手類型 - 如果用咗現有歌手就顯示為只讀 */}
+        {/* 歌手類型 — hidden when an existing artist is selected */}
+        {!useExistingArtistSelected && (
         <div>
-          <label className="block text-sm font-medium text-white mb-1">歌手類型 <span className="text-[#FFD700]">*</span></label>
-          {useExistingArtistSelected && formData.artistType ? (
-            <div className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span>
-                {formData.artistType === 'male' && '男歌手'}
-                {formData.artistType === 'female' && '女歌手'}
-                {formData.artistType === 'group' && '組合'}
-              </span>
-              <span className="text-xs text-neutral-400 ml-auto">（已綁定現有歌手）</span>
-            </div>
-          ) : (
-            <select name="artistType" value={formData.artistType} onChange={handleChange}
-              className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white">
-              <option value="">請選擇...</option>
-              <option value="male">男歌手</option>
-              <option value="female">女歌手</option>
-              <option value="group">組合</option>
-            </select>
-          )}
+          <label className="block text-sm font-medium text-white mb-1">歌手類型</label>
+          <select name="artistType" value={formData.artistType} onChange={handleChange}
+            className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-white">
+            <option value="">請選擇...</option>
+            <option value="male">男歌手</option>
+            <option value="female">女歌手</option>
+            <option value="group">組合</option>
+          </select>
         </div>
+        )}
         
-        {/* 歌手相片預覽 */}
-        {formData.artistPhoto && (
+        {/* 歌手相片預覽 — hidden when existing artist selected */}
+        {formData.artistPhoto && !useExistingArtistSelected && (
           <div className="flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-neutral-800">
             <img 
               src={formData.artistPhoto} 

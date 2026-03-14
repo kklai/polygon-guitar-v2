@@ -435,7 +435,7 @@ function ArtistFieldRow({
 }
 
 // 主組件。內部載入 search-data 歌手列表，下拉用客戶端過濾（0 Firestore reads）
-export default function ArtistInputSimple({ value, onChange }) {
+export default function ArtistInputSimple({ value, onChange, hidePreview }) {
   // value 格式: { artists: [{ name, id, relation, isNew }], displayName: '' }
   const [artists, setArtists] = useState(value?.artists || [{ name: '', id: null, relation: null }])
   const [allArtists, setAllArtists] = useState([])
@@ -562,7 +562,7 @@ export default function ArtistInputSimple({ value, onChange }) {
       </div>
 
       {/* 預覽顯示 */}
-      {artists[0]?.name && (
+      {artists[0]?.name && !hidePreview && (
         <div className="p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg">
           <p className="text-xs text-neutral-500 mb-1">顯示效果：</p>
           <p className="text-white font-medium">
