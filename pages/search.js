@@ -267,92 +267,101 @@ export default function Search() {
           </div>
         </div>
 
-        {/* 搜尋記錄（無輸入時顯示，style 同 recent-tabs） */}
-        {!hasResults && searchHistory.length > 0 && (
-          <div
-            style={{
-              paddingTop: 'calc(5.5rem + env(safe-area-inset-top, 0px))',
-              paddingLeft: '1rem',
-              paddingRight: '1rem',
-            }}
-          >
-            <div className="flex items-baseline justify-between gap-3 pb-2">
-              <h2 className="font-bold text-white truncate text-[1.3rem] md:text-[1.375rem]">
-                搜尋記錄
-              </h2>
-              <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
-                共 {searchHistory.length} 項
-              </span>
-            </div>
-            {searchHistory.map((entry) => {
-              const songFromCatalog = entry.type === 'song' ? songs.find((s) => s.id === entry.id) : null
-              const uploaderDisplay = entry.type === 'song'
-                ? (entry.uploaderName || (songFromCatalog && (songFromCatalog.uploaderPenName || songFromCatalog.arrangedBy)) || '')
-                : ''
-              // 優先 localStorage（有圖就唔會再問 Firebase）；冇就先用已載入嘅 search data；再冇就等 backfill 從 Firebase 取一次並寫入 localStorage
-              const thumbnailDisplay = entry.type === 'song'
-                ? (entry.thumbnail || (songFromCatalog && getSongThumbnail(songFromCatalog)) || null)
-                : null
-              return (
-              <div
-                key={`${entry.type}-${entry.id}`}
-                className="group flex items-center gap-3 py-2 pl-0 pr-0 rounded-[7px] md:hover:bg-white/5 md:transition"
-              >
-                {entry.type === 'song' ? (
-                  <Link href={`/tabs/${entry.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                    <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
-                      {thumbnailDisplay ? (
-                        <img
-                          src={thumbnailDisplay}
-                          alt={entry.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <h3 className="text-[1rem] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
-                        {entry.title}
-                      </h3>
-                      <p className="text-[0.85rem] text-[#999] truncate">{entry.artist}</p>
-                    </div>
-                    {uploaderDisplay ? (
-                      <span className="flex-shrink-0 text-xs text-[#999] truncate max-w-[80px] text-right">
-                        {uploaderDisplay}
-                      </span>
-                    ) : null}
-                  </Link>
-                ) : (
-                  <Link href={`/artists/${entry.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                    <div className="w-[49px] h-[49px] rounded-full bg-neutral-800 flex-shrink-0 overflow-hidden">
-                      {entry.photo ? (
-                        <img
-                          src={entry.photo}
-                          alt={entry.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <span className="w-full h-full flex items-center justify-center text-2xl">🎤</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <h3 className="text-[0.95rem] md:text-[15px] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
-                        {entry.name}
-                      </h3>
-                      <p className="text-[0.85rem] text-[#999] truncate">歌手</p>
-                    </div>
-                  </Link>
-                )}
+        {/* 搜尋記錄（無輸入時顯示，分歌手／歌曲兩區，style 同搜尋結果） */}
+        {!hasResults && searchHistory.length > 0 && (() => {
+          const historyArtists = searchHistory.filter((e) => e.type === 'artist')
+          const historySongs = searchHistory.filter((e) => e.type === 'song')
+          return (
+            <div
+              className="space-y-5 pl-4 pr-4"
+              style={{ paddingTop: 'calc(5.5rem + env(safe-area-inset-top, 0px))' }}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-bold text-white truncate text-[1.3rem] md:text-[1.375rem]">
+                  搜尋記錄
+                </h2>
+                <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
+                  共 {searchHistory.length} 項
+                </span>
               </div>
-            )
-            })}
-          </div>
-        )}
+
+              {historyArtists.length > 0 && (
+                <section>
+                  <h2 className="font-bold text-white mb-2 text-[1.3rem]">歌手</h2>
+                  <div className="-mx-4">
+                    <div className="flex overflow-x-auto scrollbar-hide gap-3 px-4">
+                      {historyArtists.map((entry) => (
+                        <Link
+                          key={entry.id}
+                          href={`/artists/${entry.id}`}
+                          className="flex-shrink-0 flex flex-col items-center"
+                        >
+                          <div className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 mb-2">
+                            {entry.photo ? (
+                              <img
+                                src={entry.photo}
+                                alt={entry.name}
+                                className="w-full h-full object-cover pointer-events-none"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-2xl">🎤</div>
+                            )}
+                          </div>
+                          <span className="text-sm text-neutral-300 truncate max-w-[80px]">{entry.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {historySongs.length > 0 && (
+                <section>
+                  <h2 className="font-bold text-white mb-0 text-[1.3rem]">歌曲</h2>
+                  <div className="space-y-0">
+                    {historySongs.map((entry) => {
+                      const songFromCatalog = songs.find((s) => s.id === entry.id)
+                      const uploaderDisplay = entry.uploaderName || (songFromCatalog && (songFromCatalog.uploaderPenName || songFromCatalog.arrangedBy)) || ''
+                      const thumbnailDisplay = entry.thumbnail || (songFromCatalog && getSongThumbnail(songFromCatalog)) || null
+                      return (
+                        <Link
+                          key={entry.id}
+                          href={`/tabs/${entry.id}`}
+                          className="group w-full flex items-center gap-3 py-2 pr-3 pl-0 rounded-lg text-left md:hover:bg-white/5 md:transition"
+                        >
+                          <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
+                            {thumbnailDisplay ? (
+                              <img
+                                src={thumbnailDisplay}
+                                alt={entry.title}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            ) : (
+                              <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-medium truncate md:group-hover:text-[#FFD700] md:transition">{entry.title}</h3>
+                            <p className="text-sm text-neutral-500 truncate">{entry.artist}</p>
+                          </div>
+                          {uploaderDisplay ? (
+                            <span className="flex-shrink-0 text-xs text-[#999] truncate max-w-[80px] text-right">
+                              {uploaderDisplay}
+                            </span>
+                          ) : null}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+            </div>
+          )
+        })()}
 
         {/* 結果區域：留位俾固定搜尋欄 */}
         {hasResults && (
