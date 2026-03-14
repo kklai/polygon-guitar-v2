@@ -75,7 +75,7 @@ export default function Navbar() {
       className={`bg-[#FFD700] fixed top-0 left-0 right-0 will-change-transform ${isMenuOpen ? 'z-[10000]' : 'z-[100]'}`}
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1050px] mx-auto pl-4">
         <div className="flex justify-between relative z-10 bg-[#FFD700]" style={{ height: '4.4rem' }}>
           {/* Logo + 副標題 */}
           <div className="flex flex-col justify-end">

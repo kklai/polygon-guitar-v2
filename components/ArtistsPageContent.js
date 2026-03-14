@@ -279,7 +279,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
         />
       </Head>
       <div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-6"
+        className="max-w-7xl mx-auto px-4 pb-24 space-y-6"
         style={{ paddingTop: '24px' }}
       >
         <div className="px-4 -mx-4">
