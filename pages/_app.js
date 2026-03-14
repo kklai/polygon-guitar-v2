@@ -1,5 +1,6 @@
 import '@/styles/globals.css'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import AdminViewAsButton from '@/components/AdminViewAsButton'
 import Head from 'next/head'
 import { siteConfig } from '@/lib/seo'
 import { useEffect, useState, useRef } from 'react'
@@ -281,6 +282,7 @@ function RouteChangeIndicator() {
 export default function App({ Component, pageProps }) {
   return (
     <AuthProvider>
+      <AdminViewAsButton />
       <DisableImageContextMenu />
       <PrefetchNavRoutes />
       <RouteChangeIndicator />

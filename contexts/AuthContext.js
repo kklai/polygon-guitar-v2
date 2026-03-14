@@ -11,6 +11,17 @@ import { doc, setDoc, getDoc } from '@/lib/firestore-tracked'
 
 const AuthContext = createContext()
 
+const VIEW_AS_STORAGE_KEY = 'pg_admin_view_as' // 'admin' | 'user' | 'guest'
+
+function getStoredViewAs() {
+  if (typeof window === 'undefined') return 'admin'
+  try {
+    const v = localStorage.getItem(VIEW_AS_STORAGE_KEY)
+    if (v === 'guest' || v === 'user' || v === 'admin') return v
+  } catch (_) {}
+  return 'admin'
+}
+
 export function useAuth() {
   return useContext(AuthContext)
 }
@@ -18,6 +29,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [viewAsMode, setViewAsModeState] = useState('admin')
 
   // Handle redirect result on mount
   useEffect(() => {
@@ -95,19 +107,40 @@ export function AuthProvider({ children }) {
   }
 
   // 管理員檢查 - 從 Firestore user 資料讀取
-  const isAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com' || !!user?.role
-  
-  // 獲取用戶角色
-  const userRole = user?.role || (user?.email === 'kermit.tam@gmail.com' ? 'super_admin' : null)
+  const realIsAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com' || !!user?.role
+
+  // Admin 可切換「以誰身份瀏覽」：admin（正常）、user（一般登入用戶）、guest（未登入）
+  const effectiveViewAs = realIsAdmin ? viewAsMode : 'admin'
+  const effectiveUser = effectiveViewAs === 'guest' ? null : user
+  const isAdmin = effectiveViewAs === 'admin'
+
+  const setViewAsMode = (mode) => {
+    if (mode !== 'admin' && mode !== 'user' && mode !== 'guest') return
+    setViewAsModeState(mode)
+    try { localStorage.setItem(VIEW_AS_STORAGE_KEY, mode) } catch (_) {}
+  }
+
+  // 登入後若為 admin，從 localStorage 還原 viewAs
+  useEffect(() => {
+    if (realIsAdmin && user) setViewAsModeState(getStoredViewAs())
+  }, [realIsAdmin, !!user])
+
+  // 獲取用戶角色（以 effective 身份計）
+  const userRole = effectiveUser?.role || (effectiveUser?.email === 'kermit.tam@gmail.com' ? 'super_admin' : null)
 
   const value = {
-    user,
+    user: effectiveUser,
     loading,
     signInWithGoogle,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated: !!effectiveUser,
     isAdmin,
-    userRole
+    userRole,
+    // Admin 專用：實際身份與切換「以誰身份瀏覽」
+    realUser: user,
+    realIsAdmin: !!realIsAdmin,
+    viewAsMode: effectiveViewAs,
+    setViewAsMode
   }
 
   return (
