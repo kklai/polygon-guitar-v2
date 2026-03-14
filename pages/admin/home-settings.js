@@ -783,14 +783,11 @@ function HomeSettings() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-2">首頁設置</h1>
-          <p className="text-neutral-500">自定義首頁顯示內容同排序</p>
-        </div>
+      <div className="max-w-6xl mx-auto px-3 py-4 md:px-4 md:py-8">
+        <h1 className="text-xl md:text-2xl font-bold text-white mb-3">首頁設置</h1>
 
         {message && (
-          <div className={`mb-4 p-4 rounded-lg ${
+          <div className={`mb-3 p-3 rounded-lg text-sm ${
             !message.includes('失敗') && !message.includes('請先登入')
               ? 'bg-green-900/50 text-green-400 border border-green-700' 
               : 'bg-red-900/50 text-red-400 border border-red-700'
@@ -799,10 +796,20 @@ function HomeSettings() {
           </div>
         )}
 
-        <div className="flex border-b border-neutral-800 mb-6">
+        <div className="flex border-b border-neutral-800 mb-4">
+          <button
+            onClick={() => setActiveTab('layout')}
+            className={`flex-1 py-2 text-center text-sm font-medium transition border-b-2 ${
+              activeTab === 'layout'
+                ? 'text-[#FFD700] border-[#FFD700]'
+                : 'text-neutral-400 border-transparent hover:text-white'
+            }`}
+          >
+            首頁排序
+          </button>
           <button
             onClick={() => setActiveTab('artists')}
-            className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
+            className={`flex-1 py-2 text-center text-sm font-medium transition border-b-2 ${
               activeTab === 'artists'
                 ? 'text-[#FFD700] border-[#FFD700]'
                 : 'text-neutral-400 border-transparent hover:text-white'
@@ -812,7 +819,7 @@ function HomeSettings() {
           </button>
           <button
             onClick={() => setActiveTab('tabs')}
-            className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
+            className={`flex-1 py-2 text-center text-sm font-medium transition border-b-2 ${
               activeTab === 'tabs'
                 ? 'text-[#FFD700] border-[#FFD700]'
                 : 'text-neutral-400 border-transparent hover:text-white'
@@ -821,18 +828,8 @@ function HomeSettings() {
             熱門歌曲
           </button>
           <button
-            onClick={() => setActiveTab('layout')}
-            className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
-              activeTab === 'layout'
-                ? 'text-[#FFD700] border-[#FFD700]'
-                : 'text-neutral-400 border-transparent hover:text-white'
-            }`}
-          >
-            頁面布局
-          </button>
-          <button
             onClick={() => setActiveTab('cache')}
-            className={`flex-1 py-3 text-center font-medium transition border-b-2 ${
+            className={`flex-1 py-2 text-center text-sm font-medium transition border-b-2 ${
               activeTab === 'cache'
                 ? 'text-[#FFD700] border-[#FFD700]'
                 : 'text-neutral-400 border-transparent hover:text-white'
@@ -844,13 +841,13 @@ function HomeSettings() {
 
         {/* 熱門歌手設置 */}
         {activeTab === 'artists' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* 自動揀選 */}
-            <div className={`bg-[#121212] rounded-xl border p-4 ${!(settings.hotArtistUseManual) ? 'border-[#FFD700]/50' : 'border-neutral-800 opacity-60'}`}>
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className={`bg-[#121212] rounded-lg border p-3 ${!(settings.hotArtistUseManual) ? 'border-[#FFD700]/50' : 'border-neutral-800 opacity-60'}`}>
+              <div className="flex items-center gap-2 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotArtistUseManual: false })); setHasChanges(true) }}>
                   <input type="radio" checked={!(settings.hotArtistUseManual)} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
-                  <h2 className="text-lg font-medium text-white">自動揀選歌手</h2>
+                  <span className="text-sm font-medium text-white">自動揀選歌手</span>
                 </label>
                 <select
                   value={settings.hotArtistSortBy}
@@ -879,13 +876,13 @@ function HomeSettings() {
             </div>
 
             {/* 手動選擇 */}
-            <div className={`bg-[#121212] rounded-xl border ${settings.hotArtistUseManual ? 'border-[#FFD700]/50' : 'border-neutral-800'}`}>
-              <div className="p-4 border-b border-neutral-800">
+            <div className={`bg-[#121212] rounded-lg border ${settings.hotArtistUseManual ? 'border-[#FFD700]/50' : 'border-neutral-800'}`}>
+              <div className="p-3 border-b border-neutral-800">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotArtistUseManual: true })); setHasChanges(true) }}>
                       <input type="radio" checked={settings.hotArtistUseManual || false} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
-                      <h2 className="text-lg font-medium text-white">手動揀選歌手</h2>
+                      <span className="text-sm font-medium text-white">手動揀選歌手</span>
                       {getSelectedArtists().length > 0 && (
                         <span className="text-sm text-neutral-400 ml-1">
                           ({getSelectedArtists().length})
@@ -914,13 +911,13 @@ function HomeSettings() {
               </div>
               
 
-              <div className="p-4">
-                {/* 已選歌手列表（統一顯示所有已選，不分分類） */}
+              <div className="p-3">
+                {/* 已選歌手列表 */}
                 {(() => {
                   const allSelected = getSelectedArtists()
                   return allSelected.length > 0 ? (
-                  <div className="mb-6">
-                    <div className="space-y-2">
+                  <div className="mb-4">
+                    <div className="space-y-1">
                       {allSelected.map((artist, index) => {
                         const artistType = artist.artistType || artist.gender
                         const typeLabel = artistType === 'male' ? '男' : artistType === 'female' ? '女' : '組'
@@ -933,7 +930,7 @@ function HomeSettings() {
                             onDragStart={(e) => handleArtistDragStart(e, index)}
                             onDragOver={(e) => handleArtistDragOver(e, index)}
                             onDragEnd={handleArtistDragEnd}
-                            className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-neutral-800 cursor-move transition-opacity ${draggingArtistIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
+                            className={`flex items-center gap-2 p-2 bg-[#1a1a1a] rounded-lg border border-neutral-800 cursor-move transition-opacity ${draggingArtistIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
                           >
                             <span className="text-neutral-500 w-6 flex items-center gap-1">
                               <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -985,17 +982,16 @@ function HomeSettings() {
                     </div>
                   </div>
                   ) : (
-                    <div className="mb-6 p-8 bg-[#1a1a1a] rounded-lg border border-neutral-800 text-center">
-                      <p className="text-neutral-500">尚未揀選任何歌手</p>
-                      <p className="text-sm text-neutral-600 mt-1">喺下面搜索添加歌手</p>
+                    <div className="mb-4 p-4 bg-[#1a1a1a] rounded-lg border border-neutral-800 text-center">
+                      <p className="text-neutral-500 text-sm">尚未揀選任何歌手</p>
                     </div>
                   )
                 })()}
 
                 {/* 搜索添加 */}
                 <div>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-3">添加歌手</h3>
-                  <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                  <h3 className="text-xs font-medium text-neutral-400 mb-2">添加歌手</h3>
+                  <div className="flex items-center gap-1.5 mb-2 overflow-x-auto">
                     {[
                       { id: 'all', label: '全部' },
                       { id: 'male', label: '男歌手' },
@@ -1080,13 +1076,13 @@ function HomeSettings() {
 
         {/* 熱門歌曲設置 */}
         {activeTab === 'tabs' && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* 自動揀選 */}
-            <div className={`bg-[#121212] rounded-xl border p-4 ${!(settings.hotTabs?.useManual) ? 'border-[#FFD700]/50' : 'border-neutral-800 opacity-60'}`}>
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className={`bg-[#121212] rounded-lg border p-3 ${!(settings.hotTabs?.useManual) ? 'border-[#FFD700]/50' : 'border-neutral-800 opacity-60'}`}>
+              <div className="flex items-center gap-2 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotTabs: { ...prev.hotTabs, useManual: false } })); setHasChanges(true) }}>
                   <input type="radio" checked={!(settings.hotTabs?.useManual)} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
-                  <h2 className="text-lg font-medium text-white">自動揀選歌曲</h2>
+                  <span className="text-sm font-medium text-white">自動揀選歌曲</span>
                 </label>
                 <select
                   value={settings.hotTabs?.sortBy || 'viewCount'}
@@ -1121,12 +1117,12 @@ function HomeSettings() {
             </div>
 
             {/* 手動選擇歌曲 */}
-            <div className={`bg-[#121212] rounded-xl border ${settings.hotTabs?.useManual ? 'border-[#FFD700]/50' : 'border-neutral-800'}`}>
-              <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-wrap">
+            <div className={`bg-[#121212] rounded-lg border ${settings.hotTabs?.useManual ? 'border-[#FFD700]/50' : 'border-neutral-800'}`}>
+              <div className="p-3 border-b border-neutral-800 flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
                   <label className="flex items-center gap-2 cursor-pointer" onClick={() => { setSettings(prev => ({ ...prev, hotTabs: { ...prev.hotTabs, useManual: true } })); setHasChanges(true) }}>
                     <input type="radio" checked={settings.hotTabs?.useManual || false} readOnly className="w-4 h-4 text-[#FFD700] bg-[#282828] border-neutral-600" />
-                    <h2 className="text-lg font-medium text-white">手動揀選歌曲</h2>
+                    <span className="text-sm font-medium text-white">手動揀選歌曲</span>
                     {selectedTabIds.length > 0 && (
                       <span className="text-sm text-neutral-400 ml-1">({selectedTabIds.length})</span>
                     )}
@@ -1151,11 +1147,11 @@ function HomeSettings() {
                 )}
               </div>
 
-              <div className="p-4">
+              <div className="p-3">
                 {/* 已選歌曲列表 */}
                 {selectedTabIds.length > 0 && (
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center mb-3">
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-medium text-neutral-400">
                           已揀選 ({selectedTabIds.length})
@@ -1184,7 +1180,7 @@ function HomeSettings() {
                         清空全部
                       </button>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {getSelectedTabs().map((tab, index) => (
                         <div 
                           key={tab.id}
@@ -1192,7 +1188,7 @@ function HomeSettings() {
                           onDragStart={(e) => handleTabDragStart(e, index)}
                           onDragOver={(e) => handleTabDragOver(e, index)}
                           onDragEnd={handleTabDragEnd}
-                          className={`flex items-center gap-3 p-3 bg-[#1a1a1a] rounded-lg border border-neutral-800 cursor-move transition-opacity ${draggingTabIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
+                          className={`flex items-center gap-2 p-2 bg-[#1a1a1a] rounded-lg border border-neutral-800 cursor-move transition-opacity ${draggingTabIndex === index ? 'opacity-50 border-[#FFD700]' : ''}`}
                         >
                           <span className="text-neutral-500 w-6 flex items-center gap-1">
                             <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1246,8 +1242,8 @@ function HomeSettings() {
 
                 {/* 搜索添加 */}
                 <div>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-3">添加歌曲</h3>
-                  <div className="relative mb-3">
+                  <h3 className="text-xs font-medium text-neutral-400 mb-2">添加歌曲</h3>
+                  <div className="relative mb-2">
                     <input
                       type="text"
                       value={tabSearchTerm}
@@ -1315,10 +1311,24 @@ function HomeSettings() {
         {/* 頁面布局設置 */}
         {activeTab === 'layout' && (
           <div className="bg-[#121212] rounded-xl border border-neutral-800">
-            <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-medium text-white">首頁區域排序</h2>
-              </div>
+            {/* 新增區域按鈕 */}
+            <div className="px-3 pt-3 flex gap-2">
+              <button
+                onClick={() => setShowPlaylistModal(true)}
+                className="flex-1 py-2 bg-[#282828] text-neutral-300 rounded-lg hover:bg-[#3E3E3E] hover:text-white transition flex items-center justify-center gap-2 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg>
+                單歌單區域
+              </button>
+              <button
+                onClick={() => setShowPlaylistGroupModal(true)}
+                className="flex-1 py-2 bg-[#282828] text-neutral-300 rounded-lg hover:bg-[#3E3E3E] hover:text-white transition flex items-center justify-center gap-2 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
+                多歌單區域
+              </button>
               <button
                 onClick={() => {
                   if (confirm('確定要重置為預設布局嗎？這會恢復所有區域的顯示。')) {
@@ -1337,34 +1347,14 @@ function HomeSettings() {
                     setHasChanges(true)
                   }
                 }}
-                className="px-4 py-2 bg-neutral-800 text-neutral-300 rounded-lg hover:bg-neutral-700 transition text-sm"
+                className="px-3 py-2 bg-red-900/50 text-red-400 rounded-lg hover:bg-red-900 transition text-sm"
               >
-                重置為預設
-              </button>
-            </div>
-            
-            {/* 新增區域按鈕 */}
-            <div className="px-4 pt-4 flex gap-3">
-              <button
-                onClick={() => setShowPlaylistModal(true)}
-                className="flex-1 py-2 bg-[#282828] text-neutral-300 rounded-lg hover:bg-[#3E3E3E] hover:text-white transition flex items-center justify-center gap-2 text-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg>
-                單歌單區域
-              </button>
-              <button
-                onClick={() => setShowPlaylistGroupModal(true)}
-                className="flex-1 py-2 bg-[#282828] text-neutral-300 rounded-lg hover:bg-[#3E3E3E] hover:text-white transition flex items-center justify-center gap-2 text-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
-                多歌單區域
+                重置
               </button>
             </div>
 
-            <div className="p-4">
-              <div className="space-y-2">
+            <div className="p-3">
+              <div className="space-y-1.5">
                 {settings.sectionOrder?.map((section, index) => {
                   // 檢查是否為自定義區域
                   const customSection = (settings.customPlaylistSections || [])
@@ -1376,13 +1366,13 @@ function HomeSettings() {
                     return (
                       <div 
                         key={section.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        className={`flex items-center gap-2 p-2 rounded-lg border ${
                           section.enabled 
                             ? 'bg-[#FFD700]/10 border-[#FFD700]/30' 
                             : 'bg-neutral-900/30 border-neutral-800/50 opacity-50'
                         }`}
                       >
-                        <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={isGroup ? "M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" : "M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z"} /></svg>
+                        <svg className="w-4 h-4 text-neutral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={isGroup ? "M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" : "M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z"} /></svg>
                         <div className="flex-1">
                           <input
                             type="text"
@@ -1397,24 +1387,24 @@ function HomeSettings() {
                           />
                         </div>
                         
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => moveSection(index, 'up')}
                             disabled={index === 0}
-                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
+                            className="p-1 text-neutral-400 hover:text-white disabled:opacity-30 text-sm"
                           >
                             ↑
                           </button>
                           <button
                             onClick={() => moveSection(index, 'down')}
                             disabled={index === settings.sectionOrder.length - 1}
-                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
+                            className="p-1 text-neutral-400 hover:text-white disabled:opacity-30 text-sm"
                           >
                             ↓
                           </button>
                           <button
                             onClick={() => toggleSection(index)}
-                            className={`px-3 py-1 rounded text-sm font-medium transition ${
+                            className={`px-2 py-0.5 rounded text-xs font-medium transition ${
                               section.enabled
                                 ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
                                 : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
@@ -1424,7 +1414,6 @@ function HomeSettings() {
                           </button>
                           <button
                             onClick={() => {
-                              // 從 sectionOrder 和 customPlaylistSections 中移除
                               const newOrder = settings.sectionOrder.filter((_, i) => i !== index)
                               const newCustomSections = settings.customPlaylistSections.filter(s => s.id !== section.id)
                               setSettings(prev => ({
@@ -1434,7 +1423,7 @@ function HomeSettings() {
                               }))
                               setHasChanges(true)
                             }}
-                            className="p-2 text-red-400 hover:text-red-300"
+                            className="p-1 text-red-400 hover:text-red-300"
                             title="移除"
                           >
                             ✕
@@ -1451,14 +1440,13 @@ function HomeSettings() {
                   return (
                     <div 
                       key={section.id}
-                      className={`flex flex-col gap-3 p-3 rounded-lg border ${
+                      className={`flex items-center gap-2 p-2 rounded-lg border ${
                         section.enabled 
                           ? 'bg-neutral-900/50 border-neutral-800' 
                           : 'bg-neutral-900/30 border-neutral-800/50 opacity-50'
                       }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <input
                             type="text"
                             value={displayLabel}
@@ -1469,28 +1457,28 @@ function HomeSettings() {
                               setHasChanges(true)
                             }}
                             placeholder={option.label}
-                            className="w-full bg-transparent text-white font-medium border-b border-transparent hover:border-neutral-600 transition px-1 -ml-1"
+                            className="w-full bg-transparent text-sm text-white font-medium border-b border-transparent hover:border-neutral-600 transition px-1 -ml-1"
                           />
                         </div>
                         
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => moveSection(index, 'up')}
                             disabled={index === 0}
-                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
+                            className="p-1 text-neutral-400 hover:text-white disabled:opacity-30 text-sm"
                           >
                             ↑
                           </button>
                           <button
                             onClick={() => moveSection(index, 'down')}
                             disabled={index === settings.sectionOrder.length - 1}
-                            className="p-2 text-neutral-400 hover:text-white disabled:opacity-30"
+                            className="p-1 text-neutral-400 hover:text-white disabled:opacity-30 text-sm"
                           >
                             ↓
                           </button>
                           <button
                             onClick={() => toggleSection(index)}
-                            className={`px-3 py-1 rounded text-sm font-medium transition ${
+                            className={`px-2 py-0.5 rounded text-xs font-medium transition ${
                               section.enabled
                                 ? 'bg-green-900/50 text-green-400 hover:bg-green-900'
                                 : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
@@ -1499,7 +1487,6 @@ function HomeSettings() {
                             {section.enabled ? '顯示' : '隱藏'}
                           </button>
                         </div>
-                      </div>
                     </div>
                   )
                 })}
@@ -1510,14 +1497,13 @@ function HomeSettings() {
 
         {/* 清除快取 */}
         {activeTab === 'cache' && (
-          <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
-            <h2 className="text-lg font-medium text-white mb-2">快取管理</h2>
-            <p className="text-sm text-neutral-500 mb-6">重建各項快取以減少 Firestore 讀取次數</p>
-            <div className="space-y-3">
+          <div className="bg-[#121212] rounded-lg border border-neutral-800 p-4">
+            <h2 className="text-sm font-medium text-white mb-3">快取管理</h2>
+            <div className="space-y-2">
               <button
                 onClick={rebuildHomeCache}
                 disabled={rebuildingCache}
-                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
+                className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
               >
                 <div className="font-medium">{rebuildingCache ? '重建中...' : '重建首頁快取'}</div>
                 <div className="text-xs text-neutral-500 mt-0.5">約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取</div>
@@ -1525,7 +1511,7 @@ function HomeSettings() {
               <button
                 onClick={rebuildSearchCache}
                 disabled={rebuildingSearchCache}
-                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
+                className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
               >
                 <div className="font-medium">{rebuildingSearchCache ? '重建中...' : '重建搜尋快取'}</div>
                 <div className="text-xs text-neutral-500 mt-0.5">約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取</div>
@@ -1533,7 +1519,7 @@ function HomeSettings() {
               <button
                 onClick={rebuildAllTabsCache}
                 disabled={rebuildingAllTabsCache}
-                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
+                className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
               >
                 <div className="font-medium">{rebuildingAllTabsCache ? '重建中...' : '重建樂譜列表快取'}</div>
                 <div className="text-xs text-neutral-500 mt-0.5">約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取</div>
@@ -1544,7 +1530,7 @@ function HomeSettings() {
                   setLoading(true)
                   loadData()
                 }}
-                className="w-full px-6 py-3 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition text-left"
+                className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition text-left"
               >
                 <div className="font-medium">立即更新此頁資料</div>
                 <div className="text-xs text-neutral-500 mt-0.5">清除此頁 24 小時快取，從 Firestore 重新載入</div>
@@ -1553,11 +1539,11 @@ function HomeSettings() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-4 mt-8">
+        <div className="flex flex-wrap gap-3 mt-4">
           <button
             onClick={saveSettings}
             disabled={saving}
-            className={`flex-1 min-w-[140px] py-3 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 ${
+            className={`flex-1 min-w-[120px] py-2.5 rounded-lg font-medium text-sm hover:opacity-90 transition disabled:opacity-50 ${
               hasChanges 
                 ? 'bg-[#FFD700] text-black'
                 : 'bg-green-600 text-white'
@@ -1567,7 +1553,7 @@ function HomeSettings() {
           </button>
           <button
             onClick={() => router.push('/')}
-            className="px-6 py-3 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition"
+            className="px-4 py-2.5 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition text-sm"
           >
             查看首頁
           </button>

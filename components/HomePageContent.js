@@ -897,24 +897,6 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
         />
       </Head>
       <div className="min-h-screen bg-black pb-0 md:pb-[25px]">
-        {/* Admin 快捷按鈕（右上角） */}
-        {isAdmin && (
-          <div className="pr-6 pb-2 flex justify-end gap-2" style={{ paddingLeft: '1rem' }}>
-            <button
-              onClick={() => router.push('/admin/playlists')}
-              className="px-3 py-2 bg-[#282828] text-[#FFD700] border border-[#FFD700] rounded-full font-medium hover:bg-[#3E3E3E] transition text-sm"
-            >
-              管理歌單
-            </button>
-            <button
-              onClick={() => router.push('/admin/home-settings')}
-              className="px-3 py-2 bg-[#282828] text-[#FFD700] border border-[#FFD700] rounded-full font-medium hover:bg-[#3E3E3E] transition text-sm"
-            >
-              首頁設置
-            </button>
-          </div>
-        )}
-
         {/* 根據 sectionOrder 動態渲染（用凍結的 layout 避免 appear→disappear→reappear） */}
         <div style={{ marginTop: 25 }}>
           {(frozenLayout ? frozenLayout.sectionOrder : (homeSettings.sectionOrder || DEFAULT_SECTION_ORDER))

@@ -39,7 +39,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
             <Link 
               key={index}
               href={getItemHref(item)}
-              className="flex-shrink-0 cursor-pointer w-[32vw] md:w-36"
+              className="flex-shrink-0 cursor-pointer w-[26vw] md:w-32"
             >
               {/* 圖片區域 */}
               <div className={`

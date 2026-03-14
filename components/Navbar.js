@@ -75,7 +75,7 @@ export default function Navbar() {
       className={`bg-[#FFD700] fixed top-0 left-0 right-0 will-change-transform ${isMenuOpen ? 'z-[10000]' : 'z-[100]'}`}
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-      <div className="max-w-[1050px] mx-auto pl-4">
+      <div className="max-w-[1050px] mx-auto pl-4 pr-3">
         <div className="flex justify-between relative z-10 bg-[#FFD700]" style={{ height: '4.4rem' }}>
           {/* Logo + 副標題 */}
           <div className="flex flex-col justify-end">
@@ -151,20 +151,36 @@ export default function Navbar() {
                   </>
                 )}
                 {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="block text-black/70 px-4 py-2 font-medium border-t border-black/10 mt-1 pt-2"
-                    onClick={(e) => { e.preventDefault(); router.push('/admin') }}
-                  >
-                    管理後台
-                  </Link>
+                  <>
+                    <Link
+                      href="/admin/home-settings"
+                      className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium"
+                      onClick={(e) => { e.preventDefault(); router.push('/admin/home-settings') }}
+                    >
+                      首頁設置
+                    </Link>
+                    <Link
+                      href="/admin/playlists"
+                      className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium"
+                      onClick={(e) => { e.preventDefault(); router.push('/admin/playlists') }}
+                    >
+                      管理歌單
+                    </Link>
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2 text-black/70 px-4 py-2 font-medium"
+                      onClick={(e) => { e.preventDefault(); router.push('/admin') }}
+                    >
+                      管理後台
+                    </Link>
+                  </>
                 )}
                 {isAuthenticated ? (
-                  <button type="button" onClick={() => { handleLogout(); setIsMenuOpen(false) }} className="block w-full text-left text-black/70 font-medium px-4 py-2 border-t border-black/10 mt-1 pt-2">登出</button>
+                  <button type="button" onClick={() => { handleLogout(); setIsMenuOpen(false) }} className="flex items-center gap-2 w-full text-left text-black/70 font-medium px-4 py-2">登出</button>
                 ) : (
                   <Link
                     href="/login"
-                    className="block text-black font-bold px-4 py-2 border-t border-black/10 mt-1 pt-2"
+                    className="block text-black font-bold px-4 py-2"
                     onClick={(e) => { e.preventDefault(); router.push('/login') }}
                   >
                     登入
@@ -243,12 +259,12 @@ export default function Navbar() {
             onKeyDown={(e) => e.key === 'Enter' && setIsMenuOpen(false)}
           />
           <div className="md:hidden relative z-[2] bg-[#FFD700] border-t border-yellow-600">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="px-2 py-2">
             {isAuthenticated && (
               <>
                 <Link 
                   href="/tabs/new" 
-                  className="flex items-center gap-2 text-black/70 px-3 py-2 rounded-md font-medium"
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 font-medium"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
                     <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -257,7 +273,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href={`/profile/${user.uid}`}
-                  className="flex items-center gap-2 text-black/70 px-3 py-2 rounded-md font-medium"
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 font-medium"
                 >
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
@@ -270,36 +286,63 @@ export default function Navbar() {
                 </Link>
               </>
             )}
-            {/* Admin 選項 */}
             {isAdmin && (
-              <Link 
-                href="/admin" 
-                className="block text-black/70 px-3 py-2 font-medium border-t border-yellow-600 mt-2 pt-2"
-              >
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <>
+                {isAuthenticated && <div className="my-2 mx-3 border-t border-yellow-600" />}
+                <Link 
+                  href="/admin/home-settings" 
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 font-medium"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  首頁設置
+                </Link>
+                <Link 
+                  href="/admin/playlists" 
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 font-medium"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  管理歌單
+                </Link>
+                <Link 
+                  href="/admin" 
+                  className="flex items-center gap-2 text-black/70 px-3 py-2 font-medium"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   管理後台
-                </span>
-              </Link>
+                </Link>
+              </>
             )}
+            {isAuthenticated && <div className="my-2 mx-3 border-t border-yellow-600" />}
             {isAuthenticated ? (
               <button
                 onClick={() => {
                   handleLogout()
                   setIsMenuOpen(false)
                 }}
-                className="block w-full text-left text-black/70 font-medium px-3 py-2 border-t border-yellow-600 mt-2 pt-2 rounded-none"
+                className="flex items-center gap-2 w-full text-left text-black/70 font-medium px-3 py-2"
               >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                  <path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3-3l3-3m0 0l-3-3m3 3H9" />
+                </svg>
                 登出
               </button>
             ) : (
               <Link 
                 href="/login" 
-                className="block text-black font-bold px-3 py-2 rounded-none border-t border-yellow-600 mt-2 pt-2"
+                className="flex items-center gap-2 text-black font-bold px-3 py-2"
               >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} viewBox="0 0 24 24">
+                  <path d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
                 登入
               </Link>
             )}
