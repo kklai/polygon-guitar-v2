@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES } from '@/lib/playlists'
+import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES, updatePlaylist as updateSitePlaylist } from '@/lib/playlists'
 import { getPlaylistPageCache, setPlaylistPageCache } from '@/lib/playlistPageCache'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import SongActionSheet from '@/components/SongActionSheet'
@@ -11,7 +11,9 @@ import Link from '@/components/Link'
 import { recordPlaylistView } from '@/lib/recentViews'
 import { useArtistMap } from '@/lib/useArtistMap'
 import { useAuth } from '@/contexts/AuthContext'
-import { Share, Heart, Music, User, Plus, Copy, ArrowLeft } from 'lucide-react'
+import { Share, Heart, Music, User, Plus, Copy, ArrowLeft, Bookmark, ListMusic, ArrowUpDown, Pencil, X, Search } from 'lucide-react'
+import { getTabsByIds } from '@/lib/tabs'
+import { uploadToCloudinary } from '@/lib/cloudinary'
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved, removeSongFromPlaylist } from '@/lib/playlistApi'
 
 function serializePlaylistData(obj) {
@@ -57,6 +59,45 @@ export default function PlaylistDetail({
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
 
+  // Admin inline editing state
+  const [showAdminAddSong, setShowAdminAddSong] = useState(false)
+  const [adminAddSongQuery, setAdminAddSongQuery] = useState('')
+  const [adminSongCatalog, setAdminSongCatalog] = useState([])
+  const adminArtistMap = useRef(new Map())
+  const [adminAddSongLoading, setAdminAddSongLoading] = useState(false)
+  const [adminAddingSongId, setAdminAddingSongId] = useState(null)
+  const [adminAddSongDragY, setAdminAddSongDragY] = useState(0)
+  const adminAddSongTouchStartY = useRef(0)
+
+  const [showAdminEditSongs, setShowAdminEditSongs] = useState(false)
+  const [adminEditDragY, setAdminEditDragY] = useState(0)
+  const adminEditTouchStartY = useRef(0)
+  const adminEditListScrollRef = useRef(null)
+  const [adminTouchDragIndex, setAdminTouchDragIndex] = useState(null)
+  const [adminTouchDragY, setAdminTouchDragY] = useState(0)
+  const adminTouchDragStartYRef = useRef(0)
+  const adminTouchDragYRef = useRef(0)
+  const adminTouchDragRowHeightRef = useRef(56)
+  const adminTouchDragRowTopRef = useRef(0)
+  const ADMIN_EDIT_ROW_HEIGHT = 56
+
+  const [showAdminSettings, setShowAdminSettings] = useState(false)
+  const [adminSettingsDragY, setAdminSettingsDragY] = useState(0)
+  const adminSettingsTouchStartY = useRef(0)
+  const [adminEditTitle, setAdminEditTitle] = useState('')
+  const [adminEditDescription, setAdminEditDescription] = useState('')
+  const [adminEditCuratedBy, setAdminEditCuratedBy] = useState('')
+  const [adminSavingSettings, setAdminSavingSettings] = useState(false)
+  const [adminEditCoverImage, setAdminEditCoverImage] = useState('')
+  const [adminCoverUploading, setAdminCoverUploading] = useState(false)
+  const adminCoverInputRef = useRef(null)
+
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+  useEffect(() => {
+    setIsTouchDevice(typeof window !== 'undefined' && 'ontouchstart' in window)
+  }, [])
+
   useEffect(() => setHasMounted(true), [])
 
   // 從 uniqueArtists 隨機揀 2 位做推薦歌手（唔使再 getDoc(artists)）
@@ -92,13 +133,27 @@ export default function PlaylistDetail({
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    if (showPlaylistMoreModal) {
+    if (showPlaylistMoreModal || showAdminAddSong || showAdminEditSongs || showAdminSettings) {
       const prev = document.body.style.overflow
       document.body.style.overflow = 'hidden'
       return () => { document.body.style.overflow = prev }
     }
-  }, [showPlaylistMoreModal])
+  }, [showPlaylistMoreModal, showAdminAddSong, showAdminEditSongs, showAdminSettings])
 
+  useEffect(() => {
+    if (!showAdminAddSong) return
+    setAdminAddSongLoading(true)
+    fetch('/api/search-data')
+      .then((r) => r.json())
+      .then((data) => {
+        const map = new Map()
+        ;(data.artists || []).forEach(a => { if (a.id && a.name) map.set(a.id, a.name) })
+        adminArtistMap.current = map
+        setAdminSongCatalog(data.tabs || [])
+      })
+      .catch(() => setAdminSongCatalog([]))
+      .finally(() => setAdminAddSongLoading(false))
+  }, [showAdminAddSong])
 
   // 歌手 + 歌單合併後隨機排序，整體次序隨機
   useEffect(() => {
@@ -285,15 +340,181 @@ export default function PlaylistDetail({
       if (isSavedToLibrary) {
         await removeSavedPlaylist(user.uid, id)
         setIsSavedToLibrary(false)
+        setPlaylist(prev => prev ? { ...prev, savedCount: Math.max(0, (prev.savedCount || 0) - 1) } : prev)
       } else {
         await savePlaylistToLibrary(user.uid, id)
         setIsSavedToLibrary(true)
+        setPlaylist(prev => prev ? { ...prev, savedCount: (prev.savedCount || 0) + 1 } : prev)
       }
     } catch (err) {
       console.error('加入收藏失敗:', err)
       alert('加入收藏失敗，請重試')
     } finally {
       setIsSavingPlaylist(false)
+    }
+  }
+
+  // ==================== Admin inline editing handlers ====================
+  const DRAG_CLOSE_THRESHOLD = 80
+  const getAdminClientY = (e) => e.touches?.[0]?.clientY ?? e.clientY
+
+  const makeSheetDrag = (setDragY, touchStartYRef, onClose) => ({
+    onStart: (e) => {
+      if (e.pointerType === 'mouse') return
+      touchStartYRef.current = getAdminClientY(e)
+      try { if (e.target?.setPointerCapture && e.pointerId != null) e.target.setPointerCapture(e.pointerId) } catch (_) {}
+    },
+    onMove: (e) => {
+      if (e.pointerType === 'mouse') return
+      const y = getAdminClientY(e)
+      const delta = y - touchStartYRef.current
+      if (delta > 0) setDragY(Math.min(delta, 200))
+    },
+    onEnd: (dragY) => {
+      if (dragY >= DRAG_CLOSE_THRESHOLD) { onClose(); setDragY(0) }
+      else { setDragY(0) }
+    }
+  })
+
+  const adminAddSongDrag = makeSheetDrag(setAdminAddSongDragY, adminAddSongTouchStartY, () => { setShowAdminAddSong(false); setAdminAddSongQuery('') })
+  const adminEditDrag = makeSheetDrag(setAdminEditDragY, adminEditTouchStartY, () => setShowAdminEditSongs(false))
+  const adminSettingsDrag = makeSheetDrag(setAdminSettingsDragY, adminSettingsTouchStartY, () => setShowAdminSettings(false))
+
+  const currentSongIds = new Set(playlist?.songIds || songs.map((s) => s.id))
+  const adminAddSongFiltered = adminSongCatalog
+    .filter((tab) => {
+      if (currentSongIds.has(tab.id)) return false
+      const q = adminAddSongQuery.trim().toLowerCase()
+      if (!q) return true
+      const title = (tab.title || '').toLowerCase()
+      const artistName = (tab.artist || adminArtistMap.current.get(tab.artistId) || '').toLowerCase()
+      const composer = (tab.composer || '').toLowerCase()
+      const lyricist = (tab.lyricist || '').toLowerCase()
+      const arranger = (tab.arranger || '').toLowerCase()
+      const penName = (tab.uploaderPenName || '').toLowerCase()
+      return title.includes(q) || artistName.includes(q) || composer.includes(q) || lyricist.includes(q) || arranger.includes(q) || penName.includes(q)
+    })
+    .slice(0, adminAddSongQuery.trim() ? Infinity : 20)
+
+  const handleAdminAddSong = async (songId) => {
+    setAdminAddingSongId(songId)
+    try {
+      const newSongIds = [...(playlist?.songIds || []), songId]
+      await updateSitePlaylist(id, { songIds: newSongIds })
+      const [added] = await getTabsByIds([songId])
+      if (added) setSongs((prev) => [...prev, added])
+      setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
+    } catch (e) {
+      console.error(e)
+      alert('加入失敗，請重試')
+    } finally {
+      setAdminAddingSongId(null)
+    }
+  }
+
+  const orderedSongsForAdminEdit = (playlist?.songIds || []).map((sid) => songs.find((s) => s.id === sid)).filter(Boolean)
+
+  const handleAdminRemoveSong = async (songId) => {
+    try {
+      const newSongIds = (playlist?.songIds || []).filter((sid) => sid !== songId)
+      await updateSitePlaylist(id, { songIds: newSongIds })
+      setSongs((prev) => prev.filter((s) => s.id !== songId))
+      setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
+    } catch (e) {
+      console.error(e)
+      alert('移除失敗，請重試')
+    }
+  }
+
+  const handleAdminReorder = async (fromIndex, toIndex) => {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= orderedSongsForAdminEdit.length) return
+    const reordered = [...orderedSongsForAdminEdit]
+    const [removed] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, removed)
+    const newSongIds = reordered.map((s) => s.id)
+    try {
+      await updateSitePlaylist(id, { songIds: newSongIds })
+      setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
+    } catch (e) {
+      console.error(e)
+      alert('更新次序失敗，請重試')
+    }
+  }
+
+  const handleAdminEditHandleTouchStart = (e, index) => {
+    const clientY = e.touches[0].clientY
+    adminTouchDragStartYRef.current = clientY
+    const row = e.currentTarget.closest('li')
+    if (row) {
+      const rect = row.getBoundingClientRect()
+      adminTouchDragRowHeightRef.current = rect.height
+      adminTouchDragRowTopRef.current = rect.top
+    }
+    setAdminTouchDragIndex(index)
+    setAdminTouchDragY(clientY)
+  }
+
+  useEffect(() => {
+    if (adminTouchDragIndex === null) return
+    const onMove = (e) => {
+      const clientY = e.touches?.[0]?.clientY
+      if (clientY == null) return
+      if (Math.abs(clientY - adminTouchDragStartYRef.current) > 8) e.preventDefault()
+      adminTouchDragYRef.current = clientY
+      setAdminTouchDragY(clientY)
+    }
+    const onEnd = () => {
+      const el = adminEditListScrollRef.current
+      const list = orderedSongsForAdminEdit
+      const currentY = adminTouchDragYRef.current
+      if (el && list.length > 0) {
+        const rect = el.getBoundingClientRect()
+        const rowH = adminTouchDragRowHeightRef.current || ADMIN_EDIT_ROW_HEIGHT
+        const relativeY = currentY - rect.top + el.scrollTop
+        const dropIndex = Math.max(0, Math.min(list.length - 1, Math.floor(relativeY / rowH)))
+        if (dropIndex !== adminTouchDragIndex) handleAdminReorder(adminTouchDragIndex, dropIndex)
+      }
+      setAdminTouchDragIndex(null)
+    }
+    document.addEventListener('touchmove', onMove, { passive: false })
+    document.addEventListener('touchend', onEnd, { once: true })
+    document.addEventListener('touchcancel', onEnd, { once: true })
+    return () => { document.removeEventListener('touchmove', onMove) }
+  }, [adminTouchDragIndex])
+
+  const handleAdminCoverUpload = async (file) => {
+    if (!file) return
+    setAdminCoverUploading(true)
+    try {
+      const url = await uploadToCloudinary(file, adminEditTitle || 'playlist-cover', 'playlists')
+      setAdminEditCoverImage(url)
+    } catch (e) {
+      alert('封面上傳失敗：' + (e.message || e))
+    } finally {
+      setAdminCoverUploading(false)
+    }
+  }
+
+  const handleAdminSaveSettings = async () => {
+    const titleTrimmed = adminEditTitle.trim()
+    if (!titleTrimmed) { alert('歌單名稱不可為空'); return }
+    setAdminSavingSettings(true)
+    try {
+      const updates = {
+        title: titleTrimmed,
+        description: (adminEditDescription || '').trim(),
+        curatedBy: (adminEditCuratedBy || '').trim(),
+        coverImage: adminEditCoverImage || ''
+      }
+      await updateSitePlaylist(id, updates)
+      setPlaylist((p) => p ? { ...p, ...updates } : p)
+      setShowAdminSettings(false)
+      setAdminSettingsDragY(0)
+    } catch (e) {
+      console.error(e)
+      alert('更新失敗，請重試')
+    } finally {
+      setAdminSavingSettings(false)
     }
   }
 
@@ -516,39 +737,48 @@ export default function PlaylistDetail({
 
         {/* 標題行 + Action Bar 共用左右 1rem，右緣對齊 */}
         <div style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
-          <div className="pb-1">
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
-                  {playlist.title}
-                </h1>
-                {isAdmin && playlist.source === 'manual' && (
-                  <Link
-                    href={`/admin/playlists/edit/${id}`}
-                    className="p-1.5 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition flex-shrink-0"
-                    title="編輯歌單"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </Link>
-                )}
-              </div>
-              <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
+          <div className="flex items-start justify-between gap-3 pb-1">
+            {/* 左欄：標題 + 描述 */}
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-white truncate" style={{ fontSize: '1.5rem' }}>
+                {playlist.title}
+              </h1>
+              {playlist.description && (
+                <p className="text-[0.85rem] text-[#999] leading-snug line-clamp-4 whitespace-pre-line mt-1">{playlist.description}</p>
+              )}
+            </div>
+            {/* 右欄：統計 + 收藏 */}
+            <div className="flex flex-col items-end gap-0.5 text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0 pt-3">
+              <span className="flex items-center gap-1.5">
                 共 {songs.length} 首
                 {playlist.source === 'manual' && playlist.curatedBy && (
-                  <> • By {playlist.curatedBy}</>
+                  <><span className="text-neutral-600">•</span> By {playlist.curatedBy}</>
                 )}
                 {playlist.source === 'auto' && playlist.lastUpdated && (
-                  <> • 更新於 {hasMounted ? formatTimeAgo(playlist.lastUpdated) : '—'}</>
+                  <><span className="text-neutral-600">•</span> 更新於 {hasMounted ? formatTimeAgo(playlist.lastUpdated) : '—'}</>
                 )}
               </span>
+              {playlist.savedCount > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Bookmark className="w-3.5 h-3.5 text-[#FFD700] fill-[#FFD700] flex-shrink-0" />
+                  {playlist.savedCount} 收藏
+                </span>
+              )}
             </div>
           </div>
 
-          {playlist.description && (
-            <div className="pb-0">
-              <p className="text-[0.85rem] text-[#999] leading-snug line-clamp-4 whitespace-pre-line">{playlist.description}</p>
+          {/* Admin action bar */}
+          {isAdmin && playlist.source === 'manual' && (
+            <div className="py-2 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setShowAdminAddSong(true)} className="flex items-center justify-center gap-1 w-[85px] px-3 py-1.5 rounded-full bg-[#282828] text-white text-sm font-medium hover:bg-[#3E3E3E] transition">
+                <Plus className="w-4 h-4 shrink-0" />加入
+              </button>
+              <button type="button" onClick={() => setShowAdminEditSongs(true)} className="flex items-center justify-center gap-1 w-[85px] px-3 py-1.5 rounded-full bg-[#282828] text-white text-sm font-medium hover:bg-[#3E3E3E] transition">
+                <ListMusic className="w-4 h-4 shrink-0" />編輯
+              </button>
+              <button type="button" onClick={() => { setAdminEditTitle(playlist.title || ''); setAdminEditDescription(playlist.description || ''); setAdminEditCuratedBy(playlist.curatedBy || user?.displayName || ''); setAdminEditCoverImage(playlist.coverImage || ''); setShowAdminSettings(true) }} className="flex items-center justify-center gap-1 w-[85px] px-3 py-1.5 rounded-full bg-[#282828] text-white text-sm font-medium hover:bg-[#3E3E3E] transition">
+                <Pencil className="w-4 h-4 shrink-0" />歌單
+              </button>
             </div>
           )}
 
@@ -629,9 +859,11 @@ export default function PlaylistDetail({
                   if (isSavedToLibrary) {
                     await removeSavedPlaylist(user.uid, id)
                     setIsSavedToLibrary(false)
+                    setPlaylist(prev => prev ? { ...prev, savedCount: Math.max(0, (prev.savedCount || 0) - 1) } : prev)
                   } else {
                     await savePlaylistToLibrary(user.uid, id)
                     setIsSavedToLibrary(true)
+                    setPlaylist(prev => prev ? { ...prev, savedCount: (prev.savedCount || 0) + 1 } : prev)
                   }
                 } catch (err) {
                   console.error('加入收藏失敗:', err)
@@ -894,6 +1126,252 @@ export default function PlaylistDetail({
                     )}
                     {isSavedToLibrary ? '取消收藏' : '加入收藏'}
                   </span>
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+
+        {/* Admin: Add Song Modal */}
+        {showAdminAddSong && typeof document !== 'undefined' && createPortal(
+          <>
+            <div className="fixed inset-0 bg-black/60 z-[9999]" onClick={() => { setShowAdminAddSong(false); setAdminAddSongQuery('') }} aria-hidden />
+            <div
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)', transform: `translateY(${adminAddSongDragY}px)`, transition: adminAddSongDragY === 0 ? 'transform 0.2s ease-out' : 'none' }}
+            >
+              <div
+                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                onTouchStart={adminAddSongDrag.onStart} onTouchMove={adminAddSongDrag.onMove} onTouchEnd={() => adminAddSongDrag.onEnd(adminAddSongDragY)} onTouchCancel={() => adminAddSongDrag.onEnd(adminAddSongDragY)}
+                onPointerDown={adminAddSongDrag.onStart} onPointerMove={adminAddSongDrag.onMove} onPointerUp={() => adminAddSongDrag.onEnd(adminAddSongDragY)} onPointerCancel={() => adminAddSongDrag.onEnd(adminAddSongDragY)}
+              >
+                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 pt-1 pb-2">
+                  <button type="button" onClick={() => { setShowAdminAddSong(false); setAdminAddSongQuery('') }} className="p-2 -ml-2 text-[#B3B3B3] md:hover:text-white rounded-lg" aria-label="關閉">
+                    <X className="w-6 h-6" />
+                  </button>
+                  <h2 className="text-white font-bold text-lg truncate flex-1 text-center pointer-events-none">加入歌曲</h2>
+                  <div className="w-10" />
+                </div>
+              </div>
+              <div className="px-4 pb-3 flex-shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#666]" />
+                  <input type="text" placeholder="搜尋歌曲" value={adminAddSongQuery} onChange={(e) => setAdminAddSongQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-[#282828] text-white placeholder-[#666] rounded-full outline-none" />
+                </div>
+              </div>
+              <div className="overflow-y-auto flex-1 min-h-0 pb-4 overscroll-contain bg-[#121212] touch-pan-y px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                {adminAddSongLoading ? (
+                  <div className="flex items-center justify-center py-12"><div className="w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" /></div>
+                ) : adminAddSongFiltered.length === 0 ? (
+                  <div className="text-center py-12 text-[#B3B3B3] text-sm">{adminAddSongQuery.trim() ? '搵唔到符合嘅歌曲' : '載入中…'}</div>
+                ) : (
+                  <ul className="space-y-0">
+                    {adminAddSongFiltered.map((tab) => {
+                      const isAdding = adminAddingSongId === tab.id
+                      return (
+                        <li key={tab.id}>
+                          <button type="button" onClick={() => handleAdminAddSong(tab.id)} disabled={isAdding} className="w-full flex items-center gap-2 py-1.5 rounded-2xl md:hover:bg-white/5 text-left disabled:opacity-70">
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{tab.title}</p>
+                              <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{tab.artist || adminArtistMap.current.get(tab.artistId) || tab.artistId}</p>
+                            </div>
+                            <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-[#FFD700] pointer-events-none">
+                              {isAdding ? (
+                                <div className="w-5 h-5 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 8.73 8.73" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinecap="round" strokeMiterlimit="10">
+                                  <circle cx="4.36" cy="4.36" r="3.99" /><line x1="2.22" y1="4.36" x2="6.51" y2="4.36" /><line x1="4.36" y1="2.22" x2="4.36" y2="6.51" />
+                                </svg>
+                              )}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+
+        {/* Admin: Edit/Reorder Songs Modal */}
+        {showAdminEditSongs && typeof document !== 'undefined' && createPortal(
+          <>
+            <div className="fixed inset-0 bg-black/60 z-[9999]" onClick={() => { setShowAdminEditSongs(false); setAdminEditDragY(0) }} aria-hidden />
+            <div
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)', transform: `translateY(${adminEditDragY}px)`, transition: adminEditDragY === 0 ? 'transform 0.2s ease-out' : 'none' }}
+            >
+              <div
+                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                onTouchStart={adminEditDrag.onStart} onTouchMove={adminEditDrag.onMove} onTouchEnd={() => adminEditDrag.onEnd(adminEditDragY)} onTouchCancel={() => adminEditDrag.onEnd(adminEditDragY)}
+                onPointerDown={adminEditDrag.onStart} onPointerMove={adminEditDrag.onMove} onPointerUp={() => adminEditDrag.onEnd(adminEditDragY)} onPointerCancel={() => adminEditDrag.onEnd(adminEditDragY)}
+              >
+                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 pt-1 pb-2">
+                  <button type="button" onClick={() => { setShowAdminEditSongs(false); setAdminEditDragY(0) }} className="p-2 -ml-2 text-[#B3B3B3] md:hover:text-white rounded-lg" aria-label="關閉">
+                    <X className="w-6 h-6" />
+                  </button>
+                  <h2 className="text-white font-bold text-lg truncate flex-1 text-center pointer-events-none">編輯歌單</h2>
+                  <div className="w-10" />
+                </div>
+              </div>
+              <div ref={adminEditListScrollRef} className="overflow-y-auto flex-1 min-h-0 pb-4 overscroll-contain bg-[#121212] touch-pan-y px-4 select-none" style={{ WebkitOverflowScrolling: 'touch', WebkitTouchCallout: 'none' }}>
+                {orderedSongsForAdminEdit.length === 0 ? (
+                  <div className="text-center py-12 text-[#B3B3B3] text-sm">歌單入面未有歌曲</div>
+                ) : (
+                  <ul className="space-y-0">
+                    {orderedSongsForAdminEdit.map((song, index) => {
+                      const thumb = getSongThumbnail(song)
+                      const isDragging = adminTouchDragIndex === index
+                      return (
+                        <li
+                          key={song.id}
+                          className={`flex items-center gap-2 py-1.5 rounded-2xl md:hover:bg-white/5 transition-opacity ${isDragging ? 'opacity-0' : ''}`}
+                          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                          onDrop={(e) => { e.preventDefault(); try { const { index: fromIndex } = JSON.parse(e.dataTransfer.getData('application/json') || '{}'); if (typeof fromIndex === 'number') handleAdminReorder(fromIndex, index) } catch (_) {} }}
+                        >
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleAdminRemoveSong(song.id) }} className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-lg md:hover:opacity-90 transition -ml-1" aria-label="從歌單移除">
+                            <svg className="w-5 h-5" viewBox="0 0 9.5 9.5" fill="none" stroke="#9B2D2D" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.8}><circle cx="4.8" cy="4.8" r="4" /><line x1="2.6" y1="4.8" x2="6.9" y2="4.8" /></svg>
+                          </button>
+                          <div className="w-10 h-10 rounded-lg bg-[#282828] flex-shrink-0 overflow-hidden">
+                            {thumb ? <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-xl">🎸</div>}
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{song.title}</p>
+                            <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{getArtistName(song)}</p>
+                          </div>
+                          <span
+                            className="cursor-grab active:cursor-grabbing p-1.5 -mr-1.5 text-[#666] md:hover:text-[#B3B3B3] flex-shrink-0 select-none touch-none"
+                            style={{ touchAction: 'none', WebkitTouchCallout: 'none' }}
+                            draggable={!isTouchDevice}
+                            onTouchStart={(e) => handleAdminEditHandleTouchStart(e, index)}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('application/json', JSON.stringify({ index }))
+                              e.dataTransfer.effectAllowed = 'move'
+                              const row = e.currentTarget.closest('li')
+                              if (row && e.dataTransfer.setDragImage) {
+                                const clone = row.cloneNode(true)
+                                clone.style.cssText = `position:absolute;left:-9999px;width:${row.offsetWidth}px;opacity:0.95;background:#282828;border-radius:8px;pointer-events:none;`
+                                document.body.appendChild(clone)
+                                e.dataTransfer.setDragImage(clone, row.offsetWidth / 2, row.offsetHeight / 2)
+                                const onDragEnd = () => { document.body.removeChild(clone); e.currentTarget.removeEventListener('dragend', onDragEnd) }
+                                e.currentTarget.addEventListener('dragend', onDragEnd)
+                              }
+                            }}
+                            aria-label="拖曳改次序"
+                          >
+                            <svg className="w-5 h-5 shrink-0" viewBox="0 0 5.1 3.5" fill="none" stroke="#4d4d4d" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.5}>
+                              <line x1="0.4" y1="0.5" x2="4.7" y2="0.5" /><line x1="0.4" y1="1.7" x2="4.7" y2="1.7" /><line x1="0.4" y1="3" x2="4.7" y2="3" />
+                            </svg>
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+
+        {/* Admin: Edit Reorder Touch Ghost */}
+        {showAdminEditSongs && adminTouchDragIndex !== null && orderedSongsForAdminEdit[adminTouchDragIndex] && typeof document !== 'undefined' && createPortal(
+          (() => {
+            const listEl = adminEditListScrollRef.current
+            const r = listEl?.getBoundingClientRect()
+            const rowH = adminTouchDragRowHeightRef.current || ADMIN_EDIT_ROW_HEIGHT
+            const rawTop = adminTouchDragRowTopRef.current + (adminTouchDragY - adminTouchDragStartYRef.current)
+            const top = r ? Math.max(r.top, Math.min(r.bottom - rowH, rawTop)) : rawTop
+            return (
+              <div className="fixed left-0 right-0 px-4 pointer-events-none z-[10001]" style={{ top: `${top}px`, transform: 'translateZ(0)' }}>
+                <div className="flex items-center gap-2 py-1.5 rounded-2xl bg-[#282828] shadow-lg border border-[#444] opacity-95">
+                  <div className="w-10 flex-shrink-0" />
+                  <div className="w-10 h-10 rounded-lg bg-[#1a1a1a] flex-shrink-0 overflow-hidden">
+                    {(() => { const dragThumb = getSongThumbnail(orderedSongsForAdminEdit[adminTouchDragIndex]); return dragThumb ? <img src={dragThumb} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl">🎸</div> })()}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{orderedSongsForAdminEdit[adminTouchDragIndex].title}</p>
+                    <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{getArtistName(orderedSongsForAdminEdit[adminTouchDragIndex])}</p>
+                  </div>
+                  <div className="w-10 flex-shrink-0" />
+                </div>
+              </div>
+            )
+          })(),
+          document.body
+        )}
+
+        {/* Admin: Playlist Settings Modal */}
+        {showAdminSettings && typeof document !== 'undefined' && createPortal(
+          <>
+            <div className="fixed inset-0 bg-black/60 z-[9999]" onClick={() => { setShowAdminSettings(false); setAdminSettingsDragY(0) }} aria-hidden />
+            <div
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-[#121212] rounded-t-3xl z-[9999] flex flex-col overflow-hidden"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)', transform: `translateY(${adminSettingsDragY}px)`, transition: adminSettingsDragY === 0 ? 'transform 0.2s ease-out' : 'none' }}
+            >
+              <div
+                className="flex flex-col flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                onTouchStart={adminSettingsDrag.onStart} onTouchMove={adminSettingsDrag.onMove} onTouchEnd={() => adminSettingsDrag.onEnd(adminSettingsDragY)} onTouchCancel={() => adminSettingsDrag.onEnd(adminSettingsDragY)}
+                onPointerDown={adminSettingsDrag.onStart} onPointerMove={adminSettingsDrag.onMove} onPointerUp={() => adminSettingsDrag.onEnd(adminSettingsDragY)} onPointerCancel={() => adminSettingsDrag.onEnd(adminSettingsDragY)}
+              >
+                <div className="flex flex-col items-center justify-center py-2 px-12 -mx-4 min-h-[36px]">
+                  <div className="w-10 h-1 rounded-full bg-[#525252] shrink-0" />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-4 pt-1 pb-2">
+                  <button type="button" onClick={() => { setShowAdminSettings(false); setAdminSettingsDragY(0) }} className="p-2 -ml-2 text-[#B3B3B3] md:hover:text-white rounded-lg" aria-label="關閉">
+                    <X className="w-6 h-6" />
+                  </button>
+                  <h2 className="text-white font-bold text-lg truncate flex-1 text-center pointer-events-none">歌單設置</h2>
+                  <div className="w-10" />
+                </div>
+              </div>
+              <div className="overflow-y-auto flex-1 min-h-0 pb-4 px-4 space-y-4">
+                <div className="flex items-center gap-3 pt-2">
+                  <input ref={adminCoverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleAdminCoverUpload(e.target.files[0]); e.target.value = '' }} />
+                  <div className="relative flex-shrink-0">
+                    <button type="button" onClick={() => adminCoverInputRef.current?.click()} disabled={adminCoverUploading} className="w-20 h-20 rounded-lg bg-[#282828] overflow-hidden relative group block">
+                      {adminEditCoverImage ? (
+                        <img src={adminEditCoverImage} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl">🎵</div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <Pencil className="w-4 h-4 text-white" />
+                      </div>
+                      {adminCoverUploading && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /></div>}
+                    </button>
+                    {adminEditCoverImage && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setAdminEditCoverImage('') }} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center shadow-lg z-10" aria-label="移除封面">
+                        <svg className="w-3 h-3" viewBox="0 0 9.5 9.5" fill="none" stroke="white" strokeLinecap="round" strokeWidth={1.2}><line x1="2.8" y1="4.75" x2="6.7" y2="4.75" /></svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-[#B3B3B3] text-sm mb-1.5">名稱</label>
+                    <input type="text" value={adminEditTitle} onChange={(e) => setAdminEditTitle(e.target.value)} placeholder="歌單名稱" className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none placeholder-[#666]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[#B3B3B3] text-sm mb-1.5">描述</label>
+                  <textarea value={adminEditDescription} onChange={(e) => setAdminEditDescription(e.target.value)} placeholder="簡介（選填）" rows={3} className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none placeholder-[#666] resize-none" />
+                </div>
+                <div>
+                  <label className="block text-[#B3B3B3] text-sm mb-1.5">策劃人</label>
+                  <input type="text" value={adminEditCuratedBy} onChange={(e) => setAdminEditCuratedBy(e.target.value)} placeholder="你的名字" className="w-full bg-[#282828] text-white px-3 py-2.5 rounded-xl outline-none placeholder-[#666]" />
+                </div>
+                <button type="button" onClick={handleAdminSaveSettings} disabled={adminSavingSettings || !adminEditTitle.trim()} className="w-full py-2.5 rounded-full bg-[#FFD700] text-black font-medium hover:opacity-90 disabled:opacity-50 transition">
+                  {adminSavingSettings ? '儲存中…' : '儲存'}
                 </button>
               </div>
             </div>

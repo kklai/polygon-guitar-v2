@@ -4,7 +4,7 @@ import Link from '@/components/Link'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { addSongToPlaylist } from '@/lib/playlistApi'
-import { getSearchHistory, addSearchHistorySong, addSearchHistoryArtist, updateSongEntryThumbnail } from '@/lib/searchHistory'
+import { getSearchHistory, addSearchHistorySong, addSearchHistoryArtist, addSearchHistoryPlaylist, updateSongEntryThumbnail, clearSearchHistory, removeSearchHistoryEntry } from '@/lib/searchHistory'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { getTab } from '@/lib/tabs'
 import { ArrowLeft } from 'lucide-react'
@@ -204,6 +204,11 @@ export default function Search() {
     router.push(`/artists/${artist.id}`)
   }
 
+  const handlePlaylistClick = (pl) => {
+    addSearchHistoryPlaylist(pl)
+    router.push(`/playlist/${pl.id}`)
+  }
+
   const getArtistPhoto = (artist) => {
     return artist?.photoURL || artist?.wikiPhotoURL || artist?.photo || null
   }
@@ -280,101 +285,118 @@ export default function Search() {
           </div>
         </div>
 
-        {/* 搜尋記錄（無輸入時顯示，分歌手／歌曲兩區，style 同搜尋結果） */}
-        {!hasResults && searchHistory.length > 0 && (() => {
-          const historyArtists = searchHistory.filter((e) => e.type === 'artist')
-          const historySongs = searchHistory.filter((e) => e.type === 'song')
-          return (
-            <div
-              className="space-y-5 pl-4 pr-4"
-              style={{ paddingTop: 'calc(5.5rem + env(safe-area-inset-top, 0px))' }}
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-bold text-white truncate text-[1.3rem] md:text-[1.375rem]">
-                  搜尋記錄
-                </h2>
-                <span className="text-[12px] md:text-[14px] text-neutral-500 whitespace-nowrap flex-shrink-0">
-                  共 {searchHistory.length} 項
-                </span>
-              </div>
-
-              {historyArtists.length > 0 && (
-                <section>
-                  <h2 className="font-bold text-white mb-2 text-[1.3rem]">歌手</h2>
-                  <div className="-mx-4">
-                    <div className="flex overflow-x-auto scrollbar-hide gap-3 px-4">
-                      {historyArtists.map((entry) => (
-                        <Link
-                          key={entry.id}
-                          href={`/artists/${entry.id}`}
-                          className="flex-shrink-0 flex flex-col items-center"
-                        >
-                          <div className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 mb-2">
-                            {entry.photo ? (
-                              <img
-                                src={entry.photo}
-                                alt={entry.name}
-                                className="w-full h-full object-cover pointer-events-none"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-2xl">🎤</div>
-                            )}
-                          </div>
-                          <span className="text-sm text-neutral-300 truncate max-w-[80px]">{entry.name}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {historySongs.length > 0 && (
-                <section>
-                  <h2 className="font-bold text-white mb-0 text-[1.3rem]">歌曲</h2>
-                  <div className="space-y-0">
-                    {historySongs.map((entry) => {
-                      const songFromCatalog = songs.find((s) => s.id === entry.id)
-                      const uploaderDisplay = entry.uploaderName || (songFromCatalog && (songFromCatalog.uploaderPenName || songFromCatalog.arrangedBy)) || ''
-                      const thumbnailDisplay = entry.thumbnail || (songFromCatalog && getSongThumbnail(songFromCatalog)) || null
-                      return (
-                        <Link
-                          key={entry.id}
-                          href={`/tabs/${entry.id}`}
-                          className="group w-full flex items-center gap-3 py-2 pr-3 pl-0 rounded-lg text-left md:hover:bg-white/5 md:transition"
-                        >
-                          <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
-                            {thumbnailDisplay ? (
-                              <img
-                                src={thumbnailDisplay}
-                                alt={entry.title}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            ) : (
-                              <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-white font-medium truncate md:group-hover:text-[#FFD700] md:transition">{entry.title}</h3>
-                            <p className="text-sm text-neutral-500 truncate">{entry.artist || getArtistName(entry)}</p>
-                          </div>
-                          {uploaderDisplay ? (
-                            <span className="flex-shrink-0 text-xs text-[#999] truncate max-w-[80px] text-right">
-                              {uploaderDisplay}
-                            </span>
-                          ) : null}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </section>
-              )}
+        {/* 搜尋記錄（無輸入時顯示，統一列表） */}
+        {!hasResults && searchHistory.length > 0 && (
+          <div
+            className="pl-4 pr-4"
+            style={{ paddingTop: 'calc(5.5rem + env(safe-area-inset-top, 0px))' }}
+          >
+            <div className="flex items-baseline justify-between gap-3 mb-1">
+              <h2 className="font-bold text-white truncate text-[1.3rem] md:text-[1.375rem]">
+                搜尋記錄
+              </h2>
+              <button
+                type="button"
+                onClick={() => { clearSearchHistory(); setSearchHistory([]) }}
+                className="text-[12px] md:text-[14px] text-neutral-500 hover:text-white whitespace-nowrap flex-shrink-0 transition"
+              >
+                清除記錄
+              </button>
             </div>
-          )
-        })()}
+            <div className="space-y-0">
+              {searchHistory.map((entry) => {
+                const handleRemove = (e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  removeSearchHistoryEntry(entry.type, entry.id)
+                  setSearchHistory(getSearchHistory())
+                }
+                if (entry.type === 'song') {
+                  const songFromCatalog = songs.find((s) => s.id === entry.id)
+                  const uploaderDisplay = entry.uploaderName || (songFromCatalog && (songFromCatalog.uploaderPenName || songFromCatalog.arrangedBy)) || ''
+                  const thumbnailDisplay = entry.thumbnail || (songFromCatalog && getSongThumbnail(songFromCatalog)) || null
+                  return (
+                    <div key={`song-${entry.id}`} className="group flex items-center">
+                      <Link
+                        href={`/tabs/${entry.id}`}
+                        className="flex-1 min-w-0 flex items-center gap-3 py-2 pl-0 rounded-lg text-left md:hover:bg-white/5 md:transition"
+                      >
+                        <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
+                          {thumbnailDisplay ? (
+                            <img src={thumbnailDisplay} alt={entry.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate md:group-hover:text-[#FFD700] md:transition">{entry.title}</h3>
+                          <p className="text-sm text-neutral-500 truncate">{entry.artist || getArtistName(entry)}</p>
+                        </div>
+                        {uploaderDisplay ? (
+                          <span className="flex-shrink-0 text-xs text-[#999] truncate max-w-[80px] text-right">{uploaderDisplay}</span>
+                        ) : null}
+                      </Link>
+                      <button type="button" onClick={handleRemove} className="flex-shrink-0 p-2 text-neutral-600 hover:text-white transition" aria-label="刪除">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  )
+                }
+                if (entry.type === 'artist') {
+                  return (
+                    <div key={`artist-${entry.id}`} className="group flex items-center">
+                      <Link
+                        href={`/artists/${entry.id}`}
+                        className="flex-1 min-w-0 flex items-center gap-3 py-2 pl-0 rounded-lg text-left md:hover:bg-white/5 md:transition"
+                      >
+                        <div className="w-[49px] h-[49px] rounded-full bg-neutral-800 flex-shrink-0 overflow-hidden">
+                          {entry.photo ? (
+                            <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="w-full h-full flex items-center justify-center text-2xl">🎤</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate md:group-hover:text-[#FFD700] md:transition">{entry.name}</h3>
+                          <p className="text-sm text-neutral-500 truncate">歌手</p>
+                        </div>
+                      </Link>
+                      <button type="button" onClick={handleRemove} className="flex-shrink-0 p-2 text-neutral-600 hover:text-white transition" aria-label="刪除">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  )
+                }
+                if (entry.type === 'playlist') {
+                  return (
+                    <div key={`playlist-${entry.id}`} className="group flex items-center">
+                      <Link
+                        href={`/playlist/${entry.id}`}
+                        className="flex-1 min-w-0 flex items-center gap-3 py-2 pl-0 rounded-lg text-left md:hover:bg-white/5 md:transition"
+                      >
+                        <div className="w-[49px] h-[49px] rounded-[5px] bg-neutral-800 flex-shrink-0 overflow-hidden">
+                          {entry.coverImage ? (
+                            <img src={entry.coverImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="w-full h-full flex items-center justify-center text-2xl">📋</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate md:group-hover:text-[#FFD700] md:transition">{entry.title}</h3>
+                          <p className="text-sm text-neutral-500 truncate">歌單</p>
+                        </div>
+                      </Link>
+                      <button type="button" onClick={handleRemove} className="flex-shrink-0 p-2 text-neutral-600 hover:text-white transition" aria-label="刪除">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  )
+                }
+                return null
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 結果區域：留位俾固定搜尋欄 */}
         {hasResults && (
@@ -388,20 +410,21 @@ export default function Search() {
                 <div className="-mx-4">
                   <div className="flex overflow-x-auto scrollbar-hide gap-3 px-4">
                     {filteredPlaylists.map((pl) => (
-                      <Link
+                      <button
                         key={pl.id}
-                        href={`/playlist/${pl.id}`}
-                        className="flex-shrink-0 flex flex-col items-center"
+                        type="button"
+                        onClick={() => handlePlaylistClick(pl)}
+                        className="flex-shrink-0 flex flex-col items-center cursor-pointer"
                       >
                         <div className="w-20 h-20 rounded-[4px] overflow-hidden bg-neutral-800 mb-2">
                           {pl.coverImage ? (
-                            <img src={pl.coverImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            <img src={pl.coverImage} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl">📋</div>
                           )}
                         </div>
                         <span className="text-sm text-neutral-300 truncate max-w-[80px] text-center">{pl.title}</span>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 </div>
