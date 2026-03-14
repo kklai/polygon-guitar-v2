@@ -7,7 +7,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from '@/lib/firestore-tracked';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
-import { getTabsByArtist, getArtistBySlug, slimTabForArtistPage } from '../../lib/tabs';
+import { getTabsByArtist, getArtistBySlug, slimTabForArtistPage, nameToSlug } from '../../lib/tabs';
 import { getArtistPageCache, setArtistPageCache } from '../../lib/artistPageCache';
 import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
@@ -1147,7 +1147,6 @@ export async function getStaticProps({ params }) {
   if (!id) return { notFound: true };
   try {
     let artistDoc = await getDoc(doc(db, 'artists', id));
-    // URL may be normalizedName (slug) after edit-page save; resolve by slug if doc id not found
     if (!artistDoc.exists()) {
       const bySlug = await getArtistBySlug(id);
       if (!bySlug) return { notFound: true };
@@ -1155,6 +1154,11 @@ export async function getStaticProps({ params }) {
     }
     const artistData = { id: artistDoc.id, ...artistDoc.data() };
     const artistId = artistData.id;
+
+    const expectedSlug = artistData.normalizedName || nameToSlug(artistData.name) || artistId;
+    if (expectedSlug !== id) {
+      return { redirect: { destination: `/artists/${encodeURIComponent(expectedSlug)}`, permanent: false } };
+    }
 
     const cached = await getArtistPageCache(artistId);
     if (cached?.artist && Array.isArray(cached.allTabs)) {

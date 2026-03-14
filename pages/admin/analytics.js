@@ -17,9 +17,11 @@ import {
   getDoc,
   getCountFromServer
 } from '@/lib/firestore-tracked'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 function AnalyticsDashboard() {
   const router = useRouter()
+  const { artistMap } = useArtistMap()
   const [stats, setStats] = useState({
     today: 0,
     yesterday: 0,
@@ -348,7 +350,7 @@ function AnalyticsDashboard() {
                 return {
                   ...page,
                   pageName: tabData.title || page.pageName,
-                  artistName: tabData.artist || page.artistName,
+                  artistName: (tabData.artistId && artistMap.get(tabData.artistId)) || tabData.artist || page.artistName,
                   thumbnail: tabData.thumbnail || tabData.albumImage
                 }
               }

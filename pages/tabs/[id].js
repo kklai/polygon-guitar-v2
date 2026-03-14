@@ -69,7 +69,7 @@ function serializeTab(tab) {
   return JSON.parse(JSON.stringify(tab, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
 }
 
-export default function TabDetail({ initialTab }) {
+export default function TabDetail({ initialTab, artist }) {
   const router = useRouter()
   const { id, key: queryKey, updated: queryUpdated } = router.query
   // router.query 可能未就緒（localhost/ client nav），用 asPath + sessionStorage 確保捉到「剛保存」
@@ -240,24 +240,23 @@ export default function TabDetail({ initialTab }) {
     effects.push(
       recordPageView('tab', id, data.title, {
         pageName: data.title,
-        artistName: data.artist,
+        artistName: artist?.name || data.artist || '',
         originalKey: data.originalKey,
         thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
       }, user?.uid || null)
     )
     if (data.createdBy) setUploaderId(data.createdBy)
     // Cover fallback: search-data API (1 cache read). Remove after backfill has run.
-    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && (data.artistId || data.artist)
+    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && data.artistId
     if (needsArtistPhoto) {
       fetch('/api/search-data?only=artists')
         .then(r => r.ok ? r.json() : null)
         .then(payload => {
-          const artists = payload?.artists || []
-          const artistId = data.artistId || (data.artist || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-\u4e00-\u9fa5]/g, '')
-          const artist = artists.find(a => a.id === artistId) || artists.find(a => (a.name || '').toLowerCase() === (data.artist || '').toLowerCase())
-          if (artist?.photo) {
-            setFallbackArtistPhoto(artist.photo)
-            recordTabView(id, { ...data, artistPhoto: artist.photo })
+          const allArtists = payload?.artists || []
+          const matched = allArtists.find(a => a.id === data.artistId)
+          if (matched?.photo) {
+            setFallbackArtistPhoto(matched.photo)
+            recordTabView(id, { ...data, artistPhoto: matched.photo })
           }
         })
         .catch(() => {})
@@ -610,7 +609,7 @@ export default function TabDetail({ initialTab }) {
     const url = `${window.location.origin}/tabs/${tab.id}`;
     const shareArtistName = tab.collaborators?.length > 1
       ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-      : (tab.artist || '');
+      : (artist?.name || '');
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -728,10 +727,9 @@ export default function TabDetail({ initialTab }) {
 
   const effectiveArtistPhoto = tab.artistPhoto || fallbackArtistPhoto
 
-  // Show all collaborators when present; otherwise use tab.artist
   const artistDisplayName = tab.collaborators?.length > 1
     ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-    : (tab.artist || '')
+    : (artist?.name || '')
 
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
   const tabChords = tab.content ? extractChords(tab.content) : []
@@ -745,7 +743,7 @@ export default function TabDetail({ initialTab }) {
   const tabSchema = generateTabSchema(tab, { name: artistDisplayName, photoURL: tab.thumbnail || effectiveArtistPhoto })
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
-    { name: artistDisplayName, url: `${siteConfig.url}/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}` },
+    { name: artistDisplayName, url: `${siteConfig.url}/artists/${tab.artistId}` },
     { name: tab.title, url: seoUrl }
   ])
 
@@ -1010,7 +1008,7 @@ export default function TabDetail({ initialTab }) {
               {/* 歌手 */}
               <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-2 min-w-0">
                 <Link 
-                  href={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
+                  href={`/artists/${tab.artistId}`}
                   className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
                 >
                   {artistDisplayName}
@@ -1134,7 +1132,7 @@ export default function TabDetail({ initialTab }) {
           onSelectLyricsShare={() => { router.push(`/tools/tab-share?tabId=${tab.id}`); setShowMoreMenu(false); }}
           onAddToLiked={() => { handleAddToLiked(); setShowMoreMenu(false); }}
           onAddToPlaylist={() => { handleAddToPlaylistClick(); setShowMoreMenu(false); }}
-          artistHref={`/artists/${tab.artistId || tab.artist?.toLowerCase().replace(/\s+/g, '-')}`}
+          artistHref={`/artists/${tab.artistId}`}
         />
 
         {/* 自動消失 Toast（複製連結等） */}
@@ -1415,18 +1413,27 @@ export async function getStaticProps({ params }) {
       const m = data.youtubeUrl.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)
       if (m) data.youtubeVideoId = m[1]
     }
-    // Cover fallback from search-data cache (1 read). Remove after backfill.
-    if (!data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && (data.artistId || data.artist)) {
+    let artist = null
+    if (data.artistId) {
       try {
         const { getSearchData } = await import('@/lib/searchData')
         const payload = await getSearchData()
-        const artists = payload?.artists || []
-        const artistId = data.artistId || (data.artist || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-\u4e00-\u9fa5]/g, '')
-        const artist = artists.find(a => a.id === artistId) || artists.find(a => (a.name || '').toLowerCase() === (data.artist || '').toLowerCase())
-        if (artist?.photo) data.artistPhoto = artist.photo
+        const allArtists = payload?.artists || []
+        let found = allArtists.find(a => a.id === data.artistId)
+        if (!found) {
+          const searchTabs = payload?.tabs || []
+          const resolved = searchTabs.find(t => t.id === id)
+          if (resolved?.artistId) found = allArtists.find(a => a.id === resolved.artistId)
+        }
+        if (found) {
+          artist = { id: found.id, name: found.name }
+          if (!data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && found.photo) {
+            data.artistPhoto = found.photo
+          }
+        }
       } catch (_) {}
     }
-    return { props: { initialTab: serializeTab(data) }, revalidate: 300 }
+    return { props: { initialTab: serializeTab(data), artist }, revalidate: 300 }
   } catch (e) {
     console.error('[tabs/[id]] getStaticProps:', e?.message)
     return { notFound: true }

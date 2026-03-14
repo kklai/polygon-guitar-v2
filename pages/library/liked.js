@@ -11,6 +11,7 @@ import { getSongThumbnail } from '../../lib/getSongThumbnail';
 import { getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '../../lib/playlistApi';
 import SongActionSheet from '../../components/SongActionSheet';
 import Layout from '../../components/Layout';
+import { useArtistMap } from '@/lib/useArtistMap';
 
 function computeShuffleOrder(length) {
   const indices = Array.from({ length }, (_, i) => i);
@@ -23,6 +24,7 @@ function computeShuffleOrder(length) {
 
 export default function LikedSongs() {
   const router = useRouter();
+  const { getArtistName } = useArtistMap();
   const [songs, setSongs] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,10 +89,9 @@ export default function LikedSongs() {
 
   const getSortedSongs = () => {
     const sorted = [...songs];
-    const artist = (s) => (s.artist || s.artistName || '').toLowerCase();
     switch (sortMode) {
       case 'artist':
-        return sorted.sort((a, b) => artist(a).localeCompare(artist(b), 'zh-HK'));
+        return sorted.sort((a, b) => (getArtistName(a) || '').toLowerCase().localeCompare((getArtistName(b) || '').toLowerCase(), 'zh-HK'));
       case 'year':
         return sorted.sort((a, b) => {
           const yearA = a.songYear || a.uploadYear || 0;
@@ -158,7 +159,7 @@ export default function LikedSongs() {
     const url = `${window.location.origin}/tabs/${selectedSong.id}`;
     if (navigator.share) {
       await navigator.share({
-        title: `${selectedSong.title} - ${selectedSong.artist || selectedSong.artistName}`,
+        title: `${selectedSong.title} - ${getArtistName(selectedSong)}`,
         url
       });
     } else {
@@ -381,7 +382,7 @@ export default function LikedSongs() {
                     <h3 className="text-[1rem] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
                       {song.title}
                     </h3>
-                    <p className="text-[0.85rem] text-[#999] truncate">{song.artist || song.artistName}</p>
+                    <p className="text-[0.85rem] text-[#999] truncate">{getArtistName(song)}</p>
                   </div>
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
@@ -416,7 +417,7 @@ export default function LikedSongs() {
           open={showActionModal}
           onClose={() => setShowActionModal(false)}
           title={selectedSong?.title ?? ''}
-          artist={selectedSong?.artist ?? selectedSong?.artistName ?? ''}
+          artist={selectedSong ? getArtistName(selectedSong) : ''}
           thumbnailUrl={selectedSong ? getSongThumbnail(selectedSong) : null}
           liked
           likeLabel="取消喜愛"

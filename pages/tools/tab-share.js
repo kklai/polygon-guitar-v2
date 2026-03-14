@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { doc, getDoc } from '@/lib/firestore-tracked'
+import { useArtistMap } from '@/lib/useArtistMap'
 import { Download, RefreshCw, ArrowLeft } from 'lucide-react'
 
 const splitLyricLine = (lyric, maxLen) => {
@@ -72,6 +73,7 @@ const PICKER_PAD = 15
 
 export default function TabShareTool() {
   const router = useRouter()
+  const { getArtistName } = useArtistMap()
   const [selectedTab, setSelectedTab] = useState(null)
   const [selectionStart, setSelectionStart] = useState(null)
   const [selectionEnd, setSelectionEnd] = useState(null)
@@ -446,7 +448,7 @@ export default function TabShareTool() {
       y += 10
       ctx.font = `400 40px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
       ctx.fillStyle = '#cccccc'
-      ctx.fillText(selectedTab.artist, OUT_W / 2, y)
+      ctx.fillText(getArtistName(selectedTab), OUT_W / 2, y)
       y += artistH
 
       y += 60
@@ -492,7 +494,7 @@ export default function TabShareTool() {
         ctx.drawImage(bottomImg, (OUT_W - bottomW) / 2, y, bottomW, bottomH)
       }
 
-      const fileName = `${selectedTab.title}-${selectedTab.artist}-polygon.png`
+      const fileName = `${selectedTab.title}-${getArtistName(selectedTab)}-polygon.png`
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
       if (isMobile) {
@@ -539,7 +541,7 @@ export default function TabShareTool() {
           {selectedTab.title}
         </p>
         <p style={{ marginTop: `${p(10)}px`, fontSize: `${p(40)}px`, fontWeight: 400, color: '#cccccc', textAlign: 'center', lineHeight: 1.2 }}>
-          {selectedTab.artist}
+          {getArtistName(selectedTab)}
         </p>
         <div style={{ marginTop: `${p(60)}px`, textAlign: 'center', paddingLeft: `${p(40)}px`, paddingRight: `${p(40)}px` }}>
           {(() => {

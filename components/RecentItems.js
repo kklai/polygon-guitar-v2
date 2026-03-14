@@ -1,6 +1,7 @@
 // components/RecentItems.js
 import Link from '@/components/Link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useArtistMap } from '@/lib/useArtistMap';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
 function getItemHref(item) {
@@ -13,6 +14,7 @@ function getItemHref(item) {
 
 export default function RecentItems({ items = [], title = '最近瀏覽' }) {
   const { user } = useAuth();
+  const { getArtistName } = useArtistMap();
 
   // 過濾：如果用戶未登入，過濾掉 liked-songs
   const displayItems = user 
@@ -90,7 +92,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                   {item.title}
                 </div>
                 <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
-                  {item.subtitle || item.artistName || ''}
+                  {item.subtitle || item.artistName || getArtistName(item) || ''}
                 </div>
               </div>
             </Link>

@@ -9,6 +9,7 @@ import SongActionSheet from '@/components/SongActionSheet'
 import Layout from '@/components/Layout'
 import Link from '@/components/Link'
 import { recordPlaylistView } from '@/lib/recentViews'
+import { useArtistMap } from '@/lib/useArtistMap'
 import { useAuth } from '@/contexts/AuthContext'
 import { Share, Heart, Music, User, Plus, Copy, ArrowLeft } from 'lucide-react'
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved, removeSongFromPlaylist } from '@/lib/playlistApi'
@@ -26,6 +27,7 @@ export default function PlaylistDetail({
   const router = useRouter()
   const { id } = router.query
   const { user, isAdmin, signInWithGoogle } = useAuth()
+  const { getArtistName } = useArtistMap()
   const [playlist, setPlaylist] = useState(initialPlaylist || null)
   const [songs, setSongs] = useState(initialSongs)
   const [uniqueArtists, setUniqueArtists] = useState(initialUniqueArtists)
@@ -193,8 +195,8 @@ export default function PlaylistDetail({
         return sorted
       case 'artist':
         return sorted.sort((a, b) => {
-          const artistA = (a.artist || '').toLowerCase()
-          const artistB = (b.artist || '').toLowerCase()
+          const artistA = (getArtistName(a) || '').toLowerCase()
+          const artistB = (getArtistName(b) || '').toLowerCase()
           return artistA.localeCompare(artistB, 'zh-HK')
         })
       
@@ -350,7 +352,7 @@ export default function PlaylistDetail({
     const url = `${window.location.origin}/tabs/${selectedSong.id}`
     if (navigator.share) {
       await navigator.share({
-        title: `${selectedSong.title} - ${selectedSong.artist}`,
+        title: `${selectedSong.title} - ${getArtistName(selectedSong)}`,
         url
       })
     } else {
@@ -689,7 +691,7 @@ export default function PlaylistDetail({
                     <h3 className="text-[1rem] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
                       {song.title}
                     </h3>
-                    <p className="text-[0.85rem] text-[#999] truncate">{song.artist}</p>
+                    <p className="text-[0.85rem] text-[#999] truncate">{getArtistName(song)}</p>
                   </div>
                   {playlist.source === 'auto' && (
                     <span className="text-xs text-neutral-600 hidden sm:block">
@@ -792,7 +794,7 @@ export default function PlaylistDetail({
           open={showActionModal}
           onClose={() => setShowActionModal(false)}
           title={selectedSong?.title ?? ''}
-          artist={selectedSong?.artist ?? ''}
+          artist={selectedSong ? getArtistName(selectedSong) : ''}
           thumbnailUrl={selectedSong ? getSongThumbnail(selectedSong) : null}
           liked={selectedSongLiked}
           likeLabel={selectedSongLiked ? '取消喜愛' : '加入喜愛結他譜'}

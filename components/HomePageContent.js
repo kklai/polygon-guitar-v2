@@ -9,6 +9,7 @@ import RecentItems from '@/components/RecentItems'
 import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
 import SectionViewportLoader from '@/components/SectionViewportLoader'
 import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 // 1-hour local cache for home payload (cache/homePage snapshot) — reload reads from here
 const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
@@ -193,7 +194,7 @@ const FALLBACK_MANUAL_PLAYLISTS = [
 ]
 
 // 自訂歌單區域 — 有 preloadedSongs 即用（SSR/API 已載），否則一次過 fetch 再顯示
-function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs }) {
+function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs, artistMap }) {
   const [songs, setSongs] = useState(() => (Array.isArray(preloadedSongs) && preloadedSongs.length > 0 ? preloadedSongs : []))
   const [loading, setLoading] = useState(() => !(Array.isArray(preloadedSongs) && preloadedSongs.length > 0))
 
@@ -238,7 +239,7 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs }) 
           songs.map((song) => (
             <SongCard
               key={song.id}
-              song={song}
+              song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
               artistPhoto={song.artistPhoto}
               href={`/tabs/${song.id}`}
               compact
@@ -383,6 +384,7 @@ function getInitialStateFromHomeData(initialHomeData) {
 export default function HomePageContent({ initialHomeSettings = {}, initialHomeData = null }) {
   const router = useRouter()
   const { user, isAdmin } = useAuth()
+  const { artistMap } = useArtistMap()
   const fromServer = getInitialStateFromHomeData(initialHomeData)
   const [artists, setArtists] = useState(_initialHomeState.artists)
   const [latestSongs, setLatestSongs] = useState(fromServer?.latestSongs ?? _initialHomeState.latestSongs)
@@ -482,7 +484,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {hotTabs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={song}
+                    song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact
@@ -586,7 +588,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {latestSongs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={song}
+                    song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact
@@ -686,6 +688,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 songIds={playlist?.songIds}
                 onSongClick={handleSongClick}
                 preloadedSongs={customPlaylistSongs[section.id]}
+                artistMap={artistMap}
               />
             </SectionViewportLoader>
           )

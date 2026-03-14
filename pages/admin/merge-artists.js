@@ -86,7 +86,6 @@ export default function MergeArtistsPage() {
       for (const tabDoc of tabsSnapshot.docs) {
         await updateDoc(tabDoc.ref, {
           artistId: keepArtist.id,
-          artist: keepArtist.name,
           updatedAt: new Date().toISOString()
         })
         updatedTabs++

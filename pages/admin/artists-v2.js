@@ -299,9 +299,6 @@ export default function ArtistsV2Page() {
           for (const songDoc of songsSnapshot.docs) {
             const songRef = doc(db, 'songs', songDoc.id)
             batch.update(songRef, {
-              artist: editForm.name,
-              artistName: editForm.name,
-              // 保留 artistId 和 artistSlug 不變，確保舊連結繼續有效
               updatedAt: new Date().toISOString()
             })
             batchCount++

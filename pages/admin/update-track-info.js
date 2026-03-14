@@ -5,9 +5,11 @@ import AdminGuard from '@/components/AdminGuard'
 import { getAllTabs } from '@/lib/tabs'
 import { updateDoc, doc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 function UpdateTrackInfoPage() {
   const router = useRouter()
+  const { getArtistName } = useArtistMap()
   const [tabs, setTabs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [logs, setLogs] = useState([])
@@ -139,24 +141,24 @@ function UpdateTrackInfoPage() {
       setProgress({ current: i + 1, total: targetTabs.length })
       
       try {
-        const result = await searchSpotify(tab.artist, tab.title)
+        const result = await searchSpotify(getArtistName(tab), tab.title)
         
         if (!result.found) {
           // 搜尋失敗，放到失敗列表
           failedTabs.push({
             tabId: tab.id,
             tabTitle: tab.title,
-            tabArtist: tab.artist,
+            tabArtist: getArtistName(tab),
             ...result,
             selected: false
           })
-          addLog(`❌ ${tab.artist} - ${tab.title}: 未找到`, 'warning')
+          addLog(`❌ ${getArtistName(tab)} - ${tab.title}: 未找到`, 'warning')
         } else {
           // 搜尋成功
           results.push({
             tabId: tab.id,
             tabTitle: tab.title,
-            tabArtist: tab.artist,
+            tabArtist: getArtistName(tab),
             ...result,
             selected: result.found && (result.details?.composers || result.details?.lyricists || result.details?.bpm || result.track?.releaseYear)
           })
@@ -166,12 +168,12 @@ function UpdateTrackInfoPage() {
         failedTabs.push({
           tabId: tab.id,
           tabTitle: tab.title,
-          tabArtist: tab.artist,
+          tabArtist: getArtistName(tab),
           found: false,
           error: error.message || '請求失敗',
           selected: false
         })
-        addLog(`⚠️ ${tab.artist} - ${tab.title}: ${error.message}`, 'warning')
+        addLog(`⚠️ ${getArtistName(tab)} - ${tab.title}: ${error.message}`, 'warning')
       }
       
       // 顯示進度：成功 + 失敗

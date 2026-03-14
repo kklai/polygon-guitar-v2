@@ -52,10 +52,9 @@ export default function ArtistReport() {
   const getArtistStats = () => {
     return artists.map(artist => {
       const artistTabs = tabs.filter(tab => {
-        // 匹配歌手名（支持多歌手）
-        if (tab.artist === artist.name) return true
-        if (tab.collaborators?.includes(artist.name)) return true
-        if (tab.artists?.some(a => a.name === artist.name)) return true
+        if (tab.artistId === artist.id) return true
+        if (tab.collaborators?.includes(artist.id)) return true
+        if (tab.artists?.some(a => a.id === artist.id)) return true
         return false
       })
       

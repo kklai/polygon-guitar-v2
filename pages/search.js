@@ -190,7 +190,7 @@ export default function Search() {
       addSearchHistorySong({
         id: song.id,
         title: song.title,
-        artist: getArtistName(song),
+        artistId: song.artistId,
         thumbnail: getSongThumbnail(song),
         uploaderPenName: song.uploaderPenName,
         arrangedBy: song.arrangedBy,
@@ -359,7 +359,7 @@ export default function Search() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-white font-medium truncate md:group-hover:text-[#FFD700] md:transition">{entry.title}</h3>
-                            <p className="text-sm text-neutral-500 truncate">{entry.artist}</p>
+                            <p className="text-sm text-neutral-500 truncate">{entry.artist || getArtistName(entry)}</p>
                           </div>
                           {uploaderDisplay ? (
                             <span className="flex-shrink-0 text-xs text-[#999] truncate max-w-[80px] text-right">

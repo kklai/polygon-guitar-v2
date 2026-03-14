@@ -7,10 +7,12 @@ import { searchTabs } from '@/lib/tabs'
 import Link from '@/components/Link'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/router'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 export default function CurrentlyPracticing() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const { getArtistName } = useArtistMap()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -138,7 +140,7 @@ export default function CurrentlyPracticing() {
               )}
               <div className="flex-1">
                 <p className="text-white font-medium">{currentPracticing.title}</p>
-                <p className="text-sm text-neutral-400">{currentPracticing.artist}</p>
+                <p className="text-sm text-neutral-400">{getArtistName(currentPracticing)}</p>
               </div>
               <button
                 onClick={clearPracticing}
@@ -193,7 +195,7 @@ export default function CurrentlyPracticing() {
                   )}
                   <div className="flex-1">
                     <p className="text-white text-sm">{tab.title}</p>
-                    <p className="text-xs text-neutral-400">{tab.artist}</p>
+                    <p className="text-xs text-neutral-400">{getArtistName(tab)}</p>
                   </div>
                   <span className="text-[#FFD700] text-sm">選擇</span>
                 </button>

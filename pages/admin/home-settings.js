@@ -16,6 +16,7 @@ import {
 } from '@/lib/firestore-tracked'
 import { getHotTabs, getTabsByIds } from '@/lib/tabs'
 import { getAllPlaylists } from '@/lib/playlists'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 // 首頁設置頁面資料：24 小時內使用快取，減少 Firestore 讀取
 const HOME_SETTINGS_CACHE_KEY = 'pg_home_settings_page_cache'
@@ -62,6 +63,7 @@ const TAB_SORT_OPTIONS = [
 
 function HomeSettings() {
   const router = useRouter()
+  const { getArtistName } = useArtistMap()
   const [artists, setArtists] = useState([])
   const [tabs, setTabs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -174,7 +176,7 @@ function HomeSettings() {
     // 本地過濾 - 類似 search 頁面，搜索多個字段
     const results = tabs.filter(tab => 
       tab.title?.toLowerCase().includes(query) ||
-      tab.artistName?.toLowerCase().includes(query) ||
+      getArtistName(tab)?.toLowerCase().includes(query) ||
       (tab.composer && tab.composer.toLowerCase().includes(query)) ||
       (tab.lyricist && tab.lyricist.toLowerCase().includes(query)) ||
       (tab.arranger && tab.arranger.toLowerCase().includes(query)) ||
@@ -764,7 +766,7 @@ function HomeSettings() {
       const tab = tabs.find(t => t.id === id)
       if (tab) return tab
       // 如果喺 tabs 數組入邊搵唔到，顯示一個佔位符
-      return { id, title: '載入中...', artistName: '', notFound: true }
+      return { id, title: '載入中...', notFound: true }
     })
   }
 
@@ -1199,7 +1201,7 @@ function HomeSettings() {
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium truncate">{tab.title}</p>
                             <p className="text-sm text-neutral-500 truncate">
-                              {tab.artistName || tab.artist}
+                              {getArtistName(tab)}
                               {(tab.uploaderPenName || tab.arrangedBy) && (
                                 <span className="text-[#FFD700] text-[10px] ml-1.5 inline-flex items-center gap-0.5 align-middle">
                                   <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1285,7 +1287,7 @@ function HomeSettings() {
                               {tab.title}
                             </p>
                             <p className="text-xs text-neutral-500 truncate">
-                              {tab.artistName || tab.artist}
+                              {getArtistName(tab)}
                               {(tab.uploaderPenName || tab.arrangedBy) && (
                                 <span className="text-[#FFD700] text-[10px] ml-1.5 inline-flex items-center gap-0.5 align-middle">
                                   <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

@@ -5,10 +5,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
 import { collection, query, orderBy, getDocs, where, doc, getDoc } from '@/lib/firestore-tracked'
 import { format, startOfDay, endOfDay, subDays } from 'date-fns'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 export default function DailyUploads() {
   const router = useRouter()
   const { user, isAdmin } = useAuth()
+  const { getArtistName } = useArtistMap()
   const [uploads, setUploads] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -165,7 +167,7 @@ export default function DailyUploads() {
                         {tab.title}
                       </td>
                       <td className="px-4 py-3 text-neutral-400">
-                        {tab.artist}
+                        {getArtistName(tab)}
                       </td>
                       <td className="px-4 py-3">
                         <a

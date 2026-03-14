@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from '@/lib/firestore-tracked'
+import { doc, getDoc, updateDoc, deleteDoc, deleteField, collection, query, where, getDocs, writeBatch } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
@@ -118,7 +118,7 @@ function EditArtist() {
       })
       
       // 檢查相關歌曲數量
-      await checkRelatedSongs(data.name, data.normalizedName || artistSnap.id)
+      await checkRelatedSongs()
     } catch (error) {
       console.error('Error loading artist:', error)
     } finally {
@@ -153,10 +153,10 @@ function EditArtist() {
       // 由新歌手名生成網站 ID（slug），例如 "陳奕迅 Eason Chan" → "陳奕迅-Eason-Chan"
       const newSlug = nameToSlug(formData.name) || id
       
-      // 如果歌手名變更，自動更新所有相關歌曲（含 artistId / artistSlug 一齊改為新 slug）
+      // If name changed, clean up stale denormalized fields on tabs (artistId stays unchanged — it's the doc ID)
       if (originalName && formData.name !== originalName) {
-        console.log('歌手名變更，自動更新相關歌曲及網站 ID...')
-        await handleFixSongsData(true, newSlug) // 靜默 + 新 slug，會一齊更新歌曲嘅 artistId/artistSlug
+        console.log('歌手名變更，清理歌曲舊歌手名欄位...')
+        await handleFixSongsData(true)
       }
       
       // 使用實際嘅 document ID（處理簡繁體問題）
@@ -294,34 +294,15 @@ function EditArtist() {
     setIsSearching(false)
   }
 
-  // 檢查相關歌曲
-  const checkRelatedSongs = async (name, normalizedName) => {
+  // 檢查相關歌曲 (by stable doc ID)
+  const checkRelatedSongs = async () => {
     try {
-      const possibleIds = [
-        normalizedName,
-        name.toLowerCase().replace(/\s+/g, '-'),
-        name
-      ].filter(Boolean)
-      
-      let count = 0
-      for (const artistId of possibleIds) {
-        const q = query(
-          collection(db, 'tabs'),
-          where('artistId', '==', artistId)
-        )
-        const snapshot = await getDocs(q)
-        count += snapshot.size
-      }
-      
-      // 同時檢查 artist 欄位
-      const q2 = query(
+      const docId = actualDocId || id
+      const snapshot = await getDocs(query(
         collection(db, 'tabs'),
-        where('artist', '==', name)
-      )
-      const snapshot2 = await getDocs(q2)
-      count += snapshot2.size
-      
-      setRelatedSongsCount(count)
+        where('artistId', '==', docId)
+      ))
+      setRelatedSongsCount(snapshot.size)
     } catch (e) {
       console.error('Error checking songs:', e)
     }
@@ -340,59 +321,33 @@ function EditArtist() {
     }
   }
 
-  // 修復歌曲數據。newSlug 有值時會一齊更新 artistId/artistSlug（改名後用）；冇則只更新顯示名稱
-  const handleFixSongsData = async (silent = false, newSlug = null) => {
-    if (!silent && !confirm('確定要修復所有相關歌曲的數據嗎？' + (newSlug ? '這會更新歌手顯示名稱及網站 ID（URL 會變）。' : '這會更新歌曲的歌手顯示名稱（URL 連結保持不變）。'))) return
+  // Clean up stale denormalized artist fields on tabs. artistId (doc ID) never changes.
+  const handleFixSongsData = async (silent = false) => {
+    if (!silent && !confirm('確定要清理所有相關歌曲的舊歌手名欄位嗎？')) return
     
     setIsFixingSongs(true)
     setFixMessage(null)
     
     try {
-      const oldArtistId = originalName.toLowerCase().replace(/\s+/g, '-')
-      
-      // 查找所有相關歌曲（用舊的 artistId 或 artist 名）
       const docId = actualDocId || id
-      const possibleOldIds = [
-        docId,
-        oldArtistId,
-        originalName
-      ].filter(Boolean)
       
-      const songUpdates = newSlug
-        ? { artist: formData.name, artistName: formData.name, artistId: newSlug, artistSlug: newSlug, updatedAt: new Date().toISOString() }
-        : { artist: formData.name, artistName: formData.name, updatedAt: new Date().toISOString() }
+      // Find all tabs by the stable doc ID
+      const snapshot = await getDocs(query(
+        collection(db, 'tabs'),
+        where('artistId', '==', docId)
+      ))
       
       let updatedCount = 0
       const batch = writeBatch(db)
-      const seen = new Set()
       
-      // 方法 1: 用 artistId 查找
-      for (const oldId of possibleOldIds) {
-        const q = query(
-          collection(db, 'tabs'),
-          where('artistId', '==', oldId)
-        )
-        const snapshot = await getDocs(q)
-        
-        snapshot.docs.forEach(d => {
-          if (seen.has(d.id)) return
-          seen.add(d.id)
-          batch.update(d.ref, songUpdates)
-          updatedCount++
-        })
-      }
-      
-      // 方法 2: 用 artist 名查找
-      const q2 = query(
-        collection(db, 'tabs'),
-        where('artist', '==', originalName)
-      )
-      const snapshot2 = await getDocs(q2)
-      
-      snapshot2.docs.forEach(d => {
-        if (seen.has(d.id)) return
-        seen.add(d.id)
-        batch.update(d.ref, songUpdates)
+      snapshot.docs.forEach(d => {
+        const data = d.data()
+        const updates = { updatedAt: new Date().toISOString() }
+        // Remove stale denormalized name fields
+        if (data.artist !== undefined) updates.artist = deleteField()
+        if (data.artistName !== undefined) updates.artistName = deleteField()
+        if (data.artistSlug !== undefined) updates.artistSlug = deleteField()
+        batch.update(d.ref, updates)
         updatedCount++
       })
       
@@ -403,15 +358,13 @@ function EditArtist() {
       if (!silent) {
         setFixMessage({
           type: 'success',
-          text: newSlug
-            ? `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料及網站 ID`
-            : `✅ 成功更新 ${updatedCount} 首歌曲的歌手資料`
+          text: `✅ 成功清理 ${updatedCount} 首歌曲的舊歌手名欄位`
         })
       } else {
         console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料` + (newSlug ? '及網站 ID' : ''))
       }
       
-      await checkRelatedSongs(formData.name, newSlug || id)
+      await checkRelatedSongs()
       
     } catch (error) {
       console.error('Fix songs error:', error)

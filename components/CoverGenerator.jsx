@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 const CANVAS_SIZE = 400
 
@@ -40,6 +41,7 @@ function getSongCover(song) {
 }
 
 export default function CoverGenerator({ songs = [], playlistTitle = '', onGenerated }) {
+  const { getArtistName } = useArtistMap()
   const [mode, setMode] = useState('single')
   const [selectedSongs, setSelectedSongs] = useState(() => songs.length > 0 ? [songs[0]] : [])
   const [frameColor, setFrameColor] = useState('#F15A24')
@@ -328,7 +330,7 @@ export default function CoverGenerator({ songs = [], playlistTitle = '', onGener
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm truncate">{song.title}</p>
-                  <p className="text-neutral-500 text-xs truncate">{song.artistName || song.artist}</p>
+                  <p className="text-neutral-500 text-xs truncate">{getArtistName(song)}</p>
                 </div>
                 {isSelected && (
                   <span className="text-[#FFD700] text-xs font-bold flex-shrink-0">

@@ -52,7 +52,6 @@ function toHomeSlim(tab) {
   return stripUndefined({
     id: tab.id,
     title: tab.title,
-    artist: tab.artist ?? tab.artistName,
     artistId: tab.artistId,
     ...(coverImage ? { coverImage } : {})
   })

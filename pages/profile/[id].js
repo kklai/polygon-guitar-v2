@@ -8,6 +8,7 @@ import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { ArrowLeft } from 'lucide-react'
+import { useArtistMap } from '@/lib/useArtistMap'
 
 // 社交媒體圖標組件
 const SocialIcon = ({ platform, url }) => {
@@ -94,6 +95,7 @@ export default function PublicProfile() {
   const router = useRouter()
   const { id } = router.query
   const { user: currentUser } = useAuth()
+  const { getArtistName } = useArtistMap()
   
   const [profile, setProfile] = useState(null)
   const [uploads, setUploads] = useState([])
@@ -368,7 +370,7 @@ export default function PublicProfile() {
                       {/* 歌曲信息 */}
                       <div className="flex-1 min-w-0">
                         <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
-                        <p className="text-neutral-500 text-sm">{tab.artist}</p>
+                        <p className="text-neutral-500 text-sm">{getArtistName(tab)}</p>
                       </div>
                       
                       {/* 瀏覽量 */}
@@ -394,7 +396,7 @@ export default function PublicProfile() {
                     <span className="text-neutral-500 text-sm w-6 text-center flex-shrink-0">{index + 6}</span>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium truncate">{tab.title}</h3>
-                      <p className="text-neutral-500 text-sm">{tab.artist}</p>
+                      <p className="text-neutral-500 text-sm">{getArtistName(tab)}</p>
                     </div>
                     <div className="text-right text-xs text-neutral-500 flex-shrink-0">
                       <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>

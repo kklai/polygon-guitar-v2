@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist } from '../../lib/playlistApi';
 import SongActionSheet from '../../components/SongActionSheet';
 import Layout from '../../components/Layout';
+import { useArtistMap } from '@/lib/useArtistMap';
 import Head from 'next/head';
 import { Clock, ArrowLeft, Copy, Share, Heart, Music, User, Plus } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export default function RecentTabs() {
   const backHref = fromHome ? '/' : '/library';
   const backLabel = fromHome ? '返回首頁' : '返回收藏';
   const { user } = useAuth();
+  const { getArtistName } = useArtistMap();
   const [tabs, setTabs] = useState([]);
   const [authUser, setAuthUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -243,7 +245,7 @@ export default function RecentTabs() {
                     <h3 className="text-[1rem] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
                       {tab.title}
                     </h3>
-                    <p className="text-[0.85rem] text-[#999] truncate">{tab.artist || tab.artistName}</p>
+                    <p className="text-[0.85rem] text-[#999] truncate">{getArtistName(tab)}</p>
                   </div>
                 </Link>
                 <button
@@ -280,7 +282,7 @@ export default function RecentTabs() {
           open={showActionModal}
           onClose={() => setShowActionModal(false)}
           title={selectedTab?.title ?? ''}
-          artist={selectedTab?.artist ?? selectedTab?.artistName ?? ''}
+          artist={selectedTab ? getArtistName(selectedTab) : ''}
           thumbnailUrl={selectedTab ? getSongThumbnail(selectedTab) : null}
           liked={selectedTabLiked}
           likeLabel={selectedTabLiked ? '取消喜愛' : '加入喜愛結他譜'}

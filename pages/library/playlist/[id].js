@@ -20,6 +20,7 @@ import Layout from '../../../components/Layout';
 import { getSongThumbnail } from '../../../lib/getSongThumbnail';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, removeSongFromPlaylist, deletePlaylist, updatePlaylist } from '../../../lib/playlistApi';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useArtistMap } from '@/lib/useArtistMap';
 
 function computeShuffleOrder(length) {
   const indices = Array.from({ length }, (_, i) => i);
@@ -34,6 +35,7 @@ export default function UserPlaylistDetail() {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useAuth();
+  const { getArtistName } = useArtistMap();
   const [playlist, setPlaylist] = useState(null);
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,10 +154,9 @@ export default function UserPlaylistDetail() {
 
   const getSortedSongs = () => {
     const sorted = [...songs];
-    const artist = (s) => (s.artist || s.artistName || '').toLowerCase();
     switch (sortMode) {
       case 'artist':
-        return sorted.sort((a, b) => artist(a).localeCompare(artist(b), 'zh-HK'));
+        return sorted.sort((a, b) => (getArtistName(a) || '').toLowerCase().localeCompare((getArtistName(b) || '').toLowerCase(), 'zh-HK'));
       case 'year':
         return sorted.sort((a, b) => {
           const yearA = a.songYear || a.uploadYear || 0;
@@ -417,7 +418,7 @@ export default function UserPlaylistDetail() {
     const url = `${window.location.origin}/tabs/${selectedSong.id}`;
     if (navigator.share) {
       await navigator.share({
-        title: `${selectedSong.title} - ${selectedSong.artist || selectedSong.artistName}`,
+        title: `${selectedSong.title} - ${getArtistName(selectedSong)}`,
         url
       });
     } else {
@@ -727,7 +728,7 @@ export default function UserPlaylistDetail() {
                     <h3 className="text-[1rem] font-medium text-[#e6e6e6] truncate md:group-hover:text-[#FFD700] md:transition">
                       {song.title}
                     </h3>
-                    <p className="text-[0.85rem] text-[#999] truncate">{song.artist || song.artistName}</p>
+                    <p className="text-[0.85rem] text-[#999] truncate">{getArtistName(song)}</p>
                   </div>
                   <button
                     onClick={(e) => handleMoreClick(e, song)}
@@ -808,7 +809,7 @@ export default function UserPlaylistDetail() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-white font-medium truncate">{selectedSong.title}</p>
-                      <p className="text-neutral-400 text-sm truncate">{selectedSong.artist || selectedSong.artistName}</p>
+                      <p className="text-neutral-400 text-sm truncate">{getArtistName(selectedSong)}</p>
                     </div>
                   </div>
                 )}
@@ -1166,7 +1167,7 @@ export default function UserPlaylistDetail() {
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{song.title}</p>
-                            <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{song.artist || song.artistName}</p>
+                            <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{getArtistName(song)}</p>
                           </div>
                           <span
                             className="cursor-grab active:cursor-grabbing p-1.5 -mr-1.5 text-[#666] md:hover:text-[#B3B3B3] flex-shrink-0 select-none touch-none"
@@ -1406,7 +1407,7 @@ export default function UserPlaylistDetail() {
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{orderedSongsForEdit[touchDragIndex].title}</p>
-                    <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{orderedSongsForEdit[touchDragIndex].artist || orderedSongsForEdit[touchDragIndex].artistName}</p>
+                    <p className="text-neutral-500 truncate leading-tight" style={{ fontSize: 13, lineHeight: '16px' }}>{getArtistName(orderedSongsForEdit[touchDragIndex])}</p>
                   </div>
                   <div className="w-10 flex-shrink-0" />
                 </div>
