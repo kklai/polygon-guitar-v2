@@ -190,7 +190,7 @@ function EditArtist() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({
-                artist: { id: docId, name: formData.name, photoURL: formData.photoURL, wikiPhotoURL: formData.wikiPhotoURL, artistType: formData.artistType, regions: formData.regions },
+                artist: { id: docId, name: formData.name, normalizedName: newSlug, photoURL: formData.photoURL, wikiPhotoURL: formData.wikiPhotoURL, artistType: formData.artistType, regions: formData.regions },
                 action: 'update-artist'
               })
             })
