@@ -1,6 +1,6 @@
 import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 
 // Hardcoded so we don't hit Firebase on every page visit
@@ -12,8 +12,23 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
   const menuRef = useRef(null)
+  const triggerRef = useRef(null)
+  const navRef = useRef(null)
   // Desktop: 避免「點擊 Link」被誤判為點擊外部；mousedown 在 menu 內設 true，document click 時見 true 就不關閉
   const clickedInsideMenuRef = useRef(false)
+  // Desktop 下拉選單：固定喺 nav bar 下方（唔遮住頂欄）
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 12 })
+  useLayoutEffect(() => {
+    if (!isMenuOpen || typeof window === 'undefined') return
+    if (navRef.current && triggerRef.current) {
+      const navRect = navRef.current.getBoundingClientRect()
+      const triggerRect = triggerRef.current.getBoundingClientRect()
+      setMenuPosition({
+        top: navRect.bottom + 4,
+        right: window.innerWidth - triggerRect.right,
+      })
+    }
+  }, [isMenuOpen])
 
   // 路由變化時關閉選單，避免點擊 Link 時先關閉導致導航被取消
   useEffect(() => {
@@ -21,6 +36,11 @@ export default function Navbar() {
     router.events.on('routeChangeStart', handleRouteChange)
     return () => router.events.off('routeChangeStart', handleRouteChange)
   }, [router.events])
+
+  // 關閉選單時重置 desktop 下拉位置，下次打開會重新計算（喺 nav bar 下方）
+  useEffect(() => {
+    if (!isMenuOpen) setMenuPosition({ top: 0, right: 12 })
+  }, [isMenuOpen])
 
   // 只喺 desktop 點擊外部關閉選單（手機唔用，避免撳 icon 後選單被誤關）
   useEffect(() => {
@@ -72,6 +92,7 @@ export default function Navbar() {
 
   return (
     <nav
+      ref={navRef}
       className={`bg-[#FFD700] fixed top-0 left-0 right-0 will-change-transform ${isMenuOpen ? 'z-[10000]' : 'z-[100]'}`}
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
@@ -96,6 +117,7 @@ export default function Navbar() {
           {/* Desktop：頭像/icon，點擊開選單（出譜在選單內） */}
           <div className="hidden md:flex md:relative items-center gap-2" ref={menuRef}>
             <button
+              ref={triggerRef}
               onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen) }}
               className="text-black/70 p-1 rounded-full focus:outline-none"
               aria-label={isMenuOpen ? '關閉選單' : '開啟選單'}
@@ -116,10 +138,11 @@ export default function Navbar() {
                 </span>
               )}
             </button>
-            {/* Desktop 下拉選單 */}
-            {isMenuOpen && (
+            {/* Desktop 下拉選單：固定喺 nav bar 下方，唔遮住頂欄 */}
+            {isMenuOpen && menuPosition.top > 0 && (
               <div
-                className="absolute right-0 top-full mt-1 py-2 w-56 bg-[#FFD700] border border-black/10 rounded-lg shadow-lg z-[101]"
+                className="fixed py-2 w-56 bg-[#FFD700] border border-black/10 rounded-lg shadow-lg z-[9999]"
+                style={{ top: menuPosition.top, right: menuPosition.right }}
                 onMouseDown={() => { clickedInsideMenuRef.current = true }}
               >
                 {isAuthenticated && (

@@ -175,7 +175,9 @@ export default function EditTab() {
   const playKeyMenuRef = useRef(null)
   const [relationMenuOpen, setRelationMenuOpen] = useState(false)
   const relationMenuRef = useRef(null)
-  
+  // 歌名／歌手變更時：清空或還原 Spotify 擷取資料（key = artist|||title）
+  const spotifySnapshotByKeyRef = useRef({})
+
   // Spotify 歌曲搜尋狀態
   const [isSpotifyModalOpen, setIsSpotifyModalOpen] = useState(false)
   
@@ -400,6 +402,22 @@ export default function EditTab() {
         spotifyFilledSongYear: data.spotifyTrackId ? (data.songYear ?? '') : '',
         spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : ''
       })
+      if (data.spotifyTrackId) {
+        const artist = (data.artist || '').trim()
+        const title = (data.title || '').trim()
+        const key = `${artist}|||${title}`
+        spotifySnapshotByKeyRef.current[key] = {
+          songYear: data.songYear ?? '',
+          album: data.album ?? '',
+          spotifyTrackId: data.spotifyTrackId,
+          spotifyAlbumId: data.spotifyAlbumId || null,
+          spotifyArtistId: data.spotifyArtistId || null,
+          spotifyUrl: data.spotifyUrl || null,
+          albumImage: data.albumImage || null,
+          spotifyFilledSongYear: data.songYear ?? '',
+          spotifyFilledAlbum: data.album ?? ''
+        }
+      }
       if (data.artistId) setUseExistingArtistSelected(true)
     } catch (error) {
       console.error('Error loading tab:', error)
@@ -541,7 +559,45 @@ export default function EditTab() {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    
+
+    // 歌名或歌手變更：清空 Spotify 擷取資料，若改回曾擷取過的歌則還原
+    if (name === 'title' || name === 'artist') {
+      setFormData(prev => {
+        const next = { ...prev, [name]: value }
+        const nextArtist = (next.artist || '').trim()
+        const nextTitle = (next.title || '').trim()
+        const key = `${nextArtist}|||${nextTitle}`
+        const snapshot = spotifySnapshotByKeyRef.current[key]
+        if (snapshot) {
+          return {
+            ...next,
+            songYear: snapshot.songYear,
+            album: snapshot.album,
+            spotifyTrackId: snapshot.spotifyTrackId,
+            spotifyFilledSongYear: snapshot.spotifyFilledSongYear,
+            spotifyFilledAlbum: snapshot.spotifyFilledAlbum,
+            albumImage: snapshot.albumImage ?? prev.albumImage,
+            coverImage: snapshot.albumImage ? snapshot.albumImage : prev.coverImage,
+            spotifyAlbumId: snapshot.spotifyAlbumId ?? prev.spotifyAlbumId,
+            spotifyArtistId: snapshot.spotifyArtistId ?? prev.spotifyArtistId,
+            spotifyUrl: snapshot.spotifyUrl ?? prev.spotifyUrl
+          }
+        }
+        return {
+          ...next,
+          songYear: '',
+          album: '',
+          spotifyTrackId: null,
+          spotifyFilledSongYear: '',
+          spotifyFilledAlbum: '',
+          albumImage: ''
+        }
+      })
+      if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
+      if (name === 'artist') setUseExistingArtistSelected(false)
+      return
+    }
+
     // 處理 原 Key / Capo / 彈奏 Key：任填兩項，第三項自動算出；被計出的欄位外框轉黃
     if (name === 'originalKey' || name === 'capo' || name === 'playKey') {
       setFormData(prev => {
@@ -566,11 +622,11 @@ export default function EditTab() {
         [name]: value
       }))
     }
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
-    
+
     // YouTube URL 處理
     if (name === 'youtubeUrl') {
       const videoId = extractYouTubeVideoId(value);
@@ -580,7 +636,7 @@ export default function EditTab() {
         youtubeVideoId: videoId
       }));
     }
-    
+
     // 重置使用現有歌手狀態
     if (name === 'artist') {
       setUseExistingArtistSelected(false)
@@ -634,19 +690,30 @@ export default function EditTab() {
 
   // 使用 Spotify 歌曲資料
   const handleUseSpotifyTrack = (trackData) => {
-    setFormData(prev => ({
-      ...prev,
-      // 不更新歌手和歌名（保留用戶原始輸入）
-      // 只更新歌曲資訊和 Spotify 資訊
-      songYear: trackData.songYear || prev.songYear,
-      album: trackData.album || prev.album,
-      // Spotify 資訊
+    const artist = (formData.artist || '').trim()
+    const title = (formData.title || '').trim()
+    const key = `${artist}|||${title}`
+    spotifySnapshotByKeyRef.current[key] = {
+      songYear: trackData.songYear ?? '',
+      album: trackData.album ?? '',
       spotifyTrackId: trackData.spotifyTrackId || null,
       spotifyAlbumId: trackData.spotifyAlbumId || null,
       spotifyArtistId: trackData.spotifyArtistId || null,
       spotifyUrl: trackData.spotifyUrl || null,
       albumImage: trackData.albumImage || null,
-      coverImage: trackData.albumImage || prev.coverImage, // 預設揀選 Spotify 專輯封面
+      spotifyFilledSongYear: trackData.songYear ?? '',
+      spotifyFilledAlbum: trackData.album ?? ''
+    }
+    setFormData(prev => ({
+      ...prev,
+      songYear: trackData.songYear || prev.songYear,
+      album: trackData.album || prev.album,
+      spotifyTrackId: trackData.spotifyTrackId || null,
+      spotifyAlbumId: trackData.spotifyAlbumId || null,
+      spotifyArtistId: trackData.spotifyArtistId || null,
+      spotifyUrl: trackData.spotifyUrl || null,
+      albumImage: trackData.albumImage || null,
+      coverImage: trackData.albumImage || prev.coverImage,
       spotifyFilledSongYear: trackData.songYear ?? '',
       spotifyFilledAlbum: trackData.album ?? ''
     }))
@@ -1158,14 +1225,19 @@ E|----------------------------------------------------------------|
                   <img src="/spotify-icon.svg" alt="" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   獲取歌曲資訊
                 </button>
-                {formData.spotifyTrackId && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-[#1DB954]">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    已從 Spotify 擷取：專輯／年份
-                  </span>
-                )}
+                {formData.spotifyTrackId && (() => {
+                  const yearMatch = String(formData.songYear ?? '') === String(formData.spotifyFilledSongYear ?? '')
+                  const albumMatch = String(formData.album ?? '') === String(formData.spotifyFilledAlbum ?? '')
+                  const label = yearMatch && albumMatch ? '年份／專輯' : yearMatch ? '年份' : albumMatch ? '專輯' : null
+                  return label ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-[#1DB954]">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      已從 Spotify 擷取：{label}
+                    </span>
+                  ) : null
+                })()}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
