@@ -110,7 +110,8 @@ export function AuthProvider({ children }) {
   const realIsAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com' || !!user?.role
 
   // Admin 可切換「以誰身份瀏覽」：admin（正常）、user（一般登入用戶）、guest（未登入）
-  const effectiveViewAs = realIsAdmin ? viewAsMode : 'admin'
+  // 非管理員：未登入用 guest、已登入用 user，這樣 isAdmin 只會對真正 admin 為 true
+  const effectiveViewAs = realIsAdmin ? viewAsMode : (user ? 'user' : 'guest')
   const effectiveUser = effectiveViewAs === 'guest' ? null : user
   const isAdmin = effectiveViewAs === 'admin'
 
