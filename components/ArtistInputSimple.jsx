@@ -12,22 +12,22 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { collection, query, where, getDocs, doc, getDoc, limit } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 
-// 關係類型選項
-const RELATION_OPTIONS = [
+// 關係類型選項（導出供 parent 右欄選單用）
+export const RELATION_OPTIONS = [
   { value: 'slash', label: '/', separator: ' / ' },      // 簡單分隔
-  { value: 'feat', label: 'feat.', separator: ' feat. ' },
-  { value: 'with', label: 'with', separator: ' with ' }
+  { value: 'feat', label: 'feat.', separator: ' feat. ' }
 ]
 
 // 單個歌手欄位組件。若傳入 allArtists（來自 search-data），則純客戶端過濾，不讀 Firestore
-function ArtistFieldRow({ 
+function ArtistFieldRow({
   index,
   artist,
   onChange,
   onRemove,
   canRemove,
   excludeIds = [],
-  allArtists = []
+  allArtists = [],
+  hideRelation = false
 }) {
   const [inputValue, setInputValue] = useState(artist?.name || '')
   const [suggestions, setSuggestions] = useState([])
@@ -35,7 +35,9 @@ function ArtistFieldRow({
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [isConfirmed, setIsConfirmed] = useState(!!artist?.id) // 是否已確認選擇
+  const [relationMenuOpen, setRelationMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const relationMenuRef = useRef(null)
 
   // 同步外部變化
   useEffect(() => {
@@ -48,6 +50,9 @@ function ArtistFieldRow({
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setShowDropdown(false)
+      }
+      if (relationMenuRef.current && !relationMenuRef.current.contains(e.target)) {
+        setRelationMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -91,9 +96,14 @@ function ArtistFieldRow({
             containsMatches.push({ ...a, photoURL: a.photoURL || a.photo, wikiPhotoURL: a.wikiPhotoURL || a.photo })
           }
         }
-        const byCount = (x, y) => (y.tabCount || y.songCount || 0) - (x.tabCount || x.songCount || 0)
-        prefixMatches.sort(byCount)
-        containsMatches.sort(byCount)
+        const sortByTierThenCount = (x, y) => {
+          const tx = x.tier ?? 99
+          const ty = y.tier ?? 99
+          if (tx !== ty) return tx - ty
+          return (y.tabCount || y.songCount || 0) - (x.tabCount || x.songCount || 0)
+        }
+        prefixMatches.sort(sortByTierThenCount)
+        containsMatches.sort(sortByTierThenCount)
         for (const item of prefixMatches) {
           if (results.length >= 5) break
           if (!seenIds.has(item.id)) {
@@ -110,7 +120,7 @@ function ArtistFieldRow({
         }
         const exactMatch = results.find(r => r.id === exactId)
         const rest = exactMatch ? results.filter(r => r.id !== exactId) : results
-        rest.sort(byCount)
+        rest.sort(sortByTierThenCount)
         const topRest = rest.slice(0, exactMatch ? 4 : 5)
         const final = exactMatch ? [exactMatch, ...topRest] : topRest
         setSuggestions(final)
@@ -163,7 +173,13 @@ function ArtistFieldRow({
               containsMatches.push({ id: d.id, ...data })
             }
           })
-          containsMatches.sort((a, b) => (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0))
+          const sortByTierThenCount = (a, b) => {
+            const ta = a.tier ?? 99
+            const tb = b.tier ?? 99
+            if (ta !== tb) return ta - tb
+            return (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0)
+          }
+          containsMatches.sort(sortByTierThenCount)
           if (trimmed.length <= 2) {
             const mergedIds = new Set(results.map(r => r.id))
             for (const item of containsMatches) {
@@ -184,9 +200,15 @@ function ArtistFieldRow({
         } catch (e) {}
       }
 
+      const sortByTierThenCount = (a, b) => {
+        const ta = a.tier ?? 99
+        const tb = b.tier ?? 99
+        if (ta !== tb) return ta - tb
+        return (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0)
+      }
       const exactMatch = results.find(r => r.id === exactId)
       const rest = exactMatch ? results.filter(r => r.id !== exactId) : results
-      rest.sort((a, b) => (b.tabCount || b.songCount || 0) - (a.tabCount || a.songCount || 0))
+      rest.sort(sortByTierThenCount)
       const topRest = rest.slice(0, exactMatch ? 4 : 5)
       const final = exactMatch ? [exactMatch, ...topRest] : topRest
       setSuggestions(final)
@@ -232,7 +254,8 @@ function ArtistFieldRow({
       name: selectedArtist.name,
       id: selectedArtist.id,
       photo: selectedArtist.photoURL || selectedArtist.wikiPhotoURL || selectedArtist.photo,
-      artistType: selectedArtist.artistType || artist.artistType,
+      artistType: selectedArtist.artistType ?? selectedArtist.type ?? artist.artistType,
+      regions: (Array.isArray(selectedArtist.regions) && selectedArtist.regions.length > 0) ? selectedArtist.regions : (selectedArtist.region ? [selectedArtist.region] : artist.regions),
       isNew: false
     })
   }
@@ -262,12 +285,6 @@ function ArtistFieldRow({
     }
   }
 
-  // 改變關係
-  const handleRelationChange = (e) => {
-    const newRelation = e.target.value
-    onChange(index, { ...artist, relation: newRelation })
-  }
-
   // 獲取類型標籤顏色
   const getTypeColor = (type) => {
     switch (type) {
@@ -293,22 +310,39 @@ function ArtistFieldRow({
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-2">
-        {/* 左側固定寬度：主唱標籤 或 關係選擇，讓輸入框對齊 */}
-        <div className="w-20 flex-shrink-0">
-          {isFirst ? (
-            <span className="text-xs text-neutral-500">主唱</span>
-          ) : (
-            <select
-              value={artist.relation || 'slash'}
-              onChange={handleRelationChange}
-              className="w-full px-2 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm outline-none"
+        {/* 左側：非第一位歌手時顯示關係選擇（hideRelation 時由 parent 右欄顯示） */}
+        {!isFirst && !hideRelation && (
+          <div className="w-20 flex-shrink-0 relative" ref={relationMenuRef}>
+            <button
+              type="button"
+              onClick={() => setRelationMenuOpen(prev => !prev)}
+              className="w-full h-10 px-4 border border-neutral-700 rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between"
             >
-              {RELATION_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          )}
-        </div>
+              <span>{RELATION_OPTIONS.find(o => o.value === (artist.relation || 'slash'))?.label ?? '/'}</span>
+              <svg className={`w-4 h-4 text-[#B3B3B3] transition-transform flex-shrink-0 ${relationMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {relationMenuOpen && (
+              <div className="absolute z-50 mt-1 w-full min-w-[80px] rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl">
+                {RELATION_OPTIONS.map(opt => {
+                  const selected = (artist.relation || 'slash') === opt.value
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        onChange(index, { ...artist, relation: opt.value })
+                        setRelationMenuOpen(false)
+                      }}
+                      className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${selected ? 'text-[#FFD700]' : 'text-white'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 輸入欄位 */}
         <div className="flex-1 relative">
@@ -318,20 +352,15 @@ function ArtistFieldRow({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={() => !isConfirmed && inputValue.trim() && setShowDropdown(true)}
-            placeholder={isFirst ? "例如：陳奕迅" : "例如：楊千嬅"}
-            className={`w-full px-4 py-2 bg-[#282828] border-0 rounded-full text-white placeholder-[#666] outline-none ${
-              artist.id ? 'ring-2 ring-green-500/50' : ''
+            placeholder={isFirst ? '例如：陳奕迅' : '例如：楊千嬅'}
+            className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#737373] outline-none ${
+              artist.id ? 'border-[#B8860B] text-white' : 'border-neutral-700 text-white'
             }`}
           />
           
-          {/* 已選擇標記 + 歌手類型 */}
+          {/* 已選擇標記（只顯示綠勾，不顯示男/女/組合 tag） */}
           {artist.id && (
-            <div className="absolute right-3 top-2 flex items-center gap-2">
-              {artist.artistType && (
-                <span className={`text-xs px-2 py-0.5 rounded ${getTypeColor(artist.artistType)}`}>
-                  {getTypeLabel(artist.artistType)}
-                </span>
-              )}
+            <div className="absolute right-3 top-2 flex items-center">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -354,7 +383,7 @@ function ArtistFieldRow({
           <button
             type="button"
             onClick={() => onRemove(index)}
-            className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-neutral-500 hover:text-red-400 transition"
+            className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-neutral-500 hover:text-red-400 transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -435,7 +464,8 @@ function ArtistFieldRow({
 }
 
 // 主組件。內部載入 search-data 歌手列表，下拉用客戶端過濾（0 Firestore reads）
-export default function ArtistInputSimple({ value, onChange, hidePreview }) {
+// twoColumnLayout: 第一行 [歌手* X位歌手] | [+ 添加歌手 支援合唱/Featuring]，第二行 [主唱+輸入] | 空
+export default function ArtistInputSimple({ value, onChange, hidePreview, twoColumnLayout }) {
   // value 格式: { artists: [{ name, id, relation, isNew }], displayName: '' }
   const [artists, setArtists] = useState(value?.artists || [{ name: '', id: null, relation: null }])
   const [allArtists, setAllArtists] = useState([])
@@ -498,9 +528,9 @@ export default function ArtistInputSimple({ value, onChange, hidePreview }) {
     notifyChange(newArtists)
   }
 
-  // 添加歌手
+  // 添加歌手（每行對應類型/地區，預留空欄位）
   const handleAddArtist = () => {
-    const newArtists = [...artists, { name: '', id: null, relation: 'slash', isNew: true }]
+    const newArtists = [...artists, { name: '', id: null, relation: 'slash', artistType: '', region: '', isNew: true }]
     setArtists(newArtists)
     notifyChange(newArtists)
   }
@@ -515,19 +545,79 @@ export default function ArtistInputSimple({ value, onChange, hidePreview }) {
   // 獲取已使用的歌手 ID
   const usedIds = artists.map(a => a.id).filter(Boolean)
 
+  const labelRow = (
+    <div className="flex items-center gap-2 pl-1">
+      <span className="text-[13px] font-medium text-white">
+        歌手 <span className="text-[#FFD700]">*</span>
+      </span>
+      <span className="text-xs text-[#B3B3B3]">
+        {artists.length}位歌手
+      </span>
+    </div>
+  )
+
+  const addButtonRow = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <button
+        type="button"
+        onClick={handleAddArtist}
+        className="inline-flex items-center justify-center gap-2 h-9 px-5 bg-[#282828] hover:bg-[#3E3E3E] text-white rounded-full transition text-[13px]"
+      >
+        <span>＋歌手</span>
+      </button>
+      <span className="text-xs text-[#B3B3B3]">
+        合唱/featuring 適用
+      </span>
+    </div>
+  )
+
+  if (twoColumnLayout) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          {labelRow}
+        </div>
+        <div className="flex items-center gap-3 flex-wrap min-h-[42px]">
+          <div className="flex-1 min-w-0">
+            {artists.length > 0 && (
+              <ArtistFieldRow
+                index={0}
+                artist={artists[0]}
+                onChange={handleUpdateArtist}
+                onRemove={handleRemoveArtist}
+                canRemove={artists.length > 1}
+                excludeIds={usedIds.filter(id => id !== artists[0].id)}
+                allArtists={allArtists}
+              />
+            )}
+          </div>
+        </div>
+        {artists.length > 1 && (
+          <div className="space-y-2">
+            {artists.slice(1).map((artist, idx) => (
+              <ArtistFieldRow
+                key={idx}
+                index={idx + 1}
+                artist={artist}
+                onChange={handleUpdateArtist}
+                onRemove={handleRemoveArtist}
+                canRemove={artists.length > 1}
+                excludeIds={usedIds.filter(id => id !== artist.id)}
+                allArtists={allArtists}
+                hideRelation={twoColumnLayout && idx === 0}
+              />
+            ))}
+          </div>
+        )}
+        </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
-      {/* 標籤 */}
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-white">
-          歌手 <span className="text-[#FFD700]">*</span>
-        </label>
-        <span className="text-xs text-neutral-500">
-          {artists.length} 位歌手
-        </span>
+        {labelRow}
       </div>
-
-      {/* 歌手欄位列表 */}
       <div className="space-y-2">
         {artists.map((artist, index) => (
           <ArtistFieldRow
@@ -542,34 +632,7 @@ export default function ArtistInputSimple({ value, onChange, hidePreview }) {
           />
         ))}
       </div>
-
-      {/* 添加按 */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleAddArtist}
-          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>添加歌手</span>
-        </button>
-        
-        <span className="text-xs text-neutral-500">
-          支援合唱 / Featuring
-        </span>
-      </div>
-
-      {/* 預覽顯示 */}
-      {artists[0]?.name && !hidePreview && (
-        <div className="p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg">
-          <p className="text-xs text-neutral-500 mb-1">顯示效果：</p>
-          <p className="text-white font-medium">
-            {generateDisplayName(artists)}
-          </p>
-        </div>
-      )}
+      {addButtonRow}
     </div>
   )
 }

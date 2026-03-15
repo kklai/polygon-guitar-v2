@@ -41,7 +41,7 @@ function calculateFontSize(text, containerWidth = 800) {
 // 根據原調類型顯示對應的 Key 選項（Major 只顯示 Major，Minor 只顯示 Minor）
 // 顯示用 Key 列表（優先使用 sharp，避免重複）
 const MAJOR_KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-const MINOR_KEYS = ['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
+const MINOR_KEYS = ['Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
 // 兼容舊代碼
 const KEYS = [...MAJOR_KEYS, ...MINOR_KEYS];
 
@@ -2718,7 +2718,7 @@ const TabContent = ({
       return { total: uniqueChords.length, barreCount };
     })();
     
-    const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.album || songInfo.strummingPattern || songInfo.fingeringTips);
+    const hasSongInfo = songInfo && (songInfo.songYear || songInfo.composer || songInfo.lyricist || songInfo.arranger || songInfo.producer || songInfo.album);
     
     // 樂譜頁 layout：和弦改由頂部操作列 icon 開 pop-up，唔 render ControlBar
     if (hideKeyRowAndBottomBar) return null;
@@ -2935,6 +2935,14 @@ const TabContent = ({
       {showControls && <ControlBar />}
       <div ref={containerRef} className={fullWidth ? 'p-4' : `p-4 sm:p-6 ${theme === 'day' ? 'bg-white' : 'bg-[#121212]'}`} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none' }}>
         <div className={`tab-content-wrapper ${displayFont !== 'arial' ? 'font-light' : ''}`} onCopy={handleContentCopy} style={{ height: 'auto', minHeight: 'auto', maxHeight: 'none', fontFamily: displayFont === 'arial' ? "Arial, Helvetica, sans-serif" : "'Source Code Pro', 'Noto Sans Mono CJK TC', 'Consolas', 'Courier New', monospace" }}>
+          {songInfo?.remark?.trim() && (
+            <div
+              className={theme === 'day' ? 'text-neutral-600' : 'text-[#B3B3B3]'}
+              style={{ whiteSpace: 'pre-wrap', marginBottom: '1em' }}
+            >
+              {songInfo.remark.trim()}
+            </div>
+          )}
           {renderContent()}
         </div>
       </div>
