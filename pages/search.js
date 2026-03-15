@@ -104,9 +104,10 @@ export default function Search() {
       setFilteredPlaylists([])
       return
     }
-    const q = searchQuery.toLowerCase()
+    const q = searchQuery.trim().toLowerCase()
+    const showAllPlaylists = q === '歌單'
     setFilteredSongs(
-      songs.filter(
+      showAllPlaylists ? [] : songs.filter(
         (song) => {
           const artistName = getArtistName(song)
           return song.title?.toLowerCase().includes(q) ||
@@ -119,9 +120,9 @@ export default function Search() {
         }
       )
     )
-    setFilteredArtists(artists.filter((artist) => artist.name?.toLowerCase().includes(q)))
+    setFilteredArtists(showAllPlaylists ? [] : artists.filter((artist) => artist.name?.toLowerCase().includes(q)))
     setFilteredPlaylists(
-      playlists.filter(
+      showAllPlaylists ? playlists : playlists.filter(
         (pl) =>
           pl.title?.toLowerCase().includes(q) ||
           (pl.description && pl.description.toLowerCase().includes(q))
