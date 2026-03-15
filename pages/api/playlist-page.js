@@ -1,12 +1,13 @@
 /**
  * GET /api/playlist-page?id=xxx
- * Returns full playlist page payload (playlist, songs, uniqueArtists, otherPlaylists).
+ * Returns playlist page payload (playlist, songs=slim, uniqueArtists, otherPlaylists).
+ * Songs are slim (no content) to keep response under 128 kB.
  * When Firestore cache/playlist_{id} is fresh: 1 read. On miss: full build then 1 write.
- * Used by client-side navigation to playlist page to avoid N+1 reads.
  */
 
 import { getPlaylistPageCache, setPlaylistPageCache } from '@/lib/playlistPageCache'
 import { getPlaylist, getPlaylistSongs, getAllActivePlaylists } from '@/lib/playlists'
+import { toSlimSongs } from '@/lib/playlistSlim'
 
 function serializePayload(obj) {
   return JSON.parse(
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
     const cached = await getPlaylistPageCache(id)
     if (cached) {
       res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
-      return res.json(cached)
+      return res.json({ ...cached, songs: toSlimSongs(cached.songs || []) })
     }
 
     const playlistData = await getPlaylist(id)
@@ -40,13 +41,14 @@ export default async function handler(req, res) {
     const { songs, uniqueArtists } = songIds.length > 0
       ? await getPlaylistSongs(songIds)
       : { songs: [], uniqueArtists: [] }
+    const slimSongs = toSlimSongs(songs)
     const otherPlaylists = await getAllActivePlaylists()
 
     const payload = {
       playlist: playlistData,
-      songs,
+      songs: slimSongs,
       uniqueArtists,
-      otherPlaylists
+      otherPlaylists: { auto: otherPlaylists.auto || [], manual: otherPlaylists.manual || [] }
     }
     await setPlaylistPageCache(id, payload)
 
