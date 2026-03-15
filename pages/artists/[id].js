@@ -23,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 // No module-level Firestore: prefetch only loads the route chunk; data loads in useEffect after navigation.
 
-const ARTIST_CACHE_TTL = 3 * 60 * 1000; // 3 min max age
+const ARTIST_CACHE_TTL = 45 * 1000; // 45s — changes visible within 1 min
 const ARTIST_CACHE_FRESH = 60 * 1000; // 1 min = skip fetch entirely
 
 function saveArtistCache(artistId, data) {

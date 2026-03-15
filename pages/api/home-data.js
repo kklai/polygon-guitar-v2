@@ -8,7 +8,7 @@
  * ?inspect=1     — returns the full payload pretty-printed (detailed content of every list).
  */
 
-import { getHomeData } from '@/lib/homeData'
+import { getHomeDataCached, bustHomeDataApiCache } from '@/lib/homeData'
 
 function sizeOf(obj) {
   try {
@@ -63,8 +63,11 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET')
     return res.status(405).json({ error: 'Method not allowed' })
   }
+  if (req.query.bust === '1' || req.query.bust === 'true') {
+    bustHomeDataApiCache()
+  }
   try {
-    const data = await getHomeData()
+    const data = await getHomeDataCached()
     if (req.query.reportSizes === '1' || req.query.reportSizes === 'true') {
       return res.status(200).json(buildSizeReport(data))
     }
@@ -72,7 +75,7 @@ export default async function handler(req, res) {
       res.setHeader('Content-Type', 'application/json; charset=utf-8')
       return res.status(200).send(JSON.stringify(data, null, 2))
     }
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=30')
     try {
       return res.status(200).json(data)
     } catch (jsonErr) {

@@ -19,6 +19,7 @@
 
 import { getAdminDb } from '@/lib/admin-db'
 import { bustSearchDataApiCache } from '@/lib/searchData'
+import { bustHomeDataApiCache } from '@/lib/homeData'
 import { pacificTime } from '@/lib/logTime'
 
 function resolveTabCoverImage(tab) {
@@ -283,5 +284,6 @@ export default async function handler(req, res) {
   }
 
   bustSearchDataApiCache()
+  bustHomeDataApiCache()
   return res.status(200).json({ ok: true, results })
 }

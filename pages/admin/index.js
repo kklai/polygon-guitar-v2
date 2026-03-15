@@ -49,6 +49,7 @@ const sections = [
     items: [
       { href: '/admin/admins', label: '管理員設定', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/role-settings', label: '角色權限', roles: [ROLES.SUPER_ADMIN] },
+      { href: '/admin/cache-docs', label: '快取架構文檔', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/site-map', label: '網站地圖', roles: [ROLES.SUPER_ADMIN, ROLES.SCORE_CHECKER, ROLES.ART_DIRECTOR, ROLES.PLAYLIST_MAKER] },
     ]
   },

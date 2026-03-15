@@ -8,8 +8,8 @@ import { getSearchData } from '@/lib/searchData'
  * can hit a new instance), so we use the shared Firestore cache instead. Refresh once per
  * day or via admin "Rebuild search cache" in home-settings.
  */
-const CACHE_MAX_AGE = 24 * 60 * 60 // 24h in seconds
-const STALE_WHILE_REVALIDATE = 24 * 60 * 60 // 24h
+const CACHE_MAX_AGE = 30 // 30s — changes visible within 1 min
+const STALE_WHILE_REVALIDATE = 30
 
 export default async function handler(req, res) {
   try {

@@ -6,7 +6,7 @@
  */
 
 import { verifyAdmin } from '@/lib/firebase-admin'
-import { buildHomeDataPayload, setHomeCache } from '@/lib/homeData'
+import { buildHomeDataPayload, setHomeCache, bustHomeDataApiCache } from '@/lib/homeData'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') {
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
     const payload = await buildHomeDataPayload()
     const latestSongs = payload?.latestSongs || []
     await setHomeCache(payload)
+    bustHomeDataApiCache()
 
     // Verify the cache was actually written by reading it back
     let cacheVerified = false

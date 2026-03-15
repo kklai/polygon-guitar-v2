@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     let cached = await getArtistPageCache(id)
     if (cached) {
       console.log(`[artist-page API] cache hit for ${id} at ${pacificTime()}`)
-      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=30')
       return res.json(cached)
     }
 
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
     cached = await getArtistPageCache(artistId)
     if (cached) {
-      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=30')
       return res.json(cached)
     }
 
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     await setArtistPageCache(artistId, payload)
     console.log(`[artist-page API] built ${id}: ${slimTabs.length} tabs, cached at ${pacificTime()}`)
 
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=30')
     return res.json(serializePayload(payload))
   } catch (err) {
     console.error('[artist-page API]', err?.message)

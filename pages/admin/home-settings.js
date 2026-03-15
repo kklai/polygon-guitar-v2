@@ -151,7 +151,7 @@ function HomeSettings() {
 
   // 首頁快取重建
   const [rebuildingCache, setRebuildingCache] = useState(false)
-  const [rebuildingSearchCache, setRebuildingSearchCache] = useState(false)
+  const [rebuildingHomeAndSearchCache, setRebuildingHomeAndSearchCache] = useState(false)
   const [rebuildingAllTabsCache, setRebuildingAllTabsCache] = useState(false)
 
   // Lazy-load state: only fetch lists when user opens the section that needs them
@@ -403,7 +403,7 @@ function HomeSettings() {
         setMessage(data.error || '重建快取失敗')
         return
       }
-      setMessage('首頁快取已重建，約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取')
+      setMessage('首頁快取已重建')
       try { localStorage.removeItem('pg_home_cache_v2') } catch (_) {}
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
@@ -414,25 +414,26 @@ function HomeSettings() {
     }
   }
 
-  const rebuildSearchCache = async () => {
-    setRebuildingSearchCache(true)
+  const rebuildHomeAndSearchCache = async () => {
+    setRebuildingHomeAndSearchCache(true)
     try {
       const token = await auth.currentUser?.getIdToken?.()
       if (!token) {
         setMessage('請先登入')
         return
       }
-      const res = await fetch('/api/admin/rebuild-search-cache', {
+      const res = await fetch('/api/admin/rebuild-home-and-search-cache', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMessage(data.error || '重建搜尋快取失敗')
+        setMessage(data.error || '重建首頁 + 搜尋快取失敗')
         return
       }
-      setMessage('搜尋快取已重建，約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取')
+      setMessage('首頁 + 搜尋快取已重建（單次讀取）')
       try {
+        localStorage.removeItem('pg_home_cache_v2')
         localStorage.removeItem('searchPageData')
         localStorage.removeItem('pg_artists_list')
         localStorage.setItem('pg_artists_bust', String(Date.now()))
@@ -440,9 +441,9 @@ function HomeSettings() {
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)
-      setMessage('重建搜尋快取失敗')
+      setMessage('重建首頁 + 搜尋快取失敗')
     } finally {
-      setRebuildingSearchCache(false)
+      setRebuildingHomeAndSearchCache(false)
     }
   }
 
@@ -463,7 +464,7 @@ function HomeSettings() {
         setMessage(data.error || '重建樂譜列表快取失敗')
         return
       }
-      setMessage(`樂譜列表快取已重建（${data.count ?? 0} 份），約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取`)
+      setMessage(`樂譜列表快取已重建（${data.count ?? 0} 份）`)
       setTimeout(() => setMessage(''), 5000)
     } catch (err) {
       console.error(err)
@@ -1508,15 +1509,15 @@ function HomeSettings() {
                 className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
               >
                 <div className="font-medium">{rebuildingCache ? '重建中...' : '重建首頁快取'}</div>
-                <div className="text-xs text-neutral-500 mt-0.5">約 6 小時內每次首頁訪問只會用 1 次 Firestore 讀取</div>
+                <div className="text-xs text-neutral-500 mt-0.5">Firestore 快取永不過期，新增/修改樂譜或歌手時自動更新。手動重建可強制全量刷新</div>
               </button>
               <button
-                onClick={rebuildSearchCache}
-                disabled={rebuildingSearchCache}
+                onClick={rebuildHomeAndSearchCache}
+                disabled={rebuildingHomeAndSearchCache}
                 className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
               >
-                <div className="font-medium">{rebuildingSearchCache ? '重建中...' : '重建搜尋快取'}</div>
-                <div className="text-xs text-neutral-500 mt-0.5">約 24 小時內每次搜尋/歌手列表只會用 1 次 Firestore 讀取</div>
+                <div className="font-medium">{rebuildingHomeAndSearchCache ? '重建中...' : '重建首頁 + 搜尋快取'}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">一次讀取 Firestore 建立首頁與搜尋兩份快取，節省一次完整 DB 讀取（建議日常使用）</div>
               </button>
               <button
                 onClick={rebuildAllTabsCache}
@@ -1524,7 +1525,7 @@ function HomeSettings() {
                 className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition disabled:opacity-50 text-left"
               >
                 <div className="font-medium">{rebuildingAllTabsCache ? '重建中...' : '重建樂譜列表快取'}</div>
-                <div className="text-xs text-neutral-500 mt-0.5">約 24 小時內後台 getAllTabs 只會用 1 次 Firestore 讀取</div>
+                <div className="text-xs text-neutral-500 mt-0.5">重建時會讀取全部樂譜（約 3K 次讀取），寫入單一快取文件。之後每次 getAllTabs 只需 1 次讀取</div>
               </button>
               <button
                 onClick={() => {
@@ -1534,8 +1535,8 @@ function HomeSettings() {
                 }}
                 className="w-full px-4 py-2.5 bg-[#282828] text-white rounded-lg hover:bg-[#3E3E3E] transition text-left"
               >
-                <div className="font-medium">立即更新此頁資料</div>
-                <div className="text-xs text-neutral-500 mt-0.5">清除此頁 24 小時快取，從 Firestore 重新載入</div>
+                <div className="font-medium">重新載入首頁設置資訊</div>
+                <div className="text-xs text-neutral-500 mt-0.5">此頁會將歌手、樂譜、歌單列表存在瀏覽器 24 小時，按此可清除並重新載入最新資料</div>
               </button>
             </div>
           </div>
