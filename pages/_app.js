@@ -6,6 +6,7 @@ import { siteConfig } from '@/lib/seo'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { recordPageView, getPageType } from '@/lib/analytics'
+import { Analytics } from '@vercel/analytics/next'
 import { recordView } from '@/lib/libraryRecentViews'
 import { getFirestoreReadCount, getFirestoreReadBreakdown, resetFirestoreReadCount } from '@/lib/firestore-tracked'
 
@@ -343,6 +344,7 @@ export default function App({ Component, pageProps }) {
         `}</style>
       </Head>
       <Component {...pageProps} />
+      <Analytics />
     </AuthProvider>
   )
 }
