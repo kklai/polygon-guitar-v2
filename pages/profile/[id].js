@@ -104,6 +104,7 @@ export default function PublicProfile() {
   const [error, setError] = useState(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
+  const [bioExpanded, setBioExpanded] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -238,207 +239,207 @@ export default function PublicProfile() {
 
   if (!profile) return null
 
+  const BIO_COLLAPSED_LINES = 3
+  const bioLines = profile.bio ? profile.bio.split('\n') : []
+  const bioIsLong = bioLines.length > BIO_COLLAPSED_LINES
+  const bioDisplay = profile.bio && (bioExpanded || !bioIsLong)
+    ? profile.bio
+    : bioLines.slice(0, BIO_COLLAPSED_LINES).join('\n')
+
   return (
     <Layout>
-      <div className="min-h-screen bg-black pb-24 pl-4">
+      <div className="min-h-screen bg-black pb-24 px-4">
 
-        {/* Profile Header - 參考設計布局 */}
-        <div className="py-6">
-          {/* 第一行：頭像 + 名稱/按鈕 + 統計 */}
+        {/* Profile Header - 依 wireframe: photo | name+follow → 統計 → contact 全寬 → description + button */}
+        <div className="max-w-2xl mx-auto pt-4 pb-2">
+          {/* 上排：photo + name + follow */}
           <div className="flex gap-4">
-            {/* 左側：頭像 */}
-            <img 
-              src={profile.photoURL || '/default-avatar.png'} 
+            <img
+              src={profile.photoURL || '/default-avatar.png'}
               alt={profile.displayName}
-              className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-2 border-[#FFD700] flex-shrink-0"
+              className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-[3px] border-[#FFD700] flex-shrink-0"
             />
-            
-            {/* 右側：名字、按鈕、統計 */}
             <div className="flex-1 min-w-0 flex flex-col justify-center">
-              {/* 名字 + 編輯/追蹤按鈕 同一行 */}
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-white text-2xl font-bold truncate">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
+                <h1 className="text-white text-2xl md:text-3xl font-bold truncate">
                   {profile.displayName || '未命名用戶'}
                 </h1>
-                
-                {/* 編輯按鈕 - 對自己顯示 */}
                 {isOwnProfile && (
                   <Link
                     href="/profile/edit"
-                    className="px-4 py-1 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition flex-shrink-0"
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition flex-shrink-0"
                   >
                     編輯
                   </Link>
                 )}
-                
-                {/* 追蹤按鈕 - 對非自己顯示 */}
                 {!isOwnProfile && currentUser && (
                   <button
                     onClick={handleFollow}
-                    className={`px-4 py-1 rounded-full text-sm font-medium transition flex-shrink-0 ${
-                      isFollowing 
-                        ? 'bg-neutral-700 text-white' 
-                        : 'bg-[#FFD700] text-black'
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition flex-shrink-0 ${
+                      isFollowing ? 'bg-[#FFD700] text-white' : 'bg-[#FFD700] text-black'
                     }`}
                   >
                     {isFollowing ? '追蹤中' : '追蹤'}
                   </button>
                 )}
-                
-                {/* 未登入提示 */}
                 {!currentUser && !isOwnProfile && (
                   <Link
                     href="/login"
-                    className="px-4 py-1 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition flex-shrink-0"
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-[#FFD700] text-black hover:opacity-90 transition flex-shrink-0"
                   >
                     追蹤
                   </Link>
                 )}
               </div>
-              
-              {/* Pen Name */}
               {profile.penName && (
-                <p className="text-[#FFD700] text-sm mb-3">@{profile.penName}</p>
+                <p className="text-[#B3B3B3] text-sm mb-3">@{profile.penName}</p>
               )}
-              
-              {/* 統計數字一排 - 防止換行 */}
-              <div className="flex items-center gap-4 md:gap-6">
-                <div className="flex items-baseline gap-1 whitespace-nowrap">
-                  <span className="text-[#FFD700] text-lg md:text-xl font-bold">{uploads.length}</span>
-                  <span className="text-neutral-400 text-xs md:text-sm">出譜</span>
+              {/* 統計：對齊右欄，數字在上、標籤在下（02 設計：白字）*/}
+              <div className="flex gap-6 md:gap-10">
+                <div className="flex flex-col">
+                  <span className="text-white text-xl md:text-2xl font-bold">{uploads.length}</span>
+                  <span className="text-white/80 text-sm">出譜數目</span>
                 </div>
-                <div className="flex items-baseline gap-1 whitespace-nowrap">
-                  <span className="text-[#FFD700] text-lg md:text-xl font-bold">{totalViews.toLocaleString()}</span>
-                  <span className="text-neutral-400 text-xs md:text-sm">瀏覽</span>
+                <div className="flex flex-col">
+                  <span className="text-white text-xl md:text-2xl font-bold">{totalViews >= 1000 ? (totalViews / 1000).toFixed(1) + 'k' : totalViews.toLocaleString()}</span>
+                  <span className="text-white/80 text-sm">總瀏覽量</span>
                 </div>
-                <div className="flex items-baseline gap-1 whitespace-nowrap">
-                  <span className="text-[#FFD700] text-lg md:text-xl font-bold">{followerCount}</span>
-                  <span className="text-neutral-400 text-xs md:text-sm">粉絲</span>
+                <div className="flex flex-col">
+                  <span className="text-white text-xl md:text-2xl font-bold">{followerCount >= 1000 ? (followerCount / 1000).toFixed(0) + 'k' : String(followerCount)}</span>
+                  <span className="text-white/80 text-sm">粉絲</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Social Media Icons - 左對齊 */}
+          {/* Contact link - 全寬、置中（02：黑底上一排黃色圓鈕）*/}
           {hasSocialLinks && (
-            <div className="flex items-center gap-3 mt-4">
-              <SocialIcon platform="facebook" url={socialMedia.facebook} />
-              <SocialIcon platform="instagram" url={socialMedia.instagram} />
-              <SocialIcon platform="youtube" url={socialMedia.youtube} />
-              <SocialIcon platform="whatsapp" url={socialMedia.whatsapp} />
-              <SocialIcon platform="spotify" url={socialMedia.spotify} />
-              <SocialIcon platform="website" url={socialMedia.website} />
-              <SocialIcon platform="twitter" url={socialMedia.twitter} />
-              <SocialIcon platform="threads" url={socialMedia.threads} />
+            <div className="w-full py-5 mt-6">
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <SocialIcon platform="facebook" url={socialMedia.facebook} />
+                <SocialIcon platform="instagram" url={socialMedia.instagram} />
+                <SocialIcon platform="youtube" url={socialMedia.youtube} />
+                <SocialIcon platform="whatsapp" url={socialMedia.whatsapp} />
+                <SocialIcon platform="spotify" url={socialMedia.spotify} />
+                <SocialIcon platform="website" url={socialMedia.website} />
+                <SocialIcon platform="twitter" url={socialMedia.twitter} />
+                <SocialIcon platform="threads" url={socialMedia.threads} />
+              </div>
             </div>
           )}
 
-          {/* Bio */}
+          {/* Description + 顯示全部 按鈕在右下（wireframe: description block + button）*/}
           {profile.bio && (
-            <p className="text-neutral-300 text-base mt-4 leading-relaxed whitespace-pre-wrap">
-              {profile.bio}
-            </p>
+            <div className="mt-5 flex flex-col items-stretch">
+              <p className="text-white text-[15px] leading-relaxed whitespace-pre-wrap">
+                {bioDisplay}
+              </p>
+              {bioIsLong && (
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setBioExpanded(!bioExpanded)}
+                    className="text-white/90 text-sm hover:text-[#FFD700] transition"
+                  >
+                    {bioExpanded ? '收起' : '顯示全部'}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Popular Tabs - 熱門（前5首有縮圖，參考設計風格）*/}
-        {profile.showUploads !== false && uploads.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
-            <div className="space-y-4">
-              {uploads.slice(0, 5).map((tab, index) => {
-                const thumbnail = getSongThumbnail(tab)
-                return (
-                  <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                    <div className="flex items-center gap-3 p-2 hover:bg-neutral-900/50 rounded-lg transition cursor-pointer group">
-                      {/* 排名數字 */}
-                      <span className="text-neutral-500 text-lg w-6 text-center flex-shrink-0">{index + 1}</span>
-                      
-                      {/* 封面圖 - 更大 */}
-                      {thumbnail ? (
-                        <img
-                          src={thumbnail}
-                          alt={tab.title}
-                          className="w-16 h-16 rounded object-cover flex-shrink-0 bg-neutral-800"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded bg-neutral-800 flex items-center justify-center flex-shrink-0">
-                          <span className="text-2xl">🎵</span>
+        {/* 熱門 / 所有歌曲 / 歌單 - 統一容器 */}
+        <div className="max-w-2xl mx-auto mt-6 space-y-8">
+          {profile.showUploads !== false && uploads.length > 0 && (
+            <section>
+              <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
+              <div className="space-y-1">
+                {uploads.slice(0, 5).map((tab, index) => {
+                  const thumbnail = getSongThumbnail(tab)
+                  return (
+                    <Link key={tab.id} href={`/tabs/${tab.id}`}>
+                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#181818] transition cursor-pointer group">
+                        <span className="text-[#B3B3B3] text-base w-6 text-center flex-shrink-0">{index + 1}</span>
+                        {thumbnail ? (
+                          <img
+                            src={thumbnail}
+                            alt={tab.title}
+                            className="w-14 h-14 rounded-[4px] object-cover flex-shrink-0 bg-[#282828]"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                            <span className="text-xl">🎵</span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
+                          <p className="text-[#B3B3B3] text-sm">{getArtistName(tab)}</p>
                         </div>
-                      )}
-                      
-                      {/* 歌曲信息 */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
-                        <p className="text-neutral-500 text-sm">{getArtistName(tab)}</p>
+                        <div className="text-[#B3B3B3] text-sm flex-shrink-0">
+                          {(tab.viewCount || 0).toLocaleString()} 瀏覽
+                        </div>
                       </div>
-                      
-                      {/* 瀏覽量 */}
-                      <div className="text-right text-sm text-neutral-400 flex-shrink-0">
-                        <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {profile.showUploads !== false && uploads.length > 5 && (
+            <section>
+              <h2 className="text-white font-bold text-lg mb-4">所有歌曲</h2>
+              <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
+                {uploads.slice(5).map((tab, index) => (
+                  <Link key={tab.id} href={`/tabs/${tab.id}`}>
+                    <div className="flex items-center gap-3 py-3 px-4 hover:bg-[#181818] transition border-b border-neutral-800/80 last:border-0">
+                      <span className="text-[#B3B3B3] text-sm w-6 text-center flex-shrink-0">{index + 6}</span>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                        <p className="text-[#B3B3B3] text-sm">{getArtistName(tab)}</p>
+                      </div>
+                      <div className="text-[#B3B3B3] text-xs flex-shrink-0">
+                        {(tab.viewCount || 0).toLocaleString()} 瀏覽
                       </div>
                     </div>
                   </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
+                ))}
+              </div>
+            </section>
+          )}
 
-        {/* All Songs - 所有歌曲（白色文字，無縮圖）*/}
-        {profile.showUploads !== false && uploads.length > 5 && (
-          <div className="mt-6">
-            <h2 className="text-white font-bold text-lg mb-4">所有歌曲</h2>
-            <div className="space-y-2">
-              {uploads.slice(5).map((tab, index) => (
-                <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                  <div className="flex items-center gap-3 py-3 px-2 hover:bg-neutral-900 rounded-lg transition cursor-pointer border-b border-neutral-800">
-                    <span className="text-neutral-500 text-sm w-6 text-center flex-shrink-0">{index + 6}</span>
+          {profile.showPlaylists !== false && playlists.length > 0 && (
+            <section>
+              <h2 className="text-white font-bold text-lg mb-4">歌單</h2>
+              <div className="space-y-2">
+                {playlists.map(playlist => (
+                  <Link
+                    key={playlist.id}
+                    href={`/library/playlist/${playlist.id}`}
+                    className="flex items-center gap-3 p-3 bg-[#121212] rounded-xl border border-neutral-800 hover:bg-[#181818] transition"
+                  >
+                    {playlist.coverImage ? (
+                      <img
+                        src={playlist.coverImage}
+                        alt={playlist.title}
+                        className="w-14 h-14 rounded-[4px] object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl">🎵</span>
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-medium truncate">{tab.title}</h3>
-                      <p className="text-neutral-500 text-sm">{getArtistName(tab)}</p>
+                      <p className="text-white font-medium truncate">{playlist.title}</p>
+                      <p className="text-[#B3B3B3] text-sm">{playlist.songIds?.length || 0} 首歌</p>
                     </div>
-                    <div className="text-right text-xs text-neutral-500 flex-shrink-0">
-                      <p>{(tab.viewCount || 0).toLocaleString()} 瀏覽</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Playlists */}
-        {profile.showPlaylists !== false && playlists.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-white font-bold text-lg mb-4">歌單</h2>
-            <div className="space-y-3">
-              {playlists.map(playlist => (
-                <Link 
-                  key={playlist.id}
-                  href={`/library/playlist/${playlist.id}`}
-                  className="flex items-center gap-3 p-3 bg-neutral-900 rounded-lg hover:bg-neutral-800 transition"
-                >
-                  {playlist.coverImage ? (
-                    <img 
-                      src={playlist.coverImage} 
-                      alt={playlist.title}
-                      className="w-14 h-14 rounded object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xl">🎵</span>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">{playlist.title}</p>
-                    <p className="text-neutral-500 text-sm">{playlist.songIds?.length || 0} 首歌</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </div>
     </Layout>
   )

@@ -45,19 +45,23 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Get additional user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid))
-        if (userDoc.exists()) {
-          setUser({ ...user, ...userDoc.data() })
-        } else {
-          setUser(user)
-        }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // 先顯示 Firebase 用戶，避免等 Firestore 拖慢首屏
+        setUser(firebaseUser)
+        setLoading(false)
+        // 背景載入 Firestore 資料再合併
+        getDoc(doc(db, 'users', firebaseUser.uid))
+          .then((userDoc) => {
+            if (userDoc.exists()) {
+              setUser((prev) => (prev ? { ...prev, ...userDoc.data() } : prev))
+            }
+          })
+          .catch(() => {})
       } else {
         setUser(null)
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => unsubscribe()

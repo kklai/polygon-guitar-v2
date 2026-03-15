@@ -176,6 +176,9 @@ export default function NewTab() {
   const clearDraftRef = useRef(false)
   // 歌名／歌手變更時：清空或還原 Spotify 擷取資料（key = artist|||title）
   const spotifySnapshotByKeyRef = useRef({})
+  // 撳「獲取歌曲資訊」後，未成功獲取資料嘅輸入欄閃紅框
+  const [spotifyFlashRedFields, setSpotifyFlashRedFields] = useState(new Set())
+  const spotifyJustAppliedRef = useRef(false)
 
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(1.1)
@@ -236,8 +239,6 @@ export default function NewTab() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // 所有 hooks 必須在任何 return 之前定義 - authChecked 用於等待初始化
-  const [authChecked, setAuthChecked] = useState(false)
   const [isUploadingCover, setIsUploadingCover] = useState(false)
   const [uploadError, setUploadError] = useState(null)
   
@@ -304,12 +305,6 @@ export default function NewTab() {
     return () => clearTimeout(timer)
   }, [formData.artist, useExistingArtistSelected, artistListFromSearch])
   
-  useEffect(() => {
-    if (!authLoading && !authChecked) {
-      setAuthChecked(true)
-    }
-  }, [authLoading, authChecked])
-
   // 載入用戶的編譜者筆名
   useEffect(() => {
     const loadUserPenName = async () => {
@@ -379,9 +374,30 @@ export default function NewTab() {
     }
   }, [router.isReady, router.query])
 
-  // 等待 auth 載入完成 - 在所有 hooks 之後
-  if (authLoading || !authChecked) {
-    return null
+  // 獲取 Spotify 後：空嘅輸入欄閃一下紅框（必須在下方 early return 之前）
+  const SPOTIFY_META_FIELDS = ['songYear', 'album', 'composer', 'lyricist', 'arranger', 'producer', 'bpm']
+  useEffect(() => {
+    if (!spotifyJustAppliedRef.current || !formData.spotifyTrackId) return
+    spotifyJustAppliedRef.current = false
+    const empty = SPOTIFY_META_FIELDS.filter(f => !String(formData[f] ?? '').trim())
+    if (empty.length === 0) return
+    setSpotifyFlashRedFields(new Set(empty))
+    const t = setTimeout(() => setSpotifyFlashRedFields(new Set()), 1000)
+    return () => clearTimeout(t)
+  }, [formData.spotifyTrackId, formData.songYear, formData.album, formData.composer, formData.lyricist, formData.arranger, formData.producer, formData.bpm])
+
+  // 等待 auth 載入完成 - 顯示 Loading 而非白屏
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex items-center justify-center px-4">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[#B3B3B3] text-sm">載入中...</p>
+          </div>
+        </div>
+      </Layout>
+    )
   }
 
   // 未登入時顯示登入提示（內嵌式，不阻擋其他按鈕）
@@ -693,6 +709,7 @@ export default function NewTab() {
       spotifyFilledSongYear: trackData.songYear ?? '',
       spotifyFilledAlbum: trackData.album ?? ''
     }
+    spotifyJustAppliedRef.current = true
     setFormData(prev => ({
       ...prev,
       songYear: trackData.songYear || prev.songYear,
@@ -1200,9 +1217,27 @@ E|----------------------------------------------------------------|
       <div className="space-y-4">
         {/* 標題與輸入欄一組，距離同其他欄位（mb-1） */}
         <div className="space-y-1">
-          {/* 同一行：左 譜內容 *，右 工具列 */}
+          {/* 同一行：左 譜內容 * + 對位選擇器，右 工具列 */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <label className="pl-1 text-[13px] font-medium text-white">譜內容 <span className="text-[#FFD700]">*</span></label>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="pl-1 text-[13px] font-medium text-white">譜內容 <span className="text-[#FFD700]">*</span></label>
+              <div className="flex items-center gap-1 bg-black rounded-full p-0.5 border border-neutral-700">
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'mono' }))}
+                  className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'mono' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
+                  自動追蹤( )對位
+                </button>
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'manual' }))}
+                  className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'manual' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
+                  人手空格對位
+                </button>
+                {isAdmin && (
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'arial' }))}
+                    className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'arial' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
+                    CHORD LOG
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <button type="button"
                 onClick={() => {
@@ -1211,33 +1246,14 @@ E|----------------------------------------------------------------|
                   setFormData(prev => ({ ...prev, content: cleaned }))
                 }}
                 disabled={!formData.content}
-className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50"
-            >
-              移除所有空行
+                className="text-xs text-[#FFD700] hover:text-yellow-300 disabled:opacity-50"
+              >
+                移除所有空行
               </button>
-              {isAdmin && (
-                <button type="button" onClick={() => { const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor, formData.displayFont !== 'arial'); setFormData(prev => ({ ...prev, content: fixed })); }}
-                  disabled={!formData.content} className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                  自動修正對齊
-                </button>
-              )}
               {isAdmin && (
                 <button type="button" onClick={insertTemplate} className="text-sm text-[#FFD700] hover:text-yellow-300">
                   插入空白模板
                 </button>
-              )}
-              {isAdmin && (
-                <div className="flex items-center gap-1 bg-black rounded-md p-0.5 border border-neutral-700">
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'mono' }))}
-                    className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'mono' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
-                    等寬字體
-                  </button>
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'arial' }))}
-                    className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'arial' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
-                    Arial
-                  </button>
-                </div>
               )}
             </div>
           </div>
@@ -1249,7 +1265,7 @@ className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50"
               e.preventDefault();
               const pastedText = e.clipboardData.getData('text');
               const cleaned = cleanPastedText(pastedText);
-              const processed = autoFixTabFormatWithFactor(cleaned, alignFactor, formData.displayFont !== 'arial');
+              const processed = formData.displayFont === 'manual' ? cleaned : autoFixTabFormatWithFactor(cleaned, alignFactor, formData.displayFont !== 'arial');
               const textarea = e.target;
               const start = textarea.selectionStart;
               const end = textarea.selectionEnd;
@@ -1257,10 +1273,15 @@ className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50"
               const newValue = currentValue.substring(0, start) + processed + currentValue.substring(end);
               setFormData(prev => ({ ...prev, content: newValue }));
             }}
-            placeholder={`在此輸入／貼上結他譜...
+            placeholder={formData.displayFont === 'arial' ? '' : formData.displayFont === 'manual' ? `在此輸入／貼上結他譜...
 
 提示：輸入結他譜後
-Chord會自動追蹤( )位置
+
+用戶"手動加空格"對位
+輸入結他譜 和 網站結他譜 會顯示一致` : `在此輸入／貼上結他譜...
+
+提示：輸入結他譜後
+Chord會自動追蹤歌詞中( )位置
 用戶不用自己加空格對位
 
 例如輸入：
@@ -1271,8 +1292,7 @@ Chord會自動追蹤( )位置
 |C        G/B      |Am   Am7/G
 (就)這樣講 (沒)當初的(感)覺 ()`}
             rows={15}
-            className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${errors.content ? 'border-red-500' : 'border-neutral-700'} ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
-            style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }}
+            className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] tab-content-input ${formData.displayFont === 'arial' ? 'tab-content-input--arial' : 'tab-content-input--mono'} ${errors.content ? 'border-red-500' : 'border-neutral-700'}`}
           />
           {errors.content && <p className="mt-1 text-sm text-red-400">{errors.content}</p>}
           </div>
@@ -1281,7 +1301,7 @@ Chord會自動追蹤( )位置
           <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span>鼓勵用戶喺歌詞加括號；使用半形文字及標點符號</span>
+          <span>{formData.displayFont === 'mono' ? 'Chord會自動追蹤歌詞中( )位置，用戶不用自己加空格對位' : formData.displayFont === 'manual' ? '人手在結他譜輸入的空格 和 網站結他譜空格顯示會一致' : 'for copy CHORD LOG 結他譜 only'}</span>
         </div>
       </div>
     ),
@@ -1467,6 +1487,7 @@ Chord會自動追蹤( )位置
             <img src="/spotify-icon.svg" alt="" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
             獲取歌曲資訊
           </button>
+          <span className={`text-sm ${spotifyFlashRedFields.size > 0 ? 'animate-spotify-empty-flash-text' : 'text-[#B3B3B3]'}`}>或手動輸入歌曲資訊</span>
           {formData.spotifyTrackId && (() => {
             const yearMatch = String(formData.songYear ?? '') === String(formData.spotifyFilledSongYear ?? '')
             const albumMatch = String(formData.album ?? '') === String(formData.spotifyFilledAlbum ?? '')
@@ -1486,41 +1507,41 @@ Chord會自動追蹤( )位置
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">歌曲年份</label>
             <input type="text" name="songYear" value={formData.songYear} onChange={handleChange}
-              placeholder="例如：1993" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${formData.spotifyTrackId && String(formData.songYear ?? '') === String(formData.spotifyFilledSongYear ?? '') ? 'border-[#1DB954]' : 'border-neutral-700'}`} />
+              placeholder="例如：1993" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('songYear') ? 'animate-spotify-empty-flash' : formData.spotifyTrackId && String(formData.songYear ?? '') === String(formData.spotifyFilledSongYear ?? '') ? 'border-[#1DB954]' : 'border-neutral-700'}`} />
           </div>
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">專輯</label>
             <input type="text" name="album" value={formData.album} onChange={handleChange}
-              placeholder="例如：樂與怒" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${formData.spotifyTrackId && String(formData.album ?? '') === String(formData.spotifyFilledAlbum ?? '') ? 'border-[#1DB954]' : 'border-neutral-700'}`} />
+              placeholder="例如：樂與怒" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('album') ? 'animate-spotify-empty-flash' : formData.spotifyTrackId && String(formData.album ?? '') === String(formData.spotifyFilledAlbum ?? '') ? 'border-[#1DB954]' : 'border-neutral-700'}`} />
           </div>
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">作曲</label>
             <input type="text" name="composer" value={formData.composer} onChange={handleChange}
               onPaste={(e) => handleCreditPaste(e)}
-              placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+              placeholder="例如：黃家駒" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('composer') ? 'animate-spotify-empty-flash' : 'border-neutral-700'}`} />
           </div>
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">填詞</label>
             <input type="text" name="lyricist" value={formData.lyricist} onChange={handleChange}
               onPaste={(e) => handleCreditPaste(e)}
-              placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+              placeholder="例如：黃家駒" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('lyricist') ? 'animate-spotify-empty-flash' : 'border-neutral-700'}`} />
           </div>
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">編曲</label>
             <input type="text" name="arranger" value={formData.arranger} onChange={handleChange}
               onPaste={(e) => handleCreditPaste(e)}
-              placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+              placeholder="例如：Beyond" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('arranger') ? 'animate-spotify-empty-flash' : 'border-neutral-700'}`} />
           </div>
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">監製</label>
             <input type="text" name="producer" value={formData.producer} onChange={handleChange}
               onPaste={(e) => handleCreditPaste(e)}
-              placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+              placeholder="例如：Beyond" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('producer') ? 'animate-spotify-empty-flash' : 'border-neutral-700'}`} />
           </div>
           <div>
             <label className="block pl-1 text-[13px] font-medium text-white mb-1">BPM</label>
             <input type="number" name="bpm" value={formData.bpm} onChange={handleChange}
-              placeholder="例如：120" min="1" max="300" className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+              placeholder="例如：120" min="1" max="300" className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${spotifyFlashRedFields.has('bpm') ? 'animate-spotify-empty-flash' : 'border-neutral-700'}`} />
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-[#737373]">
