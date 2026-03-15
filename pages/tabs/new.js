@@ -1207,7 +1207,7 @@ className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50"
 
 提示：輸入結他譜後
 Chord會自動追蹤( )位置
-用戶不用自己對位
+用戶不用自己加空格對位
 
 例如輸入：
 |C G/B |Am Am7/G
@@ -1227,7 +1227,7 @@ Chord會自動追蹤( )位置
           <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span>鼓勵用戶填上資料，以方便結他譜搜尋</span>
+          <span>鼓勵用戶喺歌詞加括號；使用半形文字及標點符號</span>
         </div>
       </div>
     ),
