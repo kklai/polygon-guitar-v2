@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import { getTab, updateTab, deleteTab, parseCollaborators, normalizeArtistId, clearTabCache, invalidateArtistCaches, invalidateArtistTabsCache } from '@/lib/tabs'
+import { parseCreditBlock } from '@/lib/tabCredits'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
-import ArtistInputSimple from '@/components/ArtistInputSimple'
+import ArtistInputSimple, { RELATION_OPTIONS } from '@/components/ArtistInputSimple'
 import GpSegmentUploader from '@/components/GpSegmentUploader'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
@@ -26,41 +27,82 @@ const KEY_TO_SEMITONE = {
 
 // Semitone 對應的 Key (優先使用 flat 給 Major，sharp 給 Minor)
 const SEMITONE_TO_KEY_MAJOR = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
-const SEMITONE_TO_KEY_MINOR = ['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
+const SEMITONE_TO_KEY_MINOR = ['Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
 
-// 計算 Capo 或 PlayKey
-// - 如果輸入 capo，計算 playKey = originalKey 向上移動 capo 個 semitone
-// - 如果輸入 playKey，計算 capo = originalKey 到 playKey 的距離
-function calculateKeyAndCapo(originalKey, capo, playKey) {
-  if (!originalKey) return { capo: '', playKey: '' }
-  
-  const originalIndex = KEY_TO_SEMITONE[originalKey]
-  if (originalIndex === undefined) return { capo, playKey }
-  
-  const isMinor = originalKey.endsWith('m')
-  const semitoneToKey = isMinor ? SEMITONE_TO_KEY_MINOR : SEMITONE_TO_KEY_MAJOR
-  
-  // 情況 1：有 capo，沒有 playKey -> 計算 playKey
-  if (capo && !playKey) {
-    const capoNum = parseInt(capo)
-    if (!isNaN(capoNum) && capoNum >= 0 && capoNum <= 11) {
-      // 彈奏調性 = 原調向下移動 capo（因為 Capo 夾高會升高音高）
-      const playIndex = (originalIndex - capoNum + 12) % 12
-      return { capo: capoNum.toString(), playKey: semitoneToKey[playIndex] }
+const REGIONS = [
+  { value: '', label: '請選擇...' },
+  { value: 'hongkong', label: '香港' },
+  { value: 'taiwan', label: '台灣' },
+  { value: 'china', label: '中國' },
+  { value: 'asia', label: '亞洲' },
+  { value: 'foreign', label: '外國' }
+]
+
+const ARTIST_TYPES = [
+  { value: 'male', label: '男歌手' },
+  { value: 'female', label: '女歌手' },
+  { value: 'group', label: '組合' }
+]
+
+const KEY_MAJOR = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+const KEY_MINOR = ['Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm']
+
+// 計算 原 Key / Capo / 彈奏 Key：任填兩項，第三項自動算出
+// userSetField：用戶剛改的欄位，據此用其餘兩項推算第三項
+function calculateKeyAndCapo(originalKey, capo, playKey, userSetField) {
+  const capoNum = capo !== '' && capo !== undefined ? parseInt(capo) : NaN
+  const validCapo = !isNaN(capoNum) && capoNum >= 0 && capoNum <= 11
+  const originalIndex = originalKey ? KEY_TO_SEMITONE[originalKey] : undefined
+  const playIndex = playKey ? KEY_TO_SEMITONE[playKey] : undefined
+
+  if (userSetField === 'playKey' && validCapo && playIndex !== undefined) {
+    const isMinor = playKey.endsWith('m')
+    const semitoneToKey = isMinor ? SEMITONE_TO_KEY_MINOR : SEMITONE_TO_KEY_MAJOR
+    const computedOriginalIndex = (playIndex + capoNum) % 12
+    const computedOriginal = semitoneToKey[computedOriginalIndex]
+    return { originalKey: computedOriginal, capo: capoNum.toString(), playKey }
+  }
+
+  if (userSetField === 'capo' && originalIndex !== undefined) {
+    if (validCapo) {
+      const isMinor = originalKey.endsWith('m')
+      const semitoneToKey = isMinor ? SEMITONE_TO_KEY_MINOR : SEMITONE_TO_KEY_MAJOR
+      const computedPlayIndex = (originalIndex - capoNum + 12) % 12
+      const computedPlayKey = semitoneToKey[computedPlayIndex]
+      return { originalKey, capo: capoNum.toString(), playKey: computedPlayKey }
+    }
+    return { originalKey, capo: '', playKey: originalKey }
+  }
+
+  if (userSetField === 'originalKey' && originalIndex !== undefined) {
+    const isMinor = originalKey.endsWith('m')
+    const semitoneToKey = isMinor ? SEMITONE_TO_KEY_MINOR : SEMITONE_TO_KEY_MAJOR
+    if (playKey && playIndex !== undefined) {
+      let capoNumComputed = (originalIndex - playIndex + 12) % 12
+      return { originalKey, capo: capoNumComputed === 0 ? '' : String(capoNumComputed), playKey }
+    }
+    if (validCapo) {
+      const computedPlayIndex = (originalIndex - capoNum + 12) % 12
+      return { originalKey, capo: capoNum.toString(), playKey: semitoneToKey[computedPlayIndex] }
     }
   }
-  
-  // 情況 2：有 playKey，沒有 capo -> 計算 capo
-  if (playKey && !capo) {
-    const playIndex = KEY_TO_SEMITONE[playKey]
-    if (playIndex !== undefined) {
-      // Capo = 原調 - 彈奏調性
-      let capoNum = (originalIndex - playIndex + 12) % 12
-      return { capo: capoNum === 0 ? '' : capoNum.toString(), playKey }
-    }
-  }
-  
-  return { capo, playKey }
+
+  return { originalKey: originalKey || '', capo: validCapo ? capoNum.toString() : (capo ?? ''), playKey: playKey ?? '' }
+}
+
+function FormSection({ title, children, className = '' }) {
+  return (
+    <section className={`rounded-xl bg-[#121212] border border-neutral-800 overflow-visible ${className}`}>
+      {title && (
+        <h2 className="px-4 py-3 text-sm font-semibold text-white border-b border-neutral-800">
+          {title}
+        </h2>
+      )}
+      <div className="px-4 py-5">
+        {children}
+      </div>
+    </section>
+  )
 }
 
 export default function EditTab() {
@@ -80,6 +122,9 @@ export default function EditTab() {
     artistPhoto: '',
     artistBio: '',
     artistYear: '',
+    artistBirthYear: '',
+    artistDebutYear: '',
+    region: '',
     // 歌曲資訊
     songYear: '',
     composer: '',
@@ -90,12 +135,12 @@ export default function EditTab() {
     bpm: '',
     // 上傳者資料
     uploaderPenName: '', // 上傳者筆名
+    remark: '', // 備註（顯示在譜上方）
     // YouTube
     youtubeUrl: '',
     youtubeVideoId: '',
-    // 演奏技巧
-    strummingPattern: '',
-    fingeringTips: '',
+    youtubeVideoTitle: '',
+    youtubeChannelTitle: '',
     // 封面圖片
     albumImage: '',
     coverImage: '',
@@ -115,6 +160,21 @@ export default function EditTab() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
+  const [computedKeyField, setComputedKeyField] = useState(null)
+  const computedKeyFieldRef = useRef(null)
+  const [regionMenuOpenIndex, setRegionMenuOpenIndex] = useState(null)
+  const regionMenuRef = useRef(null)
+  const [typeMenuOpenIndex, setTypeMenuOpenIndex] = useState(null)
+  const typeMenuRef = useRef(null)
+  const [originalKeyMenuOpen, setOriginalKeyMenuOpen] = useState(false)
+  const originalKeyMenuRef = useRef(null)
+  const [capoMenuOpen, setCapoMenuOpen] = useState(false)
+  const capoMenuRef = useRef(null)
+  const [playKeyMenuOpen, setPlayKeyMenuOpen] = useState(false)
+  const playKeyMenuRef = useRef(null)
+  const [relationMenuOpen, setRelationMenuOpen] = useState(false)
+  const relationMenuRef = useRef(null)
   
   // Spotify 歌曲搜尋狀態
   const [isSpotifyModalOpen, setIsSpotifyModalOpen] = useState(false)
@@ -209,6 +269,20 @@ export default function EditTab() {
     }
   }, [id, isAuthenticated])
 
+  // 點擊外部關閉類型、地區、Key 下拉
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (regionMenuRef.current && !regionMenuRef.current.contains(e.target)) setRegionMenuOpenIndex(null)
+      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target)) setTypeMenuOpenIndex(null)
+      if (originalKeyMenuRef.current && !originalKeyMenuRef.current.contains(e.target)) setOriginalKeyMenuOpen(false)
+      if (capoMenuRef.current && !capoMenuRef.current.contains(e.target)) setCapoMenuOpen(false)
+      if (playKeyMenuRef.current && !playKeyMenuRef.current.contains(e.target)) setPlayKeyMenuOpen(false)
+      if (relationMenuRef.current && !relationMenuRef.current.contains(e.target)) setRelationMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const loadTab = async () => {
     try {
       const data = await getTab(id)
@@ -226,24 +300,42 @@ export default function EditTab() {
       }
 
       setIsAuthorized(true)
+      setIsOwner(data.createdBy === user?.uid)
       
-      // 歌手相片：缺則用 search-data API 依 artistId 解析（1 cache read，不單獨 getDoc artists）
+      // 歌手相片、類型、地區：缺則用 search-data API 依 artistId 解析（1 cache read，不單獨 getDoc artists）
       let artistPhoto = data.artistPhoto || ''
-      if (!artistPhoto && data.artistId) {
+      let fallbackRegion = data.region || ''
+      let fallbackArtistType = data.artistType || ''
+      if (data.artistId) {
         try {
           const res = await fetch('/api/search-data?only=artists')
           const apiData = await res.json()
           const artists = apiData?.artists || []
           const match = artists.find(a => a.id === data.artistId)
-          if (match?.photo) artistPhoto = match.photo
+          if (match) {
+            if (match.photo) artistPhoto = match.photo
+            // 若樂譜冇存地區／類型，用歌手檔案補上（避免顯示 —）
+            if (!fallbackRegion && (match.regions?.length || match.region)) {
+              const rawRegions = Array.isArray(match.regions) && match.regions.length > 0
+                ? match.regions
+                : (match.region ? [match.region] : [])
+              const resolved = rawRegions
+                .map(r => REGIONS.find(x => x.value && (x.value === r || x.label === r)))
+                .filter(Boolean)
+              fallbackRegion = resolved.length === 0 ? '' : resolved.length === 1 ? resolved[0].value : resolved.map(r => r.value).join('／')
+            }
+            const validTypes = ['male', 'female', 'group']
+            const rawType = match.artistType ?? match.type
+            if (!fallbackArtistType && validTypes.includes(rawType)) fallbackArtistType = rawType
+          }
           if (artists.length > 0) setArtistListFromSearch(artists)
         } catch (e) {
           console.log('獲取歌手相片失敗:', e)
         }
       }
 
-      // 將舊資料轉換為新多歌手格式
-      const parsedArtists = data.artists || [
+      // 將舊資料轉換為新多歌手格式（第一位帶入類型/地區供每行顯示）
+      let parsedArtists = data.artists || [
         { 
           name: data.artist, 
           id: data.artistId || null, 
@@ -251,19 +343,34 @@ export default function EditTab() {
           photo: artistPhoto || data.artistPhoto || ''
         }
       ]
+      if (parsedArtists.length > 0) {
+        parsedArtists = parsedArtists.map((a, i) => i === 0
+          ? { ...a, artistType: a.artistType || fallbackArtistType, region: a.region || fallbackRegion }
+          : { ...a, artistType: a.artistType ?? '', region: a.region ?? '' }
+        )
+      }
 
       setFormData({
         title: data.title,
         artist: data.artist,
         artists: parsedArtists,
-        artistType: data.artistType || '',
+        artistType: fallbackArtistType,
         originalKey: data.originalKey || 'C',
         capo: data.capo || '',
-        playKey: data.playKey || '',
+        playKey: (() => {
+          const o = data.originalKey || 'C'
+          const p = data.playKey || ''
+          if (!p) return ''
+          if (o.endsWith('m') !== p.endsWith('m')) return '' // major/minor 唔一致時當「同原調」
+          return p
+        })(),
         content: data.content,
         artistPhoto: artistPhoto || data.artistPhoto || '',
         artistBio: data.artistBio || '',
         artistYear: data.artistYear || '',
+        artistBirthYear: data.artistBirthYear || '',
+        artistDebutYear: data.artistDebutYear || '',
+        region: fallbackRegion,
         songYear: data.songYear || '',
         composer: data.composer || '',
         lyricist: data.lyricist || '',
@@ -273,9 +380,10 @@ export default function EditTab() {
         bpm: data.bpm || '',
         youtubeUrl: data.youtubeUrl || '',
         youtubeVideoId: data.youtubeVideoId || '',
-        strummingPattern: data.strummingPattern || '',
-        fingeringTips: data.fingeringTips || '',
+        youtubeVideoTitle: data.youtubeVideoTitle || '',
+        youtubeChannelTitle: data.youtubeChannelTitle || '',
         uploaderPenName: data.uploaderPenName || data.arrangedBy || '', // 兼容舊資料的 arrangedBy
+        remark: data.remark || '',
         viewCount: data.viewCount || 0,
         createdAt: data.createdAt,
         albumImage: data.albumImage || '',
@@ -284,11 +392,13 @@ export default function EditTab() {
         inputFont: data.displayFont || 'mono', // 統一使用 displayFont 作為輸入字體
         gpSegments: data.gpSegments || [],
         gpTheme: data.gpTheme || 'dark',
-        // Spotify 資訊
+        // Spotify 資訊（載入時帶入 spotifyFilled* 以便歌曲年份／專輯顯示綠色框）
         spotifyTrackId: data.spotifyTrackId || null,
         spotifyAlbumId: data.spotifyAlbumId || null,
         spotifyArtistId: data.spotifyArtistId || null,
-        spotifyUrl: data.spotifyUrl || null
+        spotifyUrl: data.spotifyUrl || null,
+        spotifyFilledSongYear: data.spotifyTrackId ? (data.songYear ?? '') : '',
+        spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : ''
       })
       if (data.artistId) setUseExistingArtistSelected(true)
     } catch (error) {
@@ -334,6 +444,17 @@ export default function EditTab() {
         artists: formData.artists, // 保存多歌手陣列
         uploaderPenName: formData.uploaderPenName.trim() || '結他友',
         inputFont: formData.displayFont // 統一使用 displayFont
+      }
+
+      // 若曲詞編監為空而譜內容有相關資料，自動從內容解析並填入
+      const content = (rawData.content || '').trim()
+      const parsedCredits = content ? parseCreditBlock(content) : null
+      if (parsedCredits) {
+        const empty = (v) => (v === undefined || v === null || String(v).trim() === '')
+        if (empty(rawData.composer) && parsedCredits.composer) rawData.composer = parsedCredits.composer
+        if (empty(rawData.lyricist) && parsedCredits.lyricist) rawData.lyricist = parsedCredits.lyricist
+        if (empty(rawData.arranger) && parsedCredits.arranger) rawData.arranger = parsedCredits.arranger
+        if (empty(rawData.producer) && parsedCredits.producer) rawData.producer = parsedCredits.producer
       }
       
       // 清理 undefined 值
@@ -421,17 +542,24 @@ export default function EditTab() {
   const handleChange = (e) => {
     const { name, value } = e.target
     
-    // 處理 Key/Capo/PlayKey 的自動計算
+    // 處理 原 Key / Capo / 彈奏 Key：任填兩項，第三項自動算出；被計出的欄位外框轉黃
     if (name === 'originalKey' || name === 'capo' || name === 'playKey') {
       setFormData(prev => {
         const newData = { ...prev, [name]: value }
-        const { capo, playKey } = calculateKeyAndCapo(
+        const resolved = calculateKeyAndCapo(
           name === 'originalKey' ? value : newData.originalKey,
           name === 'capo' ? value : newData.capo,
-          name === 'playKey' ? value : newData.playKey
+          name === 'playKey' ? value : newData.playKey,
+          name
         )
-        return { ...newData, capo, playKey }
+        let computed = null
+        if (name !== 'originalKey' && resolved.originalKey !== prev.originalKey) computed = 'originalKey'
+        else if (name !== 'capo' && String(resolved.capo) !== String(prev.capo)) computed = 'capo'
+        else if (name !== 'playKey' && resolved.playKey !== prev.playKey) computed = 'playKey'
+        computedKeyFieldRef.current = computed
+        return { ...newData, ...resolved }
       })
+      setTimeout(() => setComputedKeyField(computedKeyFieldRef.current), 0)
     } else {
       setFormData(prev => ({
         ...prev,
@@ -467,19 +595,29 @@ export default function EditTab() {
       artistPhoto: data.photo || '',
       artistBio: data.bio || '',
       artistYear: data.year || '',
+      artistBirthYear: data.birthYear || '',
+      artistDebutYear: data.debutYear || '',
       artistType: data.artistType !== 'unknown' ? data.artistType : prev.artistType
     }))
   }
 
   // 使用現有歌手
   const useExistingArtist = (artist) => {
+    const rawRegions = Array.isArray(artist.regions) && artist.regions.length > 0
+      ? artist.regions
+      : (artist.region ? [artist.region] : [])
+    const resolved = rawRegions
+      .map(r => REGIONS.find(x => x.value && (x.value === r || x.label === r)))
+      .filter(Boolean)
+    const regionValue = resolved.length === 0 ? '' : resolved.length === 1 ? resolved[0].value : resolved.map(r => r.value).join('／')
     setFormData(prev => ({
       ...prev,
       artist: artist.name,
       artistType: artist.artistType || '',
       artistPhoto: artist.photoURL || artist.wikiPhotoURL || '',
       artistBio: artist.bio || '',
-      artistYear: artist.year || ''
+      artistYear: artist.year || '',
+      region: regionValue
     }))
     setSimilarArtists([])
     setUseExistingArtistSelected(true)
@@ -507,8 +645,73 @@ export default function EditTab() {
       spotifyAlbumId: trackData.spotifyAlbumId || null,
       spotifyArtistId: trackData.spotifyArtistId || null,
       spotifyUrl: trackData.spotifyUrl || null,
-      albumImage: trackData.albumImage || null
+      albumImage: trackData.albumImage || null,
+      coverImage: trackData.albumImage || prev.coverImage, // 預設揀選 Spotify 專輯封面
+      spotifyFilledSongYear: trackData.songYear ?? '',
+      spotifyFilledAlbum: trackData.album ?? ''
     }))
+  }
+
+  // 作曲／填詞／編曲／監製：貼上含「作曲：」「曲：」等嘅文字時自動解析並填入四欄
+  const handleCreditPaste = (e) => {
+    const pasted = e.clipboardData?.getData?.('text') || ''
+    const parsed = parseCreditBlock(pasted)
+    if (parsed) {
+      e.preventDefault()
+      setFormData(prev => ({
+        ...prev,
+        composer: parsed.composer || prev.composer,
+        lyricist: parsed.lyricist || prev.lyricist,
+        arranger: parsed.arranger || prev.arranger,
+        producer: parsed.producer || prev.producer,
+      }))
+    }
+  }
+
+  // 地區多選：切換某個地區的勾選，儲存為 "hongkong／taiwan" 格式
+  const handleRegionToggle = (value) => {
+    if (!value) return
+    const current = (formData.region || '').split('／').filter(Boolean)
+    const next = current.includes(value) ? current.filter(v => v !== value) : [...current, value]
+    setFormData(prev => ({ ...prev, region: next.join('／') }))
+    if (errors.region) setErrors(prev => ({ ...prev, region: '' }))
+  }
+
+  const insertTemplate = () => {
+    const template = `e|----------------------------------------------------------------|
+B|----------------------------------------------------------------|
+G|----------------------------------------------------------------|
+D|----------------------------------------------------------------|
+A|----------------------------------------------------------------|
+E|----------------------------------------------------------------|
+
+在這裡輸入你的結他譜...`
+    setFormData(prev => ({ ...prev, content: template }))
+  }
+
+  const setKeyField = (name, value) => {
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value }
+      // 原 Key 與彈奏 Key 必須同類型（major vs minor）；切換原 Key 類型時清空彈奏 Key
+      if (name === 'originalKey' && prev.playKey) {
+        const newIsMinor = (value || '').toString().endsWith('m')
+        const playIsMinor = (prev.playKey || '').toString().endsWith('m')
+        if (newIsMinor !== playIsMinor) newData.playKey = ''
+      }
+      const resolved = calculateKeyAndCapo(
+        name === 'originalKey' ? value : newData.originalKey,
+        name === 'capo' ? value : newData.capo,
+        name === 'playKey' ? value : newData.playKey,
+        name
+      )
+      let computed = null
+      if (name !== 'originalKey' && resolved.originalKey !== prev.originalKey) computed = 'originalKey'
+      else if (name !== 'capo' && String(resolved.capo) !== String(prev.capo)) computed = 'capo'
+      else if (name !== 'playKey' && resolved.playKey !== prev.playKey) computed = 'playKey'
+      computedKeyFieldRef.current = computed
+      return { ...newData, ...resolved }
+    })
+    setTimeout(() => setComputedKeyField(computedKeyFieldRef.current), 0)
   }
 
   // 獲取可用的封面圖片選項
@@ -628,7 +831,7 @@ export default function EditTab() {
     <Layout>
       <div className="max-w-3xl mx-auto px-4 pb-8">
         {/* Header - Sticky */}
-        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-[#1a1a1a] -mx-4 px-4 py-4 mb-2 flex items-center justify-between">
+        <div className="sticky top-0 z-30 bg-black/95 backdrop-blur-md border-b border-[#1a1a1a] -mx-4 px-4 pt-2 pb-2 mb-2 flex items-center justify-between">
           <div className="flex items-center">
             <Link
               href={`/tabs/${id}`}
@@ -694,11 +897,13 @@ export default function EditTab() {
         </div>
 
         {/* Form */}
-        <div className="bg-[#121212] rounded-xl shadow-md p-6 border border-neutral-800">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title */}
+        <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <FormSection>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
+            {/* Row 1: 歌名* | 出譜者名稱 — 與 new 一致 */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-white mb-1">
+              <label htmlFor="title" className="block pl-1 text-[13px] font-medium text-white mb-1">
                 歌名 <span className="text-[#FFD700]">*</span>
               </label>
               <input
@@ -707,157 +912,466 @@ export default function EditTab() {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] ${
-                  errors.title ? 'border-red-500' : 'border-neutral-800'
+                placeholder="例如：海闊天空"
+                className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${
+                  errors.title ? 'border-red-500' : 'border-neutral-700'
                 }`}
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-400">{errors.title}</p>
               )}
             </div>
+            <div>
+              <label className="block pl-1 text-[13px] font-medium text-white mb-1">
+                出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">可於個人主頁修改</span>
+              </label>
+              <input
+                type="text"
+                name="uploaderPenName"
+                value={formData.uploaderPenName}
+                onChange={handleChange}
+                readOnly={!isAdmin}
+                placeholder="結他友"
+                className={`w-full px-4 py-2 border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#525252] ${!isAdmin ? 'bg-[#1a1a1a] border-[#B8860B] cursor-not-allowed opacity-90 text-[#737373]' : 'bg-black border-neutral-700 text-white'}`}
+              />
+            </div>
 
-            {/* 歌手 - 新多歌手輸入 */}
+            {/* Row 2: 歌手* — 與歌名同欄同寬（1 col） */}
             <div>
               <ArtistInputSimple
                 value={{ artists: formData.artists }}
                 hidePreview={useExistingArtistSelected}
+                twoColumnLayout
                 onChange={({ artists, displayName, primaryArtist }) => {
+                  const isConfirmed = !!primaryArtist?.id
+                  const validTypes = ['male', 'female', 'group']
+                  const normalizedArtists = artists.map(a => {
+                    const rawRegions = Array.isArray(a?.regions) && a.regions.length > 0
+                      ? a.regions
+                      : (a?.region ? [a.region] : [])
+                    const resolved = rawRegions
+                      .map(r => REGIONS.find(x => x.value && (x.value === r || x.label === r)))
+                      .filter(Boolean)
+                    const regionStr = resolved.length === 0 ? (a?.region ?? '') : resolved.length === 1 ? resolved[0].value : resolved.map(r => r.value).join('／')
+                    const rawType = a?.artistType ?? a?.type
+                    const artistType = validTypes.includes(rawType) ? rawType : (a?.artistType ?? '')
+                    return { ...a, region: regionStr, artistType, regions: undefined }
+                  })
                   setFormData(prev => ({
                     ...prev,
-                    artists,
+                    artists: normalizedArtists,
                     artist: displayName,
                     artistId: primaryArtist?.id || null,
-                    artistPhoto: primaryArtist?.photo || ''
+                    artistPhoto: primaryArtist?.photo || '',
+                    artistType: normalizedArtists[0]?.artistType ?? prev.artistType,
+                    region: normalizedArtists[0]?.region ?? prev.region,
                   }))
-                  setUseExistingArtistSelected(!!primaryArtist?.id)
+                  setUseExistingArtistSelected(isConfirmed)
                 }}
               />
               {errors.artist && (
                 <p className="mt-1 text-sm text-red-400">{errors.artist}</p>
               )}
-              
-              {/* 自動填充歌手資料 */}
               {formData.artists?.[0]?.id && !formData.artistPhoto && (
                 <div className="mt-3">
-                  <ArtistAutoFill 
-                    artistName={formData.artists[0].name} 
-                    onFill={handleArtistFill} 
-                    autoApply={true}
-                  />
+                  <ArtistAutoFill artistName={formData.artists[0].name} onFill={handleArtistFill} autoApply={true} />
                 </div>
               )}
             </div>
+            {/* 第 2 行右欄：關係選單（/ 或 feat.）| 添加歌手掣；下方 合唱/featuring 適用 */}
+            <div className="flex flex-col gap-1 sm:items-start pt-0 sm:pt-6">
+              <div className="flex items-center gap-2 flex-wrap">
+                {formData.artists?.length >= 2 && (
+                  <div className="w-20 flex-shrink-0 relative" ref={relationMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setRelationMenuOpen(prev => !prev)}
+                      className="w-full h-10 px-4 border border-neutral-700 rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between"
+                    >
+                      <span>{RELATION_OPTIONS.find(o => o.value === (formData.artists[1]?.relation || 'slash'))?.label ?? '/'}</span>
+                      <svg className={`w-4 h-4 text-[#B3B3B3] transition-transform flex-shrink-0 ${relationMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {relationMenuOpen && (
+                      <div className="absolute z-50 mt-1 w-full min-w-[80px] rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl">
+                        {RELATION_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              const artists = formData.artists.map((a, i) => i === 1 ? { ...a, relation: opt.value } : a)
+                              const displayName = (artists[0]?.name ?? '') + artists.slice(1).map(a => (RELATION_OPTIONS.find(o => o.value === (a.relation || 'slash'))?.separator || ' / ') + (a.name ?? '')).join('')
+                              setFormData(prev => ({ ...prev, artists, artist: displayName }))
+                              setRelationMenuOpen(false)
+                            }}
+                            className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${(formData.artists[1]?.relation || 'slash') === opt.value ? 'text-[#FFD700]' : 'text-white'}`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    artists: [...(prev.artists || []), { name: '', id: null, relation: 'slash', artistType: '', region: '', isNew: true }]
+                  }))}
+                  className="inline-flex items-center justify-center gap-2 h-9 px-5 bg-[#282828] hover:bg-[#3E3E3E] text-white rounded-full transition text-[13px]"
+                >
+                  ＋歌手
+                </button>
+              </div>
+              <span className="text-[#737373] font-normal text-xs">合唱/featuring 適用</span>
+            </div>
 
-            {/* Artist Type — hidden when an existing artist is selected */}
-            {!useExistingArtistSelected && (
-            <div>
-              <label htmlFor="artistType" className="block text-sm font-medium text-white mb-1">
-                歌手類型
-              </label>
-              <select
-                id="artistType"
-                name="artistType"
-                value={formData.artistType}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
-              >
-                <option value="">請選擇...</option>
-                <option value="male">男歌手</option>
-                <option value="female">女歌手</option>
-                <option value="group">組合</option>
-              </select>
-              
-              {/* 已填入的歌手資料預覽 */}
-              {(formData.artistPhoto || formData.artistYear || formData.artistType) && (
-                <div className="mt-4 p-4 bg-black rounded-lg border border-neutral-700">
-                  <h4 className="text-sm font-medium text-[#FFD700] mb-3">
-                    已填入歌手資料：
-                    {collaborators.length > 1 && (
-                      <span className="text-xs text-blue-400 ml-2">
-                        ({collaborators.length} 位歌手{collaborationType ? ` · ${collaborationType === 'feat' ? 'Feat.' : '合唱'}` : ''})
-                      </span>
+            {/* Row 4+：每位歌手一列 類型* | 地區* */}
+            {(formData.artists || []).map((artist, idx) => (
+              <div key={idx} className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">
+                    類型 <span className="text-[#FFD700]">*</span>
+                    {(formData.artists.length > 1 && (artist.name || `第${idx + 1}位`)) && (
+                      <span className="text-[#737373] font-normal text-xs ml-1">{artist.name || `第${idx + 1}位`}</span>
                     )}
-                  </h4>
-                  <div className="flex gap-4">
-                    {formData.artistPhoto && (
-                      <img 
-                        src={formData.artistPhoto} 
-                        alt={collaborators[0] || formData.artist}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-[#FFD700]"
-                      />
-                    )}
-                    <div className="flex-1">
-                      {/* 多歌手時顯示列表 */}
-                      {collaborators.length > 1 ? (
-                        <div className="space-y-1">
-                          {collaborators.map((name, idx) => (
-                            <p key={idx} className="text-white text-sm font-medium">
-                              {idx === 0 && collaborationType === 'feat' ? `${name} (主)` : name}
-                            </p>
-                          ))}
+                  </label>
+                  {artist.id ? (
+                    <div className="w-full h-10 px-4 flex items-center border rounded-lg text-[13px] text-[#737373] bg-[#1a1a1a] border-[#B8860B]">
+                      {ARTIST_TYPES.find(t => t.value === (artist.artistType || formData.artistType))?.label ?? '—'}
+                    </div>
+                  ) : (
+                    <div ref={typeMenuOpenIndex === idx ? typeMenuRef : undefined} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setTypeMenuOpenIndex(prev => prev === idx ? null : idx)}
+                        className="w-full h-10 px-4 border border-neutral-700 rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between"
+                      >
+                        <span className={!(artist.artistType || formData.artistType) ? 'text-[#737373]' : ''}>
+                          {(artist.artistType || formData.artistType) ? ARTIST_TYPES.find(t => t.value === (artist.artistType || formData.artistType))?.label : '請選擇...'}
+                        </span>
+                        <svg className={`w-4 h-4 text-[#737373] transition-transform ${typeMenuOpenIndex === idx ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      {typeMenuOpenIndex === idx && (
+                        <div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl">
+                          {ARTIST_TYPES.map(t => {
+                            const currentType = idx === 0 ? formData.artistType : (formData.artists[idx]?.artistType ?? '')
+                            const selected = currentType === t.value
+                            return (
+                              <button
+                                key={t.value}
+                                type="button"
+                                onClick={() => {
+                                  const nextArtists = formData.artists.map((a, i) => i === idx ? { ...a, artistType: selected ? '' : t.value } : a)
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    artists: nextArtists,
+                                    ...(idx === 0 ? { artistType: selected ? '' : t.value } : {})
+                                  }))
+                                  setTypeMenuOpenIndex(null)
+                                  if (errors.artistType) setErrors(prev => ({ ...prev, artistType: '' }))
+                                }}
+                                className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${selected ? 'text-[#FFD700]' : 'text-white'}`}
+                              >
+                                {t.label}
+                              </button>
+                            )
+                          })}
                         </div>
-                      ) : (
-                        <p className="text-white text-sm font-medium">{formData.artist}</p>
-                      )}
-                      {formData.artistType && (
-                        <p className="text-neutral-400 text-sm mt-1">
-                          {formData.artistType === 'male' ? '男歌手' : 
-                           formData.artistType === 'female' ? '女歌手' : '組合'}
-                        </p>
-                      )}
-                      {formData.artistYear && (
-                        <p className="text-neutral-500 text-xs mt-1">出道/出生年份：{formData.artistYear}</p>
                       )}
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* Song Info Search - Spotify */}
-            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
-              <h3 className="text-sm font-medium text-[#FFD700] mb-3">歌曲資訊（Spotify 搜尋）</h3>
-              <p className="text-xs text-neutral-500 mb-3">
-                自動從 Spotify 獲取歌曲資訊，包括專輯封面、發行年份等
-              </p>
-              <button
-                type="button"
-                onClick={handleSearchSpotify}
-                disabled={!formData.artist && !formData.title}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1DB954] text-white rounded-lg hover:bg-[#1ed760] transition disabled:opacity-50"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                </svg>
-                <span>從 Spotify 搜尋</span>
-              </button>
-              
-              {/* 顯示已選擇的歌曲資訊 */}
-              {formData.spotifyTrackId && (
-                <div className="mt-4 p-4 bg-[#1a1a1a] border border-[#1DB954] rounded-lg">
-                  <h4 className="text-[#1DB954] font-medium mb-3">✓ 已從 Spotify 獲取：</h4>
-                  {formData.albumImage && (
-                    <img 
-                      src={formData.albumImage} 
-                      alt={formData.album}
-                      className="w-24 h-24 rounded object-cover mb-3"
-                    />
                   )}
-                  <div className="space-y-2 text-sm">
-                    <p><span className="text-neutral-500">歌手：</span><span className="text-white">{formData.artist}</span></p>
-                    <p><span className="text-neutral-500">歌名：</span><span className="text-white">{formData.title}</span></p>
-                    {formData.album && (
-                      <p><span className="text-neutral-500">專輯：</span><span className="text-white">{formData.album}</span></p>
-                    )}
-                    {formData.songYear && (
-                      <p><span className="text-neutral-500">年份：</span><span className="text-white">{formData.songYear}</span></p>
-                    )}
-                  </div>
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">
+                    地區 <span className="text-[#FFD700]">*</span>
+                  </label>
+                  {artist.id ? (
+                    <div className="w-full h-10 px-4 flex items-center border rounded-lg text-[13px] text-[#737373] bg-[#1a1a1a] border-[#B8860B]">
+                      {(artist.region || formData.region) ? (artist.region || formData.region).split('／').map(v => REGIONS.find(r => r.value === v)?.label ?? v).join('／') : '—'}
+                    </div>
+                  ) : (
+                    <div ref={regionMenuOpenIndex === idx ? regionMenuRef : undefined} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setRegionMenuOpenIndex(prev => prev === idx ? null : idx)}
+                        className="w-full h-10 px-4 border border-neutral-700 rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between"
+                      >
+                        <span className={!(artist.region || formData.region) ? 'text-[#737373]' : ''}>
+                          {(artist.region || formData.region) ? (artist.region || formData.region).split('／').map(v => REGIONS.find(r => r.value === v)?.label ?? v).join('／') : '請選擇...'}
+                        </span>
+                        <svg className={`w-4 h-4 text-[#737373] transition-transform ${regionMenuOpenIndex === idx ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      {regionMenuOpenIndex === idx && (
+                        <div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl">
+                          {REGIONS.filter(r => r.value).map(r => {
+                            const currentRegion = idx === 0 ? (formData.region || '') : (formData.artists[idx]?.region || '')
+                            const selected = currentRegion.split('／').filter(Boolean).includes(r.value)
+                            return (
+                              <button
+                                key={r.value}
+                                type="button"
+                                onClick={() => {
+                                  const current = (idx === 0 ? formData.region : formData.artists[idx]?.region) || ''
+                                  const arr = current.split('／').filter(Boolean)
+                                  const next = arr.includes(r.value) ? arr.filter(v => v !== r.value) : [...arr, r.value]
+                                  const regionStr = next.join('／')
+                                  const nextArtists = formData.artists.map((a, i) => i === idx ? { ...a, region: regionStr } : a)
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    artists: nextArtists,
+                                    ...(idx === 0 ? { region: regionStr } : {})
+                                  }))
+                                  setRegionMenuOpenIndex(null)
+                                  if (errors.region) setErrors(prev => ({ ...prev, region: '' }))
+                                }}
+                                className={`w-full px-4 py-1.5 text-left text-[13px] flex items-center gap-2 hover:bg-neutral-800 ${selected ? 'text-[#FFD700]' : 'text-white'}`}
+                              >
+                                <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs ${selected ? 'bg-[#FFD700] border-[#FFD700] text-black' : 'border-neutral-600'}`}>
+                                  {selected ? '✓' : ''}
+                                </span>
+                                {r.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            </div>
+            </FormSection>
+
+            <FormSection>
+            {/* Spotify 擷取 + 專輯／年份／作曲／填詞／編曲／監製／BPM（與 new 同款簡化區） */}
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSearchSpotify}
+                  disabled={!formData.artist && !formData.title}
+                  className="inline-flex items-center justify-center h-9 gap-2 px-4 bg-[#1DB954] text-white rounded-full hover:bg-[#1ed760] transition disabled:opacity-50 font-medium"
+                >
+                  <img src="/spotify-icon.svg" alt="" className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                  獲取歌曲資訊
+                </button>
+                {formData.spotifyTrackId && (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-[#1DB954]">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    已從 Spotify 擷取：專輯／年份
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">歌曲年份</label>
+                  <input type="text" name="songYear" value={formData.songYear} onChange={handleChange}
+                    placeholder="例如：1993"
+                    className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${formData.spotifyTrackId && String(formData.songYear ?? '') === String(formData.spotifyFilledSongYear ?? '') ? 'border-[#1DB954]' : 'border-neutral-700'}`} />
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">專輯</label>
+                  <input type="text" name="album" value={formData.album} onChange={handleChange}
+                    placeholder="例如：樂與怒"
+                    className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${formData.spotifyTrackId && String(formData.album ?? '') === String(formData.spotifyFilledAlbum ?? '') ? 'border-[#1DB954]' : 'border-neutral-700'}`} />
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">作曲</label>
+                  <input type="text" name="composer" value={formData.composer} onChange={handleChange}
+                    onPaste={(e) => handleCreditPaste(e)}
+                    placeholder="例如：黃家駒"
+                    className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">填詞</label>
+                  <input type="text" name="lyricist" value={formData.lyricist} onChange={handleChange}
+                    onPaste={(e) => handleCreditPaste(e)}
+                    placeholder="例如：黃家駒"
+                    className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">編曲</label>
+                  <input type="text" name="arranger" value={formData.arranger} onChange={handleChange}
+                    onPaste={(e) => handleCreditPaste(e)}
+                    placeholder="例如：Beyond"
+                    className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">監製</label>
+                  <input type="text" name="producer" value={formData.producer} onChange={handleChange}
+                    onPaste={(e) => handleCreditPaste(e)}
+                    placeholder="例如：Beyond"
+                    className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+                </div>
+                <div>
+                  <label className="block pl-1 text-[13px] font-medium text-white mb-1">BPM</label>
+                  <input type="number" name="bpm" value={formData.bpm} onChange={handleChange}
+                    placeholder="例如：120" min="1" max="300"
+                    className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-[#737373]">
+                <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>可於作曲／填詞／編曲／監製任一欄貼上含「作曲：」「曲：」「作詞：」「詞：」「編：」「監：」等嘅文字，會自動填入四欄；填上資料有助結他譜搜尋</span>
+              </div>
+            </div>
+            </FormSection>
+
+            <FormSection>
+            {/* YouTube 連結 — 與 new 同款簡化 UI */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setYouTubeAutoSelect(false); setIsYouTubeModalOpen(true); }}
+                  disabled={!formData.artist || !formData.title}
+                  className="inline-flex items-center justify-center h-10 gap-2 px-5 bg-red-600 text-white rounded-full hover:bg-red-700 transition disabled:opacity-50 text-sm font-medium flex-shrink-0"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                  </svg>
+                  搜尋 YouTube 影片
+                </button>
+                <input
+                  type="url"
+                  id="youtubeUrl"
+                  name="youtubeUrl"
+                  value={formData.youtubeUrl}
+                  onChange={handleChange}
+                  placeholder="貼上 YouTube 連結"
+                  className="flex-1 min-w-0 h-10 px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] outline-none"
+                />
+              </div>
+              {formData.youtubeVideoId && (
+                <div className="rounded-lg overflow-hidden border border-neutral-700 bg-black w-48 sm:w-56">
+                  <img
+                    src={`https://img.youtube.com/vi/${formData.youtubeVideoId}/hqdefault.jpg`}
+                    alt={formData.youtubeVideoTitle || 'YouTube 影片'}
+                    className="w-full aspect-video object-cover"
+                  />
+                  {(formData.youtubeVideoTitle || formData.youtubeChannelTitle) && (
+                    <div className="px-3 py-2">
+                      {formData.youtubeVideoTitle && (
+                        <p className="text-sm text-white line-clamp-2" title={formData.youtubeVideoTitle}>{formData.youtubeVideoTitle}</p>
+                      )}
+                      {formData.youtubeChannelTitle && (
+                        <p className="text-xs text-neutral-500 mt-0.5">{formData.youtubeChannelTitle}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+            </FormSection>
 
+            <FormSection>
+            {/* 封面圖片 — 與 new 同款簡化 UI：單行橫向選項 + 上傳 */}
+            <div className="space-y-4">
+              {(() => {
+                const options = getCoverImageOptions()
+                const boxSize = 'w-[100px] h-[100px]'
+                const norm = (u) => (u || '').trim().replace(/\/+$/, '')
+                const currentCover = norm(formData.coverImage)
+                const selectedNotInOptions = formData.coverImage && !options.some(o => norm(o.url) === currentCover)
+                const displayOptions = selectedNotInOptions
+                  ? [{ url: formData.coverImage, label: '已選擇的封面' }, ...options]
+                  : options
+                const selectedLabel = !currentCover
+                  ? '無'
+                  : selectedNotInOptions
+                    ? '已選擇的封面（自訂上傳）'
+                    : options.find(o => norm(o.url) === currentCover)?.label || '自訂'
+                return (
+                  <div className="space-y-2">
+                    <p className="text-xs text-[#B3B3B3]">目前選中的封面：<span className="text-[#FFD700]">{selectedLabel}</span></p>
+                    <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                      {displayOptions.map((option, index) => {
+                        const isSelected = currentCover && norm(option.url) === currentCover
+                        return (
+                        <button
+                          key={option.url + index}
+                          type="button"
+                          onClick={() => handleSelectCover(option.url)}
+                          className={`relative flex-shrink-0 ${boxSize} rounded-lg overflow-hidden border-2 transition ${
+                            isSelected
+                              ? 'border-[#FFD700] ring-2 ring-[#FFD700] ring-inset'
+                              : 'border-neutral-700 hover:border-neutral-500'
+                          }`}
+                        >
+                          <img 
+                            src={option.url} 
+                            alt={option.label}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
+                            }}
+                          />
+                          <div className="hidden w-full h-full absolute inset-0 flex items-center justify-center bg-neutral-800 text-neutral-500 text-xs">
+                            載入失敗
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 py-0.5 px-1">
+                            <p className="text-white text-[9px] truncate">{option.label}</p>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center" title="已選擇">
+                              <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </button>
+                        )
+                      })}
+                      <label className={`relative flex flex-col items-center justify-center flex-shrink-0 ${boxSize} rounded-lg border-2 border-dashed cursor-pointer transition px-1 ${
+                        isUploadingCover 
+                          ? 'border-neutral-600 bg-neutral-800/50' 
+                          : 'border-neutral-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
+                      }`}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadCover}
+                          disabled={isUploadingCover}
+                          className="hidden"
+                        />
+                        {isUploadingCover ? (
+                          <>
+                            <svg className="w-5 h-5 text-neutral-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-[10px] text-neutral-400 mt-1">上傳中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xl text-neutral-400 leading-none">+</span>
+                            <span className="text-[10px] text-neutral-400 mt-0.5">上傳封面</span>
+                            <span className="text-[8px] text-neutral-500 mt-0.5 text-center leading-tight">JPG/PNG/GIF/WebP<br />最大 1MB</span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                    {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
+                    {options.length === 0 && !formData.coverImage && (
+                      <p className="text-neutral-500 text-sm">添加 YouTube 影片或從 Spotify 搜尋可獲取封面選項</p>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+            </FormSection>
+
+            {isAdmin && (
+            <FormSection>
             {/* Guitar Pro Segments */}
             <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
               <h3 className="text-sm font-medium text-[#FFD700] mb-3">🎸 Guitar Pro 段落</h3>
@@ -946,468 +1460,216 @@ export default function EditTab() {
                 </div>
               )}
             </div>
+            </FormSection>
+            )}
 
-            {/* Cover Image Selection */}
-            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
-              <h3 className="text-sm font-medium text-[#FFD700] mb-3">封面圖片設定</h3>
-              
-              {(() => {
-                const options = getCoverImageOptions()
-                
-                return (
-                  <div className="space-y-4">
-                    {/* 上傳自訂封面按鈕 */}
-                    <div className="flex items-center gap-4">
-                      <label className={`relative flex items-center justify-center w-[100px] h-[100px] rounded-lg border-2 border-dashed cursor-pointer transition flex-shrink-0 ${
-                        isUploadingCover 
-                          ? 'border-neutral-600 bg-neutral-800/50' 
-                          : 'border-neutral-600 hover:border-[#FFD700] hover:bg-[#FFD700]/5'
-                      }`}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleUploadCover}
-                          disabled={isUploadingCover}
-                          className="hidden"
-                        />
-                        {isUploadingCover ? (
-                          <div className="flex flex-col items-center">
-                            <svg className="w-6 h-6 text-neutral-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span className="text-[10px] text-neutral-400 mt-1">上傳中...</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center">
-                            <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span className="text-[10px] text-neutral-400 mt-1">上傳封面</span>
-                          </div>
-                        )}
-                      </label>
-                      
-                      <div className="flex-1">
-                        <p className="text-sm text-white font-medium">上傳自訂封面</p>
-                        <p className="text-xs text-neutral-500">支援 JPG、PNG、GIF、WebP，最大 10MB</p>
-                        {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
-                      </div>
+            <FormSection>
+            {/* 原 Key / Capo / 彈奏 Key — 自訂下拉 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block pl-1 text-[13px] font-medium text-white mb-1">原 Key <span className="text-[#FFD700]">*</span></label>
+                <div ref={originalKeyMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { setOriginalKeyMenuOpen(prev => !prev); setCapoMenuOpen(false); setPlayKeyMenuOpen(false); if (computedKeyField === 'originalKey') setComputedKeyField(null) }}
+                    className={`w-full h-10 px-4 border rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between ${computedKeyField === 'originalKey' ? 'border-[#FFD700]' : 'border-neutral-700'}`}
+                  >
+                    <span>{formData.originalKey || '—'}</span>
+                    <svg className={`w-4 h-4 text-[#737373] transition-transform ${originalKeyMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {originalKeyMenuOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl max-h-60 overflow-y-auto">
+                      <p className="px-4 py-1.5 text-[11px] text-[#737373] uppercase tracking-wide">Major</p>
+                      {KEY_MAJOR.map(k => (
+                        <button key={k} type="button" onClick={() => { setKeyField('originalKey', k); setOriginalKeyMenuOpen(false) }}
+                          className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${formData.originalKey === k ? 'text-[#FFD700]' : 'text-white'}`}>
+                          {k}
+                        </button>
+                      ))}
+                      <p className="px-4 py-1.5 text-[11px] text-[#737373] uppercase tracking-wide mt-1">Minor</p>
+                      {KEY_MINOR.map(k => (
+                        <button key={k} type="button" onClick={() => { setKeyField('originalKey', k); setOriginalKeyMenuOpen(false) }}
+                          className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${formData.originalKey === k ? 'text-[#FFD700]' : 'text-white'}`}>
+                          {k}
+                        </button>
+                      ))}
                     </div>
-                    
-                    {/* 分隔線 */}
-                    {options.length > 0 && (
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px bg-neutral-800"></div>
-                        <span className="text-xs text-neutral-500">或選擇現有圖片</span>
-                        <div className="flex-1 h-px bg-neutral-800"></div>
-                      </div>
-                    )}
-                    
-                    {/* 現有圖片選擇 - 100x100 小圖 */}
-                    {options.length > 0 && (
-                      <div className="flex flex-wrap gap-3">
-                        {options.map((option, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleSelectCover(option.url)}
-                            className={`relative w-[100px] h-[100px] rounded-lg overflow-hidden border-2 transition flex-shrink-0 ${
-                              formData.coverImage === option.url 
-                                ? 'border-[#FFD700] ring-2 ring-[#FFD700]/30' 
-                                : 'border-neutral-700 hover:border-neutral-500'
-                            }`}
-                          >
-                            <img 
-                              src={option.url} 
-                              alt={option.label}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none'
-                                e.target.nextSibling.style.display = 'flex'
-                              }}
-                            />
-                            <div className="hidden w-full h-full items-center justify-center bg-neutral-800 text-neutral-500 text-xs">
-                              載入失敗
-                            </div>
-                            
-                            {/* 類型標籤 - 更小字體 */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm py-0.5 px-1">
-                              <p className="text-white text-[10px] truncate">{option.label}</p>
-                            </div>
-                            
-                            {/* 選中標記 - 更小 */}
-                            {formData.coverImage === option.url && (
-                              <div className="absolute top-1 right-1 w-5 h-5 bg-[#FFD700] rounded-full flex items-center justify-center">
-                                <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block pl-1 text-[13px] font-medium text-white mb-1">Capo</label>
+                <div ref={capoMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { setCapoMenuOpen(prev => !prev); setOriginalKeyMenuOpen(false); setPlayKeyMenuOpen(false); if (computedKeyField === 'capo') setComputedKeyField(null) }}
+                    className={`w-full h-10 px-4 border rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between ${computedKeyField === 'capo' ? 'border-[#FFD700]' : 'border-neutral-700'}`}
+                  >
+                    <span>{formData.capo === '' ? '唔用' : `Capo ${formData.capo}`}</span>
+                    <svg className={`w-4 h-4 text-[#737373] transition-transform ${capoMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {capoMenuOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl">
+                      {[{ value: '', label: '唔用' }, ...([1,2,3,4,5,6,7,8,9,10,11].map(n => ({ value: String(n), label: `Capo ${n}` })))].map(opt => {
+                        const selected = String(formData.capo ?? '') === opt.value
+                        return (
+                          <button key={opt.value || 'none'} type="button" onClick={() => { setKeyField('capo', opt.value === '' ? '' : Number(opt.value)); setCapoMenuOpen(false) }}
+                            className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${selected ? 'text-[#FFD700]' : 'text-white'}`}>
+                            {opt.label}
                           </button>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* 當前選擇預覽 */}
-                    {formData.coverImage && (
-                      <div className="p-3 bg-[#1a1a1a] rounded-lg border border-[#FFD700]/30">
-                        <p className="text-xs text-[#FFD700] mb-2">已選擇的封面：</p>
-                        <div className="flex items-center gap-3">
-                          <img 
-                            src={formData.coverImage} 
-                            alt="Selected cover"
-                            className="w-16 h-16 rounded object-cover"
-                          />
-                          <div className="flex-1">
-                            <p className="text-white text-sm truncate">
-                              {options.find(o => o.url === formData.coverImage)?.label || '自訂封面'}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => handleSelectCover('')}
-                              className="text-xs text-red-400 hover:text-red-300 mt-1"
-                            >
-                              清除選擇
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* 沒有選項時的提示 */}
-                    {options.length === 0 && !formData.coverImage && (
-                      <div className="text-center py-4 bg-[#1a1a1a] rounded-lg border border-neutral-800">
-                        <p className="text-neutral-500 text-sm">還沒有其他封面選項</p>
-                        <p className="text-neutral-600 text-xs mt-1">添加 YouTube 影片或從 Spotify 搜尋可獲取更多封面</p>
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-            </div>
-
-            {/* Song Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="songYear" className="block text-sm font-medium text-white mb-1">歌曲年份</label>
-                <input type="text" id="songYear" name="songYear" value={formData.songYear} onChange={handleChange} placeholder="例如：1993" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              <div>
-                <label htmlFor="album" className="block text-sm font-medium text-white mb-1">所屬專輯/CD</label>
-                <input type="text" id="album" name="album" value={formData.album} onChange={handleChange} placeholder="例如：樂與怒" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              <div>
-                <label htmlFor="bpm" className="block text-sm font-medium text-white mb-1">BPM</label>
-                <input type="number" id="bpm" name="bpm" value={formData.bpm} onChange={handleChange} placeholder="例如：120" min="1" max="300" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              <div>
-                <label htmlFor="composer" className="block text-sm font-medium text-white mb-1">作曲</label>
-                <input type="text" id="composer" name="composer" value={formData.composer} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              <div>
-                <label htmlFor="lyricist" className="block text-sm font-medium text-white mb-1">填詞</label>
-                <input type="text" id="lyricist" name="lyricist" value={formData.lyricist} onChange={handleChange} placeholder="例如：黃家駒" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              <div>
-                <label htmlFor="arranger" className="block text-sm font-medium text-white mb-1">編曲</label>
-                <input type="text" id="arranger" name="arranger" value={formData.arranger} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              <div>
-                <label htmlFor="producer" className="block text-sm font-medium text-white mb-1">監製</label>
-                <input type="text" id="producer" name="producer" value={formData.producer} onChange={handleChange} placeholder="例如：Beyond" className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              </div>
-              
-              {/* 上傳者筆名 */}
-              <div className="sm:col-span-2">
-                <label htmlFor="uploaderPenName" className={`block text-sm font-medium mb-1 ${isAdmin ? 'text-[#FFD700]' : 'text-white'}`}>
-                  {isAdmin ? '✏️ 編譜者筆名 (Admin 可修改)' : '✏️ 編譜者筆名'}
-                </label>
-                <input 
-                  type="text" 
-                  id="uploaderPenName" 
-                  name="uploaderPenName" 
-                  value={formData.uploaderPenName} 
-                  onChange={isAdmin ? handleChange : undefined}
-                  readOnly={!isAdmin}
-                  placeholder="例如：Kermit、結他小王子（顯示為『編譜：xxx』）" 
-                  className={`w-full px-4 py-2 bg-black rounded-lg text-white placeholder-[#B3B3B3] ${
-                    isAdmin 
-                      ? 'border border-neutral-800' 
-                      : 'border border-neutral-800 cursor-not-allowed opacity-70'
-                  }`} 
-                />
-                <p className="mt-1 text-sm text-[#B3B3B3]">
-                  {isAdmin 
-                    ? 'Admin 權限：可以修改任何譜的筆名' 
-                    : <>筆名來自你的<Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>，如需修改請到該處設定</>
-                  }
-                </p>
-              </div>
-            </div>
-
-            {/* YouTube */}
-            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
-              <h3 className="text-sm font-medium text-[#FFD700] mb-3">YouTube 連結</h3>
-              <div className="flex flex-wrap gap-2 mb-3">
-                <button type="button" onClick={() => { setYouTubeAutoSelect(false); setIsYouTubeModalOpen(true); }} disabled={!formData.artist || !formData.title} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 text-sm">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
-                  喺站內搜尋 YouTube
-                </button>
-                <button type="button" onClick={() => { setYouTubeAutoSelect(true); setIsYouTubeModalOpen(true); }} disabled={!formData.artist || !formData.title} className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-lg hover:bg-yellow-400 transition disabled:opacity-50 text-sm font-medium">
-                  <span>⚡</span>
-                  快速添加（自動選第一個）
-                </button>
-              </div>
-              <input type="url" id="youtubeUrl" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="貼上 YouTube 連結..." className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3]" />
-              {formData.youtubeVideoId && (
-                <div className="mt-3">
-                  <p className="text-xs text-green-400 mb-2">✓ 已識別 Video ID: {formData.youtubeVideoId}</p>
-                  <div className="aspect-video max-w-sm">
-                    <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${formData.youtubeVideoId}`} title="YouTube preview" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="rounded-lg"></iframe>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Original Key */}
-            <div>
-              <label htmlFor="originalKey" className="block text-sm font-medium text-white mb-1">
-                原調 <span className="text-[#FFD700]">*</span>
-              </label>
-              <select
-                id="originalKey"
-                name="originalKey"
-                value={formData.originalKey}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
-              >
-                <optgroup label="Major (大調)">
-                  {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Minor (小調)">
-                  {['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'].map((key) => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-
-            {/* Capo */}
-            <div>
-              <label htmlFor="capo" className="block text-sm font-medium text-white mb-1">
-                Capo 位置
-              </label>
-              <select
-                id="capo"
-                name="capo"
-                value={formData.capo}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
-              >
-                <option value="">唔用 Capo</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((num) => (
-                  <option key={num} value={num}>Capo {num}</option>
-                ))}
-              </select>
-              <p className="mt-1 text-sm text-[#B3B3B3]">
-                夾邊格，例如 Capo 1 係夾第一格
-              </p>
-            </div>
-
-            {/* Play Key */}
-            <div>
-              <label htmlFor="playKey" className="block text-sm font-medium text-white mb-1">
-                彈奏調性
-              </label>
-              <select
-                id="playKey"
-                name="playKey"
-                value={formData.playKey}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
-              >
-                <option value="">同原調</option>
-                <optgroup label="Major (大調)">
-                  {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Minor (小調)">
-                  {['Cm', 'C#m', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'].map((key) => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
-              </select>
-              <p className="mt-1 text-sm text-[#B3B3B3]">
-                實際彈奏嘅調，例如「Capo 1 Play G」
-              </p>
-            </div>
-
-            {/* 演奏技巧 */}
-            <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
-              <h3 className="text-sm font-medium text-[#FFD700] mb-3">演奏技巧（可選）</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="strummingPattern" className="block text-sm font-medium text-white mb-1">
-                    掃弦節奏 (Strumming Pattern)
-                  </label>
-                  <textarea
-                    id="strummingPattern"
-                    name="strummingPattern"
-                    value={formData.strummingPattern}
-                    onChange={handleChange}
-                    placeholder="例如：↓ ↓↑ ↓↑ ↓↑&#10;或：D DU DU DU"
-                    rows={3}
-                    className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3] font-mono text-sm"
-                  />
-                  <p className="mt-1 text-xs text-neutral-500">可以用箭頭 ↓↑ 或 D/U 表示</p>
-                </div>
-                
-                <div>
-                  <label htmlFor="fingeringTips" className="block text-sm font-medium text-white mb-1">
-                    指法提示 (Fingering Tips)
-                  </label>
-                  <textarea
-                    id="fingeringTips"
-                    name="fingeringTips"
-                    value={formData.fingeringTips}
-                    onChange={handleChange}
-                    placeholder="例如：副歌可以用Power Chord加強節奏感&#10;間奏Solo建議用食指橫按..."
-                    rows={3}
-                    className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white placeholder-[#B3B3B3] text-sm"
-                  />
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-
-            {/* Content */}
-            <div>
-              {/* 譜顯示字體設定 */}
-              <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#FFD700]/30 mb-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-[#FFD700] font-medium">此譜顯示字體（用戶睇到嘅效果）</label>
-                  <div className="flex items-center gap-2 bg-black rounded-lg p-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, displayFont: 'mono' }));
-                      }}
-                      className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                        formData.displayFont === 'mono' 
-                          ? 'bg-[#FFD700] text-black' 
-                          : 'text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      等寬字體
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, displayFont: 'arial' }));
-                      }}
-                      className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                        formData.displayFont === 'arial' 
-                          ? 'bg-[#FFD700] text-black' 
-                          : 'text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      Arial
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-neutral-500 mt-2">
-                  {formData.displayFont === 'arial' 
-                    ? 'Arial：適合從其他網站複製過來嘅譜，用戶睇到嘅效果同你編輯時一樣（舊譜預設）' 
-                    : '等寬字體：傳統結他譜顯示方式'}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="content" className="block text-sm font-medium text-white">
-                  譜內容 <span className="text-[#FFD700]">*</span>
-                </label>
-                <div className="flex items-center gap-3">
+              <div>
+                <label className="block pl-1 text-[13px] font-medium text-white mb-1">彈奏 Key</label>
+                <div ref={playKeyMenuRef} className="relative">
                   <button
                     type="button"
-                    onClick={() => {
-                      // Arial 模式下唔壓縮空格
-                      const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor, formData.displayFont !== 'arial');
-                      setFormData(prev => ({ ...prev, content: fixed }));
-                    }}
-                    className="text-sm text-[#FFD700] hover:text-yellow-300 transition-colors flex items-center gap-1"
-                    disabled={!formData.content}
-                    title="修正對齊問題"
+                    onClick={() => { setPlayKeyMenuOpen(prev => !prev); setOriginalKeyMenuOpen(false); setCapoMenuOpen(false); if (computedKeyField === 'playKey') setComputedKeyField(null) }}
+                    className={`w-full h-10 px-4 border rounded-lg bg-black text-[13px] text-left text-white flex items-center justify-between ${computedKeyField === 'playKey' ? 'border-[#FFD700]' : 'border-neutral-700'}`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                    </svg>
-                    自動修正對齊
+                    <span>{formData.playKey === '' ? '同原調' : formData.playKey}</span>
+                    <svg className={`w-4 h-4 text-[#737373] transition-transform ${playKeyMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cleaned = formData.content
-                        .split('\n')
-                        .filter(line => line.trim())
-                        .join('\n');
-                      setFormData(prev => ({ ...prev, content: cleaned }));
-                    }}
-                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                    disabled={!formData.content}
-                  >
-                    移除所有空行
-                  </button>
+                  {playKeyMenuOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-700 bg-[#121212] py-1 shadow-xl max-h-60 overflow-y-auto">
+                      <button type="button" onClick={() => { setKeyField('playKey', ''); setPlayKeyMenuOpen(false) }}
+                        className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${formData.playKey === '' ? 'text-[#FFD700]' : 'text-white'}`}>
+                        同原調
+                      </button>
+                      {(() => {
+                        const origMinor = (formData.originalKey || '').endsWith('m')
+                        const playKeyOptions = origMinor ? KEY_MINOR : KEY_MAJOR
+                        const sectionLabel = origMinor ? 'Minor' : 'Major'
+                        return (
+                          <>
+                            <p className="px-4 py-1.5 text-[11px] text-[#737373] uppercase tracking-wide mt-1">{sectionLabel}</p>
+                            {playKeyOptions.map(k => (
+                              <button key={k} type="button" onClick={() => { setKeyField('playKey', k); setPlayKeyMenuOpen(false) }}
+                                className={`w-full px-4 py-1.5 text-left text-[13px] hover:bg-neutral-800 ${formData.playKey === k ? 'text-[#FFD700]' : 'text-white'}`}>
+                                {k}
+                              </button>
+                            ))}
+                          </>
+                        )
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block pl-1 text-[13px] font-medium text-white mb-1">備註 <span className="text-[#737373] font-normal text-xs ml-1">會在結他譜上方顯示</span></label>
               <textarea
-                id="content"
-                name="content"
-                value={formData.content}
+                id="remark"
+                name="remark"
+                value={formData.remark}
                 onChange={handleChange}
-                onPaste={(e) => {
-                  e.preventDefault();
-                  const pastedText = e.clipboardData.getData('text');
-                  // 清理空格（只清行尾）
-                  const cleaned = cleanPastedText(pastedText);
-                  // Arial 模式下唔壓縮空格，等寬模式先壓縮
-                  const processed = autoFixTabFormatWithFactor(cleaned, alignFactor, formData.displayFont !== 'arial');
-                  
-                  // 獲取當前光標位置
-                  const textarea = e.target;
-                  const start = textarea.selectionStart;
-                  const end = textarea.selectionEnd;
-                  const currentValue = formData.content;
-                  
-                  // 插入處理後嘅文字
-                  const newValue = currentValue.substring(0, start) + processed + currentValue.substring(end);
-                  
-                  // 更新表單數據
-                  setFormData(prev => ({ ...prev, content: newValue }));
-                }}
-                rows={20}
-                placeholder="在這裡貼上你的結他譜...&#10;提示：Paste 時會自動修正對齊，或者貼上後按「自動修正對齊」按鈕"
-                className={`w-full px-4 py-2 bg-black border rounded-lg text-white placeholder-[#B3B3B3] text-sm ${
-                  errors.content ? 'border-red-500' : 'border-neutral-800'
-                } ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
-                style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }}
+                placeholder="可填掃弦節奏、指法提示、個人感想⋯⋯"
+                rows={3}
+                className="w-full px-4 py-2 bg-black border border-neutral-700 rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252]"
               />
-              {errors.content && (
-                <p className="mt-1 text-sm text-red-400">{errors.content}</p>
-              )}
-              <div className="flex items-center gap-2 mt-2 text-xs text-neutral-500">
+            </div>
+            </FormSection>
+
+            <FormSection>
+            {/* 譜內容 — 與 new 同款：同一行標題+工具列、精簡字體、相同 placeholder 與底部提示 */}
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label htmlFor="content" className="pl-1 text-[13px] font-medium text-white">譜內容 <span className="text-[#FFD700]">*</span></label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button type="button"
+                      onClick={() => {
+                        if (!formData.content) return
+                        const cleaned = formData.content.split('\n').filter(line => line.trim()).join('\n')
+                        setFormData(prev => ({ ...prev, content: cleaned }))
+                      }}
+                      disabled={!formData.content}
+                      className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50"
+                    >
+                      移除所有空行
+                    </button>
+                    {isAdmin && (
+                      <button type="button" onClick={() => { const fixed = autoFixTabFormatWithFactor(formData.content, alignFactor, formData.displayFont !== 'arial'); setFormData(prev => ({ ...prev, content: fixed })); }}
+                        disabled={!formData.content} className="text-sm text-[#FFD700] hover:text-yellow-300 disabled:opacity-50 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                        自動修正對齊
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button type="button" onClick={insertTemplate} className="text-sm text-[#FFD700] hover:text-yellow-300">
+                        插入空白模板
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <div className="flex items-center gap-1 bg-black rounded-md p-0.5 border border-neutral-700">
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'mono' }))}
+                          className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'mono' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
+                          等寬字體
+                        </button>
+                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, displayFont: 'arial' }))}
+                          className={`h-6 px-2.5 flex items-center justify-center rounded-full text-[11px] font-medium transition ${formData.displayFont === 'arial' ? 'bg-[#FFD700] text-black' : 'text-[#737373] hover:text-white'}`}>
+                          Arial
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <textarea
+                    id="content"
+                    name="content"
+                    value={formData.content}
+                    onChange={handleChange}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPaste={(e) => {
+                      e.preventDefault()
+                      const pastedText = e.clipboardData.getData('text')
+                      const cleaned = cleanPastedText(pastedText)
+                      const processed = autoFixTabFormatWithFactor(cleaned, alignFactor, formData.displayFont !== 'arial')
+                      const textarea = e.target
+                      const start = textarea.selectionStart
+                      const end = textarea.selectionEnd
+                      const currentValue = formData.content
+                      const newValue = currentValue.substring(0, start) + processed + currentValue.substring(end)
+                      setFormData(prev => ({ ...prev, content: newValue }))
+                    }}
+                    placeholder={`在此輸入／貼上結他譜...
+
+提示：輸入結他譜後
+Chord會自動追蹤( )位置
+用戶不用自己加空格對位
+
+例如輸入：
+|C G/B |Am Am7/G
+(就)這樣講 (沒)當初的(感)覺()
+
+譜會自動生成：
+|C        G/B      |Am   Am7/G
+(就)這樣講 (沒)當初的(感)覺 ()`}
+                    rows={15}
+                    className={`w-full px-4 py-2 bg-black border rounded-lg text-[13px] text-white placeholder:text-[13px] placeholder-[#525252] ${errors.content ? 'border-red-500' : 'border-neutral-700'} ${formData.displayFont === 'arial' ? 'font-sans' : 'font-mono'}`}
+                    style={formData.displayFont === 'arial' ? { fontFamily: 'Arial, Helvetica, sans-serif' } : { fontFamily: "'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace" }}
+                  />
+                  {errors.content && <p className="mt-1 text-sm text-red-400">{errors.content}</p>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-[#737373]">
                 <svg className="w-4 h-4 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>貼上時會自動修正對齊。有 | 會保留，冇 | 會保持原樣，淨係調整空格對齊和弦同歌詞。</span>
+                <span>鼓勵用戶喺歌詞加括號；使用半形文字及標點符號</span>
               </div>
             </div>
+            </FormSection>
 
-            {/* Submit Buttons */}
-            <div className="flex items-center space-x-4 pt-4">
+            {/* Submit */}
+            <div className="flex items-center pt-0">
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -1415,16 +1677,10 @@ export default function EditTab() {
               >
                 {isSubmitting ? '保存中...' : '保存更改'}
               </button>
-              <Link
-                href={`/tabs/${id}`}
-                className="px-6 py-3 border border-neutral-800 rounded-lg font-medium text-[#B3B3B3] hover:text-white hover:border-[#FFD700] transition"
-              >
-                取消
-              </Link>
             </div>
 
-            {/* 刪除按鈕 - 僅管理員可見 */}
-            {isAdmin && (
+            {/* 刪除按鈕 - 管理員或譜主可見 */}
+            {(isAdmin || isOwner) && (
               <div className="pt-6 mt-6 border-t border-[#1a1a1a]">
                 <button
                   type="button"
@@ -1452,13 +1708,12 @@ export default function EditTab() {
         artistName={formData.artist}
         songTitle={formData.title}
         autoSelectFirst={youTubeAutoSelect}
-        onSelect={(url) => {
-          const videoId = extractYouTubeVideoId(url);
-          setFormData(prev => ({
-            ...prev,
-            youtubeUrl: url,
-            youtubeVideoId: videoId
-          }));
+        onSelect={(payload) => {
+          const url = typeof payload === 'string' ? payload : payload.url;
+          const videoId = typeof payload === 'string' ? extractYouTubeVideoId(payload) : (payload.videoId || extractYouTubeVideoId(url));
+          const title = typeof payload === 'string' ? '' : (payload.title || '');
+          const channelTitle = typeof payload === 'string' ? '' : (payload.channelTitle || '');
+          setFormData(prev => ({ ...prev, youtubeUrl: url, youtubeVideoId: videoId, youtubeVideoTitle: title, youtubeChannelTitle: channelTitle }));
         }}
       />
       

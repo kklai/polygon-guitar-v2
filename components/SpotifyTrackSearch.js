@@ -10,47 +10,28 @@ export default function SpotifyTrackSearch({
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [manualArtist, setManualArtist] = useState(artistName || '');
-  const [manualTitle, setManualTitle] = useState(songTitle || '');
+  const [searchArtist, setSearchArtist] = useState(artistName || '');
+  const [searchTitle, setSearchTitle] = useState(songTitle || '');
   const [selectedTrack, setSelectedTrack] = useState(null);
-  const [mode, setMode] = useState('auto'); // 'auto' | 'manual'
-  const [cooldown, setCooldown] = useState(0);
+  const [showSearchForm, setShowSearchForm] = useState(false); // 有帶入歌手/歌名時預設收合，直接顯示結果
   const lastSearchTime = useRef(0);
 
-  useEffect(() => {
-    if (isOpen) {
-      setManualArtist(artistName || '');
-      setManualTitle(songTitle || '');
-      setMode('auto');
-      setResults([]);
-      setSelectedTrack(null);
-      setError(null);
-      
-      // 自動搜尋（如果提供了歌手和歌名）
-      if (artistName && songTitle) {
-        searchSpotify(artistName, songTitle);
+  const searchSpotify = async (artist, title, customQuery = null, skipCooldown = false) => {
+    if (!skipCooldown) {
+      const now = Date.now();
+      const timeSinceLastSearch = now - lastSearchTime.current;
+      const minInterval = 1500;
+      if (timeSinceLastSearch < minInterval) {
+        const waitTime = Math.ceil((minInterval - timeSinceLastSearch) / 1000);
+        setError(`請等待 ${waitTime} 秒後再搜尋（避免 API 限制）`);
+        return;
       }
     }
-  }, [isOpen, artistName, songTitle]);
-
-  const searchSpotify = async (artist, title, customQuery = null) => {
-    // 檢查冷卻時間（避免 rate limit）
-    const now = Date.now();
-    const timeSinceLastSearch = now - lastSearchTime.current;
-    const minInterval = 1500; // 最少 1.5 秒間隔
-    
-    if (timeSinceLastSearch < minInterval) {
-      const waitTime = Math.ceil((minInterval - timeSinceLastSearch) / 1000);
-      setError(`請等待 ${waitTime} 秒後再搜尋（避免 API 限制）`);
-      return;
-    }
-    
-    lastSearchTime.current = now;
+    lastSearchTime.current = Date.now();
     setLoading(true);
     setError(null);
     setResults([]);
     setSelectedTrack(null);
-    setMode('auto');
 
     try {
       const response = await fetch('/api/spotify/search-track', {
@@ -88,9 +69,23 @@ export default function SpotifyTrackSearch({
     }
   };
 
-  const handleManualSearch = () => {
-    if (manualArtist || manualTitle) {
-      searchSpotify(manualArtist, manualTitle);
+  useEffect(() => {
+    if (isOpen) {
+      setSearchArtist(artistName || '');
+      setSearchTitle(songTitle || '');
+      setResults([]);
+      setSelectedTrack(null);
+      setError(null);
+      setShowSearchForm(!(artistName && songTitle)); // 有帶入歌手+歌名時收合表單，直接顯示結果
+      if (artistName && songTitle) {
+        searchSpotify(artistName, songTitle, null, true); // 開 modal 時直接搜尋，跳過冷卻
+      }
+    }
+  }, [isOpen, artistName, songTitle]);
+
+  const handleSearch = () => {
+    if (searchArtist || searchTitle) {
+      searchSpotify(searchArtist, searchTitle);
     }
   };
 
@@ -117,30 +112,6 @@ export default function SpotifyTrackSearch({
     }
   };
 
-  const handleUseManual = () => {
-    onSelect({
-      title: manualTitle,
-      artist: manualArtist,
-      // 沒有 Spotify 資訊
-      spotifyTrackId: null
-    });
-    onClose();
-  };
-
-  const switchToManualMode = () => {
-    setMode('manual');
-    setResults([]);
-    setSelectedTrack(null);
-    setError(null);
-  };
-
-  const switchToAutoMode = () => {
-    setMode('auto');
-    if (manualArtist || manualTitle) {
-      searchSpotify(manualArtist, manualTitle);
-    }
-  };
-
   // 格式化時長
   const formatDuration = (ms) => {
     const minutes = Math.floor(ms / 60000);
@@ -160,96 +131,81 @@ export default function SpotifyTrackSearch({
       
       {/* Modal 內容 */}
       <div className="relative bg-[#121212] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-neutral-800 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-          <div>
-            <h2 className="text-lg font-bold text-white">
-              歌曲資訊搜尋
-            </h2>
-            <p className="text-sm text-neutral-400">
-              從 Spotify 自動獲取歌曲資訊，或手動輸入
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 模式切換 Tab */}
-        <div className="flex border-b border-neutral-800">
-          <button
-            onClick={switchToAutoMode}
-            className={`flex-1 py-3 text-sm font-medium transition ${
-              mode === 'auto' 
-                ? 'text-[#1DB954] border-b-2 border-[#1DB954] bg-[#1DB954]/5' 
-                : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            Spotify 搜尋
-          </button>
-          <button
-            onClick={switchToManualMode}
-            className={`flex-1 py-3 text-sm font-medium transition ${
-              mode === 'manual' 
-                ? 'text-[#FFD700] border-b-2 border-[#FFD700] bg-[#FFD700]/5' 
-                : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            手動輸入
-          </button>
-        </div>
-
-        {/* 手動輸入區 - 兩個模式都顯示 */}
+        {/* 搜尋區：收合時「搜尋：…」+「更改關鍵字」+ 關閉鈕同一行；展開時表單上方有關閉鈕 */}
         <div className="p-4 border-b border-neutral-800 bg-neutral-900/30">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-neutral-500 mb-1">
-                歌手名 <span className="text-[#FFD700]">*</span>
-              </label>
-              <input
-                type="text"
-                value={manualArtist}
-                onChange={(e) => setManualArtist(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm outline-none"
-                placeholder="例如：陳奕迅、Beyond"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-neutral-500 mb-1">
-                歌名 <span className="text-[#FFD700]">*</span>
-              </label>
-              <input
-                type="text"
-                value={manualTitle}
-                onChange={(e) => setManualTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm outline-none"
-                placeholder="例如：海闊天空"
-              />
-            </div>
-          </div>
-          
-          {mode === 'auto' && (
-            <div className="flex gap-2 mt-3">
+          {showSearchForm ? (
+            <>
+              <div className="flex items-center justify-end mb-3">
+                <button
+                  onClick={onClose}
+                  className="p-2 text-neutral-400 hover:text-white transition"
+                  aria-label="關閉"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-neutral-500 mb-1">
+                    歌手名 <span className="text-[#FFD700]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={searchArtist}
+                    onChange={(e) => setSearchArtist(e.target.value)}
+                    className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm outline-none"
+                    placeholder="例如：陳奕迅、Beyond"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-neutral-500 mb-1">
+                    歌名 <span className="text-[#FFD700]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={searchTitle}
+                    onChange={(e) => setSearchTitle(e.target.value)}
+                    className="w-full px-3 py-2 bg-black border border-neutral-700 rounded-lg text-white text-sm outline-none"
+                    placeholder="例如：海闊天空"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={handleSearch}
+                  disabled={loading || (!searchArtist && !searchTitle)}
+                  className="px-4 py-2 bg-[#1DB954] text-white rounded-lg font-medium hover:bg-[#1ed760] transition disabled:opacity-50 text-sm flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                  </svg>
+                  {loading ? '搜尋中...' : '搜尋 Spotify'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-sm text-neutral-400 truncate">
+                搜尋：<span className="text-white">{searchArtist || '—'}</span> · <span className="text-white">{searchTitle || '—'}</span>
+              </p>
               <button
-                onClick={handleManualSearch}
-                disabled={loading || (!manualArtist && !manualTitle)}
-                className="px-4 py-2 bg-[#1DB954] text-white rounded-lg font-medium hover:bg-[#1ed760] transition disabled:opacity-50 text-sm flex items-center gap-2"
+                type="button"
+                onClick={() => setShowSearchForm(true)}
+                className="flex-shrink-0 text-sm text-[#1DB954] hover:text-[#1ed760] transition"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                </svg>
-                {loading ? '搜尋中...' : '搜尋 Spotify'}
+                更改關鍵字
               </button>
+              <div className="flex-1 min-w-0" aria-hidden="true" />
               <button
-                onClick={switchToManualMode}
-                className="px-4 py-2 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 transition text-sm"
+                onClick={onClose}
+                className="flex-shrink-0 p-2 text-neutral-400 hover:text-white transition"
+                aria-label="關閉"
               >
-                找不到？手動輸入
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           )}
@@ -257,51 +213,7 @@ export default function SpotifyTrackSearch({
 
         {/* 內容區 */}
         <div className="flex-1 p-4 overflow-y-auto min-h-0" style={{ maxHeight: 'calc(90vh - 280px)' }}>
-          {mode === 'manual' ? (
-            /* 手動輸入模式 */
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-[#FFD700]/10 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <h3 className="text-white font-medium mb-2">手動輸入模式</h3>
-              <p className="text-neutral-400 text-sm mb-6">
-                將直接使用上方輸入的歌手名和歌名<br/>
-                不會從 Spotify 獲取額外資訊（如專輯封面、年份等）
-              </p>
-              
-              <div className="bg-black rounded-lg p-4 mb-6 text-left">
-                <p className="text-neutral-400 text-sm mb-2">將會使用以下資訊：</p>
-                <div className="space-y-1">
-                  <p className="text-white">
-                    <span className="text-neutral-500">歌手：</span>
-                    {manualArtist || <span className="text-red-400">（未輸入）</span>}
-                  </p>
-                  <p className="text-white">
-                    <span className="text-neutral-500">歌名：</span>
-                    {manualTitle || <span className="text-red-400">（未輸入）</span>}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3 justify-center">
-                <button
-                  onClick={switchToAutoMode}
-                  className="px-4 py-2 text-neutral-400 hover:text-white transition"
-                >
-                  返回搜尋
-                </button>
-                <button
-                  onClick={handleUseManual}
-                  disabled={!manualArtist || !manualTitle}
-                  className="px-6 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:bg-yellow-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  確認使用手動輸入
-                </button>
-              </div>
-            </div>
-          ) : loading ? (
+          {loading ? (
             /* 載入中 */
             <div className="flex flex-col items-center justify-center py-12">
               <svg className="w-10 h-10 animate-spin text-[#1DB954] mb-4" fill="none" viewBox="0 0 24 24">
@@ -311,22 +223,16 @@ export default function SpotifyTrackSearch({
               <p className="text-neutral-400">搜尋 Spotify...</p>
             </div>
           ) : error ? (
-            /* 錯誤 */
             <div className="text-center py-8">
               <p className="text-red-400 mb-4">{error}</p>
-              <button
-                onClick={switchToManualMode}
-                className="px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:bg-yellow-400 transition"
-              >
-                改為手動輸入
-              </button>
             </div>
           ) : results.length > 0 ? (
             /* 搜尋結果 */
-            <div className="space-y-3">
+            <div>
               <p className="text-sm text-neutral-400 mb-2">
                 找到 {results.length} 個結果，請選擇最符合嘅一首：
               </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {results.map((track) => (
                 <button
                   key={track.id}
@@ -375,15 +281,12 @@ export default function SpotifyTrackSearch({
                   </div>
                 </button>
               ))}
+              </div>
             </div>
           ) : (
-            /* 沒有結果 / 初始狀態 */
             <div className="text-center py-8">
-              {!manualArtist && !manualTitle ? (
-                <>
-                  <p className="text-neutral-500 mb-2">請輸入歌手名和歌名進行搜尋</p>
-                  <p className="text-xs text-neutral-600">或點擊「手動輸入」直接填寫</p>
-                </>
+              {!searchArtist && !searchTitle ? (
+                <p className="text-neutral-500 mb-2">請輸入歌手名和歌名進行搜尋</p>
               ) : (
                 <>
                   <div className="w-12 h-12 mx-auto mb-4 bg-neutral-800 rounded-full flex items-center justify-center">
@@ -392,23 +295,13 @@ export default function SpotifyTrackSearch({
                     </svg>
                   </div>
                   <p className="text-neutral-400 mb-2">Spotify 找不到結果</p>
-                  <p className="text-sm text-neutral-500 mb-4">
-                    試下調整歌手名或歌名，<br/>或者改用「手動輸入」
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <button
-                      onClick={() => searchSpotify(manualArtist, manualTitle)}
-                      className="px-3 py-1.5 text-sm bg-neutral-700 text-white rounded hover:bg-neutral-600 transition"
-                    >
-                      重新搜尋
-                    </button>
-                    <button
-                      onClick={switchToManualMode}
-                      className="px-3 py-1.5 text-sm bg-[#FFD700] text-black rounded hover:bg-yellow-400 transition"
-                    >
-                      手動輸入
-                    </button>
-                  </div>
+                  <p className="text-sm text-neutral-500 mb-4">試下調整歌手名或歌名再搜尋</p>
+                  <button
+                    onClick={() => searchSpotify(searchArtist, searchTitle)}
+                    className="px-3 py-1.5 text-sm bg-neutral-700 text-white rounded hover:bg-neutral-600 transition"
+                  >
+                    重新搜尋
+                  </button>
                 </>
               )}
             </div>
@@ -416,8 +309,7 @@ export default function SpotifyTrackSearch({
         </div>
 
         {/* Footer */}
-        {mode === 'auto' && (
-          <div className="p-4 border-t border-neutral-800 bg-black/50">
+        <div className="p-4 border-t border-neutral-800 bg-black/50">
             <div className="flex justify-between items-center">
               <div className="text-xs text-neutral-500">
                 {selectedTrack ? (
@@ -449,8 +341,7 @@ export default function SpotifyTrackSearch({
                 </button>
               </div>
             </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

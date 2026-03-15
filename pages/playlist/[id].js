@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { getPlaylist, getPlaylistSongs, getAllActivePlaylists, AUTO_PLAYLIST_TYPES, updatePlaylist as updateSitePlaylist } from '@/lib/playlists'
 import { getPlaylistPageCache, setPlaylistPageCache } from '@/lib/playlistPageCache'
+import { toSlimSongs } from '@/lib/playlistSlim'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import SongActionSheet from '@/components/SongActionSheet'
 import Layout from '@/components/Layout'
@@ -1557,7 +1558,7 @@ export async function getStaticProps({ params }) {
       return {
         props: {
           initialPlaylist: cached.playlist,
-          initialSongs: cached.songs || [],
+          initialSongs: toSlimSongs(cached.songs || []),
           initialUniqueArtists: cached.uniqueArtists || [],
           initialOtherPlaylists: [...autoF, ...manualF]
         },
@@ -1576,17 +1577,18 @@ export async function getStaticProps({ params }) {
     const autoFiltered = (otherPlaylists.auto || []).filter((p) => p.id !== id).slice(0, 2)
     const manualFiltered = (otherPlaylists.manual || []).filter((p) => p.id !== id).slice(0, 6)
     const initialOtherPlaylists = [...autoFiltered, ...manualFiltered]
+    const slimSongs = toSlimSongs(songs)
     const payload = {
       playlist: playlistData,
-      songs,
+      songs: slimSongs,
       uniqueArtists,
-      otherPlaylists
+      otherPlaylists: { auto: otherPlaylists.auto, manual: otherPlaylists.manual }
     }
     await setPlaylistPageCache(id, payload)
     return {
       props: {
         initialPlaylist: serializePlaylistData(playlistData),
-        initialSongs: serializePlaylistData(songs),
+        initialSongs: serializePlaylistData(slimSongs),
         initialUniqueArtists: serializePlaylistData(uniqueArtists),
         initialOtherPlaylists: serializePlaylistData(initialOtherPlaylists)
       },

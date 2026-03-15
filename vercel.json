@@ -2,7 +2,7 @@
   "version": 2,
   "name": "polygon-guitar",
   "alias": ["polygon.guitars"],
-  "github": {
-    "enabled": false
+  "env": {
+    "NPM_CONFIG_LOGGLEVEL": "error"
   }
 }

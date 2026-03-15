@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@coderline/alphatab": "^1.8.1",
+    "@vercel/analytics": "^1.4.1",
     "@opentelemetry/api": "^1.9.0",
     "axios": "^1.13.4",
     "cheerio": "^1.2.0",

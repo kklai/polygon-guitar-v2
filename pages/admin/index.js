@@ -39,7 +39,6 @@ const sections = [
   {
     title: '數據',
     items: [
-      { href: '/admin/analytics', label: '瀏覽統計', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/daily-uploads', label: '每日上傳', roles: [ROLES.SUPER_ADMIN] },
       { href: '/admin/artist-report', label: '歌手報表', roles: [ROLES.SUPER_ADMIN] },
     ]

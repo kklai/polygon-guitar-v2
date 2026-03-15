@@ -1087,8 +1087,7 @@ export default function TabDetail({ initialTab, artist }) {
             arranger: tab.arranger,
             producer: tab.producer,
             album: tab.album,
-            strummingPattern: tab.strummingPattern,
-            fingeringTips: tab.fingeringTips
+            remark: tab.remark,
           }}
           gpSegments={tab.gpSegments || []}
           gpTheme={tab.gpTheme || 'dark'}

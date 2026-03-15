@@ -67,7 +67,8 @@ export default function YouTubeSearchModal({
         if (autoSelectFirst) {
           const firstVideo = data.items[0];
           const url = `https://www.youtube.com/watch?v=${firstVideo.id.videoId}`;
-          onSelect(url);
+          const sn = firstVideo.snippet || {};
+          onSelect({ url, videoId: firstVideo.id.videoId, title: sn.title, channelTitle: sn.channelTitle });
           onClose();
           return;
         }
@@ -131,10 +132,10 @@ export default function YouTubeSearchModal({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // 選擇影片
+  // 選擇影片（傳回 url 與影片資訊供顯示標題／頻道）
   const handleSelect = (video) => {
     const url = `https://www.youtube.com/watch?v=${video.videoId}`;
-    onSelect(url);
+    onSelect({ url, videoId: video.videoId, title: video.title, channelTitle: video.channelTitle });
     onClose();
   };
 
@@ -240,7 +241,7 @@ export default function YouTubeSearchModal({
               </div>
             </div>
           ) : results.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 min-[500px]:grid-cols-2 md:grid-cols-3 gap-4">
               {results.map((video) => (
                 <button
                   key={video.videoId}
