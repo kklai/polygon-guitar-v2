@@ -72,9 +72,13 @@ function serializeTab(tab) {
 export default function TabDetail({ initialTab, artist }) {
   const router = useRouter()
   const { id, key: queryKey, updated: queryUpdated } = router.query
-  // router.query 可能未就緒（localhost/ client nav），用 asPath + sessionStorage 確保捉到「剛保存」
+  // router.query 可能未就緒（client nav），用 asPath + location.search + sessionStorage 確保捉到「剛保存」
   const fromSaveRedirect = queryUpdated != null ||
-    (typeof window !== 'undefined' && id && (router.asPath.includes('updated=1') || sessionStorage.getItem('pg_tab_just_updated') === id))
+    (typeof window !== 'undefined' && id && (
+      router.asPath.includes('updated=1') ||
+      (window.location?.search?.includes('updated=1')) ||
+      sessionStorage.getItem('pg_tab_just_updated') === id
+    ))
   const { user, isAuthenticated, isAdmin } = useAuth()
   const [tab, setTab] = useState(initialTab || null)
   const [isLoading, setIsLoading] = useState(!initialTab)
@@ -164,7 +168,7 @@ export default function TabDetail({ initialTab, artist }) {
       justRefetchedIdRef.current = id
       try { sessionStorage.removeItem('pg_tab_just_updated') } catch (e) {}
       clearTabCache(id)
-      loadTab().then(() => {
+      loadTab({ skipCache: true }).then(() => {
         router.replace(`/tabs/${id}${queryKey ? `?key=${queryKey}` : ''}`, undefined, { shallow: true })
       })
       return
@@ -264,10 +268,10 @@ export default function TabDetail({ initialTab, artist }) {
     Promise.all(effects).catch(err => console.error('Side-effect error:', err))
   }
 
-  const loadTab = async () => {
+  const loadTab = async (opts = {}) => {
     try {
       const startMs = Date.now()
-      const data = await getTab(id)
+      const data = await getTab(id, opts)
       console.log(`[tab/${id}] getTab in ${Date.now() - startMs}ms at ${pacificTime()}`)
       if (data) {
         if (!data.youtubeVideoId && data.youtubeUrl) {

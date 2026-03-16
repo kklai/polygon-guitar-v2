@@ -108,9 +108,18 @@ async function patchCacheDoc(adminDb, docId, patchFn) {
     console.log(`[patch-caches] cache/${docId} patched (1 read, 1 write, ${Math.round(size / 1024)}KB) in ${Date.now() - startMs}ms at ${pacificTime()}`)
     return true
   } catch (e) {
-    console.error(`[patch-caches] failed to patch cache/${docId}: ${e?.message} at ${pacificTime()}`)
+    if (e?.code === 8 || /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(e?.message || '')) {
+      console.warn(`[patch-caches] skipped patch cache/${docId} (quota exceeded) at ${pacificTime()}`)
+    } else {
+      console.error(`[patch-caches] failed to patch cache/${docId}: ${e?.message} at ${pacificTime()}`)
+    }
     return false
   }
+}
+
+function isQuotaError(e) {
+  const msg = e?.message || String(e)
+  return e?.code === 8 || /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(msg)
 }
 
 async function deleteArtistPageCache(adminDb, artistId) {
@@ -123,7 +132,11 @@ async function deleteArtistPageCache(adminDb, artistId) {
     console.log(`[patch-caches] deleted cache/artistPage_${artistId} (1 read, 1 delete) at ${pacificTime()}`)
     return true
   } catch (e) {
-    console.error(`[patch-caches] failed to delete artistPage_${artistId}: ${e?.message} at ${pacificTime()}`)
+    if (isQuotaError(e)) {
+      console.warn(`[patch-caches] skipped delete artistPage_${artistId} (quota exceeded) at ${pacificTime()}`)
+    } else {
+      console.error(`[patch-caches] failed to delete artistPage_${artistId}: ${e?.message} at ${pacificTime()}`)
+    }
     return false
   }
 }

@@ -36,3 +36,7 @@ scripts/.cache-tabs-lyricist.json
 *INVESTIGATION.md
 *-firebase-adminsdk-*.json
 *SUMMARY.md
+
+list-orphaned-from-search-data.js
+orphaned.json
+search-data.json

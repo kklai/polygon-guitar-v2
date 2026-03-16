@@ -315,7 +315,7 @@ export default function EditTab() {
 
   const loadTab = async () => {
     try {
-      const data = await getTab(id)
+      const data = await getTab(id, { skipCache: true })
       if (!data) {
         router.push('/')
         return
