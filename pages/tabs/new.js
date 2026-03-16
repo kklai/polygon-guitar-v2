@@ -15,7 +15,7 @@ import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
-import { ArrowLeft, Music } from 'lucide-react'
+import { ArrowLeft, Music, Loader2 } from 'lucide-react'
 
 const REGIONS = [
   { value: '', label: '請選擇...' },
@@ -1570,8 +1570,15 @@ Chord會自動追蹤歌詞中( )位置
           {/* Submit */}
           <div className="flex gap-4 -mt-2">
             <button type="submit" disabled={isSubmitting}
-              className="flex-1 h-11 flex items-center justify-center text-base bg-[#FFD700] text-black px-6 rounded-lg font-semibold hover:bg-yellow-400 transition disabled:opacity-50">
-              {isSubmitting ? '出譜中...' : '出譜'}
+              className="flex-1 min-h-11 py-3 flex items-center justify-center gap-2 text-base bg-[#FFD700] text-black px-6 rounded-lg font-semibold hover:bg-yellow-400 transition disabled:opacity-50">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                  <span>出譜中，多謝耐心等候</span>
+                </>
+              ) : (
+                '出譜'
+              )}
             </button>
           </div>
         </form>

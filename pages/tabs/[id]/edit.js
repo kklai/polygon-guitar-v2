@@ -14,7 +14,7 @@ import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { auth } from '@/lib/firebase'
-import { ArrowLeft, Music, Moon, Sun } from 'lucide-react'
+import { ArrowLeft, Music, Moon, Sun, Loader2 } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
@@ -944,15 +944,12 @@ E|----------------------------------------------------------------|
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>保存中...</span>
+                <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                <span>保存中，多謝耐心等候</span>
               </>
             ) : (
               <>
@@ -1770,9 +1767,16 @@ Chord會自動追蹤歌詞中( )位置
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-[#FFD700] text-black py-3 px-6 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 min-h-11 py-3 flex items-center justify-center gap-2 bg-[#FFD700] text-black px-6 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? '保存中...' : '保存更改'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                    <span>保存中，多謝耐心等候</span>
+                  </>
+                ) : (
+                  '保存更改'
+                )}
               </button>
             </div>
 
