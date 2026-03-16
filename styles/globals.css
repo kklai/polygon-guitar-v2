@@ -94,6 +94,15 @@ body {
   animation: fade-in 0.25s ease-out forwards;
 }
 
+/* 底部彈出 Menu（SongActionSheet、Profile 更多 等）*/
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
 /* 未填寫輸入欄提示：晃動 + 紅框（用於 Spotify 擷取後空欄位） */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

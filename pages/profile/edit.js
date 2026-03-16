@@ -3,20 +3,20 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
-import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
+import { uploadToCloudinary, validateImageFile, resizeImageFile } from '@/lib/cloudinary'
 import Link from '@/components/Link'
 import { useRouter } from 'next/router'
+import { PROFILE_SOCIAL_ICONS } from '@/components/ProfileSocialIcons'
+import { PenLine } from 'lucide-react'
 
-// 社交媒體配置
+// 社交媒體配置（icon 與 profile 公開頁一致，用 PROFILE_SOCIAL_ICONS）
 const SOCIAL_MEDIA_CONFIG = [
-  { key: 'facebook', label: 'Facebook', placeholder: '用戶名或完整網址', icon: 'f' },
-  { key: 'instagram', label: 'Instagram', placeholder: '用戶名（不用 @）', icon: '📷' },
-  { key: 'youtube', label: 'YouTube', placeholder: '頻道名或 @用戶名', icon: '▶️' },
-  { key: 'whatsapp', label: 'WhatsApp', placeholder: '電話號碼（如 85291234567）', icon: '💬' },
-  { key: 'spotify', label: 'Spotify', placeholder: '用戶名或 Spotify 連結', icon: '🎵' },
-  { key: 'twitter', label: 'X (Twitter)', placeholder: '用戶名（不用 @）', icon: '𝕏' },
-  { key: 'threads', label: 'Threads', placeholder: '用戶名（不用 @）', icon: '🧵' },
-  { key: 'website', label: '個人網站', placeholder: 'https://...', icon: '🌐' }
+  { key: 'whatsapp', label: 'WhatsApp', placeholder: '電話號碼（如 85291234567）' },
+  { key: 'instagram', label: 'Instagram', placeholder: '用戶名（不用 @）' },
+  { key: 'youtube', label: 'YouTube', placeholder: '頻道名或 @用戶名' },
+  { key: 'threads', label: 'Threads', placeholder: '用戶名（不用 @）' },
+  { key: 'facebook', label: 'Facebook', placeholder: '用戶名或完整網址' },
+  { key: 'website', label: '個人網站', placeholder: 'https://...' }
 ]
 
 export default function EditProfile() {
@@ -122,8 +122,10 @@ export default function EditProfile() {
     setUploadProgress(1)
 
     try {
-      const result = await uploadToCloudinary(file, 'user-photos')
-      setFormData(prev => ({ ...prev, photoURL: result.url }))
+      // 照片過大時自動縮細（例如 >1.5MB 或 長邊 >1200px）再上傳
+      const fileToUpload = await resizeImageFile(file)
+      const url = await uploadToCloudinary(fileToUpload, 'user-photos', 'user-photos')
+      setFormData(prev => ({ ...prev, photoURL: url }))
       setUploadProgress(0)
       showMessage('照片上傳成功')
     } catch (error) {
@@ -152,7 +154,7 @@ export default function EditProfile() {
       })
       
       setOriginalData(formData)
-      showMessage('✅ 個人資料已保存')
+      showMessage('個人資料已保存')
     } catch (error) {
       console.error('Save error:', error)
       showMessage('保存失敗：' + error.message, 'error')
@@ -179,27 +181,26 @@ export default function EditProfile() {
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
         {/* Header + Save Button */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-white">編輯個人資料</h1>
-            <p className="text-neutral-400 text-sm">設定你的個人資料</p>
           </div>
           <Link
             href={`/profile/${user.uid}`}
-            className="text-[#FFD700] hover:opacity-80 text-sm"
+            className="text-[#FFD700] hover:opacity-80 text-sm mt-3"
           >
-            查看公開頁面 →
+            返回個人主頁 →
           </Link>
         </div>
 
         {/* Save Button at Top */}
-        <div className="mb-6">
+        <div className="mb-4">
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full py-3 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
+            className="w-full py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
           >
-            {isSaving ? '保存中...' : '💾 保存資料'}
+            {isSaving ? '保存中...' : '保存資料'}
           </button>
         </div>
 
@@ -213,25 +214,11 @@ export default function EditProfile() {
           </div>
         )}
 
-        {/* Profile Photo */}
-        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-4">個人頭像</h2>
-          
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <img 
-                src={formData.photoURL || '/default-avatar.png'} 
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-2 border-[#FFD700]"
-              />
-              {uploadProgress > 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                  <div className="animate-spin w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full"></div>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex-1 space-y-2">
+        {/* 個人頭像與基本資料（合併） */}
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 px-6 py-4 mb-4">
+          {/* 頭像區 + 個人主頁名稱、出譜者筆名 */}
+          <div className="flex items-start gap-6 mb-4">
+            <div className="flex-shrink-0 text-center">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -240,112 +227,110 @@ export default function EditProfile() {
                 className="hidden"
               />
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full px-4 py-2 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition"
+                className="relative block rounded-full border-2 border-[#FFD700] focus:outline-none focus:ring-2 focus:ring-[#FFD700]/50"
               >
-                📷 上傳新照片
+                <img
+                  src={formData.photoURL || '/default-avatar.png'}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover cursor-pointer"
+                />
+                {uploadProgress > 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                    <div className="animate-spin w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full" />
+                  </div>
+                )}
               </button>
+              <p className="mt-2 text-xs text-neutral-400">點擊頭像更改圖片</p>
               {user?.photoURL && (
                 <button
+                  type="button"
                   onClick={handleUseGooglePhoto}
-                  className="w-full px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition text-sm"
+                  className="mt-1 text-xs text-[#FFD700] hover:underline"
                 >
-                  🌐 使用 Google 頭像
+                  使用 Google 頭像
                 </button>
               )}
             </div>
+            <div className="flex-1 space-y-4 min-w-0">
+              <div>
+                <label className="flex items-center gap-2 text-sm text-[#FFD700] mb-2 pl-2">
+                  <PenLine className="w-4 h-4 text-[#FFD700] flex-shrink-0" />
+                  出譜者筆名
+                </label>
+                <input
+                  type="text"
+                  value={formData.penName}
+                  onChange={(e) => handleChange('penName', e.target.value)}
+                  placeholder="例如：結他小王子、Kermit Guitar"
+                  className="w-full px-4 py-1.5 bg-black border border-[#FFD700] rounded-lg text-white placeholder-neutral-500 outline-none focus:ring-1 focus:ring-[#FFD700]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-neutral-400 mb-2 pl-2">個人主頁名稱</label>
+                <input
+                  type="text"
+                  value={formData.displayName}
+                  onChange={(e) => handleChange('displayName', e.target.value)}
+                  placeholder="你的名稱"
+                  className="w-full px-4 py-1.5 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Basic Info */}
-        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-4">基本資料</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">顯示名稱</label>
-              <input
-                type="text"
-                value={formData.displayName}
-                onChange={(e) => handleChange('displayName', e.target.value)}
-                placeholder="你的名稱"
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
-              />
-            </div>
-
-            {/* 編譜者筆名 */}
-            <div className="bg-[#1a1a2e] rounded-lg p-4 border border-[#FFD700]/30">
-              <label className="block text-sm text-[#FFD700] mb-2 flex items-center gap-2">
-                <span>✏️</span> 編譜者筆名
-              </label>
-              <input
-                type="text"
-                value={formData.penName}
-                onChange={(e) => handleChange('penName', e.target.value)}
-                placeholder="例如：結他小王子、Kermit Guitar"
-                className="w-full px-4 py-3 bg-black border border-[#FFD700]/50 rounded-lg text-white placeholder-neutral-500 outline-none"
-              />
-              <p className="text-xs text-neutral-400 mt-2">
-                出譜時會自動使用此筆名，顯示為「編譜：xxx」
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm text-neutral-400 mb-2">個人簡介</label>
+          {/* 個人簡介 - 與右欄對齊 */}
+          <div className="flex items-start gap-6">
+            <div className="w-24 flex-shrink-0" aria-hidden="true" />
+            <div className="flex-1 min-w-0">
+              <label className="block text-sm text-neutral-400 mb-2 pl-2">個人簡介</label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => handleChange('bio', e.target.value)}
                 placeholder="介紹一下自己，例如音樂風格、喜歡的歌手、聯絡方式..."
                 rows={4}
-                className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none resize-none"
+                className="w-full px-4 py-1.5 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 placeholder:text-sm outline-none resize-none"
               />
             </div>
           </div>
         </div>
 
         {/* Social Media */}
-        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-medium text-white mb-4">🔗 社交媒體</h2>
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 px-6 py-4 mb-4">
+          <h2 className="text-lg font-medium text-white mb-0">社交媒體</h2>
           <p className="text-sm text-neutral-400 mb-4">
-            添加你的社交媒體帳號，讓其他人可以追蹤你
+            會於個人主頁顯示，讓更多人追蹤你
           </p>
           
-          <div className="space-y-4">
-            {SOCIAL_MEDIA_CONFIG.map(({ key, label, placeholder, icon }) => (
-              <div key={key}>
-                <label className="block text-sm text-neutral-400 mb-2 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-[#FFD700] flex items-center justify-center text-black text-xs">
-                    {icon}
+          <div className="space-y-3">
+            {SOCIAL_MEDIA_CONFIG.map(({ key, label, placeholder }) => (
+              <div key={key} className="flex gap-4 items-start">
+                <div className="flex-shrink-0 pt-3">
+                  <span className="w-12 h-12 rounded-full bg-[#FFD700] flex items-center justify-center text-black">
+                    {PROFILE_SOCIAL_ICONS[key] || PROFILE_SOCIAL_ICONS.website}
                   </span>
-                  {label}
-                </label>
-                <input
-                  type="text"
-                  value={formData.socialMedia?.[key] || ''}
-                  onChange={(e) => handleSocialMediaChange(key, e.target.value)}
-                  placeholder={placeholder}
-                  className="w-full px-4 py-3 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
-                />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <label className="block text-sm text-neutral-400 pl-2">{label}</label>
+                  <input
+                    type="text"
+                    value={formData.socialMedia?.[key] || ''}
+                    onChange={(e) => handleSocialMediaChange(key, e.target.value)}
+                    placeholder={placeholder}
+                    className="w-full px-4 py-1.5 bg-black border border-neutral-700 rounded-lg text-white placeholder-neutral-500 outline-none"
+                  />
+                </div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Privacy Settings */}
-        <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
+        <div className="bg-[#121212] rounded-xl border border-neutral-800 px-6 py-4 mb-4">
           <h2 className="text-lg font-medium text-white mb-4">隱私設定</h2>
           
           <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.isPublicProfile}
-                onChange={(e) => handleChange('isPublicProfile', e.target.checked)}
-                className="w-5 h-5 text-[#FFD700] rounded"
-              />
-              <span className="text-white">公開個人主頁</span>
-            </label>
-            
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"

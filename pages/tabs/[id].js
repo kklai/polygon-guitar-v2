@@ -1027,14 +1027,24 @@ export default function TabDetail({ initialTab, artist }) {
                   </span>
                 )}
               </div>
-              {/* 出譜者 + 評分、喜愛數（同一行） */}
+              {/* 出譜者 + 評分、喜愛數（同一行）— 撳筆名進入出譜者主頁 */}
               <div className="flex items-center justify-between gap-3 mt-1.5 min-w-0">
                 <div className="min-w-0">
                   {(tab.uploaderPenName || tab.arrangedBy) && (
-                    <p className="text-[#FFD700] text-sm flex items-center gap-1">
-                      <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
-                      {tab.uploaderPenName || tab.arrangedBy}
-                    </p>
+                    uploaderId ? (
+                      <Link
+                        href={`/profile/${uploaderId}`}
+                        className="text-[#FFD700] text-sm flex items-center gap-1 w-fit hover:underline"
+                      >
+                        <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                        {tab.uploaderPenName || tab.arrangedBy}
+                      </Link>
+                    ) : (
+                      <p className="text-[#FFD700] text-sm flex items-center gap-1">
+                        <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                        {tab.uploaderPenName || tab.arrangedBy}
+                      </p>
+                    )
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">

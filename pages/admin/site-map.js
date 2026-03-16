@@ -245,8 +245,8 @@ function UsersSection() {
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <h4 className="text-[#FFD700] font-medium mb-3">用戶資料欄位</h4>
           <ul className="space-y-2 text-neutral-300 text-sm">
-            <li><strong className="text-white">顯示名稱</strong> - 用戶自訂的名字（預設是 Google 名字）</li>
-            <li><strong className="text-white">編譜筆名</strong> - 出譜時顯示的名稱（例如：結他小王子）</li>
+            <li><strong className="text-white">個人主頁名稱</strong> - 用戶自訂的名字（預設是 Google 名字）</li>
+            <li><strong className="text-white">出譜者筆名</strong> - 出譜時顯示的名稱（例如：結他小王子）</li>
             <li><strong className="text-white">頭像</strong> - 用戶上傳的照片或 Google 頭像</li>
             <li><strong className="text-white">個人簡介</strong> - 用戶自填的介紹文字</li>
 
@@ -756,8 +756,8 @@ function DatabaseSection() {
             name="users"
             desc="儲存用戶資料"
             fields={[
-              { name: "displayName", type: "string", desc: "顯示名稱" },
-              { name: "penName", type: "string", desc: "編譜筆名" },
+              { name: "displayName", type: "string", desc: "個人主頁名稱" },
+              { name: "penName", type: "string", desc: "出譜者筆名" },
               { name: "email", type: "string", desc: "電郵地址" },
               { name: "photoURL", type: "string", desc: "頭像 URL" },
               { name: "bio", type: "string", desc: "個人簡介" },

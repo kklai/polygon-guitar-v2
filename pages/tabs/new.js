@@ -305,7 +305,7 @@ export default function NewTab() {
     return () => clearTimeout(timer)
   }, [formData.artist, useExistingArtistSelected, artistListFromSearch])
   
-  // 載入用戶的編譜者筆名
+  // 載入用戶的出譜者筆名
   useEffect(() => {
     const loadUserPenName = async () => {
       if (user?.uid) {

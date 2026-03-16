@@ -1,6 +1,9 @@
 import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+
+// Avoid SSR warning: useLayoutEffect cannot run on server; use useEffect during SSR so initial output matches
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 import { useRouter } from 'next/router'
 
 // Hardcoded so we don't hit Firebase on every page visit
@@ -18,7 +21,7 @@ export default function Navbar() {
   const clickedInsideMenuRef = useRef(false)
   // Desktop 下拉選單：固定喺 nav bar 下方（唔遮住頂欄）
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 12 })
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!isMenuOpen || typeof window === 'undefined') return
     if (navRef.current && triggerRef.current) {
       const navRect = navRef.current.getBoundingClientRect()
