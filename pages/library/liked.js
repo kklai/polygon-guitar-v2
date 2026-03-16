@@ -375,7 +375,7 @@ export default function LikedSongs() {
                         decoding="async"
                       />
                     ) : (
-                      <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                      <span className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></span>
                     )}
                   </div>
                   <div className="flex-1 text-left min-w-0">

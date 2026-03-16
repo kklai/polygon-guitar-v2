@@ -17,7 +17,7 @@ import {
 import { db, auth } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Mic } from 'lucide-react'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 
 const GENDER_OPTIONS = [
@@ -602,7 +602,7 @@ export default function ArtistsV2Page() {
                 onClick={fetchArtists}
                 className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                🔄 刷新
+                <RefreshCw className="w-4 h-4 inline-block mr-1 align-middle" /> 刷新
               </button>
             </div>
           </div>
@@ -650,7 +650,7 @@ export default function ArtistsV2Page() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-2xl">🎤</span>
+                        <Mic className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
                       )}
                     </div>
 

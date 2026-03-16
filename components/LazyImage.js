@@ -2,6 +2,7 @@ import { useState, useContext } from 'react'
 import Link from '@/components/Link'
 import Skeleton from './Skeleton'
 import { HomeSectionImageContext } from './HomeSectionImageContext'
+import { Music, Mic } from 'lucide-react'
 
 /**
  * LazyImage - 帶骨架屏的延遲載入圖片
@@ -35,7 +36,7 @@ export default function LazyImage({
         className={`${containerClassName} flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900`}
         onClick={onClick}
       >
-        {fallback || <span className="text-4xl">🎵</span>}
+        {fallback || <Music className="w-10 h-10 text-neutral-500" strokeWidth={1.5} />}
       </div>
     )
   }
@@ -105,7 +106,7 @@ export function SongCard({ song, artistPhoto, onClick, href, compact }) {
             {/* 骨架屏 */}
             {!imageLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828] z-10">
-                <span className="text-3xl mb-1">🎵</span>
+                <Music className="w-8 h-8 text-neutral-500 mb-1" strokeWidth={1.5} />
                 <span className="text-[10px] text-neutral-500 text-center px-2 line-clamp-1">
                   {song.artist}
                 </span>
@@ -124,14 +125,14 @@ export function SongCard({ song, artistPhoto, onClick, href, compact }) {
         ) : coverImage ? (
           /* Section not in viewport yet: placeholder only (no img request) */
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828]">
-            <span className="text-3xl mb-1">🎵</span>
+            <Music className="w-8 h-8 text-neutral-500 mb-1" strokeWidth={1.5} />
             <span className="text-[10px] text-neutral-500 text-center px-2 line-clamp-1">
               {song.artist}
             </span>
           </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
-            <span className="text-4xl mb-1">🎵</span>
+            <Music className="w-10 h-10 text-neutral-500 mb-1" strokeWidth={1.5} />
             <span className="text-[10px] text-neutral-500 text-center px-2 line-clamp-1">
               {song.artist}
             </span>
@@ -152,13 +153,16 @@ export function SongCard({ song, artistPhoto, onClick, href, compact }) {
  * Respects HomeSectionImageContext: when false, shows placeholder only.
  * compact: use 32vw size to match 最近瀏覽 carousel.
  */
-export function PlaylistCard({ playlist, onClick, href, compact }) {
+export function PlaylistCard({ playlist, onClick, href, compact, small }) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const loadImages = useContext(HomeSectionImageContext)
 
   const coverImage = playlist.coverImage || null
   const showRealImage = loadImages && coverImage
-  const sizeClass = compact ? 'w-[32vw] h-[32vw] md:w-36 md:h-36' : 'w-36 h-36'
+  const sizeClass = compact
+    ? (small ? 'w-[24vw] h-[24vw] md:w-28 md:h-28' : 'w-[32vw] h-[32vw] md:w-36 md:h-36')
+    : 'w-36 h-36'
+  const wrapperWidthClass = compact ? (small ? 'w-[24vw] md:w-28' : 'w-[32vw] md:w-36') : 'w-36'
   const roundedClass = compact ? 'rounded-[4px]' : 'rounded-lg'
 
   const Wrapper = href ? Link : 'button'
@@ -167,7 +171,7 @@ export function PlaylistCard({ playlist, onClick, href, compact }) {
   return (
     <Wrapper
       {...wrapperProps}
-      className={`flex-shrink-0 flex flex-col text-left group ${compact ? 'w-[32vw] md:w-36' : 'w-36'}`}
+      className={`flex-shrink-0 flex flex-col text-left group ${wrapperWidthClass}`}
     >
       {/* 封面區域 */}
       <div className={`${sizeClass} ${roundedClass} overflow-hidden bg-[#282828] mb-2 shadow-lg relative transition-transform duration-200 active:scale-105 active:z-20`}>
@@ -176,7 +180,7 @@ export function PlaylistCard({ playlist, onClick, href, compact }) {
             {/* 骨架屏 */}
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#282828] z-10">
-                <span className="text-3xl">🎸</span>
+                <Music className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
               </div>
             )}
             <img
@@ -191,11 +195,11 @@ export function PlaylistCard({ playlist, onClick, href, compact }) {
           </>
         ) : coverImage ? (
           <div className="w-full h-full flex items-center justify-center bg-[#282828]">
-            <span className="text-3xl">🎸</span>
+            <Music className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
-            <span className="text-4xl">🎸</span>
+            <Music className="w-10 h-10 text-neutral-500" strokeWidth={1.5} />
           </div>
         )}
       </div>
@@ -236,7 +240,7 @@ export function ArtistAvatar({ artist, onClick, href, compact }) {
           <>
             {!imageLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#282828] z-10">
-                <span className="text-3xl mb-1">🎤</span>
+                <Mic className="w-8 h-8 text-neutral-500 mb-1" strokeWidth={1.5} />
               </div>
             )}
             <img
@@ -251,11 +255,11 @@ export function ArtistAvatar({ artist, onClick, href, compact }) {
           </>
         ) : photoUrl ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-[#282828]">
-            <span className="text-3xl mb-1">🎤</span>
+            <Mic className="w-8 h-8 text-neutral-500 mb-1" strokeWidth={1.5} />
           </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
-            <span className="text-4xl mb-1">🎤</span>
+            <Mic className="w-10 h-10 text-neutral-500 mb-1" strokeWidth={1.5} />
           </div>
         )}
       </div>

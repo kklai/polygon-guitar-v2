@@ -14,7 +14,7 @@ import {
 } from '@/lib/playlists'
 import { getTabsByIds } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BarChart2, Sparkles } from 'lucide-react'
 
 function PlaylistAdmin() {
   const router = useRouter()
@@ -472,7 +472,7 @@ function PlaylistAdmin() {
                         {playlist.coverImage ? (
                           <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl">📊</div>
+                          <div className="w-full h-full flex items-center justify-center text-neutral-500"><BarChart2 className="w-6 h-6" strokeWidth={1.5} /></div>
                         )}
                         <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                           {uploadingCover === playlist.id ? (
@@ -619,7 +619,7 @@ function PlaylistAdmin() {
                         {playlist.coverImage ? (
                           <img src={playlist.coverImage} alt={playlist.title} className="w-full h-full object-cover pointer-events-none" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl">✨</div>
+                          <div className="w-full h-full flex items-center justify-center text-neutral-500"><Sparkles className="w-6 h-6" strokeWidth={1.5} /></div>
                         )}
                         <label className={`absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition ${playlist.coverImage ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                           {uploadingCover === playlist.id ? (
@@ -680,7 +680,7 @@ function PlaylistAdmin() {
               </div>
             ) : (
               <div className="text-center py-16 bg-[#121212] rounded-xl border border-neutral-800">
-                <span className="text-6xl block mb-4">✨</span>
+                <Sparkles className="w-16 h-16 block mb-4 mx-auto text-neutral-500" strokeWidth={1.5} />
                 <h3 className="text-xl text-white mb-2">暫時冇精選歌單</h3>
                 <p className="text-neutral-500 mb-6">建立你的第一個精選歌單</p>
                 <Link href="/admin/playlists/new" className="inline-flex items-center gap-2 px-6 py-3 bg-[#FFD700] text-black rounded-lg font-medium hover:opacity-90 transition">

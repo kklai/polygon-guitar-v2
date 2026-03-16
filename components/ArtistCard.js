@@ -1,4 +1,5 @@
 import Link from '@/components/Link'
+import { Music } from 'lucide-react'
 
 export default function ArtistCard({ artist }) {
   const songCount = artist.songCount || artist.tabCount || 0
@@ -20,7 +21,7 @@ export default function ArtistCard({ artist }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-2xl select-none">🎵</span>
+            <Music className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
           </div>
         )}
       </div>

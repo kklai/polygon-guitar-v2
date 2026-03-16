@@ -6,6 +6,7 @@ import { getAllTabs } from '@/lib/tabs'
 import { updateDoc, doc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import { useArtistMap } from '@/lib/useArtistMap'
+import { Music, Headphones, Lightbulb } from 'lucide-react'
 
 function UpdateTrackInfoPage() {
   const router = useRouter()
@@ -332,10 +333,10 @@ function UpdateTrackInfoPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span>🎵</span> 批量更新歌曲資訊
+                <Music className="w-7 h-7" strokeWidth={1.5} /> 批量更新歌曲資訊
               </h1>
-              <p className="text-sm text-[#B3B3B3]">
-                🎧 Spotify：專輯封面、連結、年份
+              <p className="text-sm text-[#B3B3B3] flex items-center gap-1">
+                <Headphones className="w-4 h-4" /> Spotify：專輯封面、連結、年份
               </p>
             </div>
             <button onClick={() => router.push('/admin')} className="text-[#B3B3B3] hover:text-white transition">
@@ -451,7 +452,7 @@ function UpdateTrackInfoPage() {
             </div>
             
             <p className="text-sm text-neutral-500">
-              💡 從 Spotify 獲取專輯封面、連結和年份。建議先用 50 首測試，穩定後再用 200 首。
+              <Lightbulb className="w-4 h-4 inline-block align-middle mr-1" /> 從 Spotify 獲取專輯封面、連結和年份。建議先用 50 首測試，穩定後再用 200 首。
             </p>
           </div>
         )}
@@ -597,7 +598,7 @@ function UpdateTrackInfoPage() {
 
         {/* 說明 */}
         <div className="mt-6 bg-[#1a1a2e] rounded-xl p-4 border border-purple-900/50">
-          <h3 className="text-purple-300 font-medium mb-2">💡 使用說明</h3>
+          <h3 className="text-purple-300 font-medium mb-2 flex items-center gap-2"><Lightbulb className="w-4 h-4" /> 使用說明</h3>
           <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
             <li>從 Spotify 獲取專輯封面、連結和年份</li>
             <li>選擇「無作曲/填詞」可快速找到需要更新的歌曲</li>

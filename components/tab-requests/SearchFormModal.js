@@ -224,7 +224,7 @@ export default function SearchFormModal({ onClose, onSubmit, submitting }) {
                       {track.albumImage ? (
                         <img src={track.albumImage} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-neutral-600">🎵</div>
+                        <div className="w-full h-full flex items-center justify-center text-neutral-600"><MusicNoteIcon className="w-5 h-5" /></div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -4,6 +4,7 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { getAllArtists } from '@/lib/tabs'
 import { getAllTabs } from '@/lib/tabs'
+import { Mic } from 'lucide-react'
 
 function SpotifyManager() {
   const router = useRouter()
@@ -198,9 +199,9 @@ function SpotifyManager() {
         {/* 分頁標籤 */}
         <div className="flex gap-2 mb-6 border-b border-neutral-800">
           {[
-            { id: 'artists', label: '👤 歌手管理', icon: '👤' },
-            { id: 'songs', label: '🎵 歌曲搜尋', icon: '🎵' },
-            { id: 'bulk', label: '⚡ 批量更新', icon: '⚡' }
+            { id: 'artists', label: '歌手管理', icon: 'artists' },
+            { id: 'songs', label: '歌曲搜尋', icon: 'songs' },
+            { id: 'bulk', label: '批量更新', icon: 'bulk' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -253,7 +254,7 @@ function SpotifyManager() {
               <div className="bg-[#121212] rounded-xl p-4 border border-neutral-800 mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-white">進度: {bulkProgress.current} / {bulkProgress.total}</span>
-                  <span className="text-green-400">✅ {bulkProgress.success}</span>
+                  <span className="text-green-400">{bulkProgress.success} 成功</span>
                 </div>
                 <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
                   <div
@@ -289,7 +290,7 @@ function SpotifyManager() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        '🎤'
+                        <Mic className="w-6 h-6 text-neutral-500" strokeWidth={1.5} />
                       )}
                     </div>
                     <p className="text-white text-sm truncate">{artist.name}</p>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from '@/components/Link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, User, Users, Pencil, Bot, Mic } from 'lucide-react'
 import { doc, getDoc, setDoc, collection, query, where, limit, getDocs } from '@/lib/firestore-tracked'
 import { db } from '../../lib/firebase'
 import { uploadToCloudinary } from '../../lib/cloudinary'
@@ -324,9 +324,9 @@ function CategoryImagesAdmin() {
   )
 
   const categories = [
-    { id: 'male', name: '男歌手', icon: '👨‍🎤' },
-    { id: 'female', name: '女歌手', icon: '👩‍🎤' },
-    { id: 'group', name: '組合', icon: '👥' }
+    { id: 'male', name: '男歌手', Icon: User },
+    { id: 'female', name: '女歌手', Icon: User },
+    { id: 'group', name: '組合', Icon: Users }
   ]
 
   return (
@@ -387,8 +387,8 @@ function CategoryImagesAdmin() {
                   {data?.image ? (
                     <img src={data.image} alt={cat.name} className="w-full h-full object-cover"/>
                   ) : (
-                    <div className="w-full h-full bg-slate-700 flex items-center justify-center">
-                      <span className="text-6xl">{cat.icon}</span>
+                    <div className="w-full h-full bg-slate-700 flex items-center justify-center text-neutral-400">
+                      <cat.Icon className="w-16 h-16" strokeWidth={1.5} />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
@@ -398,7 +398,7 @@ function CategoryImagesAdmin() {
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                       isCustom ? 'bg-[#FFD700] text-black' : 'bg-blue-600 text-white'
                     }`}>
-                      {isCustom ? '✏️ 自訂' : '🤖 自動'}
+                      {isCustom ? <><Pencil className="w-3 h-3 inline-block mr-1 align-middle" /> 自訂</> : <><Bot className="w-3 h-3 inline-block mr-1 align-middle" /> 自動</>}
                     </span>
                   </div>
                   
@@ -566,8 +566,8 @@ function CategoryImagesAdmin() {
                             className="w-12 h-12 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center">
-                            <span className="text-xl">🎤</span>
+                          <div className="w-12 h-12 rounded-full bg-neutral-700 flex items-center justify-center text-neutral-500">
+                            <Mic className="w-6 h-6" strokeWidth={1.5} />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">

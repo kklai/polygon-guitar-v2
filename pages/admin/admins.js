@@ -118,7 +118,7 @@ function AdminManagement() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span>👑</span> 管理員設置
+                管理員設置
               </h1>
               <p className="text-sm text-[#B3B3B3]">設置用戶為管理員（傳統方式）</p>
             </div>
@@ -127,7 +127,7 @@ function AdminManagement() {
                 href="/admin/role-settings"
                 className="px-3 py-1.5 bg-[#FFD700] text-black rounded text-sm font-medium hover:opacity-90"
               >
-                🎭 角色設置
+                角色設置
               </Link>
               <Link
                 href="/admin"
@@ -142,7 +142,7 @@ function AdminManagement() {
         {/* Warning */}
         <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
           <p className="text-yellow-400 text-sm">
-            ⚠️ <span className="font-medium">建議使用新的角色系統</span> - 
+            <span className="font-medium">建議使用新的角色系統</span> - 
             請前往 <Link href="/admin/role-settings" className="underline hover:text-yellow-300">角色權限設置</Link> 
             設置 Art Director、Score Checker 或 Playlist Maker 角色
           </p>
@@ -172,7 +172,7 @@ function AdminManagement() {
         {/* Super Admin */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
           <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-white">👑 超級管理員</h2>
+            <h2 className="text-lg font-medium text-white">超級管理員</h2>
           </div>
           <div className="divide-y divide-neutral-800">
             {superAdmins.map(admin => (
@@ -197,7 +197,7 @@ function AdminManagement() {
         {/* Users with Admin Role */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
           <div className="p-4 border-b border-neutral-800">
-            <h2 className="text-lg font-medium text-white">🎭 已設置角色 ({usersWithRoles.length})</h2>
+            <h2 className="text-lg font-medium text-white">已設置角色 ({usersWithRoles.length})</h2>
           </div>
           
           {usersWithRoles.length === 0 ? (
@@ -235,7 +235,7 @@ function AdminManagement() {
         {/* All Users */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800">
           <div className="p-4 border-b border-neutral-800">
-            <h2 className="text-lg font-medium text-white">👥 普通用戶 ({usersWithoutRoles.length})</h2>
+            <h2 className="text-lg font-medium text-white">普通用戶 ({usersWithoutRoles.length})</h2>
           </div>
           
           {usersWithoutRoles.length === 0 ? (
@@ -280,7 +280,7 @@ function AdminManagement() {
 
         {/* Info */}
         <div className="mt-6 p-4 bg-neutral-900 rounded-lg text-sm text-neutral-400">
-          <p className="mb-2">💡 <span className="text-white">說明：</span></p>
+          <p className="mb-2"><span className="text-white">說明：</span></p>
           <ul className="space-y-1 list-disc list-inside">
             <li>設置為管理員後，該用戶可以進入後台並根據角色獲得不同權限</li>
             <li>用戶需要重新登入權限才會生效</li>

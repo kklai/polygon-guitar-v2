@@ -13,7 +13,7 @@ import {
 import { db } from '@/lib/firebase'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Mic } from 'lucide-react'
 import { isArtistMatch, generateMergeSuggestions, parseBilingualNameImproved } from '@/lib/artistNameMatcher'
 
 export default function MergeArtistsPage() {
@@ -213,7 +213,7 @@ export default function MergeArtistsPage() {
                 disabled={loading}
                 className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {loading ? '載入中...' : '🔄 刷新'}
+                {loading ? '載入中...' : <><RefreshCw className="w-4 h-4 inline-block mr-1 align-middle" /> 刷新</>}
               </button>
             </div>
           </div>
@@ -356,7 +356,7 @@ export default function MergeArtistsPage() {
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
-                                    <span className="text-2xl">🎤</span>
+                                    <Mic className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
                                   )}
                                 </div>
                                 

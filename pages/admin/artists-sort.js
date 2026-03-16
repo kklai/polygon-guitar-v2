@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { collection, getDocs, doc, writeBatch } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
 import Link from '@/components/Link'
-import { Save, GripVertical } from 'lucide-react'
+import { Save, GripVertical, Mic } from 'lucide-react'
 
 const DEFAULT_TIER = 5
 const DISPLAY_ORDER_LAST = 999999
@@ -301,7 +301,7 @@ export default function ArtistsSortPage() {
                       {artist.photoURL || artist.wikiPhotoURL ? (
                         <img src={artist.photoURL || artist.wikiPhotoURL} alt={artist.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm">🎤</div>
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500"><Mic className="w-5 h-5" strokeWidth={1.5} /></div>
                       )}
                     </div>
 

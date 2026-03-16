@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
@@ -8,9 +8,10 @@ import Layout from '@/components/Layout'
 import Link from '@/components/Link'
 import { useAuth } from '@/contexts/AuthContext'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
-import { ArrowLeft, MoreVertical, Pencil, PenLine, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, MoreVertical, Pencil, PenLine, ChevronDown, ChevronUp, Eye, Heart, Bookmark, Music } from 'lucide-react'
 import { useArtistMap } from '@/lib/useArtistMap'
 import { PROFILE_SOCIAL_ICONS } from '@/components/ProfileSocialIcons'
+import { PlaylistCard } from '@/components/LazyImage'
 
 // 社交媒體圖標組件（icon 與 edit 頁共用 PROFILE_SOCIAL_ICONS）
 const SocialIcon = ({ platform, url }) => {
@@ -63,6 +64,8 @@ export default function PublicProfile() {
   const [bioExpanded, setBioExpanded] = useState(false)
   const [showProfileMore, setShowProfileMore] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
+  const [allTabsExpanded, setAllTabsExpanded] = useState(false)
+  const ALL_TABS_INITIAL = 10
 
   useEffect(() => {
     if (id) {
@@ -169,6 +172,10 @@ export default function PublicProfile() {
   }
 
   const totalViews = uploads.reduce((sum, tab) => sum + (tab.viewCount || 0), 0)
+  // 熱門：按瀏覽量取頭 5 首；其餘為所有出譜（保持上傳時間序）
+  const popularTabs = [...uploads].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 5)
+  const popularIds = new Set(popularTabs.map(t => t.id))
+  const otherTabs = uploads.filter(t => !popularIds.has(t.id))
   const isOwnProfile = currentUser?.uid === id
   const socialMedia = profile?.socialMedia || {}
   const hasSocialLinks = Object.values(socialMedia).some(url => url && url.trim() !== '')
@@ -313,10 +320,18 @@ export default function PublicProfile() {
           {/* Description + 顯示全部 按鈕在右下（wireframe: description block + button）*/}
           {profile.bio && (
             <div className="mt-0 flex flex-col items-stretch">
-              <p className="text-[#B3B3B3] text-sm leading-relaxed whitespace-pre-wrap">
-                {bioDisplay}
-                {bioIsLong && !bioExpanded && '……'}
-              </p>
+              <div
+                className={bioIsLong && !bioExpanded ? 'overflow-hidden' : ''}
+                style={bioIsLong && !bioExpanded ? {
+                  maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)'
+                } : undefined}
+              >
+                <p className="text-[#B3B3B3] text-sm leading-relaxed whitespace-pre-wrap">
+                  {bioDisplay}
+                  {bioIsLong && !bioExpanded && '……'}
+                </p>
+              </div>
               {bioIsLong && (
                 <div className="flex justify-start mt-2">
                   <button
@@ -342,34 +357,42 @@ export default function PublicProfile() {
           )}
         </div>
 
-        {/* 熱門 / 所有歌曲 / 歌單 - 統一容器 */}
-        <div className="max-w-2xl mx-auto mt-4 space-y-8">
+        {/* 熱門 / 所有出譜 / 自創歌單 - 統一容器 */}
+        <div className="max-w-2xl mx-auto mt-4 space-y-4">
           {profile.showUploads !== false && uploads.length > 0 && (
             <section>
-              <h2 className="text-white font-bold text-lg mb-4">熱門</h2>
-              <div className="space-y-1">
-                {uploads.slice(0, 5).map((tab, index) => {
+              <h2 className="text-white font-bold text-lg mb-0">熱門</h2>
+              <div className="space-y-0">
+                {popularTabs.map((tab) => {
                   const thumbnail = getSongThumbnail(tab)
                   return (
                     <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                      <div className="flex items-center gap-3 py-3 pl-0 pr-3 rounded-lg hover:bg-[#181818] transition cursor-pointer group">
+                      <div className="flex items-center gap-3 py-1.5 pl-0 pr-3 rounded-lg hover:bg-[#181818] transition cursor-pointer group">
                         {thumbnail ? (
                           <img
                             src={thumbnail}
                             alt={tab.title}
-                            className="w-14 h-14 rounded-[4px] object-cover flex-shrink-0 bg-[#282828]"
+                            className="w-12 h-12 rounded-[4px] object-cover flex-shrink-0 bg-[#282828]"
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
-                            <span className="text-xl">🎵</span>
+                          <div className="w-12 h-12 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
+                            <Music className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
-                          <p className="text-[#B3B3B3] text-sm">{getArtistName(tab)}</p>
+                          <h3 className="text-white text-sm font-medium truncate group-hover:text-[#FFD700] transition">{tab.title}</h3>
+                          <p className="text-[#B3B3B3] text-xs">{getArtistName(tab)}</p>
                         </div>
-                        <div className="text-[#B3B3B3] text-sm flex-shrink-0">
-                          {(tab.viewCount || 0).toLocaleString()} 瀏覽
+<div className="text-[#B3B3B3] text-xs flex-shrink-0 flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" />
+                          {(tab.viewCount || 0).toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-0">
+                          <Heart className="w-3.5 h-3.5 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                          <Bookmark className="w-3.5 h-3.5 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                          {(tab.likes ?? 0) + (tab.playlistCount ?? 0)}
+                        </span>
                         </div>
                       </div>
                     </Link>
@@ -379,53 +402,62 @@ export default function PublicProfile() {
             </section>
           )}
 
-          {profile.showUploads !== false && uploads.length > 5 && (
+          {profile.showUploads !== false && otherTabs.length > 0 && (
             <section>
-              <h2 className="text-white font-bold text-lg mb-4">所有歌曲</h2>
-              <div className="bg-[#121212] rounded-xl border border-neutral-800 overflow-hidden">
-                {uploads.slice(5).map((tab) => (
-                  <Link key={tab.id} href={`/tabs/${tab.id}`}>
-                    <div className="flex items-center gap-3 py-3 px-4 hover:bg-[#181818] transition border-b border-neutral-800/80 last:border-0">
+              <h2 className="text-white font-bold text-lg mb-2">所有出譜 <span className="text-[#B3B3B3] font-normal text-base">({otherTabs.length})</span></h2>
+              <div className="space-y-0">
+                {(allTabsExpanded ? otherTabs : otherTabs.slice(0, ALL_TABS_INITIAL)).map((tab, index) => (
+                  <Fragment key={tab.id}>
+                    {index > 0 && <div className="h-px bg-neutral-800 min-w-full" aria-hidden="true" />}
+                    <Link href={`/tabs/${tab.id}`}>
+                      <div className="flex items-center gap-3 py-2 pl-0 pr-3 hover:bg-[#181818] transition rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-medium truncate">{tab.title}</h3>
-                        <p className="text-[#B3B3B3] text-sm">{getArtistName(tab)}</p>
+                        <h3 className="text-white text-sm font-medium truncate">{tab.title}</h3>
+                        <p className="text-[#B3B3B3] text-xs">{getArtistName(tab)}</p>
                       </div>
-                      <div className="text-[#B3B3B3] text-xs flex-shrink-0">
-                        {(tab.viewCount || 0).toLocaleString()} 瀏覽
+                      <div className="text-[#B3B3B3] text-xs flex-shrink-0 flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" />
+                          {(tab.viewCount || 0).toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-0">
+                          <Heart className="w-3.5 h-3.5 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                          <Bookmark className="w-3.5 h-3.5 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                          {(tab.likes ?? 0) + (tab.playlistCount ?? 0)}
+                        </span>
                       </div>
                     </div>
                   </Link>
+                  </Fragment>
                 ))}
+                {otherTabs.length > ALL_TABS_INITIAL && !allTabsExpanded && (
+                  <div className="flex justify-center mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setAllTabsExpanded(true)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-neutral-600 text-white/90 text-xs hover:text-[#FFD700] hover:border-[#FFD700]/50 transition"
+                    >
+                      顯示全部
+                      <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
           )}
 
           {profile.showPlaylists !== false && playlists.length > 0 && (
-            <section>
-              <h2 className="text-white font-bold text-lg mb-4">歌單</h2>
-              <div className="space-y-2">
+            <section className="-mt-1" style={{ marginBottom: 25 }}>
+              <h2 className="text-white font-bold text-lg mb-2">自創歌單</h2>
+              <div className="flex overflow-x-auto scrollbar-hide pr-6 py-2 -my-2 gap-3">
                 {playlists.map(playlist => (
-                  <Link
+                  <PlaylistCard
                     key={playlist.id}
+                    playlist={playlist}
                     href={`/library/playlist/${playlist.id}`}
-                    className="flex items-center gap-3 p-3 bg-[#121212] rounded-xl border border-neutral-800 hover:bg-[#181818] transition"
-                  >
-                    {playlist.coverImage ? (
-                      <img
-                        src={playlist.coverImage}
-                        alt={playlist.title}
-                        className="w-14 h-14 rounded-[4px] object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-[4px] bg-[#282828] flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl">🎵</span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium truncate">{playlist.title}</p>
-                      <p className="text-[#B3B3B3] text-sm">{playlist.songIds?.length || 0} 首歌</p>
-                    </div>
-                  </Link>
+                    compact
+                    small
+                  />
                 ))}
               </div>
             </section>

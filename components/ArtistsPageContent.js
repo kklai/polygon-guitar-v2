@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
+import { Mic } from 'lucide-react'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
 const ARTISTS_CACHE_VERSION = 2 // bump to invalidate when API shape changes (e.g. region/regions)
@@ -76,8 +77,8 @@ function ArtistCircle({ artist, href }) {
             decoding="async"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl">
-            🎤
+          <div className="w-full h-full flex items-center justify-center text-neutral-500">
+            <Mic className="w-10 h-10" strokeWidth={1.5} />
           </div>
         )}
       </div>

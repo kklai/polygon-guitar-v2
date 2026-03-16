@@ -11,6 +11,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { collection, query, where, getDocs, doc, getDoc, limit } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
+import { Mic } from 'lucide-react'
 
 // 關係類型選項
 const RELATION_OPTIONS = [
@@ -227,7 +228,7 @@ function SingleArtistField({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg">🎤</div>
+                  <div className="w-full h-full flex items-center justify-center text-neutral-500"><Mic className="w-5 h-5" strokeWidth={1.5} /></div>
                 )}
               </div>
               
@@ -311,7 +312,7 @@ function CollaboratorItem({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xl">🎤</div>
+          <div className="w-full h-full flex items-center justify-center text-neutral-500"><Mic className="w-6 h-6" strokeWidth={1.5} /></div>
         )}
       </div>
       

@@ -439,7 +439,7 @@ export function TabEditor({
           <div className="mb-4 p-3 bg-blue-900/20 border border-blue-800 rounded-lg">
             <div className="flex items-start justify-between">
               <div className="text-sm text-blue-200">
-                <p className="font-medium mb-1">💡 TUXGUITAR 模式</p>
+                <p className="font-medium mb-1">TUXGUITAR 模式</p>
                 <div className="text-xs text-blue-300/80 space-y-0.5">
                   <p>• <b>數字鍵 0-9</b>：喺當前拍子輸入品數</p>
                   <p>• <b>+ / -</b>：切換時值（長→短 / 短→長）</p>

@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
 import ArtistInputSimple, { RELATION_OPTIONS } from '@/components/ArtistInputSimple'
-import GpSegmentUploader from '@/components/GpSegmentUploader'
+import GpSegmentUploader, { SEGMENT_TYPES } from '@/components/GpSegmentUploader'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
@@ -15,7 +15,7 @@ import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Music } from 'lucide-react'
 
 const REGIONS = [
   { value: '', label: '請選擇...' },
@@ -1351,15 +1351,8 @@ Chord會自動追蹤歌詞中( )位置
             {formData.gpSegments.map((seg, index) => (
               <div key={seg.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">
-                    {seg.type === 'intro' && '🎵'}
-                    {seg.type === 'verse' && '🎤'}
-                    {seg.type === 'chorus' && '🎸'}
-                    {seg.type === 'interlude' && '✨'}
-                    {seg.type === 'solo' && '🎸'}
-                    {seg.type === 'outro' && '🔚'}
-                    {seg.type === 'bridge' && '🌉'}
-                    {seg.type === 'prechorus' && '🎶'}
+                  <span className="text-neutral-400 flex items-center">
+                    {(() => { const t = SEGMENT_TYPES.find(x => x.value === seg.type); const Icon = t?.Icon || Music; return <Icon className="w-5 h-5" strokeWidth={1.5} />; })()}
                   </span>
                   <div>
                     <p className="text-white text-sm capitalize">{seg.type}</p>

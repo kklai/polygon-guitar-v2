@@ -7,7 +7,7 @@ import { addSongToPlaylist } from '@/lib/playlistApi'
 import { getSearchHistory, addSearchHistorySong, addSearchHistoryArtist, addSearchHistoryPlaylist, updateSongEntryThumbnail, clearSearchHistory, removeSearchHistoryEntry } from '@/lib/searchHistory'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { getTab } from '@/lib/tabs'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Music, Mic, ListMusic } from 'lucide-react'
 
 const STORAGE_KEY = 'searchPageData'
 const CACHE_TTL = 45 * 1000 // 45s — changes visible within 1 min
@@ -326,7 +326,7 @@ export default function Search() {
                           {thumbnailDisplay ? (
                             <img src={thumbnailDisplay} alt={entry.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
-                            <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                            <span className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -354,7 +354,7 @@ export default function Search() {
                           {entry.photo ? (
                             <img src={entry.photo} alt={entry.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
-                            <span className="w-full h-full flex items-center justify-center text-2xl">🎤</span>
+                            <span className="w-full h-full flex items-center justify-center text-neutral-500"><Mic className="w-6 h-6" strokeWidth={1.5} /></span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -379,7 +379,7 @@ export default function Search() {
                           {entry.coverImage ? (
                             <img src={entry.coverImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           ) : (
-                            <span className="w-full h-full flex items-center justify-center text-2xl">📋</span>
+                            <span className="w-full h-full flex items-center justify-center text-neutral-500"><ListMusic className="w-6 h-6" strokeWidth={1.5} /></span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -421,7 +421,7 @@ export default function Search() {
                           {pl.coverImage ? (
                             <img src={pl.coverImage} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-2xl">📋</div>
+                            <div className="w-full h-full flex items-center justify-center text-neutral-500"><ListMusic className="w-6 h-6" strokeWidth={1.5} /></div>
                           )}
                         </div>
                         <span className="text-sm text-neutral-300 truncate max-w-[80px] text-center">{pl.title}</span>
@@ -454,7 +454,7 @@ export default function Search() {
                             decoding="async"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl">🎤</div>
+                          <div className="w-full h-full flex items-center justify-center text-neutral-500"><Mic className="w-6 h-6" strokeWidth={1.5} /></div>
                         )}
                       </div>
                       <span className="text-sm text-neutral-300 truncate max-w-[80px]">{artist.name}</span>

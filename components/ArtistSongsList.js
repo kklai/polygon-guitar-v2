@@ -1,6 +1,7 @@
 import Link from '@/components/Link'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { Music } from 'lucide-react'
 import { checkIsLiked, toggleLikeSong } from '@/lib/playlistApi'
 
 // 解析譜內容中的 keys
@@ -128,7 +129,7 @@ function SongItem({ song, index, artistPhoto }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FFD700]/20 to-orange-500/20">
-            <span className="text-lg">🎵</span>
+            <Music className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
           </div>
         )}
       </div>

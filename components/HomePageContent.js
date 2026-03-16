@@ -10,6 +10,7 @@ import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
 import SectionViewportLoader from '@/components/SectionViewportLoader'
 import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
 import { useArtistMap } from '@/lib/useArtistMap'
+import { Music } from 'lucide-react'
 
 // 1-hour local cache for home payload (cache/homePage snapshot) — reload reads from here
 const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
@@ -337,14 +338,14 @@ function HomeCategoryCard({ category, hotArtists }) {
           <>
             <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl opacity-50">🎵</span>
+              <Music className="w-6 h-6 opacity-50 text-neutral-400" strokeWidth={1.5} />
             </div>
           </>
         ) : (
           <>
             <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl opacity-50">🎵</span>
+              <Music className="w-6 h-6 opacity-50 text-neutral-400" strokeWidth={1.5} />
             </div>
           </>
         )}

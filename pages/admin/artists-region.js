@@ -3,7 +3,7 @@ import { collection, getDocs, writeBatch, doc, updateDoc } from '@/lib/firestore
 import { db, auth } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
-import { X, Plus, MapPin } from 'lucide-react'
+import { X, Plus, MapPin, Mic, Lightbulb } from 'lucide-react'
 
 const REGIONS = [
   { value: 'hongkong', label: '香港', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -316,7 +316,7 @@ export default function ArtistsRegion() {
                 disabled={saving}
                 className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
               >
-                {saving ? '儲存中...' : '💾 儲存全部變更'}
+                {saving ? '儲存中...' : '儲存全部變更'}
               </button>
             </div>
           </div>
@@ -366,8 +366,8 @@ export default function ArtistsRegion() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-lg">
-                            🎤
+                          <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-500">
+                            <Mic className="w-5 h-5" strokeWidth={1.5} />
                           </div>
                         )}
                         <span className="text-white font-medium truncate">{artist.name}</span>
@@ -465,7 +465,7 @@ export default function ArtistsRegion() {
 
           {/* 說明 */}
           <div className="mt-6 p-4 bg-neutral-800/50 rounded-lg text-sm text-neutral-400">
-            <h4 className="text-white font-medium mb-2">💡 使用說明</h4>
+            <h4 className="text-white font-medium mb-2 flex items-center gap-2"><Lightbulb className="w-4 h-4" /> 使用說明</h4>
             <ul className="space-y-1 list-disc list-inside">
               <li>每位歌手可設定最多 3 個地區（例如：香港 + 台灣）</li>
               <li>第一地區會作為主要顯示地區</li>

@@ -1988,7 +1988,7 @@ const TabContent = ({
               marginBottom: '8px',
               fontStyle: 'italic'
             }}>
-              🎸 六線譜
+              六線譜
             </div>
             {renderGuitarTab(tabSectionCheck.lines)}
           </div>

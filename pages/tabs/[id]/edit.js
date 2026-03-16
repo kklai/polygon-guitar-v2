@@ -7,14 +7,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import ArtistAutoFill from '@/components/ArtistAutoFill'
 import ArtistInputSimple, { RELATION_OPTIONS } from '@/components/ArtistInputSimple'
-import GpSegmentUploader from '@/components/GpSegmentUploader'
+import GpSegmentUploader, { SEGMENT_TYPES } from '@/components/GpSegmentUploader'
 import YouTubeSearchModal from '@/components/YouTubeSearchModal'
 import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { auth } from '@/lib/firebase'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Music, Moon, Sun } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
@@ -1475,7 +1475,7 @@ E|----------------------------------------------------------------|
             <FormSection>
             {/* Guitar Pro Segments */}
             <div className="p-4 bg-neutral-900/50 rounded-lg border border-neutral-700">
-              <h3 className="text-sm font-medium text-[#FFD700] mb-3">🎸 Guitar Pro 段落</h3>
+              <h3 className="text-sm font-medium text-[#FFD700] mb-3 flex items-center gap-2"><Music className="w-4 h-4" /> Guitar Pro 段落</h3>
               
               {/* GP 主題選擇 */}
               <div className="mb-4 p-3 bg-black/30 rounded-lg">
@@ -1484,24 +1484,24 @@ E|----------------------------------------------------------------|
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, gpTheme: 'dark' }))}
-                    className={`flex-1 py-2 px-3 rounded border transition text-sm ${
+                    className={`flex-1 inline-flex items-center justify-center gap-1 py-2 px-3 rounded border transition text-sm ${
                       formData.gpTheme === 'dark' 
                         ? 'bg-[#FFD700] text-black border-[#FFD700]' 
                         : 'bg-neutral-800 text-white border-neutral-700'
                     }`}
                   >
-                    🌙 黑底黃字
+                    <Moon className="w-4 h-4" /> 黑底黃字
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, gpTheme: 'light' }))}
-                    className={`flex-1 py-2 px-3 rounded border transition text-sm ${
+                    className={`flex-1 inline-flex items-center justify-center gap-1 py-2 px-3 rounded border transition text-sm ${
                       formData.gpTheme === 'light' 
                         ? 'bg-white text-black border-neutral-300' 
                         : 'bg-neutral-800 text-white border-neutral-700'
                     }`}
                   >
-                    ☀️ 白底黑字
+                    <Sun className="w-4 h-4" /> 白底黑字
                   </button>
                 </div>
               </div>
@@ -1525,15 +1525,8 @@ E|----------------------------------------------------------------|
                   {formData.gpSegments.map((seg, index) => (
                     <div key={seg.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">
-                          {seg.type === 'intro' && '🎵'}
-                          {seg.type === 'verse' && '🎤'}
-                          {seg.type === 'chorus' && '🎸'}
-                          {seg.type === 'interlude' && '✨'}
-                          {seg.type === 'solo' && '🎸'}
-                          {seg.type === 'outro' && '🔚'}
-                          {seg.type === 'bridge' && '🌉'}
-                          {seg.type === 'prechorus' && '🎶'}
+                        <span className="text-neutral-400 flex items-center">
+                          {(() => { const t = SEGMENT_TYPES.find(x => x.value === seg.type); const Icon = t?.Icon || Music; return <Icon className="w-5 h-5" strokeWidth={1.5} />; })()}
                         </span>
                         <div>
                           <p className="text-white text-sm capitalize">{seg.type}</p>

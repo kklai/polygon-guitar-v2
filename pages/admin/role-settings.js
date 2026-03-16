@@ -119,7 +119,7 @@ function RoleSettings() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span>🎭</span> 角色權限設置
+                角色權限設置
               </h1>
               <p className="text-sm text-[#B3B3B3]">設置用戶角色權限</p>
             </div>
@@ -184,7 +184,7 @@ function RoleSettings() {
         {/* Super Admin */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
           <div className="p-4 border-b border-neutral-800">
-            <h2 className="text-lg font-medium text-white">👑 超級管理員</h2>
+            <h2 className="text-lg font-medium text-white">超級管理員</h2>
           </div>
           <div className="divide-y divide-neutral-800">
             {superAdmins.map(admin => (
@@ -210,7 +210,7 @@ function RoleSettings() {
         {usersWithRoles.length > 0 && (
           <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
             <div className="p-4 border-b border-neutral-800">
-              <h2 className="text-lg font-medium text-white">🎭 已設置角色 ({usersWithRoles.length})</h2>
+              <h2 className="text-lg font-medium text-white">已設置角色 ({usersWithRoles.length})</h2>
             </div>
             <div className="divide-y divide-neutral-800">
               {usersWithRoles.map(u => (
@@ -257,7 +257,7 @@ function RoleSettings() {
         {/* Users without Roles */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800">
           <div className="p-4 border-b border-neutral-800">
-            <h2 className="text-lg font-medium text-white">👥 普通用戶 ({usersWithoutRoles.length})</h2>
+            <h2 className="text-lg font-medium text-white">普通用戶 ({usersWithoutRoles.length})</h2>
           </div>
           
           {usersWithoutRoles.length === 0 ? (
@@ -304,7 +304,7 @@ function RoleSettings() {
 
         {/* Info */}
         <div className="mt-6 p-4 bg-neutral-900 rounded-lg text-sm text-neutral-400">
-          <p className="mb-2">💡 <span className="text-white">說明：</span></p>
+          <p className="mb-2"><span className="text-white">說明：</span></p>
           <ul className="space-y-1 list-disc list-inside">
             <li>設置角色後，用戶可以進入後台並根據角色獲得不同權限</li>
             <li>用戶需要重新登入權限才會完全生效</li>

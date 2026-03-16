@@ -555,9 +555,9 @@ function EditArtist() {
                 className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value="">請選擇...</option>
-                <option value="male">👨‍🎤 男歌手</option>
-                <option value="female">👩‍🎤 女歌手</option>
-                <option value="group">🎸 組合</option>
+                <option value="male">男歌手</option>
+                <option value="female">女歌手</option>
+                <option value="group">組合</option>
               </select>
             </div>
 
