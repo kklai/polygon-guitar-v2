@@ -12,13 +12,15 @@ import Link from 'next/link'
  */
 export default function NotationEditorPage() {
   const [selectedDuration, setSelectedDuration] = useState(TOOL_IDS.QUARTER)
-  const [divisionFlags, setDivisionFlags] = useState({})
+  const [selectedDivision, setSelectedDivision] = useState(null)
   const [timeSignatureId, setTimeSignatureId] = useState('4/4')
   const [chordName, setChordName] = useState('')
   const [addedItems, setAddedItems] = useState([])
 
-  const toggleDivision = useCallback((id) => {
-    setDivisionFlags((prev) => ({ ...prev, [id]: !prev[id] }))
+  const divisionFlags = selectedDivision != null ? { [selectedDivision]: true } : {}
+
+  const onToggleDivision = useCallback((id) => {
+    setSelectedDivision((prev) => (prev === id ? null : id))
   }, [])
 
   const handleAddNotation = () => {
@@ -59,7 +61,7 @@ export default function NotationEditorPage() {
             selectedDuration={selectedDuration}
             onSelectDuration={setSelectedDuration}
             divisionFlags={divisionFlags}
-            onToggleDivision={toggleDivision}
+            onToggleDivision={onToggleDivision}
             timeSignatureId={timeSignatureId}
             onSelectTimeSignature={setTimeSignatureId}
             chordName={chordName}
@@ -69,6 +71,8 @@ export default function NotationEditorPage() {
             onAddNotation={handleAddNotation}
             timeSignatureId={timeSignatureId}
             selectedDuration={selectedDuration}
+            selectedDivision={selectedDivision}
+            onTieApplied={() => setSelectedDivision(null)}
           />
         </div>
 

@@ -108,23 +108,25 @@ export default function NotationToolbar({
 
       {/* Division (additive) */}
       <div className="flex flex-wrap items-center gap-1">
-        <span className="text-xs font-medium text-neutral-600 px-2 py-1.5 uppercase tracking-wide w-20 shrink-0">
-          Division
-        </span>
+        <div className="flex items-center h-10 w-20 shrink-0 px-2">
+          <span className="text-xs font-medium text-neutral-600 uppercase tracking-wide">
+            Division
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-1">
           <ToolButton
             selected={divisionFlags[DIVISION_IDS.DOTTED]}
             onClick={() => onToggleDivision(DIVISION_IDS.DOTTED)}
             label="Dotted (0.5)"
           >
-            <span className="text-2xl" aria-hidden>𝅘𝅥.</span>
+            <span className="inline-flex items-center justify-center h-8 text-2xl leading-none" aria-hidden>𝅘𝅥.</span>
           </ToolButton>
           <ToolButton
             selected={divisionFlags[DIVISION_IDS.TIE]}
             onClick={() => onToggleDivision(DIVISION_IDS.TIE)}
             label="Tie"
           >
-            <span className="text-xl" aria-hidden>𝅘𝅥𝆤</span>
+            <span className="inline-flex items-center justify-center h-8 text-2xl leading-none" aria-hidden>𝅘𝅥𝆤</span>
           </ToolButton>
           <ToolButton
             selected={divisionFlags[DIVISION_IDS.TUPLET]}
@@ -132,16 +134,18 @@ export default function NotationToolbar({
             label="Tuplet"
             className="overflow-hidden"
           >
-            {tupletImgFailed ? (
-              <span className="text-lg font-bold text-current" aria-hidden>3</span>
-            ) : (
-              <img
-                src="/tuplet.png"
-                alt="Tuplet"
-                className="w-6 h-6 object-contain"
-                onError={() => setTupletImgFailed(true)}
-              />
-            )}
+            <span className="inline-flex items-center justify-center h-8 w-8">
+              {tupletImgFailed ? (
+                <span className="text-xl font-bold text-current leading-none" aria-hidden>3</span>
+              ) : (
+                <img
+                  src="/tuplet.png"
+                  alt="Tuplet"
+                  className="w-6 h-6 object-contain object-center"
+                  onError={() => setTupletImgFailed(true)}
+                />
+              )}
+            </span>
           </ToolButton>
         </div>
       </div>
