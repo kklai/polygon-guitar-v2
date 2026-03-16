@@ -22,6 +22,7 @@ export default function AssignTabsToUser() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedTabIds, setSelectedTabIds] = useState(new Set())
   const [updatePenName, setUpdatePenName] = useState(true)
+  const [skipCacheRebuild, setSkipCacheRebuild] = useState(false)
   const [userSearch, setUserSearch] = useState('')
 
   useEffect(() => {
@@ -128,16 +129,20 @@ export default function AssignTabsToUser() {
         body: JSON.stringify({
           tabIds: ids,
           targetUserId: targetUserId || null,
-          updatePenName: !!targetUserId && updatePenName
+          updatePenName: !!targetUserId && updatePenName,
+          skipCacheRebuild
         })
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMessage(data.error || '移植失敗')
+        setMessage(data.error || res.statusText || '移植失敗')
         return
       }
+      const failDetail = data.failed?.length
+        ? `；${data.failed.length} 份失敗${data.failed[0]?.error ? `（${data.failed[0].error}）` : ''}`
+        : ''
       setMessage(
-        `已移植 ${data.successCount} 份${data.cacheRebuilt ? '，已重建樂譜快取' : ''}${data.failed?.length ? `；${data.failed.length} 份失敗` : ''}`
+        `已移植 ${data.successCount} 份${data.cacheRebuilt ? '，已重建樂譜快取' : ''}${failDetail}${data.cacheError ? `；快取重建失敗：${data.cacheError}` : ''}`
       )
       if (data.successCount > 0) {
         setSelectedTabIds(new Set())
@@ -341,7 +346,7 @@ export default function AssignTabsToUser() {
 
             {/* 選項與執行 */}
             <section className="bg-[#121212] rounded-xl border border-neutral-800 p-4 mb-6">
-              <label className="flex items-center gap-2 text-neutral-300 text-sm mb-4">
+              <label className="flex items-center gap-2 text-neutral-300 text-sm mb-2">
                 <input
                   type="checkbox"
                   checked={updatePenName}
@@ -349,6 +354,15 @@ export default function AssignTabsToUser() {
                   className="rounded border-neutral-600 bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
                 />
                 同時將筆名更新為該用戶的筆名（已選目標用戶時有效）
+              </label>
+              <label className="flex items-center gap-2 text-neutral-300 text-sm mb-4">
+                <input
+                  type="checkbox"
+                  checked={skipCacheRebuild}
+                  onChange={(e) => setSkipCacheRebuild(e.target.checked)}
+                  className="rounded border-neutral-600 bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
+                />
+                略過重建樂譜快取（配額緊張時可勾選，稍後可到 首頁設置 手動重建）
               </label>
               <button
                 type="button"
@@ -358,7 +372,9 @@ export default function AssignTabsToUser() {
               >
                 {submitting ? '處理中...' : `執行移植（${selectedTabIds.size} 份）`}
               </button>
-              <p className="text-neutral-500 text-xs mt-2">成功後會自動重建樂譜列表快取</p>
+              <p className="text-neutral-500 text-xs mt-2">
+                {skipCacheRebuild ? '已勾選略過快取重建，請稍後到 首頁設置 手動重建樂譜快取' : '成功後會自動重建樂譜列表快取（約 3000+ 次讀取）'}
+              </p>
             </section>
           </>
         )}
