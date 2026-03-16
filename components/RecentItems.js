@@ -6,7 +6,7 @@ import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
 function getItemHref(item) {
   if (item.type === 'tab') return `/tabs/${item.id}`;
-  if (item.type === 'artist') return `/artists/${item.slug || item.id}`;
+  if (item.type === 'artist') return `/artists/${item.id}`;
   if (item.type === 'playlist') return `/playlist/${item.id}`;
   if (item.type === 'liked-songs') return '/library/liked';
   return '#';
@@ -89,10 +89,16 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
               {/* 文字資訊 */}
               <div className="text-left">
                 <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
-                  {item.title}
+                  {item.type === 'artist'
+                    ? (getArtistName({ artistId: item.id }) || item.title || '')
+                    : item.title}
                 </div>
                 <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
-                  {item.subtitle || item.artistName || getArtistName(item) || ''}
+                  {item.type === 'tab'
+                    ? (getArtistName(item) || item.artistName || '')
+                    : item.type === 'artist'
+                      ? '歌手'
+                      : (item.subtitle || item.artistName || '')}
                 </div>
               </div>
             </Link>

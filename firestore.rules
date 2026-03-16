@@ -165,11 +165,12 @@ service cloud.firestore {
       allow write: if isAuthenticated() && isOwner(userId);
     }
 
-    // ==================== Cache (homePage, searchData, allTabs, playlist_*, tabRequestsList) ====================
-    // Read: anyone (SSR/API use these for 1-read home, search, getAllTabs, playlist page). Write: via Firebase Admin only.
+    // ==================== Cache (homePage, searchData, allTabs, playlist_*, artistPage_*, tabRequestsList) ====================
+    // Read: anyone. Write: Admin SDK only. Delete: super admin only (manual "clear artist page cache" from client).
     match /cache/{docId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update: if false;
+      allow delete: if isSuperAdmin();
     }
 
   }

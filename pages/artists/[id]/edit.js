@@ -8,6 +8,7 @@ import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
 import { nameToSlug, getArtistByIdOrSlug, invalidateArtistCaches } from '@/lib/tabs'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import { auth } from '@/lib/firebase'
 import { X, MapPin, ArrowLeft } from 'lucide-react'
 
@@ -48,6 +49,8 @@ function EditArtist() {
   const [isFixingSongs, setIsFixingSongs] = useState(false)
   const [fixMessage, setFixMessage] = useState(null)
   const [relatedSongsCount, setRelatedSongsCount] = useState(0)
+  const [isBustingCache, setIsBustingCache] = useState(false)
+  const [bustCacheMessage, setBustCacheMessage] = useState(null)
   const [actualDocId, setActualDocId] = useState(null) // 儲存實際嘅 document ID（處理簡繁體）
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
@@ -163,26 +166,27 @@ function EditArtist() {
         updatedAt: new Date().toISOString()
       })
 
-      // 清除 cache，等歌手列表／搜尋即時反映改動
+      // 即時反映：只做 client 同 redirect，唔等 server cache
       if (typeof window !== 'undefined') {
         invalidateArtistCaches()
+        clearArtistMapCache() // 最近瀏覽 用 artist map 顯示歌名底下歌手名，清快取先會拎到新名
         fetch('/api/search-data?bust=1').catch(() => {})
-        try {
-          const token = await auth.currentUser?.getIdToken?.()
-          if (token) {
-            await fetch('/api/patch-caches-on-new-tab', {
+        const token = auth.currentUser?.getIdToken?.()
+        token.then((t) => {
+          if (t) {
+            fetch('/api/patch-caches-on-new-tab', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
               body: JSON.stringify({
                 artist: { id: docId, name: formData.name, normalizedName: newSlug, photoURL: formData.photoURL, wikiPhotoURL: formData.wikiPhotoURL, artistType: formData.artistType, regions: formData.regions },
                 action: 'update-artist'
               })
-            })
+            }).catch(() => {})
           }
-        } catch (_) {}
+        }).catch(() => {})
       }
 
-      // 跳去新嘅歌手 URL（用新 slug）
+      // 立刻跳轉，唔等 patch-caches（避免 quota 時等 10s 仲失敗）
       router.push(`/artists/${encodeURIComponent(newSlug)}`)
     } catch (error) {
       console.error('Update artist error:', error)
@@ -345,7 +349,7 @@ function EditArtist() {
           text: `✅ 成功清理 ${updatedCount} 首歌曲的舊歌手名欄位`
         })
       } else {
-        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料` + (newSlug ? '及網站 ID' : ''))
+        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料`)
       }
       
       await checkRelatedSongs()
@@ -360,6 +364,35 @@ function EditArtist() {
       }
     } finally {
       setIsFixingSongs(false)
+    }
+  }
+
+  // 手動清除歌手頁 Firestore 快取（用 client SDK 直接 delete，與 API 分開的 quota 路徑）
+  const handleBustArtistCache = async () => {
+    const artistId = actualDocId || id
+    if (!artistId) return
+    setIsBustingCache(true)
+    setBustCacheMessage(null)
+    try {
+      const ref = doc(db, 'cache', `artistPage_${artistId}`)
+      const snap = await getDoc(ref)
+      const hadCache = snap.exists()
+      await deleteDoc(ref)
+      invalidateArtistCaches()
+      setBustCacheMessage({
+        type: 'success',
+        text: hadCache
+          ? '已清除歌手頁快取，重新載入歌手頁即可看到最新資料。若首頁仍顯示舊名，請到「首頁設置」重建首頁快取。'
+          : '歌手頁快取本來就無（或已過期），下次載入歌手頁會用最新資料。'
+      })
+    } catch (e) {
+      const isQuota = e?.code === 8 || /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(e?.message || '')
+      setBustCacheMessage({
+        type: 'error',
+        text: isQuota ? '配額已滿，請稍後再試。' : (e?.message || '清除失敗')
+      })
+    } finally {
+      setIsBustingCache(false)
     }
   }
 
@@ -880,6 +913,33 @@ function EditArtist() {
                 )}
               </div>
             )}
+
+            {/* 手動清除歌手頁快取（改名後 quota 導致無法自動 patch 時用） */}
+            <div className="p-4 bg-amber-900/20 border border-amber-800 rounded-lg">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 className="text-amber-400 font-medium text-sm">歌手頁快取</h4>
+                  <p className="text-amber-200/70 text-sm mt-1">
+                    改名後若歌手頁仍顯示舊名或無歌單，可手動清除快取讓下次載入時重建
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBustArtistCache}
+                  disabled={isBustingCache}
+                  className="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-600 transition disabled:opacity-50 text-sm"
+                >
+                  {isBustingCache ? '清除中...' : '清除歌手頁快取'}
+                </button>
+              </div>
+              {bustCacheMessage && (
+                <div className={`mt-3 p-3 rounded text-sm ${
+                  bustCacheMessage.type === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                }`}>
+                  {bustCacheMessage.text}
+                </div>
+              )}
+            </div>
 
             {/* Bio */}
             <div>

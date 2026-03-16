@@ -3,7 +3,7 @@ import { pacificTime } from '@/lib/logTime'
 import { auth } from '@/lib/firebase'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
+import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount, getArtistByIdOrSlug } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import TabContent from '@/components/TabContent'
@@ -11,6 +11,7 @@ import TabComments from '@/components/TabComments'
 import SongActionSheet from '@/components/SongActionSheet'
 import RatingSystem from '@/components/RatingSystem'
 import GpSegmentPlayer from '@/components/GpSegmentPlayer'
+import { useArtistMap } from '@/lib/useArtistMap'
 import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
 import { recordTabView } from '@/lib/libraryRecentViews'
@@ -71,6 +72,7 @@ function serializeTab(tab) {
 
 export default function TabDetail({ initialTab, artist }) {
   const router = useRouter()
+  const { artistMap, getArtistName } = useArtistMap()
   const { id, key: queryKey, updated: queryUpdated } = router.query
   // router.query 可能未就緒（client nav），用 asPath + location.search + sessionStorage 確保捉到「剛保存」
   const fromSaveRedirect = queryUpdated != null ||
@@ -118,6 +120,7 @@ export default function TabDetail({ initialTab, artist }) {
   const [infoStartTime, setInfoStartTime] = useState(0)
   const [infoAutoPlay, setInfoAutoPlay] = useState(false)
 
+  const [resolvedArtistName, setResolvedArtistName] = useState('')
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
   const topBarRef = useRef(null)
@@ -244,7 +247,7 @@ export default function TabDetail({ initialTab, artist }) {
     effects.push(
       recordPageView('tab', id, data.title, {
         pageName: data.title,
-        artistName: artist?.name || data.artist || '',
+        artistName: getArtistName(data) || '',
         originalKey: data.originalKey,
         thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
       }, user?.uid || null)
@@ -322,6 +325,24 @@ export default function TabDetail({ initialTab, artist }) {
       setIsDeleting(false)
     }
   }
+
+  // 單一來源：artistId → 名；map 無時由 Firestore 取一次
+  useEffect(() => {
+    if (!tab?.artistId || (tab.collaborators?.length ?? 0) > 1) {
+      setResolvedArtistName('')
+      return
+    }
+    const fromMap = artistMap?.get(tab.artistId) || artistMap?.get(tab.artistId?.toLowerCase())
+    if (fromMap) {
+      setResolvedArtistName('')
+      return
+    }
+    let cancelled = false
+    getArtistByIdOrSlug(tab.artistId).then((a) => {
+      if (!cancelled && a?.name) setResolvedArtistName(a.name)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [tab?.id, tab?.artistId, tab?.collaborators?.length, artistMap])
 
   // 頂 bar 喜愛狀態：tab 載入時更新
   useEffect(() => {
@@ -611,9 +632,7 @@ export default function TabDetail({ initialTab, artist }) {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/tabs/${tab.id}`;
-    const shareArtistName = tab.collaborators?.length > 1
-      ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-      : (artist?.name || '');
+    const shareArtistName = getArtistName(tab) || '';
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -736,9 +755,11 @@ export default function TabDetail({ initialTab, artist }) {
 
   const effectiveArtistPhoto = tab.artistPhoto || fallbackArtistPhoto
 
+  // 單一歌手：只靠 artistId + artistMap（單一來源）；無 map 時用 resolvedArtistName（useEffect 會 fetch）
+  const resolvedSingleName = tab.artistId && (artistMap?.get(tab.artistId) || artistMap?.get(tab.artistId?.toLowerCase()))
   const artistDisplayName = tab.collaborators?.length > 1
     ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-    : (artist?.name || '')
+    : (resolvedSingleName || resolvedArtistName || '')
 
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
   const tabChords = tab.content ? extractChords(tab.content) : []
@@ -1015,14 +1036,38 @@ export default function TabDetail({ initialTab, artist }) {
                 )}
               </div>
               
-              {/* 歌手 */}
-              <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-2 min-w-0">
-                <Link 
-                  href={`/artists/${tab.artistId}`}
-                  className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
-                >
-                  {artistDisplayName}
-                </Link>
+              {/* 歌手：合唱/feat 時每個名獨立連結 */}
+              <div className="flex flex-wrap items-center gap-x-0 gap-y-1 mt-1 md:mt-2 min-w-0">
+                {tab.collaborators?.length > 1 && Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length >= tab.collaborators.length ? (
+                  <>
+                    {tab.collaborators.map((name, i) => {
+                      const artistId = tab.collaboratorIds[i] ?? tab.artistId
+                      const sep = i === 0 ? null : (
+                        <span key={`sep-${i}`} className="text-neutral-400 text-sm sm:text-base md:text-lg mx-1 flex-shrink-0">
+                          {tab.collaborationType === 'feat' ? ' feat. ' : ' / '}
+                        </span>
+                      )
+                      return (
+                        <span key={i} className="inline-flex items-center min-w-0">
+                          {sep}
+                          <Link
+                            href={`/artists/${encodeURIComponent(artistId)}`}
+                            className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0"
+                          >
+                            {name}
+                          </Link>
+                        </span>
+                      )
+                    })}
+                  </>
+                ) : (
+                  <Link
+                    href={`/artists/${encodeURIComponent(tab.artistId)}`}
+                    className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
+                  >
+                    {artistDisplayName}
+                  </Link>
+                )}
                 {tab.isCollaboration && (
                   <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                     tab.collaborationType === 'feat' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
