@@ -3,7 +3,7 @@ import { pacificTime } from '@/lib/logTime'
 import { auth } from '@/lib/firebase'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount, getArtistByIdOrSlug } from '@/lib/tabs'
+import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount, getArtistByIdOrSlug, getTabArtistId, getTabArtistIds } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import TabContent from '@/components/TabContent'
@@ -254,13 +254,14 @@ export default function TabDetail({ initialTab, artist }) {
     )
     if (data.createdBy) setUploaderId(data.createdBy)
     // Cover fallback: search-data API (1 cache read). Remove after backfill has run.
-    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && data.artistId
+    const mainArtistIdForData = getTabArtistId(data)
+    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && mainArtistIdForData
     if (needsArtistPhoto) {
       fetch('/api/search-data?only=artists')
         .then(r => r.ok ? r.json() : null)
         .then(payload => {
           const allArtists = payload?.artists || []
-          const matched = allArtists.find(a => a.id === data.artistId)
+          const matched = allArtists.find(a => a.id === mainArtistIdForData)
           if (matched?.photo) {
             setFallbackArtistPhoto(matched.photo)
             recordTabView(id, { ...data, artistPhoto: matched.photo })
@@ -306,7 +307,7 @@ export default function TabDetail({ initialTab, artist }) {
     if (!confirm('確定要刪除這個譜嗎？')) return
     setIsDeleting(true)
     try {
-      const deletedTab = tab ? { id, artistId: tab.artistId } : { id }
+      const deletedTab = tab ? { id, artistId: getTabArtistId(tab) } : { id }
       await deleteTab(id, user.uid, isAdmin)
       try {
         const token = await auth.currentUser?.getIdToken?.()
@@ -328,21 +329,22 @@ export default function TabDetail({ initialTab, artist }) {
 
   // 單一來源：artistId → 名；map 無時由 Firestore 取一次
   useEffect(() => {
-    if (!tab?.artistId || (tab.collaborators?.length ?? 0) > 1) {
+    const mainId = tab ? getTabArtistId(tab) : ''
+    if (!mainId || (getTabArtistIds(tab).length > 1)) {
       setResolvedArtistName('')
       return
     }
-    const fromMap = artistMap?.get(tab.artistId) || artistMap?.get(tab.artistId?.toLowerCase())
+    const fromMap = artistMap?.get(mainId) || artistMap?.get(mainId?.toLowerCase())
     if (fromMap) {
       setResolvedArtistName('')
       return
     }
     let cancelled = false
-    getArtistByIdOrSlug(tab.artistId).then((a) => {
+    getArtistByIdOrSlug(mainId).then((a) => {
       if (!cancelled && a?.name) setResolvedArtistName(a.name)
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [tab?.id, tab?.artistId, tab?.collaborators?.length, artistMap])
+  }, [tab?.id, tab?.artists, tab?.artistIds, artistMap])
 
   // 頂 bar 喜愛狀態：tab 載入時更新
   useEffect(() => {
@@ -755,11 +757,14 @@ export default function TabDetail({ initialTab, artist }) {
 
   const effectiveArtistPhoto = tab.artistPhoto || fallbackArtistPhoto
 
-  // 單一歌手：只靠 artistId + artistMap（單一來源）；無 map 時用 resolvedArtistName（useEffect 會 fetch）
-  const resolvedSingleName = tab.artistId && (artistMap?.get(tab.artistId) || artistMap?.get(tab.artistId?.toLowerCase()))
+  const mainArtistId = getTabArtistId(tab)
+  const tabArtistIds = getTabArtistIds(tab)
+  const resolvedSingleName = mainArtistId && (artistMap?.get(mainArtistId) || artistMap?.get(mainArtistId?.toLowerCase()))
   const artistDisplayName = tab.collaborators?.length > 1
     ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-    : (resolvedSingleName || resolvedArtistName || '')
+    : tabArtistIds.length > 1
+      ? tabArtistIds.map(id => artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id).join(tab.collaborationType === 'feat' ? ' feat. ' : ' / ')
+      : (resolvedSingleName || resolvedArtistName || '')
 
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
   const tabChords = tab.content ? extractChords(tab.content) : []
@@ -773,7 +778,7 @@ export default function TabDetail({ initialTab, artist }) {
   const tabSchema = generateTabSchema(tab, { name: artistDisplayName, photoURL: tab.thumbnail || effectiveArtistPhoto })
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
-    { name: artistDisplayName, url: `${siteConfig.url}/artists/${tab.artistId}` },
+    { name: artistDisplayName, url: `${siteConfig.url}/artists/${mainArtistId}` },
     { name: tab.title, url: seoUrl }
   ])
 
@@ -1038,10 +1043,10 @@ export default function TabDetail({ initialTab, artist }) {
               
               {/* 歌手：合唱/feat 時每個名獨立連結 */}
               <div className="flex flex-wrap items-center gap-x-0 gap-y-1 mt-1 md:mt-2 min-w-0">
-                {tab.collaborators?.length > 1 && Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length >= tab.collaborators.length ? (
+                {(tab.collaborators?.length > 1 && Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length >= tab.collaborators.length) || tabArtistIds.length > 1 ? (
                   <>
-                    {tab.collaborators.map((name, i) => {
-                      const artistId = tab.collaboratorIds[i] ?? tab.artistId
+                    {(tab.collaborators?.length >= tabArtistIds.length ? tab.collaborators : tabArtistIds.map(id => artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id)).map((name, i) => {
+                      const artistId = tabArtistIds[i] ?? tab.collaboratorIds?.[i] ?? mainArtistId
                       const sep = i === 0 ? null : (
                         <span key={`sep-${i}`} className="text-neutral-400 text-sm sm:text-base md:text-lg mx-1 flex-shrink-0">
                           {tab.collaborationType === 'feat' ? ' feat. ' : ' / '}
@@ -1062,7 +1067,7 @@ export default function TabDetail({ initialTab, artist }) {
                   </>
                 ) : (
                   <Link
-                    href={`/artists/${encodeURIComponent(tab.artistId)}`}
+                    href={`/artists/${encodeURIComponent(mainArtistId)}`}
                     className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
                   >
                     {artistDisplayName}
@@ -1200,7 +1205,7 @@ export default function TabDetail({ initialTab, artist }) {
           onAddToLiked={() => { handleAddToLiked(); setShowMoreMenu(false); }}
           onAddToPlaylist={() => { handleAddToPlaylistClick(); setShowMoreMenu(false); }}
           onEdit={canEdit ? () => { router.push(`/tabs/${tab.id}/edit`); setShowMoreMenu(false); } : undefined}
-          artistHref={`/artists/${tab.artistId}`}
+          artistHref={mainArtistId ? `/artists/${mainArtistId}` : undefined}
         />
 
         {/* 自動消失 Toast（複製連結等） */}
@@ -1482,16 +1487,19 @@ export async function getStaticProps({ params }) {
       if (m) data.youtubeVideoId = m[1]
     }
     let artist = null
-    if (data.artistId) {
+    const { getTabArtistId: getTabArtistIdStatic } = await import('@/lib/tabs')
+    const mainId = getTabArtistIdStatic(data)
+    if (mainId) {
       try {
         const { getSearchDataCached } = await import('@/lib/searchData')
         const payload = await getSearchDataCached()
         const allArtists = payload?.artists || []
-        let found = allArtists.find(a => a.id === data.artistId)
+        let found = allArtists.find(a => a.id === mainId)
         if (!found) {
           const searchTabs = payload?.tabs || []
           const resolved = searchTabs.find(t => t.id === id)
-          if (resolved?.artistId) found = allArtists.find(a => a.id === resolved.artistId)
+          const resolvedId = resolved && getTabArtistIdStatic(resolved)
+          if (resolvedId) found = allArtists.find(a => a.id === resolvedId)
         }
         if (found) {
           artist = { id: found.id, name: found.name }

@@ -21,6 +21,7 @@ import { getAdminDb } from '@/lib/admin-db'
 import { bustSearchDataApiCache } from '@/lib/searchData'
 import { bustHomeDataApiCache } from '@/lib/homeData'
 import { pacificTime } from '@/lib/logTime'
+import { getTabArtistId, getTabArtistIds } from '@/lib/tabs'
 
 function resolveTabCoverImage(tab) {
   if (tab?.coverImage) return tab.coverImage
@@ -35,7 +36,7 @@ function toSearchTabSlim(tab) {
   return stripUndefined({
     id: tab.id,
     title: tab.title || '',
-    artistId: tab.artistId || '',
+    artistId: getTabArtistId(tab) || tab.artistId || '',
     composer: tab.composer || '',
     lyricist: tab.lyricist || '',
     arranger: tab.arranger || '',
@@ -53,7 +54,7 @@ function toHomeSlim(tab) {
   return stripUndefined({
     id: tab.id,
     title: tab.title,
-    artistId: tab.artistId,
+    artistId: getTabArtistId(tab) || tab.artistId,
     ...(coverImage ? { coverImage } : {})
   })
 }
@@ -195,9 +196,11 @@ async function handleTabAction(adminDb, tab, action) {
 
   // When creating or updating a tab, ensure all associated artists exist in the search cache's artists array
   if (action === 'create' || action === 'update') {
-    const artistIds = Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length > 0
-      ? tab.collaboratorIds
-      : tab.artistId ? [tab.artistId] : []
+    const artistIds = getTabArtistIds(tab).length > 0
+      ? getTabArtistIds(tab)
+      : Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length > 0
+        ? tab.collaboratorIds
+        : tab.artistId ? [tab.artistId] : []
     const artistNames = Array.isArray(tab.collaborators) && tab.collaborators.length > 0
       ? tab.collaborators
       : tab.artist ? [tab.artist] : []
@@ -226,7 +229,7 @@ async function handleTabAction(adminDb, tab, action) {
     }
   }
 
-  const artistId = tab.artistId
+  const artistId = getTabArtistId(tab) || tab.artistId
   if (artistId) {
     results.artistPageDeleted = await deleteArtistPageCache(adminDb, artistId)
   }

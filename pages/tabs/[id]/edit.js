@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { getTab, updateTab, deleteTab, parseCollaborators, normalizeArtistId, clearTabCache, invalidateArtistCaches, invalidateArtistTabsCache } from '@/lib/tabs'
+import { getTab, updateTab, deleteTab, parseCollaborators, normalizeArtistId, clearTabCache, invalidateArtistCaches, invalidateArtistTabsCache, getTabArtistId } from '@/lib/tabs'
 import { parseCreditBlock } from '@/lib/tabCredits'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
@@ -333,18 +333,23 @@ export default function EditTab() {
       setIsOwner(data.createdBy === user?.uid)
       setCreatedByFromTab(data.createdBy || null)
 
-      // 歌手相片、類型、地區：缺則用 search-data API 依 artistId 解析（1 cache read，不單獨 getDoc artists）
+      // 歌手名：樂譜可能只存 artistIds/artists（無 artistId），用 getTabArtistId 統一取得主歌手 id，再從 artist/artistName 或 search-data 解析名
+      const effectiveArtistId = getTabArtistId(data)
+      let resolvedArtistName = (data.artist || data.artistName || '').trim()
+
+      // 歌手相片、類型、地區：缺則用 search-data API 依 effectiveArtistId 解析（1 cache read，不單獨 getDoc artists）
       let artistPhoto = data.artistPhoto || ''
       let fallbackRegion = data.region || ''
       let fallbackArtistType = data.artistType || ''
-      if (data.artistId) {
+      if (effectiveArtistId) {
         try {
           const res = await fetch('/api/search-data?only=artists')
           const apiData = await res.json()
           const artists = apiData?.artists || []
-          const match = artists.find(a => a.id === data.artistId)
+          const match = artists.find(a => a.id === effectiveArtistId || (a.id && a.id.toLowerCase() === effectiveArtistId.toLowerCase()))
           if (match) {
             if (match.photo) artistPhoto = match.photo
+            if (!resolvedArtistName && match.name) resolvedArtistName = (match.name || '').trim()
             // 若樂譜冇存地區／類型，用歌手檔案補上（避免顯示 —）
             if (!fallbackRegion && (match.regions?.length || match.region)) {
               const rawRegions = Array.isArray(match.regions) && match.regions.length > 0
@@ -368,22 +373,22 @@ export default function EditTab() {
       // 將舊資料轉換為新多歌手格式（第一位帶入類型/地區供每行顯示）
       let parsedArtists = data.artists || [
         { 
-          name: data.artist, 
-          id: data.artistId || null, 
+          name: resolvedArtistName,
+          id: effectiveArtistId || null, 
           relation: null,
           photo: artistPhoto || data.artistPhoto || ''
         }
       ]
       if (parsedArtists.length > 0) {
         parsedArtists = parsedArtists.map((a, i) => i === 0
-          ? { ...a, artistType: a.artistType || fallbackArtistType, region: a.region || fallbackRegion }
+          ? { ...a, name: a.name || resolvedArtistName, artistType: a.artistType || fallbackArtistType, region: a.region || fallbackRegion }
           : { ...a, artistType: a.artistType ?? '', region: a.region ?? '' }
         )
       }
 
       setFormData({
         title: data.title,
-        artist: data.artist,
+        artist: resolvedArtistName || (parsedArtists[0]?.name) || data.artist || data.artistName || '',
         artists: parsedArtists,
         artistType: fallbackArtistType,
         originalKey: data.originalKey || 'C',
@@ -448,7 +453,7 @@ export default function EditTab() {
           spotifyFilledAlbum: data.album ?? ''
         }
       }
-      if (data.artistId) setUseExistingArtistSelected(true)
+      if (effectiveArtistId) setUseExistingArtistSelected(true)
     } catch (error) {
       console.error('Error loading tab:', error)
     } finally {
@@ -563,7 +568,7 @@ export default function EditTab() {
         clearTabCache(id)
         invalidateArtistCaches()
         const primaryName = (formData.artists?.[0]?.name || formData.artist || '').trim()
-        const artistId = updatedTab?.artistId || formData.artists?.[0]?.id || formData.artistId || (primaryName && normalizeArtistId(primaryName))
+        const artistId = formData.artists?.[0]?.id || updatedTab?.artistId || (primaryName && normalizeArtistId(primaryName))
         if (artistId) {
           try { localStorage.removeItem(`pg_artist_${artistId}`) } catch (e) {}
           invalidateArtistTabsCache(artistId)
@@ -880,8 +885,8 @@ E|----------------------------------------------------------------|
       }
     }
     
-    // 如果仍然冇，嘗試從 artistId 獲取
-    if (!artistPhotoUrl && formData.artistId) {
+    // 如果仍然冇，嘗試從主歌手 id（artists[0].id）獲取
+    if (!artistPhotoUrl && formData.artists?.[0]?.id) {
       // 這個會在 useEffect 中異步獲取，但為了即時顯示，我們先檢查緩存
     }
     

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { doc, getDoc, updateDoc, deleteDoc, deleteField, collection, query, where, getDocs, writeBatch } from '@/lib/firestore-tracked'
+import { doc, getDoc, updateDoc, deleteDoc, deleteField, collection, query, where, or, getDocs, writeBatch } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
@@ -282,13 +282,16 @@ function EditArtist() {
     setIsSearching(false)
   }
 
-  // 檢查相關歌曲 (by stable doc ID)
+  // 檢查相關歌曲 (by stable doc ID; support artistId and artistIds)
   const checkRelatedSongs = async () => {
     try {
       const docId = actualDocId || id
       const snapshot = await getDocs(query(
         collection(db, 'tabs'),
-        where('artistId', '==', docId)
+        or(
+          where('artistId', '==', docId),
+          where('artistIds', 'array-contains', docId)
+        )
       ))
       setRelatedSongsCount(snapshot.size)
     } catch (e) {
@@ -319,10 +322,13 @@ function EditArtist() {
     try {
       const docId = actualDocId || id
       
-      // Find all tabs by the stable doc ID
+      // Find all tabs by the stable doc ID (support artistId and artistIds)
       const snapshot = await getDocs(query(
         collection(db, 'tabs'),
-        where('artistId', '==', docId)
+        or(
+          where('artistId', '==', docId),
+          where('artistIds', 'array-contains', docId)
+        )
       ))
       
       let updatedCount = 0
