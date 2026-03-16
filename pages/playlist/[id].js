@@ -13,12 +13,21 @@ import { recordPlaylistView } from '@/lib/recentViews'
 import { useArtistMap } from '@/lib/useArtistMap'
 import { useAuth } from '@/contexts/AuthContext'
 import { Share, Heart, Music, User, Plus, Copy, ArrowLeft, Bookmark, ListMusic, ArrowUpDown, Pencil, X, Search } from 'lucide-react'
-import { getTabsByIds } from '@/lib/tabs'
+import { getTabsByIds, getArtistSlug } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved, removeSongFromPlaylist } from '@/lib/playlistApi'
 
 function serializePlaylistData(obj) {
-  return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+  try {
+    return JSON.parse(JSON.stringify(obj, (_, v) => {
+      if (v && typeof v.toDate === 'function') return v.toDate().toISOString()
+      if (v && typeof v.toMillis === 'function') return new Date(v.toMillis()).toISOString()
+      return v
+    }))
+  } catch (e) {
+    console.error('[playlist] serializePlaylistData:', e?.message)
+    return Array.isArray(obj) ? [] : null
+  }
 }
 
 export default function PlaylistDetail({
@@ -972,7 +981,7 @@ export default function PlaylistDetail({
                 item.type === 'artist' ? (
                   <Link
                     key={`artist-${item.data.id}`}
-                    href={`/artists/${item.data.id}`}
+                    href={`/artists/${encodeURIComponent(getArtistSlug(item.data) || item.data.id)}`}
                     className="flex-shrink-0 w-[32vw] md:w-36 flex flex-col group"
                   >
                     <div className="w-[32vw] h-[32vw] md:w-36 md:h-36 rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
@@ -1585,12 +1594,19 @@ export async function getStaticProps({ params }) {
       otherPlaylists: { auto: otherPlaylists.auto, manual: otherPlaylists.manual }
     }
     await setPlaylistPageCache(id, payload)
+    const initialPlaylist = serializePlaylistData(playlistData)
+    const initialSongs = serializePlaylistData(slimSongs)
+    const initialUniqueArtists = serializePlaylistData(uniqueArtists)
+    const serializedOther = serializePlaylistData(initialOtherPlaylists)
+    if (initialPlaylist === null && playlistData != null) {
+      console.error('[playlist/[id]] getStaticProps: serialization failed for playlist')
+    }
     return {
       props: {
-        initialPlaylist: serializePlaylistData(playlistData),
-        initialSongs: serializePlaylistData(slimSongs),
-        initialUniqueArtists: serializePlaylistData(uniqueArtists),
-        initialOtherPlaylists: serializePlaylistData(initialOtherPlaylists)
+        initialPlaylist: initialPlaylist ?? null,
+        initialSongs: Array.isArray(initialSongs) ? initialSongs : [],
+        initialUniqueArtists: Array.isArray(initialUniqueArtists) ? initialUniqueArtists : [],
+        initialOtherPlaylists: Array.isArray(serializedOther) ? serializedOther : []
       },
       revalidate: 300
     }

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
+import { getArtistSlug } from '@/lib/tabs'
 import { Mic } from 'lucide-react'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
@@ -133,7 +134,7 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
                 <ArtistCircle
                   key={artist.id}
                   artist={artist}
-                  href={`/artists/${artist.id}`}
+                  href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                 />
               ))}
             </div>
@@ -244,8 +245,9 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
     return groups
   }, [filteredArtists, activeCategory])
 
-  const handleArtistClick = (artistId) => {
-    router.push(`/artists/${artistId}`)
+  const handleArtistClick = (artist) => {
+    const slug = typeof artist === 'object' ? (getArtistSlug(artist) || artist?.id) : artist
+    router.push(`/artists/${encodeURIComponent(slug || '')}`)
   }
 
   const seoTitle = '歌手分類 - Polygon Guitar'

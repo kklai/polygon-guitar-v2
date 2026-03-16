@@ -7,7 +7,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from '@/lib/firestore-tracked';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
-import { getTabsByArtist, getArtistByIdOrSlug, slimTabForArtistPage, nameToSlug } from '../../lib/tabs';
+import { getTabsByArtist, getArtistByIdOrSlug, slimTabForArtistPage, nameToSlug, getArtistSlug } from '../../lib/tabs';
 import { getArtistPageCache, setArtistPageCache } from '../../lib/artistPageCache';
 import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
@@ -552,7 +552,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
   const songCount = allTabs.length;
   const seoTitle = generateArtistTitle(artist.name);
   const seoDescription = generateArtistDescription(artist.name, songCount);
-  const artistSlug = artist.normalizedName || artist.id;
+  const artistSlug = getArtistSlug(artist) || artist.id;
   const seoUrl = `${siteConfig.url}/artists/${encodeURIComponent(artistSlug)}`;
   const artistSchema = generateArtistSchema(artist, allTabs);
   const breadcrumbSchema = generateBreadcrumbSchema([
@@ -622,7 +622,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
               </button>
               {isAdmin && (
                 <Link
-                  href={`/artists/${encodeURIComponent(artist.id)}/edit`}
+                  href={`/artists/${encodeURIComponent(artistSlug)}/edit`}
                   className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition flex-shrink-0"
                   title="編輯歌手"
                 >
@@ -1143,14 +1143,19 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
-  const id = params?.id;
+  let id = params?.id;
   if (!id) return { notFound: true };
   try {
+    // Decode URL segment (Next.js may pass percent-encoded value)
+    try {
+      const decoded = decodeURIComponent(id);
+      if (decoded !== id) id = decoded;
+    } catch (_) { /* keep id */ }
     const artistData = await getArtistByIdOrSlug(id);
     if (!artistData) return { notFound: true };
     const artistId = artistData.id;
 
-    const expectedSlug = artistData.normalizedName || nameToSlug(artistData.name) || artistId;
+    const expectedSlug = getArtistSlug(artistData) || artistId;
     if (expectedSlug !== id) {
       return { redirect: { destination: `/artists/${encodeURIComponent(expectedSlug)}`, permanent: false } };
     }

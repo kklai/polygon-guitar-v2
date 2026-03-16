@@ -1,12 +1,14 @@
 import Link from '@/components/Link'
+import { getArtistSlug } from '@/lib/tabs'
 import { Music } from 'lucide-react'
 
 export default function ArtistCard({ artist }) {
   const songCount = artist.songCount || artist.tabCount || 0
-  
+  const slug = getArtistSlug(artist) || artist.id
+
   return (
     <Link
-      href={`/artists/${artist.id}`}
+      href={`/artists/${encodeURIComponent(slug)}`}
       className="block text-center"
     >
       {/* 圓形頭像 - 無點擊效果 */}

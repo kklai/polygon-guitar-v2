@@ -11,7 +11,7 @@ import Layout from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserLibrary, patchCacheAddPlaylist, isLibraryCacheStale } from '../lib/userLibraryCache';
 import { getPlaylist } from '../lib/playlistApi';
-import { getTabsByIds } from '../lib/tabs';
+import { getTabsByIds, getArtistSlug } from '../lib/tabs';
 
 function resolveCover(tab) {
   if (!tab) return null;
@@ -359,7 +359,7 @@ export default function Library() {
                 return (
                   <div
                     key={`artist-${ar.id}`}
-                    onClick={() => router.push(`/artists/${ar.id}`)}
+                    onClick={() => router.push(`/artists/${encodeURIComponent(getArtistSlug(ar) || ar.id)}`)}
                     className="cursor-pointer group"
                   >
                     <div className="aspect-square rounded-full overflow-hidden mb-2 bg-[#282828] shadow-lg relative max-w-full">

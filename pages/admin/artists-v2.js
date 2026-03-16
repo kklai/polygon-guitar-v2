@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from '@/components/Link'
-import { invalidateArtistCaches } from '../../lib/tabs'
+import { invalidateArtistCaches, getArtistSlug } from '../../lib/tabs'
 import { 
   collection, 
   query, 
@@ -699,7 +699,7 @@ export default function ArtistsV2Page() {
                     {/* 操作 */}
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/artists/${artist.id}`}
+                        href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                         target="_blank"
                         className="text-[#B3B3B3] hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-[#282828] transition-colors"
                       >

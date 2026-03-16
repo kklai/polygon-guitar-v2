@@ -138,6 +138,7 @@ function EditArtist() {
     setIsSubmitting(true)
     try {
       // 由新歌手名生成網站 ID（slug），例如 "陳奕迅 Eason Chan" → "陳奕迅-Eason-Chan"
+      // 每次保存都更新 normalizedName，確保 /artists/[slug] 用改名後嘅 URL 搵到（唔會再用舊 doc id）
       const newSlug = nameToSlug(formData.name) || id
       
       // If name changed, clean up stale denormalized fields on tabs (artistId stays unchanged — it's the doc ID)

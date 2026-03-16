@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from 'react'
 import { useRouter } from 'next/router'
-import { getTabsByIds } from '@/lib/tabs'
+import { getTabsByIds, getArtistSlug } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from '@/components/Link'
 import Head from 'next/head'
@@ -528,7 +528,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                   <ArtistAvatar
                     key={artist.id}
                     artist={artist}
-                    href={`/artists/${artist.id}`}
+                    href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                     compact
                   />
                 ))}
@@ -837,9 +837,9 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
     router.push(`/artists?category=${categoryId}`)
   }
 
-  // 處理歌手點擊（使用 artist.id 確保連結不變）
+  // 處理歌手點擊（使用 slug 以便改名後 URL 跟住名）
   const handleArtistClick = (artist) => {
-    router.push(`/artists/${artist.id}`)
+    router.push(`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`)
   }
 
   // 處理歌曲點擊

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { addSongToPlaylist } from '@/lib/playlistApi'
 import { getSearchHistory, addSearchHistorySong, addSearchHistoryArtist, addSearchHistoryPlaylist, updateSongEntryThumbnail, clearSearchHistory, removeSearchHistoryEntry } from '@/lib/searchHistory'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
-import { getTab } from '@/lib/tabs'
+import { getTab, getArtistSlug } from '@/lib/tabs'
 import { ArrowLeft, Music, Mic, ListMusic, User } from 'lucide-react'
 
 const STORAGE_KEY = 'searchPageData'
@@ -213,7 +213,7 @@ export default function Search() {
 
   const handleArtistClick = (artist) => {
     addSearchHistoryArtist(artist)
-    router.push(`/artists/${artist.id}`)
+    router.push(`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`)
   }
 
   const handlePlaylistClick = (pl) => {
@@ -358,7 +358,7 @@ export default function Search() {
                   return (
                     <div key={`artist-${entry.id}`} className="group flex items-center">
                       <Link
-                        href={`/artists/${entry.id}`}
+                        href={`/artists/${encodeURIComponent(getArtistSlug(entry) || entry.id)}`}
                         className="flex-1 min-w-0 flex items-center gap-3 py-2 pl-0 rounded-lg text-left md:hover:bg-white/5 md:transition"
                       >
                         <div className="w-[49px] h-[49px] rounded-full bg-neutral-800 flex-shrink-0 overflow-hidden">
