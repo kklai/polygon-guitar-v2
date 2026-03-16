@@ -303,6 +303,11 @@ function HomeSettings() {
     }
   }
 
+  // 從後台 menu 點「清除快取」進入時自動打開快取分頁
+  useEffect(() => {
+    if (router.isReady && router.query.tab === 'cache') setActiveTab('cache')
+  }, [router.isReady, router.query.tab])
+
   // Lazy-load lists when user switches to the tab or opens the modal that needs them
   useEffect(() => {
     if (activeTab === 'artists') loadArtistsIfNeeded()

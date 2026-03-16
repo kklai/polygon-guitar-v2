@@ -40,11 +40,11 @@ function ArtistFieldRow({
   const dropdownRef = useRef(null)
   const relationMenuRef = useRef(null)
 
-  // 同步外部變化
+  // 同步外部變化（已選現有歌手 id 或已揀「創建新歌手」isNew 都視為已確認）
   useEffect(() => {
     setInputValue(artist?.name || '')
-    setIsConfirmed(!!artist?.id)
-  }, [artist?.name, artist?.id])
+    setIsConfirmed(!!artist?.id || !!artist?.isNew)
+  }, [artist?.name, artist?.id, artist?.isNew])
 
   // 點擊外部關閉下拉
   useEffect(() => {
@@ -232,7 +232,7 @@ function ArtistFieldRow({
     return () => clearTimeout(timer)
   }, [inputValue, searchArtists, isConfirmed])
 
-  // 處理輸入變化
+  // 處理輸入變化（打字時唔設 isNew，等 dropdown 會照常彈出；只有撳「創建新歌手」先設 isNew: true）
   const handleInputChange = (e) => {
     const newValue = e.target.value
     setInputValue(newValue)
@@ -241,7 +241,7 @@ function ArtistFieldRow({
       ...artist, 
       name: newValue, 
       id: null,  // 清除已選擇的 ID
-      isNew: true 
+      isNew: false 
     })
   }
 
@@ -441,9 +441,10 @@ function ArtistFieldRow({
             type="button"
             onClick={() => {
               setShowDropdown(false)
+              setIsConfirmed(true) // 立即視為已確認，避免 debounce 再觸發搜尋令 dropdown 彈回
               onChange(index, { 
                 ...artist, 
-                name: inputValue, 
+                name: inputValue.trim(), 
                 id: null, 
                 isNew: true 
               })
