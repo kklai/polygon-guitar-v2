@@ -13,7 +13,8 @@ import SpotifyTrackSearch from '@/components/SpotifyTrackSearch'
 import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
-import { auth } from '@/lib/firebase'
+import { auth, db } from '@/lib/firebase'
+import { collection, getDocs } from '@/lib/firestore-tracked'
 import { ArrowLeft, Music, Moon, Sun, Loader2 } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -194,6 +195,13 @@ export default function EditTab() {
   
   // 歌手列表來自 search-data API（1 cache read），供相似歌手匹配與頭像解析用
   const [artistListFromSearch, setArtistListFromSearch] = useState([])
+
+  // 管理員：移植出譜者帳號 — __no_change__ = 不更改，'' = 清除，userId = 歸到該用戶
+  const [assignCreatedBy, setAssignCreatedBy] = useState('__no_change__')
+  const [adminUsers, setAdminUsers] = useState([])
+  const [assignSyncPenName, setAssignSyncPenName] = useState(true)
+  const [createdByFromTab, setCreatedByFromTab] = useState(null) // 載入時嘅 createdBy，用於顯示「目前」
+  const originalUploaderPenNameRef = useRef('') // 載入時嘅筆名，選「不更改」時復原用
   
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(() => {
@@ -274,6 +282,23 @@ export default function EditTab() {
     }
   }, [id, isAuthenticated])
 
+  useEffect(() => {
+    if (!isAdmin || !id) return
+    const loadUsers = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'users'))
+        const list = snap.docs.map(d => {
+          const x = d.data()
+          return { id: d.id, displayName: x.displayName || '', penName: x.penName || '', email: x.email || '' }
+        }).sort((a, b) => (a.penName || a.displayName || a.email).localeCompare(b.penName || b.displayName || b.email))
+        setAdminUsers(list)
+      } catch (e) {
+        console.error('載入用戶列表失敗:', e)
+      }
+    }
+    loadUsers()
+  }, [isAdmin, id])
+
   // 點擊外部關閉類型、地區、Key 下拉
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -306,7 +331,8 @@ export default function EditTab() {
 
       setIsAuthorized(true)
       setIsOwner(data.createdBy === user?.uid)
-      
+      setCreatedByFromTab(data.createdBy || null)
+
       // 歌手相片、類型、地區：缺則用 search-data API 依 artistId 解析（1 cache read，不單獨 getDoc artists）
       let artistPhoto = data.artistPhoto || ''
       let fallbackRegion = data.region || ''
@@ -405,6 +431,7 @@ export default function EditTab() {
         spotifyFilledSongYear: data.spotifyTrackId ? (data.songYear ?? '') : '',
         spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : ''
       })
+      originalUploaderPenNameRef.current = data.uploaderPenName || data.arrangedBy || ''
       if (data.spotifyTrackId) {
         const artist = (data.artist || '').trim()
         const title = (data.title || '').trim()
@@ -508,7 +535,11 @@ export default function EditTab() {
       const submitData = Object.fromEntries(
         Object.entries(rawData).filter(([_, v]) => v !== undefined)
       )
-      
+
+      if (isAdmin && assignCreatedBy !== '__no_change__') {
+        submitData.createdBy = assignCreatedBy === '' ? null : assignCreatedBy
+      }
+
       // 清理 gpSegments 中的 undefined
       if (submitData.gpSegments) {
         submitData.gpSegments = submitData.gpSegments.map(seg => {
@@ -1029,7 +1060,52 @@ E|----------------------------------------------------------------|
               />
             </div>
 
-            {/* Row 2: 歌手* — 與歌名同欄同寬（1 col） */}
+            {/* Row 2: 空白 | 移植出譜者帳號（僅管理員） */}
+            {isAdmin && (
+              <>
+                <div aria-hidden />
+                <div className="space-y-2">
+                  <p className="pl-1 text-[13px] font-medium text-red-500 mb-1">
+                    移植出譜者 {createdByFromTab
+                      ? (adminUsers.find(u => u.id === createdByFromTab)?.penName || adminUsers.find(u => u.id === createdByFromTab)?.displayName || createdByFromTab)
+                      : '未移植（出譜者不連結到任何主頁）'}
+                  </p>
+                  <select
+                    value={assignCreatedBy}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setAssignCreatedBy(v)
+                      if (v === '__no_change__') {
+                        setFormData(prev => ({ ...prev, uploaderPenName: originalUploaderPenNameRef.current }))
+                      } else if (v && v !== '' && assignSyncPenName) {
+                        const u = adminUsers.find(x => x.id === v)
+                        if (u) setFormData(prev => ({ ...prev, uploaderPenName: u.penName || u.displayName || '' }))
+                      }
+                    }}
+                    className="w-full px-4 py-2 border-2 border-red-600 rounded-lg bg-red-950 text-white text-[13px]"
+                  >
+                    <option value="__no_change__">— 不更改 —</option>
+                    <option value="">清除（不連結到任何主頁）</option>
+                    {adminUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.penName || u.displayName || u.email || u.id}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-2 text-[#B3B3B3] text-xs">
+                    <input
+                      type="checkbox"
+                      checked={assignSyncPenName}
+                      onChange={(e) => setAssignSyncPenName(e.target.checked)}
+                      className="rounded border-neutral-600 bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
+                    />
+                    同時更新筆名為該用戶的筆名
+                  </label>
+                </div>
+              </>
+            )}
+
+            {/* Row 3: 歌手* | 關係選單、＋歌手 */}
             <div>
               <ArtistInputSimple
                 value={{ artists: formData.artists }}
@@ -1071,7 +1147,6 @@ E|----------------------------------------------------------------|
                 </div>
               )}
             </div>
-            {/* 第 2 行右欄：關係選單（/ 或 feat.）| 添加歌手掣；下方 合唱/featuring 適用 */}
             <div className="flex flex-col gap-1 sm:items-start pt-0 sm:pt-6">
               <div className="flex items-center gap-2 flex-wrap">
                 {formData.artists?.length >= 2 && (
