@@ -622,7 +622,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
               </button>
               {isAdmin && (
                 <Link
-                  href={`/artists/${encodeURIComponent(artistSlug)}/edit`}
+                  href={`/artists/${encodeURIComponent(artist.id)}/edit`}
                   className="p-1.5 bg-white/80 backdrop-blur-sm rounded-full text-black hover:bg-white transition flex-shrink-0"
                   title="編輯歌手"
                 >
