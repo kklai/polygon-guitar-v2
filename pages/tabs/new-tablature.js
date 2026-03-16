@@ -104,22 +104,21 @@ export default function NewTablaturePage() {
       };
       
       const newTab = await createTab(tabData, user.uid);
-      try {
-        const token = await auth.currentUser?.getIdToken?.();
+      router.push(`/tabs/${newTab.id}`);
+      // Patch caches in background (do not await — quota can block; save must not wait)
+      auth.currentUser?.getIdToken?.().then((token) => {
         if (token) {
-          const patchRes = await fetch('/api/patch-caches-on-new-tab', {
+          return fetch('/api/patch-caches-on-new-tab', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ tab: newTab, action: 'create' })
           });
-          if (!patchRes.ok) {
-            console.warn('[patch-caches] failed:', patchRes.status, await patchRes.text().catch(() => ''));
-          }
         }
-      } catch (e) {
-        console.warn('[patch-caches] error:', e?.message);
-      }
-      router.push(`/tabs/${newTab.id}`);
+      }).catch(() => {}).then((patchRes) => {
+        if (patchRes && !patchRes.ok) {
+          console.warn('[patch-caches] failed:', patchRes.status);
+        }
+      });
       
     } catch (error) {
       console.error('上傳失敗:', error);

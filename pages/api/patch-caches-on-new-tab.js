@@ -263,27 +263,36 @@ export default async function handler(req, res) {
   const adminDb = getAdminDb()
   if (!adminDb) {
     console.warn('[patch-caches] Admin SDK not available')
-    return res.status(500).json({ error: 'Admin SDK not available' })
+    return res.status(200).json({ ok: false, skipped: 'Admin SDK not available' })
   }
 
   const startMs = Date.now()
   let results
-
-  if (action === 'create' || action === 'update' || action === 'delete') {
-    if (!tab?.id) {
-      return res.status(400).json({ error: 'Missing tab.id' })
+  try {
+    if (action === 'create' || action === 'update' || action === 'delete') {
+      if (!tab?.id) {
+        return res.status(400).json({ error: 'Missing tab.id' })
+      }
+      results = await handleTabAction(adminDb, tab, action)
+      console.log(`[patch-caches] ${action} tab ${tab.id} "${tab.title}" — searchData:${results.searchData}, homePage:${results.homePage}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
+    } else {
+      if (!artist?.id || !artist?.name) {
+        return res.status(400).json({ error: 'Missing artist.id or artist.name' })
+      }
+      results = await handleArtistAction(adminDb, artist, action)
+      console.log(`[patch-caches] ${action} artist ${artist.id} "${artist.name}" — searchData:${results.searchData}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
     }
-    results = await handleTabAction(adminDb, tab, action)
-    console.log(`[patch-caches] ${action} tab ${tab.id} "${tab.title}" — searchData:${results.searchData}, homePage:${results.homePage}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
-  } else {
-    if (!artist?.id || !artist?.name) {
-      return res.status(400).json({ error: 'Missing artist.id or artist.name' })
+    bustSearchDataApiCache()
+    bustHomeDataApiCache()
+    return res.status(200).json({ ok: true, results })
+  } catch (e) {
+    const msg = e?.message || String(e)
+    const isQuota = /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(msg) || e?.code === 8
+    if (isQuota) {
+      console.warn('[patch-caches] quota exceeded, skipping patch:', msg)
+    } else {
+      console.error('[patch-caches]', msg)
     }
-    results = await handleArtistAction(adminDb, artist, action)
-    console.log(`[patch-caches] ${action} artist ${artist.id} "${artist.name}" — searchData:${results.searchData}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
+    return res.status(200).json({ ok: false, skipped: isQuota ? 'quota' : 'error', error: msg })
   }
-
-  bustSearchDataApiCache()
-  bustHomeDataApiCache()
-  return res.status(200).json({ ok: true, results })
 }

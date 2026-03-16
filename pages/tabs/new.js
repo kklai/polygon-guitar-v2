@@ -517,25 +517,23 @@ export default function NewTab() {
         uploaderPenName: (formData.uploaderPenName || '').trim() || '結他友'
       }
       const newTab = await createTab(submitData, user.uid)
-      // Incrementally patch Firestore caches (fire-and-forget)
-      try {
-        const token = await auth.currentUser?.getIdToken?.()
+      clearDraftRef.current = true
+      try { localStorage.removeItem(TAB_NEW_DRAFT_KEY) } catch (_) {}
+      router.push(`/tabs/${newTab.id}`)
+      // Patch caches in background (do not await — quota can block; save must not wait)
+      auth.currentUser?.getIdToken?.().then((token) => {
         if (token) {
-          const patchRes = await fetch('/api/patch-caches-on-new-tab', {
+          return fetch('/api/patch-caches-on-new-tab', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ tab: newTab, action: 'create' })
           })
-          if (!patchRes.ok) {
-            console.warn('[patch-caches] failed:', patchRes.status, await patchRes.text().catch(() => ''))
-          }
         }
-      } catch (e) {
-        console.warn('[patch-caches] error:', e?.message)
-      }
-      clearDraftRef.current = true
-      try { localStorage.removeItem(TAB_NEW_DRAFT_KEY) } catch (_) {}
-      router.push(`/tabs/${newTab.id}`)
+      }).catch(() => {}).then((patchRes) => {
+        if (patchRes && !patchRes.ok) {
+          console.warn('[patch-caches] failed:', patchRes.status)
+        }
+      })
     } catch (error) {
       console.error('Create tab error:', error)
       alert('上傳失敗，請重試')
