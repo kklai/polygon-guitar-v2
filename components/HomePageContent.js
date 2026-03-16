@@ -240,7 +240,7 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs, ar
           songs.map((song) => (
             <SongCard
               key={song.id}
-              song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
+              song={{ ...song, artist: getSongArtistDisplay(song, artistMap) }}
               artistPhoto={song.artistPhoto}
               href={`/tabs/${song.id}`}
               compact
@@ -382,6 +382,13 @@ function getInitialStateFromHomeData(initialHomeData) {
   }
 }
 
+// Resolve artist display name: try exact artistId, then lowercase (Firestore artist ids are lowercase).
+function getSongArtistDisplay(song, artistMap) {
+  if (!song) return ''
+  const fromMap = artistMap?.get(song.artistId) || (song.artistId && artistMap?.get(song.artistId.toLowerCase()))
+  return fromMap || song.artist || song.artistName || ''
+}
+
 export default function HomePageContent({ initialHomeSettings = {}, initialHomeData = null }) {
   const router = useRouter()
   const { user, isAdmin } = useAuth()
@@ -485,7 +492,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {hotTabs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
+                    song={{ ...song, artist: getSongArtistDisplay(song, artistMap) }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact
@@ -589,7 +596,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {latestSongs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
+                    song={{ ...song, artist: getSongArtistDisplay(song, artistMap) }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact

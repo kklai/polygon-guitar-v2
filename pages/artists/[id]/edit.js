@@ -90,6 +90,19 @@ function EditArtist() {
           artistSnap = await getDoc(artistRef);
         }
       }
+      // URL 可能用 nameToSlug（大寫）但 Firestore doc ID 係 getOrCreateArtist 嘅 toLowerCase，試小寫
+      if (!artistSnap.exists() && id !== id.toLowerCase()) {
+        const lowerId = id.toLowerCase();
+        artistRef = doc(db, 'artists', lowerId);
+        artistSnap = await getDoc(artistRef);
+        if (!artistSnap.exists()) {
+          const bySlugLower = await getArtistBySlug(lowerId);
+          if (bySlugLower) {
+            artistRef = doc(db, 'artists', bySlugLower.id);
+            artistSnap = await getDoc(artistRef);
+          }
+        }
+      }
       
       if (!artistSnap.exists()) {
         alert('搵唔到歌手')

@@ -38,10 +38,23 @@ export default async function handler(req, res) {
     let artistDoc = await getDoc(doc(db, 'artists', id))
     if (!artistDoc.exists()) {
       const bySlug = await getArtistBySlug(id)
-      if (!bySlug) {
-        return res.status(404).json({ error: 'Artist not found' })
+      if (bySlug) {
+        artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) }
       }
-      artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) }
+    }
+    // URL 可能用 nameToSlug（大寫）但 Firestore doc ID 係 toLowerCase，試小寫
+    if (!artistDoc.exists() && id !== id.toLowerCase()) {
+      const lowerId = id.toLowerCase()
+      artistDoc = await getDoc(doc(db, 'artists', lowerId))
+      if (!artistDoc.exists()) {
+        const bySlugLower = await getArtistBySlug(lowerId)
+        if (bySlugLower) {
+          artistDoc = { exists: () => true, id: bySlugLower.id, data: () => ({ ...bySlugLower }) }
+        }
+      }
+    }
+    if (!artistDoc.exists()) {
+      return res.status(404).json({ error: 'Artist not found' })
     }
     const artistData = { id: artistDoc.id, ...artistDoc.data() }
     const artistId = artistData.id
