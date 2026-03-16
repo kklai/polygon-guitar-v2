@@ -130,12 +130,14 @@ async function main() {
       const updates = {}
       let needsUpdate = false
 
+      let artistIdValid = false
       if (currentArtistId && !docIds.has(currentArtistId)) {
-        const resolved = slugToDocId.get(currentArtistId)
+        const resolved = slugToDocId.get(currentArtistId) || (currentArtistId && slugToDocId.get(currentArtistId.toLowerCase()))
         if (resolved) {
           updates.artistId = resolved
           fixedCount++
           needsUpdate = true
+          artistIdValid = true
         } else {
           orphaned++
           if (orphanedList.length < 50) {
@@ -144,11 +146,15 @@ async function main() {
         }
       } else if (currentArtistId && docIds.has(currentArtistId)) {
         alreadyCorrect++
+        artistIdValid = true
       }
 
-      if (data.artist !== undefined) { updates.artist = admin.firestore.FieldValue.delete(); needsUpdate = true }
-      if (data.artistName !== undefined) { updates.artistName = admin.firestore.FieldValue.delete(); needsUpdate = true }
-      if (data.artistSlug !== undefined) { updates.artistSlug = admin.firestore.FieldValue.delete(); needsUpdate = true }
+      // Only remove denormalized fields when artistId is valid (or was just fixed), so orphaned tabs keep artist/artistName for manual repair
+      if (artistIdValid && (data.artist !== undefined || data.artistName !== undefined || data.artistSlug !== undefined)) {
+        if (data.artist !== undefined) { updates.artist = admin.firestore.FieldValue.delete(); needsUpdate = true }
+        if (data.artistName !== undefined) { updates.artistName = admin.firestore.FieldValue.delete(); needsUpdate = true }
+        if (data.artistSlug !== undefined) { updates.artistSlug = admin.firestore.FieldValue.delete(); needsUpdate = true }
+      }
 
       if (needsUpdate) {
         cleanedCount++
