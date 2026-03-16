@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { ArrowLeft, MoreVertical, Pencil, PenLine, ChevronDown, ChevronUp, Eye, Heart, Bookmark, Music } from 'lucide-react'
 import { useArtistMap } from '@/lib/useArtistMap'
-import { PROFILE_SOCIAL_ICONS } from '@/components/ProfileSocialIcons'
+import { PROFILE_SOCIAL_ICONS, PROFILE_SOCIAL_ORDER } from '@/components/ProfileSocialIcons'
 import { PlaylistCard } from '@/components/LazyImage'
 
 // 社交媒體圖標組件（icon 與 edit 頁共用 PROFILE_SOCIAL_ICONS）
@@ -307,12 +307,17 @@ export default function PublicProfile() {
           {hasSocialLinks && (
             <div className="w-full pt-4 pb-3 mt-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <SocialIcon platform="facebook" url={socialMedia.facebook} />
-                <SocialIcon platform="instagram" url={socialMedia.instagram} />
-                <SocialIcon platform="youtube" url={socialMedia.youtube} />
-                <span className="inline-block -mt-0.5"><SocialIcon platform="whatsapp" url={socialMedia.whatsapp} /></span>
-                <SocialIcon platform="website" url={socialMedia.website} />
-                <SocialIcon platform="threads" url={socialMedia.threads} />
+                {PROFILE_SOCIAL_ORDER.map((platform) =>
+                  socialMedia[platform] && String(socialMedia[platform]).trim() ? (
+                    platform === 'whatsapp' ? (
+                      <span key={platform} className="inline-block -mt-0.5">
+                        <SocialIcon platform={platform} url={socialMedia[platform]} />
+                      </span>
+                    ) : (
+                      <SocialIcon key={platform} platform={platform} url={socialMedia[platform]} />
+                    )
+                  ) : null
+                )}
               </div>
             </div>
           )}

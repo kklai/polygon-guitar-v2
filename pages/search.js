@@ -7,7 +7,7 @@ import { addSongToPlaylist } from '@/lib/playlistApi'
 import { getSearchHistory, addSearchHistorySong, addSearchHistoryArtist, addSearchHistoryPlaylist, updateSongEntryThumbnail, clearSearchHistory, removeSearchHistoryEntry } from '@/lib/searchHistory'
 import { getSongThumbnail } from '@/lib/getSongThumbnail'
 import { getTab } from '@/lib/tabs'
-import { ArrowLeft, Music, Mic, ListMusic } from 'lucide-react'
+import { ArrowLeft, Music, Mic, ListMusic, User } from 'lucide-react'
 
 const STORAGE_KEY = 'searchPageData'
 const CACHE_TTL = 45 * 1000 // 45s — changes visible within 1 min
@@ -42,9 +42,11 @@ export default function Search() {
   const [songs, setSongs] = useState([])
   const [artists, setArtists] = useState([])
   const [playlists, setPlaylists] = useState([])
+  const [users, setUsers] = useState([])
   const [filteredSongs, setFilteredSongs] = useState([])
   const [filteredArtists, setFilteredArtists] = useState([])
   const [filteredPlaylists, setFilteredPlaylists] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchHistory, setSearchHistory] = useState([])
   const [isSearchFocused, setIsSearchFocused] = useState(false)
@@ -61,6 +63,7 @@ export default function Search() {
     setSongs(data.tabs || [])
     setArtists(artistList)
     setPlaylists(data.playlists || [])
+    setUsers(data.users || [])
   }, [])
 
   useEffect(() => {
@@ -102,6 +105,7 @@ export default function Search() {
       setFilteredSongs([])
       setFilteredArtists([])
       setFilteredPlaylists([])
+      setFilteredUsers([])
       return
     }
     const q = searchQuery.trim().toLowerCase()
@@ -128,7 +132,14 @@ export default function Search() {
           (pl.description && pl.description.toLowerCase().includes(q))
       )
     )
-  }, [searchQuery, songs, artists, playlists])
+    setFilteredUsers(
+      showAllPlaylists ? [] : users.filter(
+        (u) =>
+          (u.displayName && u.displayName.toLowerCase().includes(q)) ||
+          (u.penName && u.penName.toLowerCase().includes(q))
+      )
+    )
+  }, [searchQuery, songs, artists, playlists, users])
 
   // 載入時自動 focus 搜尋欄；iPhone Safari 除外（避免 zoom/自動點擊問題）
   const isIOSSafari = typeof navigator !== 'undefined' &&
@@ -273,7 +284,7 @@ export default function Search() {
           {isSearchFocused && (
             <div className="flex gap-2 pb-1" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
               <p className="flex-1 min-w-0 pl-11 text-left text-xs text-[#FFD700]">
-                可輸入 歌名／歌手／歌單名／作曲／作詞／編曲／監製 搜尋
+                可輸入 歌名／歌手／歌單名／出譜者／作曲／作詞／編曲 搜尋
               </p>
               <div className="flex-shrink-0 w-8" aria-hidden="true" />
             </div>
@@ -465,6 +476,40 @@ export default function Search() {
               </section>
             )}
 
+            {filteredUsers.length > 0 && (
+              <section>
+                <h2 className="font-bold text-white mb-2 text-[1.3rem]">用戶</h2>
+                <div className="-mx-4">
+                  <div className="flex overflow-x-auto scrollbar-hide gap-3 px-4">
+                    {filteredUsers.map((u) => (
+                      <Link
+                        key={u.id}
+                        href={`/profile/${u.id}`}
+                        className="flex-shrink-0 flex flex-col items-center"
+                      >
+                        <div className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 mb-2">
+                          {u.photoURL ? (
+                            <img
+                              src={u.photoURL}
+                              alt={u.displayName || u.penName || '用戶'}
+                              className="w-full h-full object-cover pointer-events-none"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-500"><User className="w-8 h-8" strokeWidth={1.5} /></div>
+                          )}
+                        </div>
+                        <span className="text-sm text-neutral-300 truncate max-w-[80px] text-center">
+                          {u.penName || u.displayName || '未命名用戶'}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {filteredSongs.length > 0 && (
               <section>
                 <h2 className="font-bold text-white mb-0 text-[1.3rem]">歌曲</h2>
@@ -506,7 +551,7 @@ export default function Search() {
               </section>
             )}
 
-            {!isLoading && filteredSongs.length === 0 && filteredArtists.length === 0 && filteredPlaylists.length === 0 && (
+            {!isLoading && filteredSongs.length === 0 && filteredArtists.length === 0 && filteredPlaylists.length === 0 && filteredUsers.length === 0 && (
               <div className="text-center py-12">
                 <span className="text-4xl mb-4 block">🔍</span>
                 <p className="text-neutral-500">找不到「{searchQuery}」的結果</p>

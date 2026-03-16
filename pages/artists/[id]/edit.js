@@ -7,7 +7,7 @@ import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
-import { nameToSlug, getArtistBySlug, invalidateArtistCaches } from '@/lib/tabs'
+import { nameToSlug, getArtistByIdOrSlug, invalidateArtistCaches } from '@/lib/tabs'
 import { auth } from '@/lib/firebase'
 import { X, MapPin, ArrowLeft } from 'lucide-react'
 
@@ -70,48 +70,19 @@ function EditArtist() {
 
   const loadArtist = async () => {
     try {
-      let artistRef = doc(db, 'artists', id)
-      let artistSnap = await getDoc(artistRef)
-      
-      // 如果搵唔到，嘗試用繁體版 ID
-      if (!artistSnap.exists()) {
-        const traditionalId = toTraditional(id);
-        if (traditionalId !== id) {
-          artistRef = doc(db, 'artists', traditionalId);
-          artistSnap = await getDoc(artistRef);
-        }
+      let artistData = await getArtistByIdOrSlug(id)
+      if (!artistData) {
+        const traditionalId = toTraditional(id)
+        if (traditionalId !== id) artistData = await getArtistByIdOrSlug(traditionalId)
       }
-      
-      // 再搵唔到就試用 normalizedName（slug）查，例如改名後用新 URL 入編輯頁
-      if (!artistSnap.exists()) {
-        const bySlug = await getArtistBySlug(id);
-        if (bySlug) {
-          artistRef = doc(db, 'artists', bySlug.id);
-          artistSnap = await getDoc(artistRef);
-        }
-      }
-      // URL 可能用 nameToSlug（大寫）但 Firestore doc ID 係 getOrCreateArtist 嘅 toLowerCase，試小寫
-      if (!artistSnap.exists() && id !== id.toLowerCase()) {
-        const lowerId = id.toLowerCase();
-        artistRef = doc(db, 'artists', lowerId);
-        artistSnap = await getDoc(artistRef);
-        if (!artistSnap.exists()) {
-          const bySlugLower = await getArtistBySlug(lowerId);
-          if (bySlugLower) {
-            artistRef = doc(db, 'artists', bySlugLower.id);
-            artistSnap = await getDoc(artistRef);
-          }
-        }
-      }
-      
-      if (!artistSnap.exists()) {
+      if (!artistData) {
         alert('搵唔到歌手')
         router.push('/artists')
         return
       }
 
-      const data = artistSnap.data()
-      setActualDocId(artistSnap.id) // 儲存實際嘅 document ID
+      const data = artistData
+      setActualDocId(artistData.id) // 儲存實際嘅 document ID
       setOriginalName(data.name || '')
       // 支援舊版單一地區轉陣列
       const artistRegions = data.regions || (data.region ? [data.region] : [])

@@ -1,7 +1,9 @@
 /**
  * Profile 社交圖示（與 profile/[id].js、profile/edit.js 共用）
- * 編輯頁與公開頁 icon 一致
+ * 編輯頁與公開頁 icon 一致；顯示順序以此為準
  */
+export const PROFILE_SOCIAL_ORDER = ['whatsapp', 'instagram', 'youtube', 'threads', 'facebook', 'website']
+
 const iconClass = 'w-6 h-6'
 const websiteClass = 'w-[1.7rem] h-[1.7rem]'
 const threadsClass = 'w-8 h-8'

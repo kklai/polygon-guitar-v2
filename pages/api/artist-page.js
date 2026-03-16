@@ -5,10 +5,9 @@
  * Used by client-side navigation to artist page to avoid 1 + 6×N reads.
  */
 
-import { doc, getDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import { pacificTime } from '@/lib/logTime'
-import { getArtistBySlug, getTabsByArtist, slimTabForArtistPage } from '@/lib/tabs'
+import { getArtistByIdOrSlug, getTabsByArtist, slimTabForArtistPage } from '@/lib/tabs'
 import { getArtistPageCache, setArtistPageCache } from '@/lib/artistPageCache'
 
 function serializePayload(obj) {
@@ -35,28 +34,10 @@ export default async function handler(req, res) {
       return res.json(cached)
     }
 
-    let artistDoc = await getDoc(doc(db, 'artists', id))
-    if (!artistDoc.exists()) {
-      const bySlug = await getArtistBySlug(id)
-      if (bySlug) {
-        artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) }
-      }
-    }
-    // URL 可能用 nameToSlug（大寫）但 Firestore doc ID 係 toLowerCase，試小寫
-    if (!artistDoc.exists() && id !== id.toLowerCase()) {
-      const lowerId = id.toLowerCase()
-      artistDoc = await getDoc(doc(db, 'artists', lowerId))
-      if (!artistDoc.exists()) {
-        const bySlugLower = await getArtistBySlug(lowerId)
-        if (bySlugLower) {
-          artistDoc = { exists: () => true, id: bySlugLower.id, data: () => ({ ...bySlugLower }) }
-        }
-      }
-    }
-    if (!artistDoc.exists()) {
+    const artistData = await getArtistByIdOrSlug(id)
+    if (!artistData) {
       return res.status(404).json({ error: 'Artist not found' })
     }
-    const artistData = { id: artistDoc.id, ...artistDoc.data() }
     const artistId = artistData.id
 
     cached = await getArtistPageCache(artistId)
