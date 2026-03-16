@@ -1435,8 +1435,8 @@ export async function getStaticProps({ params }) {
     let artist = null
     if (data.artistId) {
       try {
-        const { getSearchData } = await import('@/lib/searchData')
-        const payload = await getSearchData()
+        const { getSearchDataCached } = await import('@/lib/searchData')
+        const payload = await getSearchDataCached()
         const allArtists = payload?.artists || []
         let found = allArtists.find(a => a.id === data.artistId)
         if (!found) {
