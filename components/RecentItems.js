@@ -95,7 +95,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                 </div>
                 <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
                   {item.type === 'tab'
-                    ? (getArtistName(item) || item.artistName || '')
+                    ? (getArtistName(item) || item.artist || item.artistName || '')
                     : item.type === 'artist'
                       ? '歌手'
                       : (item.subtitle || item.artistName || '')}

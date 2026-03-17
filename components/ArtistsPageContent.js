@@ -32,7 +32,6 @@ const CATEGORY_LABELS = {
   male: { label: '男歌手', color: '#1fc3df' },
   female: { label: '女歌手', color: '#ff9b98' },
   group: { label: '組合', color: '#fed702' },
-  soundtrack: { label: '主題曲', color: '#b388ff' },
   other: { label: '其他', color: '#888888' }
 }
 
@@ -225,7 +224,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
   }, [searchQuery, artists, activeCategory, activeRegion])
 
   const groupedByCategory = useMemo(() => {
-    const groups = { male: [], female: [], group: [], soundtrack: [], other: [] }
+    const groups = { male: [], female: [], group: [], other: [] }
 
     filteredArtists.forEach(artist => {
       let rawType = artist.artistType || artist.gender || 'other'
@@ -324,7 +323,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
               onClick={() => setActiveCategory('all')}
               label="全部"
             />
-            {['male', 'female', 'group', 'soundtrack', 'other'].map(type => (
+            {['male', 'female', 'group', 'other'].map(type => (
               <PillButton
                 key={type}
                 isActive={activeCategory === type}
@@ -388,14 +387,6 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
                   artists={groupedByCategory.group}
                   onArtistClick={handleArtistClick}
                 />
-                {groupedByCategory.soundtrack.length > 0 && (
-                  <HorizontalScrollSection
-                    title={CATEGORY_LABELS.soundtrack.label}
-                    color={CATEGORY_LABELS.soundtrack.color}
-                    artists={groupedByCategory.soundtrack}
-                    onArtistClick={handleArtistClick}
-                  />
-                )}
                 {groupedByCategory.other.length > 0 && (
                   <HorizontalScrollSection
                     title={CATEGORY_LABELS.other.label}

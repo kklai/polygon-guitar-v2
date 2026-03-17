@@ -123,7 +123,6 @@ export default function ArtistsRegion() {
           const ref = doc(db, 'artists', artist.id)
           batch.update(ref, { 
             regions: newRegions,
-            region: newRegions[0] || null, // 保留第一地區向後兼容
             updatedAt: new Date().toISOString()
           })
           updateCount++
@@ -158,15 +157,13 @@ export default function ArtistsRegion() {
       const ref = doc(db, 'artists', id)
       await updateDoc(ref, {
         regions: newRegions,
-        region: newRegions[0] || null,
         updatedAt: new Date().toISOString()
       })
       
       // 更新本地狀態
       setArtists(artists.map(a => a.id === id ? { 
         ...a, 
-        regions: newRegions,
-        region: newRegions[0] || null
+        regions: newRegions
       } : a))
       try {
         const token = await auth.currentUser?.getIdToken?.()

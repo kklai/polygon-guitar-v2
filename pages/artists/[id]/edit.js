@@ -163,7 +163,6 @@ function EditArtist() {
         year: formData.birthYear || formData.debutYear || formData.year,  // 兼容舊欄位
         artistType: formData.artistType || 'other',
         regions: formData.regions || [],
-        region: formData.regions?.[0] || null, // 保留第一地區向後兼容
         updatedAt: new Date().toISOString()
       })
 

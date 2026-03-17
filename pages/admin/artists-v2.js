@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from '@/components/Link'
-import { invalidateArtistCaches, getArtistSlug } from '../../lib/tabs'
+import { invalidateArtistCaches, getArtistSlug, nameToSlug } from '../../lib/tabs'
 import { 
   collection, 
   query, 
@@ -324,11 +324,11 @@ export default function ArtistsV2Page() {
         }
       }
       
-      // 更新歌手資料（保留原有 normalizedName，確保舊連結繼續有效）
+      // 更新歌手資料（normalizedName 一律由 name 衍生，確保與 name 一致）
       console.log('Updating artist...')
       const updateData = {
         name: editForm.name,
-        // 保留原有 normalizedName 不變，確保舊連結繼續有效
+        normalizedName: nameToSlug(editForm.name) || selectedArtist.id,
         artistType: editForm.artistType || '',
         gender: editForm.artistType || '',
         bio: editForm.bio || '',

@@ -1172,7 +1172,7 @@ export async function getStaticProps({ params }) {
       };
     }
 
-    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId);
+    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId, artistData.id);
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
     const slimTabs = tabs.map(slimTabForArtistPage);
     const initialHotTabs = slimTabs.slice(0, 5);

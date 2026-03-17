@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`[artist-page API] cache miss for ${id}, building... at ${pacificTime()}`)
-    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId)
+    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId, artistData.id)
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     const slimTabs = tabs.map(slimTabForArtistPage)
     const payload = {

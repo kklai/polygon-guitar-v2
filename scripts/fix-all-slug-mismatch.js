@@ -64,7 +64,8 @@ function nameToSlug(name) {
     .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
 }
 
 async function getMismatches() {
