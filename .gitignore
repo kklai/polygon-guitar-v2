@@ -40,3 +40,13 @@ scripts/.cache-tabs-lyricist.json
 list-orphaned-from-search-data.js
 orphaned.json
 search-data.json
+
+# Export / backup data (scripts/export-*.js, strip-content, json-to-tsv)
+tabs.json
+tabs-export.json
+tabs-no-content.json
+tabs-no-content.tsv
+artists-export.json
+artists-back.json
+artists-backup.json
+artists-*.tsv

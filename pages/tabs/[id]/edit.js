@@ -213,10 +213,7 @@ export default function EditTab() {
   })
   
   // 解析多歌手（使用 useMemo 確保正確更新）
-  const { collaborators, collaborationType } = useMemo(() => 
-    parseCollaborators(formData.artist), 
-    [formData.artist]
-  )
+  const { collaborators } = useMemo(() => parseCollaborators(formData.artist), [formData.artist])
   
   // 檢查相似歌手並自動獲取相片（使用 search-data API，1 cache read，不讀全表 artists）
   useEffect(() => {
@@ -337,15 +334,18 @@ export default function EditTab() {
       const effectiveArtistId = getTabArtistId(data)
       let resolvedArtistName = (data.artist || data.artistName || '').trim()
 
-      // 歌手相片、類型、地區：缺則用 search-data API 依 effectiveArtistId 解析（1 cache read，不單獨 getDoc artists）
+      // 歌手相片、類型、地區：缺則用 search-data API 依 effectiveArtistId 解析（1 cache read）；同一 API 用於解析所有歌手（含第二位）的 display name 與 relation
       let artistPhoto = data.artistPhoto || ''
       let fallbackRegion = data.region || ''
       let fallbackArtistType = data.artistType || ''
-      if (effectiveArtistId) {
+      let searchDataArtists = []
+      const needSearchData = effectiveArtistId || (Array.isArray(data.artists) && data.artists.some(a => a?.id))
+      if (needSearchData) {
         try {
           const res = await fetch('/api/search-data?only=artists')
           const apiData = await res.json()
           const artists = apiData?.artists || []
+          searchDataArtists = artists
           const match = artists.find(a => a.id === effectiveArtistId || (a.id && a.id.toLowerCase() === effectiveArtistId.toLowerCase()))
           if (match) {
             if (match.photo) artistPhoto = match.photo
@@ -370,20 +370,39 @@ export default function EditTab() {
         }
       }
 
-      // 將舊資料轉換為新多歌手格式（第一位帶入類型/地區供每行顯示）
+      // 將舊資料轉換為新多歌手格式：每位歌手用 search-data 解析 display name；stored role → form relation（feat → 合唱/featuring 下拉）
+      const resolveRegionFromMatch = (m) => {
+        const rawRegions = Array.isArray(m.regions) && m.regions.length > 0 ? m.regions : (m.region ? [m.region] : [])
+        const resolved = rawRegions
+          .map(r => REGIONS.find(x => x.value && (x.value === r || x.label === r)))
+          .filter(Boolean)
+        return resolved.length === 0 ? '' : resolved.length === 1 ? resolved[0].value : resolved.map(r => r.value).join('／')
+      }
+      const validTypes = ['male', 'female', 'group']
       let parsedArtists = data.artists || [
-        { 
+        {
           name: resolvedArtistName,
-          id: effectiveArtistId || null, 
+          id: effectiveArtistId || null,
           relation: null,
           photo: artistPhoto || data.artistPhoto || ''
         }
       ]
       if (parsedArtists.length > 0) {
-        parsedArtists = parsedArtists.map((a, i) => i === 0
-          ? { ...a, name: a.name || resolvedArtistName, artistType: a.artistType || fallbackArtistType, region: a.region || fallbackRegion }
-          : { ...a, artistType: a.artistType ?? '', region: a.region ?? '' }
-        )
+        parsedArtists = parsedArtists.map((a, i) => {
+          const nameMatch = searchDataArtists.find(x => x.id === a.id || (x.id && a.id && x.id.toLowerCase() === a.id.toLowerCase()))
+          const resolvedName = (nameMatch?.name || a.name || '').trim() || (i === 0 ? resolvedArtistName : '')
+          const relation = i === 0 ? (a.relation ?? null) : (a.relation ?? (a.role === 'feat' ? 'feat' : 'slash'))
+          const photo = i === 0
+            ? (artistPhoto || data.artistPhoto || a.photo || '')
+            : (nameMatch?.photo || nameMatch?.photoURL || a.photo || '')
+          const artistType = i === 0
+            ? (a.artistType || fallbackArtistType)
+            : (a.artistType ?? (nameMatch ? (validTypes.includes(nameMatch.artistType ?? nameMatch.type) ? (nameMatch.artistType ?? nameMatch.type) : '') : ''))
+          const region = i === 0
+            ? (a.region || fallbackRegion)
+            : (a.region ?? (nameMatch ? resolveRegionFromMatch(nameMatch) : ''))
+          return { ...a, name: resolvedName, relation, photo, artistType, region }
+        })
       }
 
       setFormData({

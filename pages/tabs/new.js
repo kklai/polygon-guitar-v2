@@ -243,10 +243,7 @@ export default function NewTab() {
   const [uploadError, setUploadError] = useState(null)
   
   // 解析多歌手（使用 useMemo 確保正確更新）
-  const { collaborators, collaborationType } = useMemo(() => 
-    parseCollaborators(formData.artist), 
-    [formData.artist]
-  )
+  const { collaborators } = useMemo(() => parseCollaborators(formData.artist), [formData.artist])
   
   // 檢查相似歌手（使用 search-data API，1 cache read，不讀全表 artists）
   useEffect(() => {

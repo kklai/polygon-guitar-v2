@@ -73,7 +73,8 @@ function serializeTab(tab) {
 export default function TabDetail({ initialTab, artist }) {
   const router = useRouter()
   const { artistMap, getArtistName } = useArtistMap()
-  const { id, key: queryKey, updated: queryUpdated } = router.query
+  const { id, key: queryKey, updated: queryUpdated, debug: queryDebug } = router.query
+  const showDebug = queryDebug === '1' || queryDebug === 'true'
   // router.query 可能未就緒（client nav），用 asPath + location.search + sessionStorage 確保捉到「剛保存」
   const fromSaveRedirect = queryUpdated != null ||
     (typeof window !== 'undefined' && id && (
@@ -121,6 +122,7 @@ export default function TabDetail({ initialTab, artist }) {
   const [infoAutoPlay, setInfoAutoPlay] = useState(false)
 
   const [resolvedArtistName, setResolvedArtistName] = useState('')
+  const [resolvedArtistNamesById, setResolvedArtistNamesById] = useState({})
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
   const topBarRef = useRef(null)
@@ -343,6 +345,30 @@ export default function TabDetail({ initialTab, artist }) {
     getArtistByIdOrSlug(mainId).then((a) => {
       if (!cancelled && a?.name) setResolvedArtistName(a.name)
     }).catch(() => {})
+    return () => { cancelled = true }
+  }, [tab?.id, tab?.artists, tab?.artistIds, artistMap])
+
+  // 多歌手時：artistMap 冇嘅 id 用 getArtistByIdOrSlug 補名，避免顯示 id
+  useEffect(() => {
+    const ids = tab ? getTabArtistIds(tab) : []
+    if (ids.length <= 1) {
+      setResolvedArtistNamesById({})
+      return
+    }
+    let cancelled = false
+    const missing = ids.filter(id => !(artistMap?.get(id) || artistMap?.get(id?.toLowerCase())))
+    if (missing.length === 0) {
+      setResolvedArtistNamesById({})
+      return
+    }
+    Promise.all(missing.map(id => getArtistByIdOrSlug(id).then(a => ({ id, name: a?.name || '' }))))
+      .then(results => {
+        if (cancelled) return
+        const next = {}
+        results.forEach(({ id, name }) => { if (name) next[id] = name })
+        setResolvedArtistNamesById(prev => ({ ...prev, ...next }))
+      })
+      .catch(() => {})
     return () => { cancelled = true }
   }, [tab?.id, tab?.artists, tab?.artistIds, artistMap])
 
@@ -760,10 +786,12 @@ export default function TabDetail({ initialTab, artist }) {
   const mainArtistId = getTabArtistId(tab)
   const tabArtistIds = getTabArtistIds(tab)
   const resolvedSingleName = mainArtistId && (artistMap?.get(mainArtistId) || artistMap?.get(mainArtistId?.toLowerCase()))
+  const isFeat = tab.artists?.[1]?.role === 'feat'
+  const getArtistNameById = (id) => resolvedArtistNamesById[id] || artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id
   const artistDisplayName = tab.collaborators?.length > 1
-    ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
+    ? (isFeat ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
     : tabArtistIds.length > 1
-      ? tabArtistIds.map(id => artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id).join(tab.collaborationType === 'feat' ? ' feat. ' : ' / ')
+      ? tabArtistIds.map(getArtistNameById).join(isFeat ? ' feat. ' : ' / ')
       : (resolvedSingleName || resolvedArtistName || '')
 
   const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
@@ -822,6 +850,15 @@ export default function TabDetail({ initialTab, artist }) {
       
       <Layout>
         <div ref={pageWrapRef} className="w-full">
+        {/* Firebase 原始資料：加 ?debug=1 到 URL 即可顯示 */}
+        {showDebug && tab && (
+          <details className="mx-4 mt-2 p-3 bg-[#1a1a1a] border border-neutral-700 rounded-lg text-left">
+            <summary className="cursor-pointer text-sm text-[#B3B3B3] hover:text-white">Firebase 原始資料 (tabs/{tab.id})</summary>
+            <pre className="mt-2 p-2 bg-black rounded text-xs text-neutral-300 overflow-x-auto whitespace-pre-wrap break-words max-h-80 overflow-y-auto">
+              {JSON.stringify(tab, (_, v) => (v && typeof v?.toDate === 'function' ? v.toDate().toISOString() : v), 2)}
+            </pre>
+          </details>
+        )}
         {/* 頂bar（固定，唔跟住滾動） */}
         <div ref={topBarRef} className="sticky top-0 z-20 bg-black pt-1.5 relative">
           <div className="px-4 pb-1.5 flex items-center justify-between gap-1 sm:gap-2 border-b border-[#1a1a1a]">
@@ -1045,11 +1082,11 @@ export default function TabDetail({ initialTab, artist }) {
               <div className="flex flex-wrap items-center gap-x-0 gap-y-1 mt-1 md:mt-2 min-w-0">
                 {(tab.collaborators?.length > 1 && Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length >= tab.collaborators.length) || tabArtistIds.length > 1 ? (
                   <>
-                    {(tab.collaborators?.length >= tabArtistIds.length ? tab.collaborators : tabArtistIds.map(id => artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id)).map((name, i) => {
+                    {(tab.collaborators?.length >= tabArtistIds.length ? tab.collaborators : tabArtistIds.map(getArtistNameById)).map((name, i) => {
                       const artistId = tabArtistIds[i] ?? tab.collaboratorIds?.[i] ?? mainArtistId
                       const sep = i === 0 ? null : (
                         <span key={`sep-${i}`} className="text-neutral-400 text-sm sm:text-base md:text-lg mx-1 flex-shrink-0">
-                          {tab.collaborationType === 'feat' ? ' feat. ' : ' / '}
+                          {isFeat ? ' feat. ' : ' / '}
                         </span>
                       )
                       return (
@@ -1072,13 +1109,6 @@ export default function TabDetail({ initialTab, artist }) {
                   >
                     {artistDisplayName}
                   </Link>
-                )}
-                {tab.isCollaboration && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    tab.collaborationType === 'feat' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  }`}>
-                    {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
-                  </span>
                 )}
               </div>
               {/* 出譜者 + 評分、喜愛數（同一行）— 撳筆名進入出譜者主頁 */}

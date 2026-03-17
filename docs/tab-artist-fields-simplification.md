@@ -36,10 +36,9 @@ Only these artist-related fields stay on the document:
     { id: 'artistDocId2', role: 'feat' }
   ],
   // Flat array for Firestore query: where('artistIds', 'array-contains', artistId)
-  artistIds: ['artistDocId1', 'artistDocId2'],
-  collaborationType: 'feat',   // 'feat' | 'slash' (for display separator)
-  isCollaboration: true
+  artistIds: ['artistDocId1', 'artistDocId2']
 }
+// Display separator: artists[1].role === 'feat' → " feat. ", else " / "
 ```
 
 - **Display names**: Always from artist map or `getArtistByIdOrSlug(id)` — never from tab.
@@ -78,9 +77,9 @@ Queries use `where('artistIds', 'array-contains', artistId)` (and for backward c
 - **Risk**: Existing tabs have `artist`, `artistName`, `collaborators`, `artistPhoto`, etc. If we only read from `artists` + map, old tabs without `artists` could break.
 - **Mitigation**:
   - **Read path**: Prefer `artists`; if missing, derive from `artistId` + `collaboratorIds` (e.g. `artists = [{ id: tab.artistId, role: 'main' }, ...tab.collaboratorIds.filter(id => id !== tab.artistId).map(id => ({ id, role: 'feat' }))]`). For name/photo, keep fallback to `tab.artist`, `tab.artistName`, `tab.artistPhoto` until a one-time migration strips them.
-  - **Write path**: Never write `artist`, `artistName`, `artistSlug`, `artistPhoto`, `artistBio`, `artistYear`, `artistType`, `region`, etc. Only write `artists`, `artistId`, `collaboratorIds`, `collaborationType`, `isCollaboration`.
+  - **Write path**: Never write `artist`, `artistName`, `artistSlug`, `artistPhoto`, `artistBio`, `artistYear`, `artistType`, `region`, etc. Only write `artists` and `artistIds` (source of truth).
 
-### 6. **Relation / collaborationType**
+### 6. **Relation (feat vs slash)**
 
 - **Risk**: Form uses `relation` (e.g. feat / slash). Display uses `collaborationType` for “feat.” vs “ / ”.
 - **Mitigation**: Keep `collaborationType` on the tab (one value per tab). Map form `relation` → `collaborationType` on save. No need to store per-artist role beyond main vs feat if that’s enough; otherwise store in `artists[i].role` and derive `collaborationType` from the second artist’s relation if you need it.
@@ -97,7 +96,7 @@ Queries use `where('artistIds', 'array-contains', artistId)` (and for backward c
 - **Remove from tab (stop writing, eventually delete in migration):**  
   `artist`, `artistName`, `artistSlug`, `artistBio`, `artistBirthYear`, `artistDebutYear`, `artistPhoto`, `artistType`, `artistYear`, `region`, `collaborators` (names).
 - **Keep / add:**  
-  `artists: [{ id, role }]`, `artistId` (derived), `collaboratorIds` (derived), `collaborationType`, `isCollaboration`.
+  `artists: [{ id, role: 'main'|'feat'|'slash' }]`, `artistIds` (only two fields for artist data).
 - **Bugs to avoid:**  
   Keep query fields; resolve all display and cover from artist map/doc; keep read fallbacks for old docs; don’t write denormalized artist fields to tab; update admin/scripts to use artist id + map/doc.
 

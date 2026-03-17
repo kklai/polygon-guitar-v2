@@ -7,8 +7,7 @@
  *          artistDebutYear, artistPhoto, artistType, artistYear, region, collaborators,
  *          artistId, collaboratorIds (replaced by artists + artistIds)
  *
- * Keeps only: artists: [{ id, role: 'main'|'feat' }, ...], artistIds: [id, ...] (for Firestore query),
- *             collaborationType, isCollaboration
+ * Keeps only: artists: [{ id, role: 'main'|'feat'|'slash' }, ...], artistIds: [id, ...]
  * Adds: artists (if missing, derived from current artistId + collaboratorIds), artistIds = artists.map(a => a.id)
  *
  * Usage:
