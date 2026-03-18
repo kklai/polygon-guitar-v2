@@ -14,6 +14,7 @@ import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { auth, db } from '@/lib/firebase'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import { collection, getDocs } from '@/lib/firestore-tracked'
 import { ArrowLeft, Music, Moon, Sun, Loader2 } from 'lucide-react'
 
@@ -579,10 +580,7 @@ export default function EditTab() {
       
       console.log('Submitting data:', submitData)
       const updatedTab = await updateTab(id, submitData, user.uid, isAdmin)
-      // 立即跳轉，唔等 cache 更新（縮短 loading 時間）
       try { sessionStorage.setItem('pg_tab_just_updated', id) } catch (e) {}
-      router.push(`/tabs/${id}?updated=1`)
-      // 背景做 cache 清除／更新，唔阻塞畫面
       if (typeof window !== 'undefined') {
         clearTabCache(id)
         invalidateArtistCaches()
@@ -592,19 +590,31 @@ export default function EditTab() {
           try { localStorage.removeItem(`pg_artist_${artistId}`) } catch (e) {}
           invalidateArtistTabsCache(artistId)
         }
-        fetch('/api/search-data?bust=1').catch(() => {})
-        auth.currentUser?.getIdToken?.().then((token) => {
+        try {
+          await fetch('/api/search-data?bust=1')
+        } catch (e) {}
+        try {
+          const token = await auth.currentUser?.getIdToken?.()
           if (token) {
-            return fetch('/api/patch-caches-on-new-tab', {
+            const patchRes = await fetch('/api/patch-caches-on-new-tab', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({ tab: updatedTab || { id, ...submitData }, action: 'update' })
             })
+            if (!patchRes.ok) {
+              const j = await patchRes.json().catch(() => ({}))
+              console.warn('[patch-caches] update failed:', patchRes.status, j)
+            }
           }
-        }).catch(() => {}).finally(() => {
-          fetch(`/api/revalidate-tab?id=${id}`).catch(() => {})
-        })
+        } catch (e) {
+          console.warn('[patch-caches] update patch error:', e)
+        }
+        try {
+          await fetch(`/api/revalidate-tab?id=${id}`)
+        } catch (e) {}
+        clearArtistMapCache()
       }
+      router.push(`/tabs/${id}?updated=1`)
     } catch (error) {
       console.error('Update tab error:', error)
       alert('更新失敗：' + error.message)

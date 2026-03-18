@@ -15,6 +15,7 @@ import {
   writeBatch
 } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
 import { ArrowLeft, RefreshCw, Mic } from 'lucide-react'
@@ -442,6 +443,19 @@ export default function ArtistsV2Page() {
 
     try {
       await deleteDoc(doc(db, 'artists', artist.id))
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ artist: { id: artist.id }, action: 'delete-artist' })
+          })
+        }
+      } catch (e) {
+        console.warn('[patch-caches] delete-artist:', e)
+      }
+      clearArtistMapCache()
       showMessage('刪除成功')
       fetchArtists()
     } catch (error) {

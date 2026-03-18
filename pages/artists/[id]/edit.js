@@ -434,6 +434,19 @@ function EditArtist() {
     try {
       const docId = actualDocId || id
       await deleteDoc(doc(db, 'artists', docId))
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ artist: { id: docId }, action: 'delete-artist' })
+          })
+        }
+      } catch (e) {
+        console.warn('[patch-caches] delete-artist:', e)
+      }
+      clearArtistMapCache()
       alert('✅ 歌手已刪除')
       router.push('/artists')
     } catch (error) {

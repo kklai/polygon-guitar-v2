@@ -10,7 +10,8 @@ import {
   deleteDoc,
   where
 } from '@/lib/firestore-tracked'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
 import { ArrowLeft, RefreshCw, Mic } from 'lucide-react'
@@ -120,6 +121,19 @@ export default function MergeArtistsPage() {
 
       // 3. 刪除被合併的歌手
       await deleteDoc(doc(db, 'artists', mergeArtist.id))
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ artist: { id: mergeArtist.id }, action: 'delete-artist' })
+          })
+        }
+      } catch (e) {
+        console.warn('[patch-caches] delete-artist:', e)
+      }
+      clearArtistMapCache()
 
       showMessage(`✅ 合併成功！更新了 ${updatedTabs} 首樂譜`)
       

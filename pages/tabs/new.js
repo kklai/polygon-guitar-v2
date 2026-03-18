@@ -14,6 +14,7 @@ import { extractYouTubeVideoId } from '@/lib/wikipedia'
 import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '@/lib/tabFormatter'
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { ArrowLeft, Music, Loader2 } from 'lucide-react'
 
@@ -516,21 +517,27 @@ export default function NewTab() {
       const newTab = await createTab(submitData, user.uid)
       clearDraftRef.current = true
       try { localStorage.removeItem(TAB_NEW_DRAFT_KEY) } catch (_) {}
-      router.push(`/tabs/${newTab.id}`)
-      // Patch caches in background (do not await — quota can block; save must not wait)
-      auth.currentUser?.getIdToken?.().then((token) => {
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
         if (token) {
-          return fetch('/api/patch-caches-on-new-tab', {
+          const patchRes = await fetch('/api/patch-caches-on-new-tab', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ tab: newTab, action: 'create' })
           })
+          if (!patchRes.ok) {
+            const j = await patchRes.json().catch(() => ({}))
+            console.warn('[patch-caches] create failed:', patchRes.status, j)
+          }
         }
-      }).catch(() => {}).then((patchRes) => {
-        if (patchRes && !patchRes.ok) {
-          console.warn('[patch-caches] failed:', patchRes.status)
-        }
-      })
+      } catch (e) {
+        console.warn('[patch-caches] create patch error:', e)
+      }
+      try {
+        await fetch('/api/search-data?bust=1')
+      } catch (e) {}
+      clearArtistMapCache()
+      router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)
       alert('上傳失敗，請重試')
