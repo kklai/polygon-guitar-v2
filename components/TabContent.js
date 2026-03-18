@@ -576,7 +576,11 @@ function isBracketsOnlyNumberedNotationLine(line) {
       else allNotationOrEmpty = false;
     }
   }
-  return hasNotation && allNotationOrEmpty;
+  if (!hasNotation || !allNotationOrEmpty) return false;
+  // 括號外若有英文／中文，即係歌詞行（如 See you (5) 45(3)），唔好當簡譜
+  const outsideBrackets = line.replace(/[\(（][^\)）]*[\)）]/g, '');
+  if (/[a-zA-Z\u4e00-\u9fff]/.test(outsideBrackets)) return false;
+  return true;
 }
 
 // 從簡譜行提取所有音符（支持 1', 5#, 6, 7, 等格式，逗號表示低音）
