@@ -9,8 +9,21 @@ import RecentItems from '@/components/RecentItems'
 import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
 import SectionViewportLoader from '@/components/SectionViewportLoader'
 import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
-import { useArtistMap } from '@/lib/useArtistMap'
+import { useArtistMap, resolveHomeSongArtistLine } from '@/lib/useArtistMap'
 import { Music } from 'lucide-react'
+
+/**
+ * SongCard `song` 輸入（首頁各區）— 歌手行一律經 resolveHomeSongArtistLine(song, artistMap)：
+ *
+ * 1) 熱門結他譜 hotTabs、最新上架 latestSongs、自訂歌單歌曲 customPlaylistSongs
+ *    來自 API / slimTabForHome：{ id, title, artistId, artist?, artistIds?, artists?,
+ *    coverImage?, artistPhoto?, thumbnail?, youtubeUrl? }
+ *    多歌手時有 artistIds + artists[].role（feat →「 feat. 」否則「 / 」）。
+ *
+ * 2) 最近瀏覽 tab 列（RecentItems，非 SongCard 但同一 resolver）
+ *    localStorage recentViews：{ type:'tab', id, title, artistIds, artists?, thumbnail? }
+ *    舊紀錄或可有 artistId / artist / artistName。
+ */
 
 // 1-hour local cache for home payload (cache/homePage snapshot) — reload reads from here
 const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
@@ -240,7 +253,7 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs, ar
           songs.map((song) => (
             <SongCard
               key={song.id}
-              song={{ ...song, artist: getSongArtistDisplay(song, artistMap) }}
+              song={{ ...song, artist: resolveHomeSongArtistLine(song, artistMap) }}
               artistPhoto={song.artistPhoto}
               href={`/tabs/${song.id}`}
               compact
@@ -382,13 +395,6 @@ function getInitialStateFromHomeData(initialHomeData) {
   }
 }
 
-// Resolve artist display name: try exact artistId, then lowercase (Firestore artist ids are lowercase).
-function getSongArtistDisplay(song, artistMap) {
-  if (!song) return ''
-  const fromMap = artistMap?.get(song.artistId) || (song.artistId && artistMap?.get(song.artistId.toLowerCase()))
-  return fromMap || song.artist || song.artistName || ''
-}
-
 export default function HomePageContent({ initialHomeSettings = {}, initialHomeData = null }) {
   const router = useRouter()
   const { user, isAdmin } = useAuth()
@@ -492,7 +498,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {hotTabs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={{ ...song, artist: getSongArtistDisplay(song, artistMap) }}
+                    song={{ ...song, artist: resolveHomeSongArtistLine(song, artistMap) }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact
@@ -596,7 +602,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {latestSongs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={{ ...song, artist: getSongArtistDisplay(song, artistMap) }}
+                    song={{ ...song, artist: resolveHomeSongArtistLine(song, artistMap) }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact

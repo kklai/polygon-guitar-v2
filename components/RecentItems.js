@@ -1,7 +1,7 @@
 // components/RecentItems.js
 import Link from '@/components/Link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useArtistMap, resolveRecentTabArtistLine } from '@/lib/useArtistMap';
+import { useArtistMap, resolveHomeSongArtistLine } from '@/lib/useArtistMap';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
 function getItemHref(item) {
@@ -95,7 +95,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                 </div>
                 <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
                   {item.type === 'tab'
-                    ? resolveRecentTabArtistLine(item, artistMap)
+                    ? resolveHomeSongArtistLine(item, artistMap)
                     : item.type === 'artist'
                       ? '歌手'
                       : (item.subtitle || item.artistName || '')}

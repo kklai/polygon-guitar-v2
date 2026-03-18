@@ -786,7 +786,7 @@ export default function TabDetail({ initialTab, artist }) {
   const mainArtistId = getTabArtistId(tab)
   const tabArtistIds = getTabArtistIds(tab)
   const resolvedSingleName = mainArtistId && (artistMap?.get(mainArtistId) || artistMap?.get(mainArtistId?.toLowerCase()))
-  const isFeat = tab.artists?.[1]?.role === 'feat'
+  const isFeat = tab.artists?.[1]?.role === 'feat' || tab.artists?.[1]?.relation === 'feat'
   const getArtistNameById = (id) => resolvedArtistNamesById[id] || artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id
   const artistDisplayName = tab.collaborators?.length > 1
     ? (isFeat ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
