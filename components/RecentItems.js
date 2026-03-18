@@ -1,7 +1,7 @@
 // components/RecentItems.js
 import Link from '@/components/Link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useArtistMap } from '@/lib/useArtistMap';
+import { useArtistMap, resolveRecentTabArtistLine } from '@/lib/useArtistMap';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
 function getItemHref(item) {
@@ -14,7 +14,7 @@ function getItemHref(item) {
 
 export default function RecentItems({ items = [], title = '最近瀏覽' }) {
   const { user } = useAuth();
-  const { getArtistName } = useArtistMap();
+  const { getArtistName, artistMap } = useArtistMap();
 
   // 過濾：如果用戶未登入，過濾掉 liked-songs
   const displayItems = user 
@@ -48,9 +48,9 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                 relative overflow-hidden mb-2 bg-[#121212]
                 ${item.type === 'artist' ? 'rounded-full aspect-square' : 'rounded-[4px] aspect-square'}
               `}>
-                {item.image ? (
+                {(item.thumbnail || item.image) ? (
                   <img 
-                    src={item.image} 
+                    src={item.thumbnail || item.image} 
                     alt={item.title}
                     className="w-full h-full object-cover pointer-events-none"
                   />
@@ -95,7 +95,7 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                 </div>
                 <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
                   {item.type === 'tab'
-                    ? (getArtistName(item) || item.artist || item.artistName || '')
+                    ? resolveRecentTabArtistLine(item, artistMap)
                     : item.type === 'artist'
                       ? '歌手'
                       : (item.subtitle || item.artistName || '')}

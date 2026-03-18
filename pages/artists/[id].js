@@ -1161,7 +1161,13 @@ export async function getStaticProps({ params }) {
     }
 
     const cached = await getArtistPageCache(artistId);
-    if (cached?.artist && Array.isArray(cached.allTabs)) {
+    // Do not trust cache when tab lists are empty: first visit often cached 0 songs before
+    // tabs existed or before patch-caches ran; that stale doc lasts ~1y and hid all tabs on prod.
+    const cachedTabsOk =
+      cached?.artist &&
+      Array.isArray(cached.allTabs) &&
+      (cached.allTabs.length > 0 || (cached.hotTabs || []).length > 0);
+    if (cachedTabsOk) {
       return {
         props: {
           initialArtist: serializeForProps(cached.artist),
