@@ -40,6 +40,12 @@ const sections = [
     ]
   },
   {
+    title: '樂譜',
+    items: [
+      { href: '/admin/batch-uploader-pen-name', label: '批量改出譜者名稱', roles: [ROLES.SUPER_ADMIN] },
+    ]
+  },
+  {
     title: '數據',
     items: [
       { href: '/admin/daily-uploads', label: '每日上傳', roles: [ROLES.SUPER_ADMIN] },
