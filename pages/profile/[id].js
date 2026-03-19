@@ -452,7 +452,24 @@ export default function PublicProfile() {
 
           {profile.showUploads !== false && otherTabs.length > 0 && (
             <section>
-              <h2 className="text-white font-bold text-lg mb-2">所有出譜 <span className="text-[#B3B3B3] font-normal text-base">({otherTabs.length})</span></h2>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-white font-bold text-lg">所有出譜 <span className="text-[#B3B3B3] font-normal text-base">({otherTabs.length})</span></h2>
+                {otherTabs.length > ALL_TABS_INITIAL && (
+                  <button
+                    type="button"
+                    onClick={() => setAllTabsExpanded(prev => !prev)}
+                    className="p-1 text-[#B3B3B3] hover:text-[#FFD700] transition flex-shrink-0"
+                    title={allTabsExpanded ? '收埋' : '展開'}
+                    aria-expanded={allTabsExpanded}
+                  >
+                    {allTabsExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
               <div className="space-y-0">
                 {(allTabsExpanded ? otherTabs : otherTabs.slice(0, ALL_TABS_INITIAL)).map((tab, index) => (
                   <Fragment key={tab.id}>
