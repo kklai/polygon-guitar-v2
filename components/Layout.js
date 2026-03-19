@@ -230,7 +230,7 @@ export default function Layout({ children, fullWidth = false, hideHeader = false
                       className={item.icon === 'hand' ? 'w-[25px] h-[25px] translate-y-[2.8px]' : 'w-[32px] h-[32px]'}
                     />
                   </div>
-                  <span className={`text-xs font-medium pointer-events-none ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'}`}>{item.label}</span>
+                  <span className={`text-xs font-medium pointer-events-none ${item.icon === 'hand' ? 'mt-2' : 'mt-0.5'} ${(item.label === '出譜' || item.label === '管理') ? 'md:-translate-y-[0.5px]' : ''}`}>{item.label}</span>
                 </Link>
             ))}
           </div>

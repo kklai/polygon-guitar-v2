@@ -177,6 +177,11 @@ export default function EditTab() {
   const playKeyMenuRef = useRef(null)
   const [relationMenuOpen, setRelationMenuOpen] = useState(false)
   const relationMenuRef = useRef(null)
+  // 出譜者名稱 autocomplete（僅 Admin 可編輯時顯示）
+  const [penNameSuggestions, setPenNameSuggestions] = useState([])
+  const [penNameShowDropdown, setPenNameShowDropdown] = useState(false)
+  const [penNameSelectedIndex, setPenNameSelectedIndex] = useState(-1)
+  const penNameDropdownRef = useRef(null)
   // 歌名／歌手變更時：清空或還原 Spotify 擷取資料（key = artist|||title）
   const spotifySnapshotByKeyRef = useRef({})
   // 撳「獲取歌曲資訊」後，未成功獲取資料嘅輸入欄閃紅框
@@ -250,7 +255,7 @@ export default function EditTab() {
         }
         
         setSimilarArtists(foundArtists.slice(0, 5))
-        
+
         if (foundArtists.length > 0 && !formData.artistPhoto && !useExistingArtistSelected) {
           const firstMatch = foundArtists[0]
           const photo = firstMatch.photo || ''
@@ -283,10 +288,30 @@ export default function EditTab() {
       if (capoMenuRef.current && !capoMenuRef.current.contains(e.target)) setCapoMenuOpen(false)
       if (playKeyMenuRef.current && !playKeyMenuRef.current.contains(e.target)) setPlayKeyMenuOpen(false)
       if (relationMenuRef.current && !relationMenuRef.current.contains(e.target)) setRelationMenuOpen(false)
+      if (penNameDropdownRef.current && !penNameDropdownRef.current.contains(e.target)) setPenNameShowDropdown(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // 出譜者名稱 autocomplete：僅 Admin 時依輸入拉取現有名稱
+  useEffect(() => {
+    if (!isAdmin) return
+    const q = (formData.uploaderPenName || '').trim()
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/pen-names?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        const list = data?.penNames || []
+        setPenNameSuggestions(list)
+        setPenNameSelectedIndex(-1)
+        if (list.length > 0) setPenNameShowDropdown(true)
+      } catch (_) {
+        setPenNameSuggestions([])
+      }
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [isAdmin, formData.uploaderPenName])
 
   const loadTab = async () => {
     try {
@@ -1071,7 +1096,7 @@ E|----------------------------------------------------------------|
                 <p className="mt-1 text-sm text-red-400">{errors.title}</p>
               )}
             </div>
-            <div>
+            <div ref={penNameDropdownRef} className="relative">
               <label className="block pl-1 text-[13px] font-medium text-white mb-1">
                 出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">會使用你個人主頁嘅設定</span>
               </label>
@@ -1080,12 +1105,46 @@ E|----------------------------------------------------------------|
                 name="uploaderPenName"
                 value={formData.uploaderPenName}
                 onChange={handleChange}
+                onFocus={() => isAdmin && setPenNameShowDropdown(true)}
+                onKeyDown={(e) => {
+                  if (!isAdmin || !penNameShowDropdown) return
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setPenNameSelectedIndex(prev => prev < penNameSuggestions.length - 1 ? prev + 1 : prev)
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setPenNameSelectedIndex(prev => prev > 0 ? prev - 1 : -1)
+                  } else if (e.key === 'Enter' && penNameSelectedIndex >= 0 && penNameSuggestions[penNameSelectedIndex]) {
+                    e.preventDefault()
+                    setFormData(prev => ({ ...prev, uploaderPenName: penNameSuggestions[penNameSelectedIndex] }))
+                    setPenNameShowDropdown(false)
+                  } else if (e.key === 'Escape') {
+                    setPenNameShowDropdown(false)
+                  }
+                }}
                 readOnly={!isAdmin}
                 placeholder="結他友"
                 className={`w-full px-4 py-2 border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#525252] ${
                   isAdmin ? 'bg-black border-neutral-700 text-white' : 'bg-[#1a1a1a] border-[#B8860B] cursor-not-allowed opacity-90 text-[#737373]'
                 }`}
               />
+              {isAdmin && penNameShowDropdown && penNameSuggestions.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 mt-1 bg-[#1a1a1a] border border-neutral-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  {penNameSuggestions.map((name, idx) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, uploaderPenName: name }))
+                        setPenNameShowDropdown(false)
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-[13px] hover:bg-neutral-800 transition ${idx === penNameSelectedIndex ? 'bg-neutral-800 text-white' : 'text-[#E5E5E5]'}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Row 2: 歌手* | 關係選單、＋歌手 */}
