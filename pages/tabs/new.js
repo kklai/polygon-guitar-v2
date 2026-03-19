@@ -303,7 +303,7 @@ export default function NewTab() {
     return () => clearTimeout(timer)
   }, [formData.artist, useExistingArtistSelected, artistListFromSearch])
   
-  // 載入用戶的出譜者筆名
+  // 載入用戶的出譜者名稱
   useEffect(() => {
     const loadUserPenName = async () => {
       if (user?.uid) {
@@ -312,13 +312,11 @@ export default function NewTab() {
           const userSnap = await getDoc(userRef)
           if (userSnap.exists()) {
             const userData = userSnap.data()
-            const penName = userData.penName || userData.displayName || ''
-            if (penName) {
-              setFormData(prev => ({ ...prev, uploaderPenName: penName }))
-            }
+            const penName = (userData.penName || '').trim() || (userData.displayName || '').trim() || (userData.email || '').split('@')[0]?.trim() || '結他友'
+            setFormData(prev => ({ ...prev, uploaderPenName: penName }))
           }
         } catch (error) {
-          console.error('載入筆名失敗:', error)
+          console.error('載入出譜者名稱失敗:', error)
         }
       }
     }
@@ -510,9 +508,25 @@ export default function NewTab() {
         if (empty(cleanFormData.producer) && parsedCredits.producer) cleanFormData.producer = parsedCredits.producer
       }
 
+      // 強制使用個人主頁嘅出譜者名稱；若未設則自動生成並寫入 users（寫入樂譜嘅名唔可以係空）
+      let penNameToUse = (formData.uploaderPenName || '').trim() || '結他友'
+      try {
+        const userRef = doc(db, 'users', user.uid)
+        const userSnap = await getDoc(userRef)
+        if (userSnap.exists()) {
+          const userData = userSnap.data()
+          const fromProfile = (userData.penName || '').trim()
+          if (fromProfile) {
+            penNameToUse = fromProfile
+          } else {
+            penNameToUse = (userData.displayName || '').trim() || (userData.email || '').split('@')[0]?.trim() || '結他友'
+            await updateDoc(userRef, { penName: penNameToUse, updatedAt: new Date().toISOString() })
+          }
+        }
+      } catch (_) {}
       const submitData = {
         ...cleanFormData,
-        uploaderPenName: (formData.uploaderPenName || '').trim() || '結他友'
+        uploaderPenName: penNameToUse
       }
       const newTab = await createTab(submitData, user.uid)
       clearDraftRef.current = true
@@ -830,11 +844,9 @@ E|----------------------------------------------------------------|
           {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
         </div>
         <div>
-          <label className="block pl-1 text-[13px] font-medium text-white mb-1">出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">可於個人主頁修改</span></label>
-          <input type="text" name="uploaderPenName" value={formData.uploaderPenName} onChange={handleChange}
-            readOnly={!isAdmin}
-            placeholder="結他友"
-            className={`w-full px-4 py-2 border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#525252] ${!isAdmin ? 'bg-[#1a1a1a] border-[#B8860B] cursor-not-allowed opacity-90 text-[#737373]' : 'bg-black border-neutral-700 text-white'}`} />
+          <label className="block pl-1 text-[13px] font-medium text-white mb-1">出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">會使用你個人主頁嘅設定</span></label>
+          <input type="text" name="uploaderPenName" value={formData.uploaderPenName} readOnly placeholder="結他友"
+            className="w-full px-4 py-2 border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#525252] bg-[#1a1a1a] border-[#B8860B] cursor-not-allowed opacity-90 text-[#737373]" />
         </div>
 
         {/* Row 2: 歌手* — 與歌名同欄同寬（1 col） */}

@@ -180,7 +180,7 @@ function HomeSettings() {
       (tab.composer && tab.composer.toLowerCase().includes(query)) ||
       (tab.lyricist && tab.lyricist.toLowerCase().includes(query)) ||
       (tab.arranger && tab.arranger.toLowerCase().includes(query)) ||
-      (tab.arrangedBy && tab.arrangedBy.toLowerCase().includes(query))
+      (tab.uploaderPenName && tab.uploaderPenName.toLowerCase().includes(query))
     )
     
     setTabSearchResults(results)
@@ -1208,13 +1208,13 @@ function HomeSettings() {
                             <p className="text-white font-medium truncate">{tab.title}</p>
                             <p className="text-sm text-neutral-500 truncate">
                               {getArtistName(tab)}
-                              {(tab.uploaderPenName || tab.arrangedBy) && (
+                              {tab.uploaderPenName && (
                                 <span className="text-[#FFD700] text-[10px] ml-1.5 inline-flex items-center gap-0.5 align-middle">
                                   <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                                     <path d="m15 5 4 4" />
                                   </svg>
-                                  {tab.uploaderPenName || tab.arrangedBy}
+                                  {tab.uploaderPenName}
                                 </span>
                               )}
                             </p>
@@ -1294,13 +1294,13 @@ function HomeSettings() {
                             </p>
                             <p className="text-xs text-neutral-500 truncate">
                               {getArtistName(tab)}
-                              {(tab.uploaderPenName || tab.arrangedBy) && (
+                              {tab.uploaderPenName && (
                                 <span className="text-[#FFD700] text-[10px] ml-1.5 inline-flex items-center gap-0.5 align-middle">
                                   <svg className="w-2.5 h-2.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                                     <path d="m15 5 4 4" />
                                   </svg>
-                                  {tab.uploaderPenName || tab.arrangedBy}
+                                  {tab.uploaderPenName}
                                 </span>
                               )}
                             </p>

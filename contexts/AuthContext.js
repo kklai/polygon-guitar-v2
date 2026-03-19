@@ -78,14 +78,17 @@ export function AuthProvider({ children }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    
+
     const userDoc = await getDoc(userRef)
     if (!userDoc.exists()) {
-      await setDoc(userRef, userData)
+      // 新帳號：自動生成出譜者名稱（displayName > email 前段 > 結他友）
+      const generatedPenName = (firebaseUser.displayName || '').trim() ||
+        (firebaseUser.email || '').split('@')[0]?.trim() || '結他友'
+      await setDoc(userRef, { ...userData, penName: generatedPenName })
     } else {
-      await setDoc(userRef, { 
-        ...userData, 
-        createdAt: userDoc.data().createdAt 
+      await setDoc(userRef, {
+        ...userData,
+        createdAt: userDoc.data().createdAt
       }, { merge: true })
     }
   }

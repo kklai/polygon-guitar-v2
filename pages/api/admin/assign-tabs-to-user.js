@@ -4,7 +4,7 @@
  *
  * Body: { tabIds: string[], targetUserId: string | null, updatePenName?: boolean }
  * - targetUserId: user UID to assign; null/empty = clear createdBy (unlink from any profile).
- * - updatePenName: if true and targetUserId set, set each tab's uploaderPenName to the user's penName/displayName.
+ * - updatePenName: if true and targetUserId set, set each tab's uploaderPenName to the user's penName only.
  *
  * Auth: Bearer token (admin). On success, rebuilds allTabs cache.
  */
@@ -51,10 +51,15 @@ export default async function handler(req, res) {
 
     let userPenName = null
     if (targetUserId && updatePenName) {
-      const userSnap = await adminDb.collection('users').doc(targetUserId).get()
+      const userRef = adminDb.collection('users').doc(targetUserId)
+      const userSnap = await userRef.get()
       if (userSnap.exists) {
         const d = userSnap.data()
-        userPenName = (d.penName || d.displayName || '').trim() || null
+        const fromProfile = (d.penName || '').trim()
+        userPenName = fromProfile || (d.displayName || '').trim() || (d.email || '').split('@')[0]?.trim() || '結他友'
+        if (!fromProfile && userPenName) {
+          await userRef.update({ penName: userPenName, updatedAt: new Date().toISOString() })
+        }
       }
     }
 

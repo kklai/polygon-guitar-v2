@@ -119,8 +119,7 @@ export default function Search() {
           (song.composer && song.composer.toLowerCase().includes(q)) ||
           (song.lyricist && song.lyricist.toLowerCase().includes(q)) ||
           (song.arranger && song.arranger.toLowerCase().includes(q)) ||
-          (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(q)) ||
-          (song.arrangedBy && song.arrangedBy.toLowerCase().includes(q))
+          (song.uploaderPenName && song.uploaderPenName.toLowerCase().includes(q))
         }
       )
     )
@@ -205,7 +204,6 @@ export default function Search() {
         artistId: song.artistId,
         thumbnail: getSongThumbnail(song),
         uploaderPenName: song.uploaderPenName,
-        arrangedBy: song.arrangedBy,
       })
     }
     router.push(`/tabs/${songId}`)
@@ -325,7 +323,7 @@ export default function Search() {
                 }
                 if (entry.type === 'song') {
                   const songFromCatalog = songs.find((s) => s.id === entry.id)
-                  const uploaderDisplay = entry.uploaderName || (songFromCatalog && (songFromCatalog.uploaderPenName || songFromCatalog.arrangedBy)) || ''
+                  const uploaderDisplay = entry.uploaderName || (songFromCatalog && songFromCatalog.uploaderPenName) || ''
                   const thumbnailDisplay = entry.thumbnail || (songFromCatalog && getSongThumbnail(songFromCatalog)) || null
                   return (
                     <div key={`song-${entry.id}`} className="group flex items-center">
@@ -538,9 +536,9 @@ export default function Search() {
                       <span className="flex-shrink-0 text-right">
                         {isAdding ? (
                           <span className="w-5 h-5 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin inline-block" />
-                        ) : (song.uploaderPenName || song.arrangedBy) ? (
+                        ) : song.uploaderPenName ? (
                           <span className="text-xs text-[#999] truncate max-w-[80px] block">
-                            {song.uploaderPenName || song.arrangedBy}
+                            {song.uploaderPenName}
                           </span>
                         ) : null}
                       </span>

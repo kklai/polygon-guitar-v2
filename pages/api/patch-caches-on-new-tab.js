@@ -43,8 +43,7 @@ function toSearchTabSlim(tab) {
     composer: tab.composer || '',
     lyricist: tab.lyricist || '',
     arranger: tab.arranger || '',
-    uploaderPenName: tab.uploaderPenName || '',
-    arrangedBy: tab.arrangedBy || ''
+    uploaderPenName: tab.uploaderPenName || ''
   })
 }
 

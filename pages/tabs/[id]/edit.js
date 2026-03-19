@@ -15,7 +15,7 @@ import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { auth, db } from '@/lib/firebase'
 import { clearArtistMapCache } from '@/lib/useArtistMap'
-import { collection, getDocs } from '@/lib/firestore-tracked'
+import { collection, getDocs, doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { ArrowLeft, Music, Moon, Sun, Loader2 } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -136,7 +136,7 @@ export default function EditTab() {
     album: '',
     bpm: '',
     // 上傳者資料
-    uploaderPenName: '', // 上傳者筆名
+    uploaderPenName: '', // 出譜者名稱
     remark: '', // 備註（顯示在譜上方）
     // YouTube
     youtubeUrl: '',
@@ -197,12 +197,12 @@ export default function EditTab() {
   // 歌手列表來自 search-data API（1 cache read），供相似歌手匹配與頭像解析用
   const [artistListFromSearch, setArtistListFromSearch] = useState([])
 
-  // 管理員：移植出譜者帳號 — __no_change__ = 不更改，'' = 清除，userId = 歸到該用戶
+  // 管理員：移植出譜者帳號 — __no_change__ = 不更改，'' = 清除，userId = 移植到該用戶
   const [assignCreatedBy, setAssignCreatedBy] = useState('__no_change__')
   const [adminUsers, setAdminUsers] = useState([])
   const [assignSyncPenName, setAssignSyncPenName] = useState(true)
   const [createdByFromTab, setCreatedByFromTab] = useState(null) // 載入時嘅 createdBy，用於顯示「目前」
-  const originalUploaderPenNameRef = useRef('') // 載入時嘅筆名，選「不更改」時復原用
+  const originalUploaderPenNameRef = useRef('') // 載入時嘅出譜者名稱，選「不更改」時復原用
   
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(() => {
@@ -278,7 +278,8 @@ export default function EditTab() {
     if (id && isAuthenticated) {
       loadTab()
     }
-  }, [id, isAuthenticated])
+    // user.penName 可能稍後先由 Firestore 合併；要重新檢查出譜者名稱權限
+  }, [id, isAuthenticated, user?.penName])
 
   useEffect(() => {
     if (!isAdmin || !id) return
@@ -319,16 +320,19 @@ export default function EditTab() {
         return
       }
 
-      // Check ownership (owner or admin can edit)
-      const isOwner = data.createdBy === user?.uid
-      if (!isOwner && !isAdmin) {
+      // Check ownership：createdBy 或 出譜者名稱與 uploaderPenName 一致；admin 可編輯
+      const { canUserEditTab, tabUploaderPenNameMatchesUser } = await import('@/lib/tabEditPermission')
+      const allowed = canUserEditTab(data, user?.uid, user?.penName, isAdmin)
+      if (!allowed) {
         alert('你無權編輯這個譜')
         router.push(`/tabs/${id}`)
         return
       }
 
       setIsAuthorized(true)
-      setIsOwner(data.createdBy === user?.uid)
+      setIsOwner(
+        data.createdBy === user?.uid || tabUploaderPenNameMatchesUser(data, user?.penName)
+      )
       setCreatedByFromTab(data.createdBy || null)
 
       // 歌手名：樂譜可能只存 artistIds/artists（無 artistId），用 getTabArtistId 統一取得主歌手 id，再從 artist/artistName 或 search-data 解析名
@@ -438,7 +442,7 @@ export default function EditTab() {
         youtubeVideoId: data.youtubeVideoId || '',
         youtubeVideoTitle: data.youtubeVideoTitle || '',
         youtubeChannelTitle: data.youtubeChannelTitle || '',
-        uploaderPenName: data.uploaderPenName || data.arrangedBy || '', // 兼容舊資料的 arrangedBy
+        uploaderPenName: data.uploaderPenName || '',
         remark: data.remark || '',
         viewCount: data.viewCount || 0,
         createdAt: data.createdAt,
@@ -456,7 +460,7 @@ export default function EditTab() {
         spotifyFilledSongYear: data.spotifyTrackId ? (data.songYear ?? '') : '',
         spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : ''
       })
-      originalUploaderPenNameRef.current = data.uploaderPenName || data.arrangedBy || ''
+      originalUploaderPenNameRef.current = data.uploaderPenName || ''
       if (data.spotifyTrackId) {
         const artist = (data.artist || '').trim()
         const title = (data.title || '').trim()
@@ -535,13 +539,35 @@ export default function EditTab() {
 
     setIsSubmitting(true)
     try {
+      // 強制出譜者名稱：管理員可手動改或移植時一併更新；一般用戶用個人主頁嘅出譜者名稱
+      let penNameToUse = (formData.uploaderPenName || '').trim() || '結他友'
+      if (isAdmin && assignSyncPenName && assignCreatedBy && assignCreatedBy !== '__no_change__') {
+        const assignedUser = adminUsers.find(u => u.id === assignCreatedBy)
+        penNameToUse = (assignedUser?.penName || '').trim() || '結他友'
+      } else if (!isAdmin) {
+        try {
+          const userRef = doc(db, 'users', user.uid)
+          const userSnap = await getDoc(userRef)
+          if (userSnap.exists()) {
+            const userData = userSnap.data()
+            const fromProfile = (userData.penName || '').trim()
+            if (fromProfile) {
+              penNameToUse = fromProfile
+            } else {
+              penNameToUse = (userData.displayName || '').trim() || (userData.email || '').split('@')[0]?.trim() || '結他友'
+              await updateDoc(userRef, { penName: penNameToUse, updatedAt: new Date().toISOString() })
+            }
+          }
+        } catch (_) {}
+      }
+      // isAdmin 且無用移植同步：用表單嘅出譜者名稱（penNameToUse 已為 formData.uploaderPenName）
       // 若 artist 字串為空，用 artists 陣列組出顯示名（與驗證一致）
       const artistDisplay = (formData.artist || getArtistDisplayName(formData.artists) || '').trim()
       const rawData = {
         ...formData,
         artist: artistDisplay,
         artists: formData.artists, // 保存多歌手陣列
-        uploaderPenName: formData.uploaderPenName.trim() || '結他友',
+        uploaderPenName: penNameToUse,
         inputFont: formData.displayFont // 統一使用 displayFont
       }
 
@@ -579,7 +605,7 @@ export default function EditTab() {
       }
       
       console.log('Submitting data:', submitData)
-      const updatedTab = await updateTab(id, submitData, user.uid, isAdmin)
+      const updatedTab = await updateTab(id, submitData, user.uid, isAdmin, user?.penName || '')
       try { sessionStorage.setItem('pg_tab_just_updated', id) } catch (e) {}
       if (typeof window !== 'undefined') {
         clearTabCache(id)
@@ -631,7 +657,7 @@ export default function EditTab() {
     
     try {
       const deletedTab = { id, artistId: formData.artists?.[0]?.id }
-      await deleteTab(id, user.uid, isAdmin)
+      await deleteTab(id, user.uid, isAdmin, user?.penName || '')
       try {
         const token = await auth.currentUser?.getIdToken?.()
         if (token) {
@@ -1081,7 +1107,7 @@ E|----------------------------------------------------------------|
             </div>
             <div>
               <label className="block pl-1 text-[13px] font-medium text-white mb-1">
-                出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">可於個人主頁修改</span>
+                出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">會使用你個人主頁嘅設定{isAdmin ? '（管理員可於下方移植時一併更新）' : ''}</span>
               </label>
               <input
                 type="text"
@@ -1090,7 +1116,9 @@ E|----------------------------------------------------------------|
                 onChange={handleChange}
                 readOnly={!isAdmin}
                 placeholder="結他友"
-                className={`w-full px-4 py-2 border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#525252] ${!isAdmin ? 'bg-[#1a1a1a] border-[#B8860B] cursor-not-allowed opacity-90 text-[#737373]' : 'bg-black border-neutral-700 text-white'}`}
+                className={`w-full px-4 py-2 border rounded-lg text-[13px] placeholder:text-[13px] placeholder-[#525252] ${
+                  isAdmin ? 'bg-black border-neutral-700 text-white' : 'bg-[#1a1a1a] border-[#B8860B] cursor-not-allowed opacity-90 text-[#737373]'
+                }`}
               />
             </div>
 
@@ -1133,7 +1161,7 @@ E|----------------------------------------------------------------|
                       onChange={(e) => setAssignSyncPenName(e.target.checked)}
                       className="rounded border-neutral-600 bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
                     />
-                    同時更新筆名為該用戶的筆名
+                    同時更新出譜者名稱為該用戶的出譜者名稱
                   </label>
                 </div>
               </>

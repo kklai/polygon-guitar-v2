@@ -182,6 +182,7 @@ async function main() {
             if (!tab.originalKey || tab.originalKey === 'C') updates.originalKey = result.originalKey;
             if (!tab.arrangedBy && !tab.uploaderPenName && result.arrangedBy) {
               updates.arrangedBy = result.arrangedBy;
+              updates.uploaderPenName = result.arrangedBy; // 統一用 uploaderPenName
             }
             
             await db.collection('tabs').doc(tab.id).update(updates);

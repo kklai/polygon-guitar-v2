@@ -2,7 +2,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from '@/lib/firestore-tracked'
+import { doc, getDoc, collection, query, where, getDocs } from '@/lib/firestore-tracked'
 import { getUserPlaylists } from '@/lib/playlistApi'
 import Layout from '@/components/Layout'
 import Link from '@/components/Link'
@@ -65,6 +65,7 @@ export default function PublicProfile() {
   const [showProfileMore, setShowProfileMore] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
   const [allTabsExpanded, setAllTabsExpanded] = useState(false)
+  const [uploadsError, setUploadsError] = useState(null)
   const ALL_TABS_INITIAL = 10
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function PublicProfile() {
 
   const loadProfile = async () => {
     setIsLoading(true)
+    setUploadsError(null)
     try {
       const userDoc = await getDoc(doc(db, 'users', id))
       
@@ -94,18 +96,29 @@ export default function PublicProfile() {
 
       setProfile(userData)
       setFollowerCount(userData.followerCount || 0)
-      
-      // 載入上傳的樂譜 - 獲取所有
+
+      // 載入上傳的樂譜：只以 uploaderPenName == 帳戶 penName（真實／placeholder 相同）；無 penName 則不列出
       try {
-        const tabsQuery = query(
-          collection(db, 'tabs'),
-          where('createdBy', '==', id),
-          orderBy('createdAt', 'desc')
-        )
-        const tabsSnapshot = await getDocs(tabsQuery)
-        setUploads(tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+        if (userData.penName) {
+          const tabsQuery = query(
+            collection(db, 'tabs'),
+            where('uploaderPenName', '==', userData.penName)
+          )
+          const tabsSnapshot = await getDocs(tabsQuery)
+          const list = tabsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          list.sort((a, b) => {
+            const ta = a.createdAt?.toMillis?.() ?? a.createdAt ?? 0
+            const tb = b.createdAt?.toMillis?.() ?? b.createdAt ?? 0
+            return tb - ta
+          })
+          setUploads(list)
+        } else {
+          setUploads([])
+        }
       } catch (e) {
-        console.log('Error loading uploads:', e)
+        console.error('Error loading uploads:', e)
+        setUploadsError(e?.message || String(e))
+        setUploads([])
       }
       
       // 載入歌單
@@ -364,6 +377,36 @@ export default function PublicProfile() {
 
         {/* 熱門 / 所有出譜 / 自創歌單 - 統一容器 */}
         <div className="max-w-2xl mx-auto mt-4 space-y-4">
+          {profile.showUploads !== false && !uploadsError && uploads.length === 0 && (
+            <section className="rounded-xl bg-[#121212] border border-neutral-800 p-4">
+              <p className="text-[#B3B3B3] text-sm">目前沒有樂譜。</p>
+              {profile.penName ? (
+                <>
+                  <p className="text-[#B3B3B3] text-xs mt-1">
+                    若你已移植樂譜但看不到，請確認該樂譜的 <code className="bg-[#282828] px-1 rounded">uploaderPenName</code> 與此帳戶的出譜者名稱一致：
+                  </p>
+                  <p className="text-[#FFD700] text-xs mt-1 font-mono break-all">{profile.penName}</p>
+                </>
+              ) : (
+                <p className="text-[#B3B3B3] text-xs mt-1">
+                  此帳戶未有出譜者名稱，無法顯示樂譜列表。請到「編輯個人資料」設定出譜者名稱，並確保樂譜的 <code className="bg-[#282828] px-1 rounded">uploaderPenName</code> 與之一致。
+                </p>
+              )}
+            </section>
+          )}
+          {profile.showUploads !== false && uploadsError && (
+            <section className="rounded-xl bg-[#121212] border border-neutral-800 p-4">
+              <p className="text-amber-400 text-sm mb-2">無法載入樂譜列表：{uploadsError}</p>
+              <p className="text-[#B3B3B3] text-xs mb-3">若錯誤提到「index」，請在專案目錄執行：firebase deploy --only firestore:indexes</p>
+              <button
+                type="button"
+                onClick={() => loadProfile()}
+                className="px-3 py-1.5 rounded-lg bg-[#FFD700] text-black text-sm font-medium hover:bg-yellow-400"
+              >
+                重試
+              </button>
+            </section>
+          )}
           {profile.showUploads !== false && uploads.length > 0 && (
             <section>
               <h2 className="text-white font-bold text-lg mb-0">熱門</h2>

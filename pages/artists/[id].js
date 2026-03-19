@@ -776,7 +776,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                 <h3 className="text-white text-base font-medium truncate">{tab.title}</h3>
                 <p className="text-[#B3B3B3] text-xs mt-0.5 flex items-center gap-1">
                   <PenLine className="w-3 h-3 flex-shrink-0" />
-                  {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                  {tab.uploaderPenName || '匿名'}
                 </p>
               </div>
               
@@ -874,7 +874,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                         </div>
                         <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                           <span className="text-[#B3B3B3] text-sm truncate block">
-                            {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                            {tab.uploaderPenName || '匿名'}
                           </span>
                         </div>
                       </Link>
@@ -916,7 +916,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                           </div>
                           <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                             <span className="text-[#B3B3B3] text-sm truncate block">
-                              {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                              {tab.uploaderPenName || '匿名'}
                             </span>
                           </div>
                         </Link>
@@ -952,7 +952,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                     </div>
                     <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                       <span className="text-[#B3B3B3] text-sm truncate block">
-                        {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                        {tab.uploaderPenName || '匿名'}
                       </span>
                     </div>
                   </Link>
@@ -994,7 +994,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                       </div>
                       <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                         <span className="text-[#B3B3B3] text-sm truncate block">
-                          {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                          {tab.uploaderPenName || '匿名'}
                         </span>
                       </div>
                     </Link>

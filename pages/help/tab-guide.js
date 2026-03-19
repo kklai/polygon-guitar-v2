@@ -136,11 +136,11 @@ export default function TabGuide() {
             <div className="flex items-start gap-3">
               <Pencil className="w-6 h-6 text-[#FFD700] flex-shrink-0" strokeWidth={1.5} />
               <div>
-                <h3 className="text-white font-medium">出譜者筆名</h3>
+                <h3 className="text-white font-medium">出譜者名稱</h3>
                 <p className="text-neutral-400 text-sm">
                   這是辨識你作品的方式！建議先到 
                   <Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>
-                  設定固定筆名，出譜時會自動帶入。
+                  設定固定出譜者名稱，出譜時會自動帶入。
                 </p>
               </div>
             </div>
@@ -169,11 +169,11 @@ export default function TabGuide() {
 
         {/* Pen Name Setup */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Pencil className="w-5 h-5" /> 設定你的出譜者筆名</h2>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Pencil className="w-5 h-5" /> 設定你的出譜者名稱</h2>
           
           <div className="space-y-4 text-neutral-300">
             <p>
-              我們建議設定一個固定的出譜者筆名，這樣：
+              我們建議設定一個固定的出譜者名稱，這樣：
             </p>
             <ul className="list-disc list-inside space-y-2 text-neutral-400">
               <li>所有你的譜都會統一顯示「編譜：xxx」</li>
@@ -185,7 +185,7 @@ export default function TabGuide() {
               <p className="text-[#FFD700] font-medium mb-2">設定方法：</p>
               <ol className="list-decimal list-inside space-y-1 text-neutral-400">
                 <li>前往 <Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料設定</Link></li>
-                <li>找到「出譜者筆名」欄位</li>
+                <li>找到「出譜者名稱」欄位</li>
                 <li>輸入你想使用的名稱（如：結他小王子、Kermit Guitar）</li>
                 <li>保存！之後出譜會自動帶入</li>
               </ol>

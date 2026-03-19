@@ -37,6 +37,8 @@ import { generateTabTitle, generateTabDescription, generateTabSchema, generateBr
 import { siteConfig } from '@/lib/seo'
 import { calculateCapo, getKeyOptions } from '@/lib/keyUtils'
 import { extractChords, ChordDiagramModal } from '@/components/ChordDiagram'
+import { getPlaceholderUserId } from '@/lib/placeholderUserId'
+import { tabUploaderPenNameMatchesUser } from '@/lib/tabEditPermission'
 
 // 主題顏色配置
 const themeColors = {
@@ -254,7 +256,14 @@ export default function TabDetail({ initialTab, artist }) {
         thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
       }, user?.uid || null)
     )
-    if (data.createdBy) setUploaderId(data.createdBy)
+    if (data.createdBy) {
+      setUploaderId(data.createdBy)
+    } else if (data.uploaderPenName) {
+      fetch(`/api/resolve-pen-name?penName=${encodeURIComponent(data.uploaderPenName)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(payload => payload?.id && setUploaderId(payload.id))
+        .catch(() => {})
+    }
     // Cover fallback: search-data API (1 cache read). Remove after backfill has run.
     const mainArtistIdForData = getTabArtistId(data)
     const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && mainArtistIdForData
@@ -310,7 +319,7 @@ export default function TabDetail({ initialTab, artist }) {
     setIsDeleting(true)
     try {
       const deletedTab = tab ? { id, artistId: getTabArtistId(tab) } : { id }
-      await deleteTab(id, user.uid, isAdmin)
+      await deleteTab(id, user.uid, isAdmin, user?.penName || '')
       try {
         const token = await auth.currentUser?.getIdToken?.()
         if (token) {
@@ -762,7 +771,10 @@ export default function TabDetail({ initialTab, artist }) {
     }
   };
 
-  const isOwner = tab && user && tab.createdBy === user.uid
+  const isOwner =
+    tab &&
+    user &&
+    (tab.createdBy === user.uid || tabUploaderPenNameMatchesUser(tab, user.penName))
   const canEdit = isOwner || isAdmin
 
   if (router.isFallback || isLoading) {
@@ -794,7 +806,7 @@ export default function TabDetail({ initialTab, artist }) {
       ? tabArtistIds.map(getArtistNameById).join(isFeat ? ' feat. ' : ' / ')
       : (resolvedSingleName || resolvedArtistName || '')
 
-  const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
+  const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName
   const tabChords = tab.content ? extractChords(tab.content) : []
 
   // SEO 配置
@@ -1111,24 +1123,27 @@ export default function TabDetail({ initialTab, artist }) {
                   </Link>
                 )}
               </div>
-              {/* 出譜者 + 評分、喜愛數（同一行）— 撳筆名進入出譜者主頁 */}
+              {/* 出譜者 + 評分、喜愛數（同一行）— 撳出譜者名稱進入出譜者主頁（有 createdBy 用真用戶，否則用 placeholder profile） */}
               <div className="flex items-center justify-between gap-3 mt-1.5 min-w-0">
                 <div className="min-w-0">
-                  {(tab.uploaderPenName || tab.arrangedBy) && (
-                    uploaderId ? (
-                      <Link
-                        href={`/profile/${uploaderId}`}
-                        className="text-[#FFD700] text-sm flex items-center gap-1 w-fit hover:underline"
-                      >
-                        <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
-                        {tab.uploaderPenName || tab.arrangedBy}
-                      </Link>
-                    ) : (
-                      <p className="text-[#FFD700] text-sm flex items-center gap-1">
-                        <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
-                        {tab.uploaderPenName || tab.arrangedBy}
-                      </p>
-                    )
+                  {tab.uploaderPenName && (
+                    (() => {
+                      const profileId = uploaderId || getPlaceholderUserId(tab.uploaderPenName)
+                      return profileId ? (
+                        <Link
+                          href={`/profile/${profileId}`}
+                          className="text-[#FFD700] text-sm flex items-center gap-1 w-fit hover:underline"
+                        >
+                          <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                          {tab.uploaderPenName}
+                        </Link>
+                      ) : (
+                        <p className="text-[#FFD700] text-sm flex items-center gap-1">
+                          <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                          {tab.uploaderPenName}
+                        </p>
+                      )
+                    })()
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1166,8 +1181,8 @@ export default function TabDetail({ initialTab, artist }) {
           theme={theme}
           setTheme={setTheme}
           youtubeVideoId={tab.youtubeVideoId}
-          arrangedBy={tab.uploaderPenName || tab.arrangedBy || '結他友'}
-          uploaderId={uploaderId}
+          arrangedBy={tab.uploaderPenName || '結他友'}
+          uploaderId={uploaderId || (tab.uploaderPenName ? getPlaceholderUserId(tab.uploaderPenName) : null)}
           displayFont={tab.displayFont || 'mono'}
           songInfo={{
             songYear: tab.songYear,

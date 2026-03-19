@@ -27,6 +27,8 @@ npm-debug.log*
 .env*.local
 scripts/firebase-service-account.json
 scripts/.cache-tabs-lyricist.json
+scripts/uploader-pen-names.json
+scripts/created-pen-name-users.json
 
 # Firebase
 .firebase/

@@ -73,7 +73,7 @@ export default function AssignTabsToUser() {
     const pen = (penNameFilter || '').trim().toLowerCase()
     if (pen) {
       list = list.filter((tab) => {
-        const name = (tab.uploaderPenName || tab.arrangedBy || '').toLowerCase()
+        const name = (tab.uploaderPenName || '').toLowerCase()
         return name.includes(pen)
       })
     }
@@ -191,7 +191,7 @@ export default function AssignTabsToUser() {
           <h1 className="text-xl md:text-2xl font-bold text-white">樂譜移植</h1>
         </div>
         <p className="text-[#B3B3B3] text-sm mb-6">
-          將樂譜的「出譜者」歸到指定用戶主頁，該譜會顯示在該用戶的個人主頁，且出譜者連結會指向該用戶。
+          將樂譜的「出譜者」移植到指定用戶主頁，該譜會顯示在該用戶的個人主頁，且出譜者連結會指向該用戶。
         </p>
 
         {message && (
@@ -219,7 +219,7 @@ export default function AssignTabsToUser() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                   <input
                     type="text"
-                    placeholder="搜尋筆名、顯示名稱或 email"
+                    placeholder="搜尋出譜者名稱、顯示名稱或 email"
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 bg-[#1a1a1a] border border-neutral-700 rounded-lg text-white placeholder-neutral-500 text-sm"
@@ -258,7 +258,7 @@ export default function AssignTabsToUser() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <input
                   type="text"
-                  placeholder="按筆名篩選（uploaderPenName）"
+                  placeholder="按出譜者名稱篩選（uploaderPenName）"
                   value={penNameFilter}
                   onChange={(e) => setPenNameFilter(e.target.value)}
                   className="px-3 py-2 bg-[#1a1a1a] border border-neutral-700 rounded-lg text-white placeholder-neutral-500 text-sm"
@@ -280,7 +280,7 @@ export default function AssignTabsToUser() {
                 rows={2}
                 className="w-full px-3 py-2 bg-[#1a1a1a] border border-neutral-700 rounded-lg text-white placeholder-neutral-500 text-sm resize-none"
               />
-              <p className="text-neutral-500 text-xs mt-1">符合筆名或 ID 的樂譜共 {filteredTabs.length} 份</p>
+              <p className="text-neutral-500 text-xs mt-1">符合出譜者名稱或 ID 的樂譜共 {filteredTabs.length} 份</p>
             </section>
 
             {/* 樂譜列表 */}
@@ -305,7 +305,7 @@ export default function AssignTabsToUser() {
                       <th className="px-3 py-2 text-left w-8" />
                       <th className="px-3 py-2 text-left text-neutral-400 font-medium">歌名</th>
                       <th className="px-3 py-2 text-left text-neutral-400 font-medium">歌手</th>
-                      <th className="px-3 py-2 text-left text-neutral-400 font-medium">筆名</th>
+                      <th className="px-3 py-2 text-left text-neutral-400 font-medium">出譜者名稱</th>
                       <th className="px-3 py-2 text-left text-neutral-400 font-medium">目前移植</th>
                     </tr>
                   </thead>
@@ -329,7 +329,7 @@ export default function AssignTabsToUser() {
                           {getArtistName(tab)}
                         </td>
                         <td className="px-3 py-2 text-[#FFD700] truncate max-w-[100px]">
-                          {tab.uploaderPenName || tab.arrangedBy || '—'}
+                          {tab.uploaderPenName || '—'}
                         </td>
                         <td className="px-3 py-2 text-neutral-500 text-xs">
                           {getUserDisplay(tab.createdBy)}
@@ -340,7 +340,7 @@ export default function AssignTabsToUser() {
                 </table>
               </div>
               {filteredTabs.length > 200 && (
-                <p className="px-4 py-2 text-neutral-500 text-xs border-t border-neutral-800">僅顯示前 200 筆，請用筆名或 ID 縮小範圍</p>
+                <p className="px-4 py-2 text-neutral-500 text-xs border-t border-neutral-800">僅顯示前 200 筆，請用出譜者名稱或 ID 縮小範圍</p>
               )}
             </section>
 
@@ -353,7 +353,7 @@ export default function AssignTabsToUser() {
                   onChange={(e) => setUpdatePenName(e.target.checked)}
                   className="rounded border-neutral-600 bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
                 />
-                同時將筆名更新為該用戶的筆名（已選目標用戶時有效）
+                同時將出譜者名稱更新為該用戶的出譜者名稱（已選目標用戶時有效）
               </label>
               <label className="flex items-center gap-2 text-neutral-300 text-sm mb-4">
                 <input

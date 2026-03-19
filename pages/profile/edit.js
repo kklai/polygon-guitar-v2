@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import { db } from '@/lib/firebase'
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
+import { updateUploaderPenNameForUser } from '@/lib/tabs'
 import { uploadToCloudinary, validateImageFile, resizeImageFile } from '@/lib/cloudinary'
 import Link from '@/components/Link'
 import { useRouter } from 'next/router'
@@ -148,12 +149,29 @@ export default function EditProfile() {
     setIsSaving(true)
     try {
       const userRef = doc(db, 'users', user.uid)
-      await updateDoc(userRef, {
-        ...formData,
-        updatedAt: new Date().toISOString()
-      })
-      
-      setOriginalData(formData)
+      // 出譜者名稱唔可以係空：若未填則自動生成（displayName > email 前段 > 結他友）
+      const dataToSave = { ...formData, updatedAt: new Date().toISOString() }
+      if (!(dataToSave.penName || '').trim()) {
+        dataToSave.penName = (formData.displayName || user.displayName || '').trim() || (formData.email || user.email || '').split('@')[0]?.trim() || '結他友'
+      }
+      await updateDoc(userRef, dataToSave)
+
+      // 若出譜者名稱有改，同步更新該用戶所有樂譜嘅 uploaderPenName（強制每張譜跟住改）
+      const penNameChanged = originalData && (originalData.penName || '') !== (dataToSave.penName || '')
+      if (penNameChanged) {
+        try {
+          const { updated } = await updateUploaderPenNameForUser(user.uid, dataToSave.penName || '')
+          if (updated > 0) {
+            setOriginalData({ ...formData, penName: dataToSave.penName })
+            showMessage(`個人資料已保存，並已更新 ${updated} 張樂譜的出譜者名稱`)
+            return
+          }
+        } catch (err) {
+          console.error('Sync uploaderPenName for tabs failed:', err)
+        }
+      }
+
+      setOriginalData({ ...formData, penName: dataToSave.penName })
       showMessage('個人資料已保存')
     } catch (error) {
       console.error('Save error:', error)
@@ -216,7 +234,7 @@ export default function EditProfile() {
 
         {/* 個人頭像與基本資料（合併） */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 px-6 py-4 mb-4">
-          {/* 頭像區 + 個人主頁名稱、出譜者筆名 */}
+          {/* 頭像區 + 個人主頁名稱、出譜者名稱 */}
           <div className="flex items-start gap-6 mb-4">
             <div className="flex-shrink-0 text-center">
               <input
@@ -257,7 +275,7 @@ export default function EditProfile() {
               <div>
                 <label className="flex items-center gap-2 text-sm text-[#FFD700] mb-2 pl-2">
                   <PenLine className="w-4 h-4 text-[#FFD700] flex-shrink-0" />
-                  出譜者筆名
+                  出譜者名稱
                 </label>
                 <input
                   type="text"

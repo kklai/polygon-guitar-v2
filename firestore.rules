@@ -18,6 +18,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // 登入用戶嘅 penName 與樂譜 uploaderPenName 一致時可編輯／刪除（與 createdBy 並列）
+    function tabEditableByUploaderPenName() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAny(['penName'])
+        && resource.data.keys().hasAny(['uploaderPenName'])
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.penName is string
+        && resource.data.uploaderPenName is string
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.penName == resource.data.uploaderPenName
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.penName.size() > 0;
+    }
+
     // ==================== Tabs ====================
     match /tabs/{tabId} {
       allow read: if true;
@@ -25,10 +36,15 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (
         isSuperAdmin() ||
         resource.data.uploaderId == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        tabEditableByUploaderPenName() ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'ratingCount', 'totalRating', 'likes', 'viewCount'])
       );
       allow delete: if isAuthenticated() && (
-        isSuperAdmin() || resource.data.uploaderId == request.auth.uid
+        isSuperAdmin() ||
+        resource.data.uploaderId == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        tabEditableByUploaderPenName()
       );
     }
 
