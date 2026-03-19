@@ -95,10 +95,10 @@ function AdminManagement() {
     u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // 分組
-  const superAdmins = filteredUsers.filter(u => u.email === 'kermit.tam@gmail.com' || u.role === ROLES.SUPER_ADMIN)
-  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN && u.email !== 'kermit.tam@gmail.com')
-  const usersWithoutRoles = filteredUsers.filter(u => !u.role && u.email !== 'kermit.tam@gmail.com')
+  // 分組（Super Admin 只按 Firestore role，無硬編碼 email）
+  const superAdmins = filteredUsers.filter(u => u.role === ROLES.SUPER_ADMIN)
+  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN)
+  const usersWithoutRoles = filteredUsers.filter(u => !u.role)
 
   if (loading) {
     return (

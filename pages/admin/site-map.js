@@ -940,8 +940,7 @@ function SecuritySection() {
             目前管理員由電郵地址識別：
           </p>
           <ul className="text-neutral-400 text-sm space-y-1">
-            <li>• kermit.tam@gmail.com</li>
-            <li>• showroomchan@gmail.com</li>
+            <li>• 由 Firestore users 的 role = super_admin 決定（見 /admin/admins）</li>
           </ul>
           <p className="text-neutral-500 text-xs mt-3">
             管理員擁有所有資料的讀寫權限，可以修改或刪除任何內容。

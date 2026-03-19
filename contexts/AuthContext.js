@@ -113,8 +113,8 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  // 管理員檢查 - 從 Firestore user 資料讀取
-  const realIsAdmin = user?.isAdmin === true || user?.email === 'kermit.tam@gmail.com' || !!user?.role
+  // 管理員檢查 - 只從 Firestore user 資料讀取（role / isAdmin），無硬編碼 email
+  const realIsAdmin = user?.isAdmin === true || !!user?.role
 
   // Admin 可切換「以誰身份瀏覽」：admin（正常）、user（一般登入用戶）、guest（未登入）
   // 非管理員：未登入用 guest、已登入用 user，這樣 isAdmin 只會對真正 admin 為 true
@@ -133,8 +133,8 @@ export function AuthProvider({ children }) {
     if (realIsAdmin && user) setViewAsModeState(getStoredViewAs())
   }, [realIsAdmin, !!user])
 
-  // 獲取用戶角色（以 effective 身份計）
-  const userRole = effectiveUser?.role || (effectiveUser?.email === 'kermit.tam@gmail.com' ? 'super_admin' : null)
+  // 獲取用戶角色（以 effective 身份計，只來自 Firestore）
+  const userRole = effectiveUser?.role || null
 
   const value = {
     user: effectiveUser,

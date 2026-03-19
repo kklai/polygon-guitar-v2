@@ -2,12 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Super Admin: 只按 Firestore users/{uid}.role == 'super_admin'（可到 /admin/admins 設定）
     function isSuperAdmin() {
       return request.auth != null
-        && request.auth.token.email in [
-          'kermit.tam@gmail.com',
-          'showroomchan@gmail.com'
-        ];
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
     }
 
     function isOwner(userId) {

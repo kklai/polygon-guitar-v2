@@ -15,11 +15,13 @@ import Link from '@/components/Link'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getRoleLabel, getRoleColor } from '@/lib/roles'
 
 function RoleSettings() {
-  const { user, userRole } = useAuth()
+  const { user, userRole, realUser } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showRemoveSelfConfirm, setShowRemoveSelfConfirm] = useState(false)
+  const [removingSelf, setRemovingSelf] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -91,15 +93,40 @@ function RoleSettings() {
     }
   }
 
+  const removeMyAdminRole = async () => {
+    const uid = realUser?.uid || user?.uid
+    if (!uid) return
+    setRemovingSelf(true)
+    try {
+      const userRef = doc(db, 'users', uid)
+      await updateDoc(userRef, {
+        role: null,
+        isAdmin: false,
+        updatedAt: new Date().toISOString()
+      })
+      setShowRemoveSelfConfirm(false)
+      setUsers(prev => prev.map(u => u.id === uid ? { ...u, role: null, isAdmin: false } : u))
+      showMessage('已移除自己的管理員權限，即將跳轉')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1500)
+    } catch (error) {
+      console.error('Error removing own role:', error)
+      showMessage('移除失敗', 'error')
+    } finally {
+      setRemovingSelf(false)
+    }
+  }
+
   const filteredUsers = users.filter(u => 
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // 按角色分組
-  const superAdmins = filteredUsers.filter(u => u.email === 'kermit.tam@gmail.com' || u.role === ROLES.SUPER_ADMIN)
-  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN && u.email !== 'kermit.tam@gmail.com')
-  const usersWithoutRoles = filteredUsers.filter(u => !u.role && u.email !== 'kermit.tam@gmail.com')
+  const superAdmins = filteredUsers.filter(u => u.role === ROLES.SUPER_ADMIN)
+  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN)
+  const usersWithoutRoles = filteredUsers.filter(u => !u.role)
 
   if (loading) {
     return (
@@ -139,6 +166,48 @@ function RoleSettings() {
               : 'bg-green-900/30 border border-green-700 text-green-400'
           }`}>
             {message.text}
+          </div>
+        )}
+
+        {/* 移除自己的管理員權限 - 只對有角色嘅用戶顯示 */}
+        {userRole && (realUser?.uid || user?.uid) && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-700/50 bg-amber-950/20">
+            <h2 className="text-sm font-medium text-amber-200 mb-1">移除自己的管理員權限</h2>
+            <p className="text-sm text-neutral-400 mb-3">
+              移除後你將無法再進入後台，需由其他 Super Admin 重新為你設定角色。
+              {superAdmins.length <= 1 && superAdmins.some(a => a.id === (realUser?.uid || user?.uid)) && (
+                <span className="block mt-1 text-amber-400">你是目前唯一的 Super Admin，建議先為另一用戶設為 Super Admin 再移除自己。</span>
+              )}
+            </p>
+            {!showRemoveSelfConfirm ? (
+              <button
+                type="button"
+                onClick={() => setShowRemoveSelfConfirm(true)}
+                className="px-3 py-1.5 text-amber-400 border border-amber-600 rounded-lg text-sm hover:bg-amber-900/30 transition"
+              >
+                移除自己的管理員權限
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-400">確定要移除？</span>
+                <button
+                  type="button"
+                  onClick={removeMyAdminRole}
+                  disabled={removingSelf}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50"
+                >
+                  {removingSelf ? '處理中…' : '確定移除'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveSelfConfirm(false)}
+                  disabled={removingSelf}
+                  className="px-3 py-1.5 bg-neutral-700 text-white rounded-lg text-sm hover:bg-neutral-600"
+                >
+                  取消
+                </button>
+              </div>
+            )}
           </div>
         )}
 

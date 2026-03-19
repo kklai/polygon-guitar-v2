@@ -91,7 +91,7 @@ export default function AdminIndex() {
     setPinnedHrefs(getStoredPinnedHrefs())
   }, [])
 
-  const isSuperAdmin = user?.email === 'kermit.tam@gmail.com'
+  const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN
 
   const visibleSections = sections
     .map(section => ({
