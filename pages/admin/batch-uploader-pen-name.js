@@ -272,7 +272,6 @@ export default function BatchUploaderPenName() {
                     <th className="px-4 py-2 text-[#B3B3B3] font-normal">歌名</th>
                     <th className="px-4 py-2 text-[#B3B3B3] font-normal">歌手</th>
                     <th className="px-4 py-2 text-[#B3B3B3] font-normal">目前出譜者</th>
-                    <th className="w-16 px-4 py-2 text-[#B3B3B3] font-normal">連結</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,11 +292,6 @@ export default function BatchUploaderPenName() {
                       </td>
                       <td className="px-4 py-2 text-[#B3B3B3] truncate max-w-[140px]">{getArtistName(tab) || '—'}</td>
                       <td className="px-4 py-2 text-[#B3B3B3]">{tab.uploaderPenName || '—'}</td>
-                      <td className="px-4 py-2">
-                        <Link href={`/tabs/${tab.id}`} target="_blank" rel="noopener noreferrer" className="text-[#FFD700] hover:underline">
-                          開
-                        </Link>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
