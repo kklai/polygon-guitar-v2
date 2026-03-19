@@ -40,12 +40,6 @@ const sections = [
     ]
   },
   {
-    title: '樂譜',
-    items: [
-      { href: '/admin/assign-tabs-to-user', label: '樂譜移植', roles: [ROLES.SUPER_ADMIN] },
-    ]
-  },
-  {
     title: '數據',
     items: [
       { href: '/admin/daily-uploads', label: '每日上傳', roles: [ROLES.SUPER_ADMIN] },

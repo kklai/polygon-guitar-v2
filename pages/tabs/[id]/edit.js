@@ -15,7 +15,7 @@ import { processTabContent, autoFixTabFormatWithFactor, cleanPastedText } from '
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { auth, db } from '@/lib/firebase'
 import { clearArtistMapCache } from '@/lib/useArtistMap'
-import { collection, getDocs, doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
+import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { ArrowLeft, Music, Moon, Sun, Loader2 } from 'lucide-react'
 
 // Key 對應的 semitone 位置 (C = 0)
@@ -197,13 +197,6 @@ export default function EditTab() {
   // 歌手列表來自 search-data API（1 cache read），供相似歌手匹配與頭像解析用
   const [artistListFromSearch, setArtistListFromSearch] = useState([])
 
-  // 管理員：移植出譜者帳號 — __no_change__ = 不更改，'' = 清除，userId = 移植到該用戶
-  const [assignCreatedBy, setAssignCreatedBy] = useState('__no_change__')
-  const [adminUsers, setAdminUsers] = useState([])
-  const [assignSyncPenName, setAssignSyncPenName] = useState(true)
-  const [createdByFromTab, setCreatedByFromTab] = useState(null) // 載入時嘅 createdBy，用於顯示「目前」
-  const originalUploaderPenNameRef = useRef('') // 載入時嘅出譜者名稱，選「不更改」時復原用
-  
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -281,23 +274,6 @@ export default function EditTab() {
     // user.penName 可能稍後先由 Firestore 合併；要重新檢查出譜者名稱權限
   }, [id, isAuthenticated, user?.penName])
 
-  useEffect(() => {
-    if (!isAdmin || !id) return
-    const loadUsers = async () => {
-      try {
-        const snap = await getDocs(collection(db, 'users'))
-        const list = snap.docs.map(d => {
-          const x = d.data()
-          return { id: d.id, displayName: x.displayName || '', penName: x.penName || '', email: x.email || '' }
-        }).sort((a, b) => (a.penName || a.displayName || a.email).localeCompare(b.penName || b.displayName || b.email))
-        setAdminUsers(list)
-      } catch (e) {
-        console.error('載入用戶列表失敗:', e)
-      }
-    }
-    loadUsers()
-  }, [isAdmin, id])
-
   // 點擊外部關閉類型、地區、Key 下拉
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -333,7 +309,6 @@ export default function EditTab() {
       setIsOwner(
         data.createdBy === user?.uid || tabUploaderPenNameMatchesUser(data, user?.penName)
       )
-      setCreatedByFromTab(data.createdBy || null)
 
       // 歌手名：樂譜可能只存 artistIds/artists（無 artistId），用 getTabArtistId 統一取得主歌手 id，再從 artist/artistName 或 search-data 解析名
       const effectiveArtistId = getTabArtistId(data)
@@ -460,7 +435,6 @@ export default function EditTab() {
         spotifyFilledSongYear: data.spotifyTrackId ? (data.songYear ?? '') : '',
         spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : ''
       })
-      originalUploaderPenNameRef.current = data.uploaderPenName || ''
       if (data.spotifyTrackId) {
         const artist = (data.artist || '').trim()
         const title = (data.title || '').trim()
@@ -539,12 +513,9 @@ export default function EditTab() {
 
     setIsSubmitting(true)
     try {
-      // 強制出譜者名稱：管理員可手動改或移植時一併更新；一般用戶用個人主頁嘅出譜者名稱
+      // 強制出譜者名稱：管理員用手動輸入；一般用戶用個人主頁嘅出譜者名稱
       let penNameToUse = (formData.uploaderPenName || '').trim() || '結他友'
-      if (isAdmin && assignSyncPenName && assignCreatedBy && assignCreatedBy !== '__no_change__') {
-        const assignedUser = adminUsers.find(u => u.id === assignCreatedBy)
-        penNameToUse = (assignedUser?.penName || '').trim() || '結他友'
-      } else if (!isAdmin) {
+      if (!isAdmin) {
         try {
           const userRef = doc(db, 'users', user.uid)
           const userSnap = await getDoc(userRef)
@@ -560,7 +531,6 @@ export default function EditTab() {
           }
         } catch (_) {}
       }
-      // isAdmin 且無用移植同步：用表單嘅出譜者名稱（penNameToUse 已為 formData.uploaderPenName）
       // 若 artist 字串為空，用 artists 陣列組出顯示名（與驗證一致）
       const artistDisplay = (formData.artist || getArtistDisplayName(formData.artists) || '').trim()
       const rawData = {
@@ -586,10 +556,6 @@ export default function EditTab() {
       const submitData = Object.fromEntries(
         Object.entries(rawData).filter(([_, v]) => v !== undefined)
       )
-
-      if (isAdmin && assignCreatedBy !== '__no_change__') {
-        submitData.createdBy = assignCreatedBy === '' ? null : assignCreatedBy
-      }
 
       // 清理 gpSegments 中的 undefined
       if (submitData.gpSegments) {
@@ -1107,7 +1073,7 @@ E|----------------------------------------------------------------|
             </div>
             <div>
               <label className="block pl-1 text-[13px] font-medium text-white mb-1">
-                出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">會使用你個人主頁嘅設定{isAdmin ? '（管理員可於下方移植時一併更新）' : ''}</span>
+                出譜者名稱 <span className="text-[#737373] font-normal text-xs ml-1">會使用你個人主頁嘅設定</span>
               </label>
               <input
                 type="text"
@@ -1122,52 +1088,7 @@ E|----------------------------------------------------------------|
               />
             </div>
 
-            {/* Row 2: 空白 | 移植出譜者帳號（僅管理員） */}
-            {isAdmin && (
-              <>
-                <div aria-hidden />
-                <div className="space-y-2">
-                  <p className="pl-1 text-[13px] font-medium text-red-500 mb-1">
-                    移植出譜者 {createdByFromTab
-                      ? (adminUsers.find(u => u.id === createdByFromTab)?.penName || adminUsers.find(u => u.id === createdByFromTab)?.displayName || createdByFromTab)
-                      : '未移植（出譜者不連結到任何主頁）'}
-                  </p>
-                  <select
-                    value={assignCreatedBy}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      setAssignCreatedBy(v)
-                      if (v === '__no_change__') {
-                        setFormData(prev => ({ ...prev, uploaderPenName: originalUploaderPenNameRef.current }))
-                      } else if (v && v !== '' && assignSyncPenName) {
-                        const u = adminUsers.find(x => x.id === v)
-                        if (u) setFormData(prev => ({ ...prev, uploaderPenName: u.penName || u.displayName || '' }))
-                      }
-                    }}
-                    className="w-full px-4 py-2 border-2 border-red-600 rounded-lg bg-red-950 text-white text-[13px]"
-                  >
-                    <option value="__no_change__">— 不更改 —</option>
-                    <option value="">清除（不連結到任何主頁）</option>
-                    {adminUsers.map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.penName || u.displayName || u.email || u.id}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="flex items-center gap-2 text-[#B3B3B3] text-xs">
-                    <input
-                      type="checkbox"
-                      checked={assignSyncPenName}
-                      onChange={(e) => setAssignSyncPenName(e.target.checked)}
-                      className="rounded border-neutral-600 bg-[#1a1a1a] text-[#FFD700] focus:ring-[#FFD700]"
-                    />
-                    同時更新出譜者名稱為該用戶的出譜者名稱
-                  </label>
-                </div>
-              </>
-            )}
-
-            {/* Row 3: 歌手* | 關係選單、＋歌手 */}
+            {/* Row 2: 歌手* | 關係選單、＋歌手 */}
             <div>
               <ArtistInputSimple
                 value={{ artists: formData.artists }}

@@ -249,7 +249,6 @@ const capo = (originalIndex - targetIndex + 12) % 12;
    - 教學區
 
 7. **後台管理工具**（2026-02-07 新增）
-   - **樂譜移植** `/admin/assign-tabs-to-user` - 將樂譜出譜者移植到指定用戶主頁（勿稱「樂譜歸戶」）
    - **遷移樂譜管理** `/admin/migrated-tabs` - 查看/編輯/修復 Blogger 遷移的樂譜
    - **歌手管理 V2** `/admin/artists-v2` - 統一管理歌手資料、分類、批量設置
    - **合併重複歌手** `/admin/merge-artists` - 自動檢測並合併中英文重複歌手
@@ -690,8 +689,7 @@ node scripts/migrate-blogger.js --write --all
 
 #### 2026-02-07 更新
 1. **出譜者名稱統一為 uploaderPenName**: 顯示與寫入一律用 `uploaderPenName`；舊資料可執行 `node scripts/backfill-uploader-pen-name.js` 將 `arrangedBy` 抄入 `uploaderPenName`。
-2. **樂譜移植**（勿稱樂譜歸戶）: `/admin/assign-tabs-to-user` 將樂譜出譜者移植到指定用戶主頁。
-4. **批量清理元數據**: 創建 `extract-metadata-from-content.js` 腳本，從內容中提取「曲：xxx 詞：xxx Key:xxx Arranged By xxx」格式，存入對應欄位並從內容中刪除該行
+2. **批量清理元數據**: 創建 `extract-metadata-from-content.js` 腳本，從內容中提取「曲：xxx 詞：xxx Key:xxx Arranged By xxx」格式，存入對應欄位並從內容中刪除該行
    - 已處理 85 份樂譜
    - 提取並更新：作曲、填詞、原調、編譜者
 
