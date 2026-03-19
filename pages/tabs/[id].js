@@ -256,9 +256,9 @@ export default function TabDetail({ initialTab, artist }) {
         thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
       }, user?.uid || null)
     )
-    if (data.createdBy) {
-      setUploaderId(data.createdBy)
-    } else if (data.uploaderPenName) {
+    // Profile 連結只由 uploaderPenName 解析（與 users.penName 或 placeholder id 對應）
+    setUploaderId('')
+    if (data.uploaderPenName) {
       fetch(`/api/resolve-pen-name?penName=${encodeURIComponent(data.uploaderPenName)}`)
         .then(r => r.ok ? r.json() : null)
         .then(payload => payload?.id && setUploaderId(payload.id))
@@ -1123,7 +1123,7 @@ export default function TabDetail({ initialTab, artist }) {
                   </Link>
                 )}
               </div>
-              {/* 出譜者 + 評分、喜愛數（同一行）— 撳出譜者名稱進入出譜者主頁（有 createdBy 用真用戶，否則用 placeholder profile） */}
+              {/* 出譜者 + 評分、喜愛數（同一行）— 撳出譜者名稱進入出譜者主頁（uploaderPenName → resolve-pen-name / placeholder） */}
               <div className="flex items-center justify-between gap-3 mt-1.5 min-w-0">
                 <div className="min-w-0">
                   {tab.uploaderPenName && (
