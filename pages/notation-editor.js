@@ -7,14 +7,13 @@ import Link from 'next/link'
 
 /**
  * Standalone notation editor: add music notations to tabs.
- * Toolbar: Duration, Division, Beats, Chord name + staff with "+" add slot.
+ * Toolbar: Duration, Division, Beats + staff with "+" add slot.
  * To be merged into the tab editor later.
  */
 export default function NotationEditorPage() {
   const [selectedDuration, setSelectedDuration] = useState(TOOL_IDS.QUARTER)
   const [selectedDivision, setSelectedDivision] = useState(null)
   const [timeSignatureId, setTimeSignatureId] = useState('4/4')
-  const [chordName, setChordName] = useState('')
   const [addedItems, setAddedItems] = useState([])
 
   const divisionFlags = selectedDivision != null ? { [selectedDivision]: true } : {}
@@ -23,10 +22,12 @@ export default function NotationEditorPage() {
     setSelectedDivision((prev) => (prev === id ? null : id))
   }, [])
 
+  const onDivisionClear = useCallback(() => setSelectedDivision(null), [])
+
   const handleAddNotation = () => {
     setAddedItems((prev) => [
       ...prev,
-      { duration: selectedDuration, division: { ...divisionFlags }, timeSignatureId, chordName, at: Date.now() }
+      { duration: selectedDuration, division: { ...divisionFlags }, timeSignatureId, at: Date.now() }
     ])
   }
 
@@ -40,7 +41,7 @@ export default function NotationEditorPage() {
               <div>
                 <h1 className="text-xl font-bold text-white">Music notation</h1>
                 <p className="text-sm text-[#B3B3B3]">
-                  Choose duration, division, beats and chord; then click + on the staff to add
+                  Choose duration, division and beats; then click + on the staff to add
                 </p>
               </div>
               <Link
@@ -64,8 +65,6 @@ export default function NotationEditorPage() {
             onToggleDivision={onToggleDivision}
             timeSignatureId={timeSignatureId}
             onSelectTimeSignature={setTimeSignatureId}
-            chordName={chordName}
-            onChordNameChange={setChordName}
           />
           <StaffCanvas
             onAddNotation={handleAddNotation}
@@ -73,6 +72,7 @@ export default function NotationEditorPage() {
             selectedDuration={selectedDuration}
             selectedDivision={selectedDivision}
             onTieApplied={() => setSelectedDivision(null)}
+            onDivisionClear={onDivisionClear}
           />
         </div>
 
@@ -80,7 +80,7 @@ export default function NotationEditorPage() {
         {addedItems.length > 0 && (
           <div className="max-w-4xl mx-auto px-4 py-3">
             <p className="text-xs text-[#B3B3B3]">
-              Clicks recorded: {addedItems.length} (duration: {selectedDuration}, chord: {chordName || '—'})
+              Clicks recorded: {addedItems.length} (duration: {selectedDuration})
             </p>
           </div>
         )}

@@ -9,13 +9,17 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 const STAFF_HEIGHT = 80
 const NUM_STRINGS = 6
-const BEAT_COLUMN_WIDTH = 20  // time signature column
+const BEAT_COLUMN_WIDTH = 40  // time signature column
 const NOTE_COLUMN_WIDTH = 40  // rest symbol / beat column width
 const THICK_BAR = 8
 const THIN_BAR = 1
 const BAR_WIDTH = THICK_BAR + 2 + THIN_BAR  // gap 2px between thick and thin
 const SINGLE_LINE_WIDTH = 1   // single line between subdivisions
 const SUBDIV_ADD_BUTTON_WIDTH = 14  // small + at end of each subdivision
+const CHORD_ROW_HEIGHT = 20         // chord input height
+const CHORD_ROW_MARGIN_BOTTOM = 6
+const STAFF_ROW_OFFSET_TOP = CHORD_ROW_HEIGHT + CHORD_ROW_MARGIN_BOTTOM  // align closing bar + AddSlot with staff row
+const SEGMENT_NUM_WIDTH = 14        // width for segment number in chord row
 
 // Duration ID → Unicode rest symbol (Noto Music): whole 𝄻 half 𝄼 quarter 𝄽 1/8 𝄾 1/16 𝄿 1/32 𝅀
 const REST_BY_DURATION = {
@@ -51,6 +55,12 @@ function getBeatValue(durationId, timeSignatureId) {
   return quarterValues[durationId] ?? 1
 }
 
+// Beat value including dotted modifier (adds 0.5x: quarter 1 → 1.5)
+function getBeatValueFromBeat(beat, timeSignatureId) {
+  const base = getBeatValue(beat.duration, timeSignatureId)
+  return beat.dotted ? base * 1.5 : base
+}
+
 const DURATION_ROW_GAP = 10
 const STEM_HEIGHT_QUARTER = 40
 const STEM_HEIGHT_HALF = 20
@@ -78,15 +88,32 @@ function getStemFlags(beats) {
       const posInGroup = maxGroupSize === Infinity ? posInRun : posInRun % maxGroupSize
       const hasNextInGroup = posInGroup < maxGroupSize - 1 && k + 1 < j
       const hasPrevInGroup = posInGroup > 0
-      result[k].right = hasNextInGroup
-      result[k].left = hasPrevInGroup
+      const prevBeatHasNote = k > 0 && (beats[k - 1].notes?.length ?? 0) > 0
+      const beatDotted = beats[k].dotted
+      const prevDotted = k > 0 && beats[k - 1].dotted
+      const nextDotted = k + 1 < beats.length && beats[k + 1].dotted
+      const noDottedNearby = !beatDotted && !prevDotted && !nextDotted
+      result[k].right = hasNextInGroup && noDottedNearby
+      result[k].left = hasPrevInGroup && prevBeatHasNote && noDottedNearby
     }
     i = j
   }
   return result
 }
 
-function DurationStem({ duration, flagLeft, flagRight, hasNote }) {
+// Tuplet image shown below the duration stem when beat.tuplet is true
+function TupletImageBelow() {
+  return (
+    <img
+      src="/tuplet_3.png"
+      alt="Tuplet 3"
+      className="absolute object-contain pointer-events-none"
+      style={{ width: 12, height: 12, bottom: -16, left: '50%', transform: 'translateX(-50%)' }}
+    />
+  )
+}
+
+function DurationStem({ duration, flagLeft, flagRight, hasNote, dotted }) {
   if (!hasNote) return <div style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }} />
   if (duration === 'whole') return <div style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }} />
   const isFlagged = FLAGGED_DURATIONS.includes(duration)
@@ -132,6 +159,19 @@ function DurationStem({ duration, flagLeft, flagRight, hasNote }) {
           marginBottom: 0,
         }}
       />
+      {dotted && (
+        <span
+          className="absolute bg-black rounded-full"
+          style={{
+            width: 4,
+            height: 4,
+            bottom: 6,
+            left: '50%',
+            marginLeft: 4,
+          }}
+          aria-hidden
+        />
+      )}
     </div>
   )
 }
@@ -193,8 +233,61 @@ function AddSlot({ onClick }) {
       aria-label="Add notation"
     >
       <StaffLinesBackground lineColor="#999" />
-      <span className="relative z-10 text-neutral-400 text-2xl font-bold leading-none">+</span>
+      <span className="relative z-10 font-bold leading-none" style={{ fontSize: 30, color: '#bbb' }}>+</span>
     </div>
+  )
+}
+
+// Chord cell: shows + (like add-beat button) when empty and not focused; shows input on click or when has value. Blur with empty → back to +.
+const ADD_BEAT_BUTTON_CLASS = 'flex flex-shrink-0 items-center justify-center hover:bg-neutral-200 cursor-pointer border-0 rounded'
+
+function ChordCell({ value, onChange, onFocus, onBlur, isFocused }) {
+  const inputRef = useRef(null)
+  const isEmpty = !(value ?? '').trim()
+  const showInput = isFocused || !isEmpty
+
+  useEffect(() => {
+    if (isFocused && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isFocused])
+
+  if (showInput) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        className="text-center outline-none"
+        style={{
+          width: NOTE_COLUMN_WIDTH,
+          flexShrink: 0,
+          height: CHORD_ROW_HEIGHT,
+          fontSize: 11,
+          padding: '2px 4px',
+          boxSizing: 'border-box',
+          color: '#000',
+          backgroundColor: 'transparent',
+          border: 'none',
+        }}
+        aria-label="Chord"
+      />
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onFocus}
+      className={ADD_BEAT_BUTTON_CLASS}
+      style={{ width: NOTE_COLUMN_WIDTH, height: CHORD_ROW_HEIGHT, fontSize: 12, lineHeight: 1, color: '#cdcdcd' }}
+      aria-label="Add chord"
+    >
+      +
+    </button>
   )
 }
 
@@ -297,6 +390,9 @@ function BeatCell({
           style={{ fontFamily: 'Noto Music, sans-serif', fontSize: 34, marginTop: restMarginTop }}
         >
           {restChar}
+          {beat.dotted && (
+            <span className="absolute text-black" style={{ fontSize: 34, left: '52%', top: '50%', transform: 'translateY(-50%)' }} aria-hidden>.</span>
+          )}
         </span>
       )}
       {/* Line positions: show fret number outside box when not hovered/selected; show box (with value) when hovered or selected */}
@@ -361,7 +457,7 @@ function BeatCell({
   )
 }
 
-export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', selectedDuration = 'quarter', selectedDivision, onTieApplied }) {
+export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', selectedDuration = 'quarter', selectedDivision, onTieApplied, onDivisionClear }) {
   const [firstBeats, setFirstBeats] = useState([{ duration: 'quarter' }])
   const [subdivisions, setSubdivisions] = useState([])
   const [focus, setFocus] = useState({ subdivIndex: null, beatIndex: null })
@@ -370,43 +466,63 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
   const [focusedBeatClickedLine, setFocusedBeatClickedLine] = useState(null)
   const tsImageSrc = TS_IMAGE_BY_ID[timeSignatureId] || TS_IMAGE_BY_ID['4/4']
   const totalBeatsPerMeasure = BEATS_PER_MEASURE[timeSignatureId] ?? 4
+  const prevFocusRef = useRef({ subdivIndex: null, beatIndex: null })
+  const justAddedBeatRef = useRef(false)
 
-  // When toolbar duration changes and a beat is focused, update that beat's duration and the stem below (deferred to avoid setState during render)
+  // When user focuses a *different* beat (not re-clicking same beat or a fret), clear division so it doesn't apply to the new beat. Skip when focus moved because we just added a beat (so the new beat keeps dotted/tuplet etc).
+  useEffect(() => {
+    const prev = prevFocusRef.current
+    const beatChanged = prev.subdivIndex !== focus.subdivIndex || prev.beatIndex !== focus.beatIndex
+    prevFocusRef.current = { subdivIndex: focus.subdivIndex, beatIndex: focus.beatIndex }
+    if (justAddedBeatRef.current) {
+      justAddedBeatRef.current = false
+      return
+    }
+    if (beatChanged && focus.subdivIndex != null && focus.beatIndex != null) {
+      onDivisionClear?.()
+    }
+  }, [focus.subdivIndex, focus.beatIndex, onDivisionClear])
+
+  // When toolbar duration, dotted, or tuplet changes and a beat is focused, update that beat (deferred to avoid setState during render)
   useEffect(() => {
     const { subdivIndex, beatIndex } = focus
     if (subdivIndex === null || beatIndex === null) return
     const duration = selectedDuration
+    const dotted = selectedDivision === 'dotted'
+    const tuplet = selectedDivision === 'tuplet'
     const id = setTimeout(() => {
       if (subdivIndex === 0) {
-        setFirstBeats((prev) => prev.map((b, i) => (i === beatIndex ? { ...b, duration } : b)))
+        setFirstBeats((prev) => prev.map((b, i) => (i === beatIndex ? { ...b, duration, dotted, tuplet } : b)))
       } else {
         const subIdx = subdivIndex
         setSubdivisions((prev) =>
           prev.map((sub, si) => {
             if (si !== subIdx - 1) return sub
-            const beats = (sub.beats ?? [sub]).map((b, bi) => (bi === beatIndex ? { ...b, duration } : b))
+            const beats = (sub.beats ?? [sub]).map((b, bi) => (bi === beatIndex ? { ...b, duration, dotted, tuplet } : b))
             return { ...sub, beats }
           })
         )
       }
     }, 0)
     return () => clearTimeout(id)
-  }, [selectedDuration, focus.subdivIndex, focus.beatIndex])
+  }, [selectedDuration, selectedDivision, focus.subdivIndex, focus.beatIndex])
 
   const handleAddSlotClick = () => {
-    setSubdivisions((prev) => [...prev, { beats: [{ duration: selectedDuration }] }])
+    setSubdivisions((prev) => [...prev, { beats: [{ duration: selectedDuration, dotted: selectedDivision === 'dotted', tuplet: selectedDivision === 'tuplet' }] }])
     onAddNotation?.()
   }
 
   const addBeatToSubdivision = (subdivIndex) => {
+    const dotted = selectedDivision === 'dotted'
+    const tuplet = selectedDivision === 'tuplet'
     if (subdivIndex === 0) {
-      setFirstBeats((prev) => [...prev, { duration: selectedDuration }])
+      setFirstBeats((prev) => [...prev, { duration: selectedDuration, dotted, tuplet }])
     } else {
       setSubdivisions((prev) => {
         const next = [...prev]
         const sub = next[subdivIndex - 1]
         const existingBeats = sub.beats ?? [sub]
-        next[subdivIndex - 1] = { beats: [...existingBeats, { duration: selectedDuration }] }
+        next[subdivIndex - 1] = { beats: [...existingBeats, { duration: selectedDuration, dotted, tuplet }] }
         return next
       })
     }
@@ -589,6 +705,7 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
 
       if (e.key === 'Tab' && hasFocus) {
         e.preventDefault()
+        justAddedBeatRef.current = true
         addBeatToSubdivision(focus.subdivIndex)
         if (focus.subdivIndex === 0) {
           setFocus({ subdivIndex: 0, beatIndex: firstBeats.length })
@@ -621,12 +738,12 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
   }, [focus, focusedBeatClickedLine, deleteFocusedBeat, firstBeats, subdivisions, removeNoteFromBeat])
 
   // First subdivision total beats and over check
-  const firstSubdivTotalBeats = firstBeats.reduce((sum, b) => sum + getBeatValue(b.duration, timeSignatureId), 0)
+  const firstSubdivTotalBeats = firstBeats.reduce((sum, b) => sum + getBeatValueFromBeat(b, timeSignatureId), 0)
   const firstSubdivOver = firstSubdivTotalBeats > totalBeatsPerMeasure
   const firstStemFlags = getStemFlags(firstBeats)
 
   return (
-    <div className="bg-neutral-100 min-h-[200px] overflow-x-auto" style={{ padding: '1rem' }}>
+    <div className="bg-neutral-100 min-h-[200px] overflow-x-auto" style={{ padding: '1rem', paddingBottom: '3rem' }}>
       <div className="flex flex-wrap items-start" style={{ rowGap: '2rem' }}>
         {/* First subdivision: opening double bar, beats (20), then one cell per beat + small + ; single line at end if more subdivisions */}
         <div
@@ -636,8 +753,7 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
             backgroundColor: firstSubdivOver ? 'rgba(255, 100, 100, 0.25)' : undefined,
           }}
         >
-          <div className="absolute left-0 text-red-600" style={{ top: -20, fontWeight: 500, fontSize: 12 }}>1</div>
-          {/* Chord row above staff */}
+          {/* Chord row — segment number on same row as chord inputs */}
           <div
             className="flex flex-shrink-0 items-center"
             style={{
@@ -645,34 +761,18 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
               marginBottom: 6,
             }}
           >
-            <div style={{ width: BAR_WIDTH + BEAT_COLUMN_WIDTH, flexShrink: 0 }} />
-            {firstBeats.map((beat, beatIdx) => {
-              const isChordFocused = focusedChordInput.subdivIndex === 0 && focusedChordInput.beatIndex === beatIdx
-              return (
-                <input
-                  key={beatIdx}
-                  type="text"
-                  value={beat.chord ?? ''}
-                  onChange={(e) => setChordOnBeat(0, beatIdx, e.target.value)}
-                  onFocus={() => setFocusedChordInput({ subdivIndex: 0, beatIndex: beatIdx })}
-                  onBlur={() => setFocusedChordInput({ subdivIndex: null, beatIndex: null })}
-                  placeholder=""
-                  className="text-center outline-none"
-                  style={{
-                    width: NOTE_COLUMN_WIDTH,
-                    flexShrink: 0,
-                    height: 20,
-                    fontSize: 11,
-                    padding: '2px 4px',
-                    boxSizing: 'border-box',
-                    backgroundColor: '#e5e7eb',
-                    border: `1px solid ${isChordFocused ? '#000' : '#9ca3af'}`,
-                    borderRadius: 4,
-                  }}
-                  aria-label="Chord"
-                />
-              )
-            })}
+            <div className="flex items-center justify-center text-red-600 shrink-0" style={{ width: SEGMENT_NUM_WIDTH, height: CHORD_ROW_HEIGHT, fontWeight: 500, fontSize: 12 }}>1</div>
+            <div style={{ width: BAR_WIDTH + BEAT_COLUMN_WIDTH - SEGMENT_NUM_WIDTH, flexShrink: 0 }} />
+            {firstBeats.map((beat, beatIdx) => (
+              <ChordCell
+                key={beatIdx}
+                value={beat.chord}
+                onChange={(v) => setChordOnBeat(0, beatIdx, v)}
+                onFocus={() => setFocusedChordInput({ subdivIndex: 0, beatIndex: beatIdx })}
+                onBlur={() => setFocusedChordInput({ subdivIndex: null, beatIndex: null })}
+                isFocused={focusedChordInput.subdivIndex === 0 && focusedChordInput.beatIndex === beatIdx}
+              />
+            ))}
             <div style={{ width: SUBDIV_ADD_BUTTON_WIDTH, flexShrink: 0 }} />
             {subdivisions.length > 0 && <div style={{ width: SINGLE_LINE_WIDTH, flexShrink: 0 }} />}
           </div>
@@ -685,7 +785,7 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
           >
             <StaffLinesBackground />
             <DoubleBar />
-            <div className="flex flex-shrink-0 items-center min-w-0" style={{ width: BEAT_COLUMN_WIDTH }}>
+            <div className="flex flex-shrink-0 items-center justify-center min-w-0" style={{ width: BEAT_COLUMN_WIDTH }}>
               <img src={tsImageSrc} alt={timeSignatureId} className="block w-full h-auto" style={{ maxWidth: 20, objectFit: 'contain' }} />
             </div>
             {firstBeats.map((beat, beatIdx) => {
@@ -720,9 +820,13 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
             })}
             <button
               type="button"
-              onClick={() => addBeatToSubdivision(0)}
-              className="flex flex-shrink-0 items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer border-0 rounded"
-              style={{ width: SUBDIV_ADD_BUTTON_WIDTH, minHeight: STAFF_HEIGHT, fontSize: 14, lineHeight: 1 }}
+              onClick={() => {
+                justAddedBeatRef.current = true
+                addBeatToSubdivision(0)
+                setFocus({ subdivIndex: 0, beatIndex: firstBeats.length })
+              }}
+              className="flex flex-shrink-0 items-center justify-center hover:bg-neutral-200 cursor-pointer border-0 rounded"
+              style={{ width: SUBDIV_ADD_BUTTON_WIDTH, minHeight: STAFF_HEIGHT, fontSize: 12, lineHeight: 1, color: '#cdcdcd' }}
               aria-label="Add beat"
             >
               +
@@ -740,13 +844,16 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
           >
             <div style={{ width: BAR_WIDTH + BEAT_COLUMN_WIDTH, flexShrink: 0 }} />
             {firstBeats.map((beat, i) => (
-              <DurationStem
-                key={i}
-                duration={beat.duration}
-                flagLeft={firstStemFlags[i].left}
-                flagRight={firstStemFlags[i].right}
-                hasNote={beat.notes?.length > 0}
-              />
+              <div key={i} className="relative flex-shrink-0" style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }}>
+                <DurationStem
+                  duration={beat.duration}
+                  flagLeft={selectedDivision === 'dotted' ? false : firstStemFlags[i].left}
+                  flagRight={selectedDivision === 'dotted' ? false : firstStemFlags[i].right}
+                  hasNote={beat.notes?.length > 0}
+                  dotted={beat.dotted}
+                />
+                {beat.tuplet && <TupletImageBelow />}
+              </div>
             ))}
             <div style={{ width: SUBDIV_ADD_BUTTON_WIDTH, flexShrink: 0 }} />
             {subdivisions.length > 0 && <div style={{ width: SINGLE_LINE_WIDTH, flexShrink: 0 }} />}
@@ -757,7 +864,7 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
         {subdivisions.map((sub, i) => {
           const isLast = i === subdivisions.length - 1
           const beats = sub.beats ?? [sub]
-          const subdivTotalBeats = beats.reduce((sum, b) => sum + getBeatValue(b.duration, timeSignatureId), 0)
+          const subdivTotalBeats = beats.reduce((sum, b) => sum + getBeatValueFromBeat(b, timeSignatureId), 0)
           const subdivOver = subdivTotalBeats > totalBeatsPerMeasure
           const subdivIndex = i + 1
           const subdivStemFlags = getStemFlags(beats)
@@ -766,46 +873,29 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
               key={i}
               className="relative flex-shrink-0"
               style={{
-                width: beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
+                width: SEGMENT_NUM_WIDTH + beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
                 backgroundColor: subdivOver ? 'rgba(255, 100, 100, 0.25)' : undefined,
               }}
             >
-              <div className="absolute left-0 text-red-600" style={{ top: -20, fontWeight: 500, fontSize: 12 }}>{i + 2}</div>
-              {/* Chord row above staff */}
+              {/* Chord row — segment number on same row as chord inputs */}
               <div
                 className="flex flex-shrink-0 items-center"
                 style={{
-                  width: beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
+                  width: SEGMENT_NUM_WIDTH + beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
                   marginBottom: 6,
                 }}
               >
-                {beats.map((beat, beatIdx) => {
-                  const isChordFocused = focusedChordInput.subdivIndex === subdivIndex && focusedChordInput.beatIndex === beatIdx
-                  return (
-                    <input
-                      key={beatIdx}
-                      type="text"
-                      value={beat.chord ?? ''}
-                      onChange={(e) => setChordOnBeat(subdivIndex, beatIdx, e.target.value)}
-                      onFocus={() => setFocusedChordInput({ subdivIndex, beatIndex: beatIdx })}
-                      onBlur={() => setFocusedChordInput({ subdivIndex: null, beatIndex: null })}
-                      placeholder=""
-                      className="text-center outline-none"
-                      style={{
-                        width: NOTE_COLUMN_WIDTH,
-                        flexShrink: 0,
-                        height: 20,
-                        fontSize: 11,
-                        padding: '2px 4px',
-                        boxSizing: 'border-box',
-                        backgroundColor: '#e5e7eb',
-                        border: `1px solid ${isChordFocused ? '#000' : '#9ca3af'}`,
-                        borderRadius: 4,
-                      }}
-                      aria-label="Chord"
-                    />
-                  )
-                })}
+                <div className="flex items-center justify-center text-red-600 shrink-0" style={{ width: SEGMENT_NUM_WIDTH, height: CHORD_ROW_HEIGHT, fontWeight: 500, fontSize: 12 }}>{i + 2}</div>
+                {beats.map((beat, beatIdx) => (
+                  <ChordCell
+                    key={beatIdx}
+                    value={beat.chord}
+                    onChange={(v) => setChordOnBeat(subdivIndex, beatIdx, v)}
+                    onFocus={() => setFocusedChordInput({ subdivIndex, beatIndex: beatIdx })}
+                    onBlur={() => setFocusedChordInput({ subdivIndex: null, beatIndex: null })}
+                    isFocused={focusedChordInput.subdivIndex === subdivIndex && focusedChordInput.beatIndex === beatIdx}
+                  />
+                ))}
                 <div style={{ width: SUBDIV_ADD_BUTTON_WIDTH, flexShrink: 0 }} />
                 {!isLast && <div style={{ width: SINGLE_LINE_WIDTH, flexShrink: 0 }} />}
               </div>
@@ -813,10 +903,11 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
                 className="relative flex items-stretch flex-shrink-0"
                 style={{
                   height: STAFF_HEIGHT,
-                  width: beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
+                  width: SEGMENT_NUM_WIDTH + beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
                 }}
               >
                 <StaffLinesBackground />
+                <div style={{ width: SEGMENT_NUM_WIDTH, flexShrink: 0 }} />
                 {beats.map((beat, beatIdx) => {
                   const restChar = REST_BY_DURATION[beat.duration] ?? REST_BY_DURATION.quarter
                   const isWholeRest = beat.duration === 'whole'
@@ -849,9 +940,13 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
                 })}
                 <button
                   type="button"
-                  onClick={() => addBeatToSubdivision(subdivIndex)}
-                  className="flex flex-shrink-0 items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer border-0 rounded"
-                  style={{ width: SUBDIV_ADD_BUTTON_WIDTH, minHeight: STAFF_HEIGHT, fontSize: 14, lineHeight: 1 }}
+                  onClick={() => {
+                    justAddedBeatRef.current = true
+                    addBeatToSubdivision(subdivIndex)
+                    setFocus({ subdivIndex, beatIndex: beats.length })
+                  }}
+                  className="flex flex-shrink-0 items-center justify-center hover:bg-neutral-200 cursor-pointer border-0 rounded"
+                  style={{ width: SUBDIV_ADD_BUTTON_WIDTH, minHeight: STAFF_HEIGHT, fontSize: 12, lineHeight: 1, color: '#cdcdcd' }}
                   aria-label="Add beat"
                 >
                   +
@@ -863,17 +958,21 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
                 style={{
                   marginTop: DURATION_ROW_GAP,
                   height: STEM_HEIGHT_QUARTER,
-                  width: beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
+                  width: SEGMENT_NUM_WIDTH + beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
                 }}
               >
+                <div style={{ width: SEGMENT_NUM_WIDTH, flexShrink: 0 }} />
                 {beats.map((beat, idx) => (
-                  <DurationStem
-                    key={idx}
-                    duration={beat.duration}
-                    flagLeft={subdivStemFlags[idx].left}
-                    flagRight={subdivStemFlags[idx].right}
-                    hasNote={beat.notes?.length > 0}
-                  />
+                  <div key={idx} className="relative flex-shrink-0" style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }}>
+                    <DurationStem
+                      duration={beat.duration}
+                      flagLeft={selectedDivision === 'dotted' ? false : subdivStemFlags[idx].left}
+                      flagRight={selectedDivision === 'dotted' ? false : subdivStemFlags[idx].right}
+                      hasNote={beat.notes?.length > 0}
+                      dotted={beat.dotted}
+                    />
+                    {beat.tuplet && <TupletImageBelow />}
+                  </div>
                 ))}
                 <div style={{ width: SUBDIV_ADD_BUTTON_WIDTH, flexShrink: 0 }} />
                 {!isLast && <div style={{ width: SINGLE_LINE_WIDTH, flexShrink: 0 }} />}
@@ -882,12 +981,14 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
           )
         })}
 
-        {/* Closing double bar (20), then add slot (30) */}
-        <div className="relative flex flex-shrink-0" style={{ width: BAR_WIDTH, height: STAFF_HEIGHT }}>
-          <StaffLinesBackground />
-          <ClosingDoubleBar />
+        {/* Closing double bar and add slot — offset so they align with the staff row (below chord row) */}
+        <div className="flex flex-shrink-0 items-stretch" style={{ marginTop: STAFF_ROW_OFFSET_TOP }}>
+          <div className="relative flex flex-shrink-0" style={{ width: BAR_WIDTH, height: STAFF_HEIGHT }}>
+            <StaffLinesBackground />
+            <ClosingDoubleBar />
+          </div>
+          <AddSlot onClick={handleAddSlotClick} />
         </div>
-        <AddSlot onClick={handleAddSlotClick} />
       </div>
     </div>
   )
