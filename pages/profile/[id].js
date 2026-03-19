@@ -380,14 +380,7 @@ export default function PublicProfile() {
           {profile.showUploads !== false && !uploadsError && uploads.length === 0 && (
             <section className="rounded-xl bg-[#121212] border border-neutral-800 p-4">
               <p className="text-[#B3B3B3] text-sm">目前沒有樂譜。</p>
-              {profile.penName ? (
-                <>
-                  <p className="text-[#B3B3B3] text-xs mt-1">
-                    若你已移植樂譜但看不到，請確認該樂譜的 <code className="bg-[#282828] px-1 rounded">uploaderPenName</code> 與此帳戶的出譜者名稱一致：
-                  </p>
-                  <p className="text-[#FFD700] text-xs mt-1 font-mono break-all">{profile.penName}</p>
-                </>
-              ) : (
+              {!profile.penName && (
                 <p className="text-[#B3B3B3] text-xs mt-1">
                   此帳戶未有出譜者名稱，無法顯示樂譜列表。請到「編輯個人資料」設定出譜者名稱，並確保樂譜的 <code className="bg-[#282828] px-1 rounded">uploaderPenName</code> 與之一致。
                 </p>
