@@ -1161,10 +1161,14 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
       if (chordIdx < minCount) {
         tokenPositions.push(bracketPositions[chordIdx]);
       } else {
+        // 冇括號時：第一個和弦由 0 開始，唔加開頭空格；其餘在 totalLyricWidth 內均分
         const lastPos = bracketPositions.length > 0 ? bracketPositions[bracketPositions.length - 1] : 0;
         const remainingWidth = Math.max(0, totalLyricWidth - lastPos);
-        const k = chordIdx - minCount + 1; // 1-based index among extra chords
-        const pos = lastPos + Math.round(remainingWidth * k / (extraChordCount + 1));
+        const numExtra = chordIdx - minCount; // 0-based index among extra chords
+        const totalExtra = extraChordCount;
+        const pos = bracketPositions.length > 0
+          ? lastPos + Math.round(remainingWidth * (numExtra + 1) / (totalExtra + 1))
+          : (totalExtra <= 1 ? 0 : Math.round(totalLyricWidth * numExtra / (totalExtra - 1)));
         tokenPositions.push(pos);
       }
       chordIdx++;
@@ -2268,8 +2272,8 @@ const TabContent = ({
             
             const currentPrefix = pairIndex === 0 ? prefix : null;
             const currentSuffix = pairIndex === pairs.length - 1 ? suffix : null;
-            // 若和弦多過括號段，唔用 grid 對齊，改用預先排好嘅 chordLine（自然攤開）
-            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial' && result.alignedChords.length <= result.lyricSplit.segments.length;
+            // 一律用 grid 對齊（以歌詞為 spacer）；多出嘅和弦放喺最後加 10px 間距
+            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial' && (result.lyricSplit.segments?.length ?? 0) > 0;
             const chordFontFamily = displayFont === 'arial'
               ? "Arial, Helvetica, sans-serif"
               : "'Source Code Pro', monospace";
@@ -2483,18 +2487,20 @@ const TabContent = ({
                       </span>
                     );
                     })}
-                    {res.alignedChords.length > res.lyricSplit.segments.length &&
-                      res.alignedChords.slice(res.lyricSplit.segments.length).map((chord, extraIdx) => (
-                        <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
-                          {chord.isBarStart && '|'}
-                          <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
-                          {chord.trailing && chord.trailing.length > 0 && chord.trailing.map((t, tIdx) => (
-                            <span key={tIdx}>{' '}{t.isBarStart && '|'}{t.name}</span>
-                          ))}
-                          {' '}
-                        </span>
-                      ))
-                    }
+                    {res.alignedChords.length > res.lyricSplit.segments.length && (
+                      <span style={{ marginLeft: '10px', display: 'inline' }}>
+                        {res.alignedChords.slice(res.lyricSplit.segments.length).map((chord, extraIdx) => (
+                          <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                            {chord.isBarStart && '|'}
+                            <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
+                            {chord.trailing && chord.trailing.length > 0 && chord.trailing.map((t, tIdx) => (
+                              <span key={tIdx}>{' '}{t.isBarStart && '|'}{t.name}</span>
+                            ))}
+                            {' '}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                     {currentSuffix && (
                       <span style={{ color: prefixSuffixColor, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>
                         {currentSuffix}
