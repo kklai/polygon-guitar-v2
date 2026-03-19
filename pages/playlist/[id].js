@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Share, Heart, Music, User, Plus, Copy, ArrowLeft, Bookmark, ListMusic, ArrowUpDown, Pencil, X, Search } from 'lucide-react'
 import { getTabsByIds, getArtistSlug } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { auth } from '@/lib/firebase'
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved, removeSongFromPlaylist } from '@/lib/playlistApi'
 
 function serializePlaylistData(obj) {
@@ -406,11 +407,25 @@ export default function PlaylistDetail({
     })
     .slice(0, adminAddSongQuery.trim() ? Infinity : 20)
 
+  const bustPlaylistPageCache = async () => {
+    try {
+      const token = await auth.currentUser?.getIdToken?.()
+      if (token) {
+        await fetch('/api/admin/bust-playlist-cache', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ playlistId: id })
+        })
+      }
+    } catch (_) {}
+  }
+
   const handleAdminAddSong = async (songId) => {
     setAdminAddingSongId(songId)
     try {
       const newSongIds = [...(playlist?.songIds || []), songId]
       await updateSitePlaylist(id, { songIds: newSongIds })
+      await bustPlaylistPageCache()
       const [added] = await getTabsByIds([songId])
       if (added) setSongs((prev) => [...prev, added])
       setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
@@ -428,6 +443,7 @@ export default function PlaylistDetail({
     try {
       const newSongIds = (playlist?.songIds || []).filter((sid) => sid !== songId)
       await updateSitePlaylist(id, { songIds: newSongIds })
+      await bustPlaylistPageCache()
       setSongs((prev) => prev.filter((s) => s.id !== songId))
       setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
     } catch (e) {
@@ -444,6 +460,7 @@ export default function PlaylistDetail({
     const newSongIds = reordered.map((s) => s.id)
     try {
       await updateSitePlaylist(id, { songIds: newSongIds })
+      await bustPlaylistPageCache()
       setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
     } catch (e) {
       console.error(e)
