@@ -1,22 +1,13 @@
 /**
  * GET: Resolve 出譜者名稱 (penName) to a profile page id.
- * - If a user doc (real or placeholder) has that penName, return its id.
- * - Else return the placeholder id (pen-<hash>) so the tab can link to it.
+ * Always matches by penName: if any user doc (authed account or placeholder) has that penName, return its id.
+ * If no user has that penName, return { id: null } — tab page shows arranger name with no link.
  *
  * Query: ?penName=Kermit%20Tam
- * Response: { id: "actual-uid-or-pen-xxx" }
+ * Response: { id: "actual-uid-or-pen-xxx" } or { id: null }
  */
 
 import { getAdminDb } from '@/lib/admin-db'
-import crypto from 'crypto'
-
-function getPlaceholderUserId(penName) {
-  if (!penName || typeof penName !== 'string') return null
-  const trimmed = penName.trim()
-  if (!trimmed) return null
-  const hash = crypto.createHash('md5').update(trimmed, 'utf8').digest('hex').slice(0, 20)
-  return `pen-${hash}`
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -38,8 +29,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ id: doc.id })
       }
     }
-    const fallbackId = getPlaceholderUserId(penName)
-    return res.status(200).json({ id: fallbackId || null })
+    return res.status(200).json({ id: null })
   } catch (e) {
     console.error('[resolve-pen-name]', e?.message)
     return res.status(500).json({ error: e?.message || 'Failed to resolve' })
