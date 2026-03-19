@@ -286,7 +286,11 @@ export default function BatchUploaderPenName() {
                           className="rounded border-neutral-600 text-[#FFD700] focus:ring-[#FFD700]"
                         />
                       </td>
-                      <td className="px-4 py-2 text-white truncate max-w-[180px]" title={tab.title}>{tab.title || '—'}</td>
+                      <td className="px-4 py-2 truncate max-w-[180px]" title={tab.title}>
+                        <Link href={`/tabs/${tab.id}`} target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#FFD700] hover:underline">
+                          {tab.title || '—'}
+                        </Link>
+                      </td>
                       <td className="px-4 py-2 text-[#B3B3B3] truncate max-w-[140px]">{getArtistName(tab) || '—'}</td>
                       <td className="px-4 py-2 text-[#B3B3B3]">{tab.uploaderPenName || '—'}</td>
                       <td className="px-4 py-2">
