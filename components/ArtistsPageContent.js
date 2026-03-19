@@ -3,6 +3,8 @@ import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import Head from 'next/head'
 import { generateBreadcrumbSchema, siteConfig } from '@/lib/seo'
+import { getArtistSlug } from '@/lib/tabs'
+import { Mic } from 'lucide-react'
 
 const ARTISTS_CACHE_KEY = 'pg_artists_list'
 const ARTISTS_CACHE_VERSION = 2 // bump to invalidate when API shape changes (e.g. region/regions)
@@ -30,7 +32,6 @@ const CATEGORY_LABELS = {
   male: { label: '男歌手', color: '#1fc3df' },
   female: { label: '女歌手', color: '#ff9b98' },
   group: { label: '組合', color: '#fed702' },
-  soundtrack: { label: '主題曲', color: '#b388ff' },
   other: { label: '其他', color: '#888888' }
 }
 
@@ -76,8 +77,8 @@ function ArtistCircle({ artist, href }) {
             decoding="async"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl">
-            🎤
+          <div className="w-full h-full flex items-center justify-center text-neutral-500">
+            <Mic className="w-10 h-10" strokeWidth={1.5} />
           </div>
         )}
       </div>
@@ -132,7 +133,7 @@ function HorizontalScrollSection({ title, color, artists, onArtistClick }) {
                 <ArtistCircle
                   key={artist.id}
                   artist={artist}
-                  href={`/artists/${artist.id}`}
+                  href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                 />
               ))}
             </div>
@@ -223,7 +224,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
   }, [searchQuery, artists, activeCategory, activeRegion])
 
   const groupedByCategory = useMemo(() => {
-    const groups = { male: [], female: [], group: [], soundtrack: [], other: [] }
+    const groups = { male: [], female: [], group: [], other: [] }
 
     filteredArtists.forEach(artist => {
       let rawType = artist.artistType || artist.gender || 'other'
@@ -243,8 +244,9 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
     return groups
   }, [filteredArtists, activeCategory])
 
-  const handleArtistClick = (artistId) => {
-    router.push(`/artists/${artistId}`)
+  const handleArtistClick = (artist) => {
+    const slug = typeof artist === 'object' ? (getArtistSlug(artist) || artist?.id) : artist
+    router.push(`/artists/${encodeURIComponent(slug || '')}`)
   }
 
   const seoTitle = '歌手分類 - Polygon Guitar'
@@ -321,7 +323,7 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
               onClick={() => setActiveCategory('all')}
               label="全部"
             />
-            {['male', 'female', 'group', 'soundtrack', 'other'].map(type => (
+            {['male', 'female', 'group', 'other'].map(type => (
               <PillButton
                 key={type}
                 isActive={activeCategory === type}
@@ -385,14 +387,6 @@ export default function ArtistsPageContent({ initialArtists = [] }) {
                   artists={groupedByCategory.group}
                   onArtistClick={handleArtistClick}
                 />
-                {groupedByCategory.soundtrack.length > 0 && (
-                  <HorizontalScrollSection
-                    title={CATEGORY_LABELS.soundtrack.label}
-                    color={CATEGORY_LABELS.soundtrack.color}
-                    artists={groupedByCategory.soundtrack}
-                    onArtistClick={handleArtistClick}
-                  />
-                )}
                 {groupedByCategory.other.length > 0 && (
                   <HorizontalScrollSection
                     title={CATEGORY_LABELS.other.label}

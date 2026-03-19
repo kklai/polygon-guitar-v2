@@ -115,7 +115,7 @@ export default function TestSpotify() {
               
               {error.status === 500 && error.message?.includes('credentials') && (
                 <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-800 rounded">
-                  <p className="text-yellow-400 font-medium">💡 可能的問題:</p>
+                  <p className="text-yellow-400 font-medium">可能的問題:</p>
                   <ul className="mt-2 text-sm text-yellow-200/70 space-y-1">
                     <li>• 環境變數 SPOTIFY_CLIENT_ID 未設置</li>
                     <li>• 環境變數 SPOTIFY_CLIENT_SECRET 未設置</li>
@@ -126,7 +126,7 @@ export default function TestSpotify() {
 
               {error.status === 401 && (
                 <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-800 rounded">
-                  <p className="text-yellow-400 font-medium">💡 Premium 問題:</p>
+                  <p className="text-yellow-400 font-medium">Premium 問題:</p>
                   <p className="mt-2 text-sm text-yellow-200/70">
                     Spotify Developer App 需要 Owner 有 Premium 帳號。請確認你的 DUO 主帳號已登入 Developer Dashboard。
                   </p>

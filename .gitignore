@@ -27,6 +27,8 @@ npm-debug.log*
 .env*.local
 scripts/firebase-service-account.json
 scripts/.cache-tabs-lyricist.json
+scripts/uploader-pen-names.json
+scripts/created-pen-name-users.json
 
 # Firebase
 .firebase/
@@ -36,3 +38,17 @@ scripts/.cache-tabs-lyricist.json
 *INVESTIGATION.md
 *-firebase-adminsdk-*.json
 *SUMMARY.md
+
+list-orphaned-from-search-data.js
+orphaned.json
+search-data.json
+
+# Export / backup data (scripts/export-*.js, strip-content, json-to-tsv)
+tabs.json
+tabs-export.json
+tabs-no-content.json
+tabs-no-content.tsv
+artists-export.json
+artists-back.json
+artists-backup.json
+artists-*.tsv

@@ -49,7 +49,7 @@ export default function SixLineEditorPage() {
             </div>
             
             <div className="bg-[#121212] rounded-xl border border-neutral-800 p-4">
-              <h2 className="text-sm font-bold text-white mb-3">🎸 使用說明</h2>
+              <h2 className="text-sm font-bold text-white mb-3">使用說明</h2>
               <ul className="text-xs text-neutral-400 space-y-1">
                 <li>• 點擊六條弦上嘅位置選中拍子</li>
                 <li>• 用數字鍵輸入品數（0-9）</li>

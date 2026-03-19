@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Link from '@/components/Link'
 import { createPlaylist } from '@/lib/playlists'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { Music } from 'lucide-react'
 
 function NewPlaylist() {
   const router = useRouter()
@@ -219,8 +220,8 @@ function NewPlaylist() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">
-                    🎵
+                  <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                    <Music className="w-10 h-10" strokeWidth={1.5} />
                   </div>
                 )}
               </div>
@@ -282,10 +283,10 @@ function NewPlaylist() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
                 >
-                  <option value="artist">🎤 歌手精選</option>
-                  <option value="theme">🎵 主題歌單</option>
-                  <option value="series">📀 系列專輯</option>
-                  <option value="mood">💫 場景心情</option>
+                  <option value="artist">歌手精選</option>
+                  <option value="theme">主題歌單</option>
+                  <option value="series">系列專輯</option>
+                  <option value="mood">場景心情</option>
                 </select>
               </div>
 
@@ -346,8 +347,8 @@ function NewPlaylist() {
               </div>
 
               {selectedSongs.length === 0 ? (
-                <div className="text-center py-8 text-neutral-500">
-                  <span className="text-4xl block mb-2">🎸</span>
+                <div className="text-center py-8 text-neutral-500 flex flex-col items-center">
+                  <Music className="w-10 h-10 mb-2 text-neutral-500" strokeWidth={1.5} />
                   <p>從左側選擇歌曲加入歌單</p>
                 </div>
               ) : (

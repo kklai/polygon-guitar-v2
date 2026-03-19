@@ -3,18 +3,19 @@
  */
 
 import { useState, useRef } from 'react'
+import { Music, Mic, Sparkles, CircleDot, GitBranch, Music2, FolderOpen, AlertCircle } from 'lucide-react'
 import { uploadGpFile, getGpFileInfo } from '@/lib/cloudinaryGp'
 import { uploadGpFileToFirebase } from '@/lib/firebaseStorage'
 
-const SEGMENT_TYPES = [
-  { value: 'intro', label: '前奏', icon: '🎵' },
-  { value: 'verse', label: '主歌', icon: '🎤' },
-  { value: 'chorus', label: '副歌', icon: '🎸' },
-  { value: 'interlude', label: '間奏', icon: '✨' },
-  { value: 'solo', label: 'Solo', icon: '🎸' },
-  { value: 'outro', label: '尾奏', icon: '🔚' },
-  { value: 'bridge', label: '橋段', icon: '🌉' },
-  { value: 'prechorus', label: '導歌', icon: '🎶' }
+export const SEGMENT_TYPES = [
+  { value: 'intro', label: '前奏', Icon: Music },
+  { value: 'verse', label: '主歌', Icon: Mic },
+  { value: 'chorus', label: '副歌', Icon: Music },
+  { value: 'interlude', label: '間奏', Icon: Sparkles },
+  { value: 'solo', label: 'Solo', Icon: Music },
+  { value: 'outro', label: '尾奏', Icon: CircleDot },
+  { value: 'bridge', label: '橋段', Icon: GitBranch },
+  { value: 'prechorus', label: '導歌', Icon: Music2 }
 ]
 
 export default function GpSegmentUploader({ 
@@ -300,7 +301,7 @@ export default function GpSegmentUploader({
 
   return (
     <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
-      <h3 className="text-lg font-medium text-white mb-4">🎸 Guitar Pro 段落</h3>
+      <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2"><Music className="w-5 h-5" /> Guitar Pro 段落</h3>
       
       {!uploadedFile ? (
         <div>
@@ -317,7 +318,7 @@ export default function GpSegmentUploader({
               isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#FFD700] cursor-pointer'
             }`}
           >
-            <div className="text-4xl mb-3">📁</div>
+            <FolderOpen className="w-10 h-10 text-neutral-500 mb-3 mx-auto" />
             <p className="text-neutral-400 mb-2">
               {isUploading ? '上傳中...' : '點擊上傳 Guitar Pro 文件'}
             </p>
@@ -326,7 +327,7 @@ export default function GpSegmentUploader({
           
           {error && (
             <div className="mt-3 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">
-              ❌ {error}
+              <AlertCircle className="w-4 h-4 inline-block mr-1 align-middle" /> {error}
             </div>
           )}
         </div>
@@ -336,7 +337,7 @@ export default function GpSegmentUploader({
           <div className="p-3 bg-green-900/20 border border-green-700/50 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🎵</span>
+                <Music className="w-6 h-6 text-green-400" strokeWidth={1.5} />
                 <div>
                   <p className="text-green-300 font-medium">{uploadedFile.originalFilename}</p>
                   <p className="text-xs text-green-500/70">
@@ -525,7 +526,7 @@ export default function GpSegmentUploader({
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
-                    {SEGMENT_TYPES.find(t => t.value === segment.type)?.icon || '🎵'}
+                    {(() => { const t = SEGMENT_TYPES.find(x => x.value === segment.type); const Icon = t?.Icon || Music; return <Icon className="w-5 h-5 text-neutral-400" strokeWidth={1.5} />; })()}
                   </span>
                   <div>
                     <p className="text-white text-sm">

@@ -630,7 +630,7 @@ export default function UserPlaylistDetail() {
                           decoding="async"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E] text-2xl">🎸</div>
+                        <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E]"><Music className="w-6 h-6" strokeWidth={1.5} /></div>
                       )}
                     </div>
                   );
@@ -721,7 +721,7 @@ export default function UserPlaylistDetail() {
                         decoding="async"
                       />
                     ) : (
-                      <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                      <span className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></span>
                     )}
                   </div>
                   <div className="flex-1 text-left min-w-0">
@@ -796,7 +796,7 @@ export default function UserPlaylistDetail() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                        <span className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></span>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1154,7 +1154,7 @@ export default function UserPlaylistDetail() {
                             {thumb ? (
                               <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xl">🎸</div>
+                              <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-5 h-5" strokeWidth={1.5} /></div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -1393,7 +1393,7 @@ export default function UserPlaylistDetail() {
                       return dragThumb ? (
                         <img src={dragThumb} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl">🎸</div>
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-5 h-5" strokeWidth={1.5} /></div>
                       );
                     })()}
                   </div>

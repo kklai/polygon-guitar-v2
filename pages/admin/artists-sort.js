@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { collection, getDocs, doc, writeBatch } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
 import Link from '@/components/Link'
-import { Save, GripVertical } from 'lucide-react'
+import { getArtistSlug } from '@/lib/tabs'
+import { Save, GripVertical, Mic } from 'lucide-react'
 
 const DEFAULT_TIER = 5
 const DISPLAY_ORDER_LAST = 999999
@@ -301,12 +302,12 @@ export default function ArtistsSortPage() {
                       {artist.photoURL || artist.wikiPhotoURL ? (
                         <img src={artist.photoURL || artist.wikiPhotoURL} alt={artist.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm">🎤</div>
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500"><Mic className="w-5 h-5" strokeWidth={1.5} /></div>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <Link href={`/artists/${artist.id}/edit`} className="text-white font-medium truncate text-sm hover:text-[#FFD700] transition">
+                      <Link href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}/edit`} className="text-white font-medium truncate text-sm hover:text-[#FFD700] transition">
                         {artist.name}
                       </Link>
                       <span className={`min-w-[1.25rem] px-1.5 py-0.5 rounded text-xs font-medium text-center shrink-0 ${badgeColor}`}>

@@ -22,14 +22,15 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 
-/** 同 lib/tabs.js nameToSlug 一致 */
+/** 同 lib/tabs.js nameToSlug 一致（一律小寫） */
 function nameToSlug(name) {
   if (!name || typeof name !== 'string') return '';
   return name
     .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
 }
 
 async function main() {

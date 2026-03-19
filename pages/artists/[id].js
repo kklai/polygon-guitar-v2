@@ -7,7 +7,7 @@ import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, updateDoc, increment } from '@/lib/firestore-tracked';
 import { ArrowLeft, Share, Heart, ChevronDown, Music, Info, Edit, Star, Eye, Plus, Copy, PenLine } from 'lucide-react';
 import SongActionSheet from '../../components/SongActionSheet';
-import { getTabsByArtist, getArtistBySlug, slimTabForArtistPage, nameToSlug } from '../../lib/tabs';
+import { getTabsByArtist, getArtistByIdOrSlug, slimTabForArtistPage, nameToSlug, getArtistSlug } from '../../lib/tabs';
 import { getArtistPageCache, setArtistPageCache } from '../../lib/artistPageCache';
 import { getGroupKeys } from '../../lib/tabGrouping';
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, getUserLikedSongs, createPlaylist, saveArtistToLibrary, removeSavedArtist, checkIsArtistSaved, removeSongFromPlaylist } from '../../lib/playlistApi';
@@ -552,7 +552,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
   const songCount = allTabs.length;
   const seoTitle = generateArtistTitle(artist.name);
   const seoDescription = generateArtistDescription(artist.name, songCount);
-  const artistSlug = artist.normalizedName || artist.id;
+  const artistSlug = getArtistSlug(artist) || artist.id;
   const seoUrl = `${siteConfig.url}/artists/${encodeURIComponent(artistSlug)}`;
   const artistSchema = generateArtistSchema(artist, allTabs);
   const breadcrumbSchema = generateBreadcrumbSchema([
@@ -776,7 +776,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                 <h3 className="text-white text-base font-medium truncate">{tab.title}</h3>
                 <p className="text-[#B3B3B3] text-xs mt-0.5 flex items-center gap-1">
                   <PenLine className="w-3 h-3 flex-shrink-0" />
-                  {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                  {tab.uploaderPenName || '匿名'}
                 </p>
               </div>
               
@@ -874,7 +874,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                         </div>
                         <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                           <span className="text-[#B3B3B3] text-sm truncate block">
-                            {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                            {tab.uploaderPenName || '匿名'}
                           </span>
                         </div>
                       </Link>
@@ -916,7 +916,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                           </div>
                           <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                             <span className="text-[#B3B3B3] text-sm truncate block">
-                              {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                              {tab.uploaderPenName || '匿名'}
                             </span>
                           </div>
                         </Link>
@@ -952,7 +952,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                     </div>
                     <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                       <span className="text-[#B3B3B3] text-sm truncate block">
-                        {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                        {tab.uploaderPenName || '匿名'}
                       </span>
                     </div>
                   </Link>
@@ -994,7 +994,7 @@ export default function ArtistPage({ initialArtist, initialHotTabs = [], initial
                       </div>
                       <div className="text-right flex-shrink-0" style={{ width: '5.3rem' }}>
                         <span className="text-[#B3B3B3] text-sm truncate block">
-                          {tab.uploaderPenName || tab.arrangedBy || '匿名'}
+                          {tab.uploaderPenName || '匿名'}
                         </span>
                       </div>
                     </Link>
@@ -1143,25 +1143,31 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
-  const id = params?.id;
+  let id = params?.id;
   if (!id) return { notFound: true };
   try {
-    let artistDoc = await getDoc(doc(db, 'artists', id));
-    if (!artistDoc.exists()) {
-      const bySlug = await getArtistBySlug(id);
-      if (!bySlug) return { notFound: true };
-      artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) };
-    }
-    const artistData = { id: artistDoc.id, ...artistDoc.data() };
+    // Decode URL segment (Next.js may pass percent-encoded value)
+    try {
+      const decoded = decodeURIComponent(id);
+      if (decoded !== id) id = decoded;
+    } catch (_) { /* keep id */ }
+    const artistData = await getArtistByIdOrSlug(id);
+    if (!artistData) return { notFound: true };
     const artistId = artistData.id;
 
-    const expectedSlug = artistData.normalizedName || nameToSlug(artistData.name) || artistId;
+    const expectedSlug = getArtistSlug(artistData) || artistId;
     if (expectedSlug !== id) {
       return { redirect: { destination: `/artists/${encodeURIComponent(expectedSlug)}`, permanent: false } };
     }
 
     const cached = await getArtistPageCache(artistId);
-    if (cached?.artist && Array.isArray(cached.allTabs)) {
+    // Do not trust cache when tab lists are empty: first visit often cached 0 songs before
+    // tabs existed or before patch-caches ran; that stale doc lasts ~1y and hid all tabs on prod.
+    const cachedTabsOk =
+      cached?.artist &&
+      Array.isArray(cached.allTabs) &&
+      (cached.allTabs.length > 0 || (cached.hotTabs || []).length > 0);
+    if (cachedTabsOk) {
       return {
         props: {
           initialArtist: serializeForProps(cached.artist),
@@ -1172,7 +1178,7 @@ export async function getStaticProps({ params }) {
       };
     }
 
-    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId);
+    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId, artistData.id);
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
     const slimTabs = tabs.map(slimTabForArtistPage);
     const initialHotTabs = slimTabs.slice(0, 5);

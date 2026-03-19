@@ -1,5 +1,6 @@
 import Layout from '@/components/Layout'
 import Link from '@/components/Link'
+import { Music, FileText, Pencil, Lightbulb, Calendar, Video, Tag, MessageCircle, Star, Rocket } from 'lucide-react'
 
 export default function TabGuide() {
   return (
@@ -7,8 +8,9 @@ export default function TabGuide() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-            🎸 如何出一份靚譜
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-2">
+            <Music className="w-8 h-8 text-[#FFD700]" strokeWidth={1.5} />
+            如何出一份靚譜
           </h1>
           <p className="text-neutral-400">
             完整教學：由格式到資料填寫，讓你的譜更專業
@@ -17,7 +19,7 @@ export default function TabGuide() {
 
         {/* Quick Start */}
         <div className="bg-[#121212] rounded-xl border border-[#FFD700]/30 p-6 mb-6">
-          <h2 className="text-lg font-bold text-[#FFD700] mb-4">🚀 快速開始</h2>
+          <h2 className="text-lg font-bold text-[#FFD700] mb-4 flex items-center gap-2"><Rocket className="w-5 h-5" /> 快速開始</h2>
           <div className="space-y-3 text-neutral-300">
             <p>1. <Link href="/tabs/new" className="text-[#FFD700] hover:underline">點擊這裡出譜</Link></p>
             <p>2. 確保你已登入（支援 Google 帳號）</p>
@@ -30,7 +32,7 @@ export default function TabGuide() {
 
         {/* Section Markers */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white mb-4">🏷️ 段落標記（Section Markers）</h2>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Tag className="w-5 h-5" /> 段落標記（Section Markers）</h2>
           <p className="text-neutral-400 mb-4">
             用段落標記可以清楚分開歌曲不同部分。支援完整英文名稱或縮寫：
           </p>
@@ -69,7 +71,7 @@ export default function TabGuide() {
 
         {/* Comment/Note */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white mb-4">💬 加入旁白/提示</h2>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><MessageCircle className="w-5 h-5" /> 加入旁白/提示</h2>
           <p className="text-neutral-400 mb-4">
             想加入彈奏提示或旁白？用 <code className="text-[#FFD700] bg-black px-2 py-1 rounded">//</code> 開頭：
           </p>
@@ -84,7 +86,7 @@ export default function TabGuide() {
 
         {/* Tab Format */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white mb-4">📝 譜的格式</h2>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><FileText className="w-5 h-5" /> 譜的格式</h2>
           
           <div className="space-y-4">
             <div>
@@ -118,11 +120,11 @@ export default function TabGuide() {
 
         {/* Important Fields */}
         <div className="bg-[#1a1a2e] rounded-xl border border-[#FFD700]/30 p-6 mb-6">
-          <h2 className="text-lg font-bold text-[#FFD700] mb-4">⭐ 重要：請填寫這些資料</h2>
+          <h2 className="text-lg font-bold text-[#FFD700] mb-4 flex items-center gap-2"><Star className="w-5 h-5" /> 重要：請填寫這些資料</h2>
           
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🎵</span>
+              <Music className="w-6 h-6 text-[#FFD700] flex-shrink-0" strokeWidth={1.5} />
               <div>
                 <h3 className="text-white font-medium">作曲 & 填詞</h3>
                 <p className="text-neutral-400 text-sm">
@@ -132,19 +134,19 @@ export default function TabGuide() {
             </div>
 
             <div className="flex items-start gap-3">
-              <span className="text-2xl">✏️</span>
+              <Pencil className="w-6 h-6 text-[#FFD700] flex-shrink-0" strokeWidth={1.5} />
               <div>
-                <h3 className="text-white font-medium">編譜者筆名</h3>
+                <h3 className="text-white font-medium">出譜者名稱</h3>
                 <p className="text-neutral-400 text-sm">
                   這是辨識你作品的方式！建議先到 
                   <Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料</Link>
-                  設定固定筆名，出譜時會自動帶入。
+                  設定固定出譜者名稱，出譜時會自動帶入。
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <span className="text-2xl">📅</span>
+              <Calendar className="w-6 h-6 text-[#FFD700] flex-shrink-0" strokeWidth={1.5} />
               <div>
                 <h3 className="text-white font-medium">歌曲年份</h3>
                 <p className="text-neutral-400 text-sm">
@@ -154,7 +156,7 @@ export default function TabGuide() {
             </div>
 
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🎬</span>
+              <Video className="w-6 h-6 text-[#FFD700] flex-shrink-0" strokeWidth={1.5} />
               <div>
                 <h3 className="text-white font-medium">YouTube 連結</h3>
                 <p className="text-neutral-400 text-sm">
@@ -167,11 +169,11 @@ export default function TabGuide() {
 
         {/* Pen Name Setup */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white mb-4">✏️ 設定你的編譜者筆名</h2>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Pencil className="w-5 h-5" /> 設定你的出譜者名稱</h2>
           
           <div className="space-y-4 text-neutral-300">
             <p>
-              我們建議設定一個固定的編譜者筆名，這樣：
+              我們建議設定一個固定的出譜者名稱，這樣：
             </p>
             <ul className="list-disc list-inside space-y-2 text-neutral-400">
               <li>所有你的譜都會統一顯示「編譜：xxx」</li>
@@ -183,7 +185,7 @@ export default function TabGuide() {
               <p className="text-[#FFD700] font-medium mb-2">設定方法：</p>
               <ol className="list-decimal list-inside space-y-1 text-neutral-400">
                 <li>前往 <Link href="/profile/edit" className="text-[#FFD700] hover:underline">個人資料設定</Link></li>
-                <li>找到「編譜者筆名」欄位</li>
+                <li>找到「出譜者名稱」欄位</li>
                 <li>輸入你想使用的名稱（如：結他小王子、Kermit Guitar）</li>
                 <li>保存！之後出譜會自動帶入</li>
               </ol>
@@ -193,7 +195,7 @@ export default function TabGuide() {
 
         {/* Tips */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white mb-4">💡 進階技巧</h2>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Lightbulb className="w-5 h-5" /> 進階技巧</h2>
           
           <div className="space-y-3 text-neutral-300">
             <div className="flex items-start gap-2">
@@ -219,9 +221,10 @@ export default function TabGuide() {
         <div className="text-center py-8">
           <Link
             href="/tabs/new"
-            className="inline-block px-8 py-4 bg-[#FFD700] text-black rounded-xl font-bold text-lg hover:opacity-90 transition"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-[#FFD700] text-black rounded-xl font-bold text-lg hover:opacity-90 transition"
           >
-            🎸 開始出譜
+            <Music className="w-5 h-5" strokeWidth={1.5} />
+            開始出譜
           </Link>
           <p className="text-neutral-500 mt-4">
             有任何問題？聯絡我們

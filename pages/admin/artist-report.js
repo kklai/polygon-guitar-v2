@@ -4,6 +4,7 @@ import Layout from '@/components/Layout'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
 import { collection, query, getDocs, orderBy } from '@/lib/firestore-tracked'
+import { getArtistSlug } from '@/lib/tabs'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 export default function ArtistReport() {
@@ -388,7 +389,7 @@ export default function ArtistReport() {
                     <td className="px-3 py-3">
                       <div className="flex gap-2">
                         <a
-                          href={`/artists/${artist.id}`}
+                          href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-400 hover:text-blue-300 text-xs"
@@ -396,7 +397,7 @@ export default function ArtistReport() {
                           歌手頁
                         </a>
                         <a
-                          href={`/artists/${artist.id}/edit`}
+                          href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}/edit`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#FFD700] hover:text-yellow-300 text-xs"

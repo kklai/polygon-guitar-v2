@@ -642,7 +642,7 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
       style={{
         fontSize: `${fontSize}px`,
         whiteSpace: 'pre-wrap',
-        marginBottom: '0.05em',
+        marginBottom: '0.1em',
         lineHeight: '1.2',
         fontWeight: 300,
         fontFamily

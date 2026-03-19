@@ -97,46 +97,42 @@ function transposeChord(chord, semitones) {
   return newRoot + suffix + newBass;
 }
 
-function transposeChordLine(line, semitones) {
+function transposeChordLine(line, semitones, preserveBarSpacing = false) {
   if (!semitones || semitones === 0) {
-    // 即使唔轉調，都確保和弦之間至少有一個空格
+    if (preserveBarSpacing) {
+      return line.replace(/｜/g, '|').replace(/\u2502/g, '|');
+    }
     return normalizeChordSpacing(line);
   }
   
-  // 先規範化間距，再轉調
-  const normalizedLine = normalizeChordSpacing(line);
-  
-  // 匹配：| 或 ｜ + 和弦，或 空格 + 和弦，或 | 或 ｜，或獨立的 -
+  const normalizedLine = normalizeChordSpacing(line, preserveBarSpacing);
+  const barOut = preserveBarSpacing ? '|' : ' |';
   return normalizedLine.replace(/([\|｜]\s*|\s+)([A-G][#b]?[^\s|｜]*|-)|([\|｜])/g, (match, separator, chord, barOnly) => {
-    // 處理只有 | 或 ｜ 的情況
-    if (barOnly === '|' || barOnly === '｜') return ' |';
-    
-    // 判斷是否有 | 或 ｜
+    if (barOnly === '|' || barOnly === '｜') return barOut;
     const hasBar = separator && (/[\|｜]/.test(separator));
     const leadingSpace = separator && separator.match(/\s*$/)?.[0] || '';
-    
-    // 處理獨立的延長符號（只是 -）
     if (chord === '-') {
-      return (hasBar ? ' |' : leadingSpace || ' ') + '-';
+      return (hasBar ? barOut : leadingSpace || ' ') + '-';
     }
-    
-    // 檢查係咪有延長符號（結尾係 -）
     const hasDash = chord.endsWith('-');
     const cleanChord = hasDash ? chord.slice(0, -1) : chord;
     const transposed = transposeChord(cleanChord, semitones);
     const result = hasDash ? transposed + '-' : transposed;
-    return (hasBar ? ' |' : leadingSpace || ' ') + result;
+    return (hasBar ? barOut : leadingSpace || ' ') + result;
   });
 }
 
 // 確保和弦之間至少有一個空格
-function normalizeChordSpacing(line) {
+// preserveBarSpacing: 等寬/人手空格對位時為 true，唔在 | 後加空格，保持用戶輸入
+function normalizeChordSpacing(line, preserveBarSpacing = false) {
   if (!line) return line;
   
   // 將全角豎線、Unicode 豎線（│ U+2502）轉為半角 |
   let result = line.replace(/｜/g, '|').replace(/\u2502/g, '|');
-  // 確保 | 後面至少有一個空格
-  result = result.replace(/\|([^\s])/g, '| $1');
+  // 確保 | 後面至少有一個空格（等寬/人手空格對位時唔加，保持原樣）
+  if (!preserveBarSpacing) {
+    result = result.replace(/\|([^\s])/g, '| $1');
+  }
   
   // 確保和弦之間至少有一個空格
   // 方法：遍歷字符串，當發現 A-G 開頭嘅新和弦，而且前面係和弦字符（但不是 /），就加空格
@@ -433,7 +429,7 @@ function extractSectionMarker(line) {
   return { hasMarker: false, marker: '', rest: line };
 }
 
-function extractSectionMarkers(line) {
+function extractSectionMarkers(line, preserveSpacing = false) {
   const prefixMatch = line.match(/^(\s*[#*]\s*)/);
   const suffixMatch = line.match(/(?<![A-Ga-g])(\s*[#*]\s*)$/);
   const prefix = prefixMatch ? prefixMatch[1] : '';
@@ -441,7 +437,7 @@ function extractSectionMarkers(line) {
   let cleanLine = line;
   if (prefix) cleanLine = cleanLine.substring(prefix.length);
   if (suffix) cleanLine = cleanLine.substring(0, cleanLine.length - suffix.length);
-  return { prefix, suffix, cleanLine: cleanLine.trim() };
+  return { prefix, suffix, cleanLine: preserveSpacing ? cleanLine : cleanLine.trim() };
 }
 
 function getSemitoneFromKey(key) {
@@ -580,7 +576,11 @@ function isBracketsOnlyNumberedNotationLine(line) {
       else allNotationOrEmpty = false;
     }
   }
-  return hasNotation && allNotationOrEmpty;
+  if (!hasNotation || !allNotationOrEmpty) return false;
+  // 括號外若有英文／中文，即係歌詞行（如 See you (5) 45(3)），唔好當簡譜
+  const outsideBrackets = line.replace(/[\(（][^\)）]*[\)）]/g, '');
+  if (/[a-zA-Z\u4e00-\u9fff]/.test(outsideBrackets)) return false;
+  return true;
 }
 
 // 從簡譜行提取所有音符（支持 1', 5#, 6, 7, 等格式，逗號表示低音）
@@ -1056,15 +1056,24 @@ function processMixedLine(line, transposeSemitones = 0) {
 function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets = false, displayFont = 'mono') {
   // Arial 模式下，唔好做複雜對齊，直接返回原始行
   if (displayFont === 'arial') {
-    return { 
-      chordLine: transposeSemitones !== 0 ? transposeChordLine(chordLine, transposeSemitones) : chordLine, 
-      lyricParts: [{ text: lyricLine, isInside: false, type: 'text' }], 
-      error: false 
+    return {
+      chordLine: transposeSemitones !== 0 ? transposeChordLine(chordLine, transposeSemitones) : chordLine,
+      lyricParts: [{ text: lyricLine, isInside: false, type: 'text' }],
+      error: false
     };
   }
-  
-  // 先確保和弦之間有空格，再處理
-  const chordWithSpacing = normalizeChordSpacing(chordLine);
+  // 人手空格對位：唔做 chord 對括號對齊，保留用戶輸入嘅空格
+  if (displayFont === 'manual') {
+    const barOnly = chordLine.replace(/｜/g, '|').replace(/\u2502/g, '|');
+    return {
+      chordLine: transposeSemitones !== 0 ? transposeChordLine(barOnly, transposeSemitones, true) : barOnly,
+      lyricParts: [{ text: lyricLine, isInside: false, type: 'text' }],
+      error: false
+    };
+  }
+
+  const preserveBarSpacing = displayFont === 'mono' || displayFont === 'manual';
+  const chordWithSpacing = normalizeChordSpacing(chordLine, preserveBarSpacing);
   const normalizedChord = normalizeInput(chordWithSpacing);
   const normalizedLyric = normalizeInput(lyricLine);
   // 計算開括號位置（統一使用原位置，無論顯示/隱藏括號都保持相同寬度）
@@ -1152,10 +1161,14 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
       if (chordIdx < minCount) {
         tokenPositions.push(bracketPositions[chordIdx]);
       } else {
+        // 冇括號時：第一個和弦由 0 開始，唔加開頭空格；其餘在 totalLyricWidth 內均分
         const lastPos = bracketPositions.length > 0 ? bracketPositions[bracketPositions.length - 1] : 0;
         const remainingWidth = Math.max(0, totalLyricWidth - lastPos);
-        const k = chordIdx - minCount + 1; // 1-based index among extra chords
-        const pos = lastPos + Math.round(remainingWidth * k / (extraChordCount + 1));
+        const numExtra = chordIdx - minCount; // 0-based index among extra chords
+        const totalExtra = extraChordCount;
+        const pos = bracketPositions.length > 0
+          ? lastPos + Math.round(remainingWidth * (numExtra + 1) / (totalExtra + 1))
+          : (totalExtra <= 1 ? 0 : Math.round(totalLyricWidth * numExtra / (totalExtra - 1)));
         tokenPositions.push(pos);
       }
       chordIdx++;
@@ -1925,7 +1938,7 @@ const TabContent = ({
         
         const restLine = sectionCheck.rest.trim();
         if (restLine) {
-          const transposedRest = transposeChordLine(restLine, transposeSemitones);
+          const transposedRest = transposeChordLine(restLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
           elements.push(
             <div key={i} style={{
               color: colors.chord,
@@ -1983,7 +1996,7 @@ const TabContent = ({
               marginBottom: '8px',
               fontStyle: 'italic'
             }}>
-              🎸 六線譜
+              六線譜
             </div>
             {renderGuitarTab(tabSectionCheck.lines)}
           </div>
@@ -2201,7 +2214,7 @@ const TabContent = ({
         if (hasLyric) {
           // 和弦行用最後見到的和弦行（可能中間有簡譜行，唔係 targetLyricIndex - 1）
           const chordLineForPair = lines[lastChordLineIndex] || '';
-          const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForPair);
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForPair, displayFont === 'manual');
           
           // 判斷是否需要拆分：有簡譜行時不拆分，保持原有行為
           const shouldSplit = notationLines.length === 0;
@@ -2219,8 +2232,8 @@ const TabContent = ({
             for (let chordOnlyIdx = firstChordLineIndex; chordOnlyIdx < lastChordLineIndex; chordOnlyIdx++) {
               const chordOnlyLine = lines[chordOnlyIdx];
               if (!chordOnlyLine || !/[\|｜\u2502][\s]*[A-G]/.test(chordOnlyLine)) continue; // 只顯示和弦行，跳過中間嘅簡譜行
-              const { prefix: p, suffix: s, cleanLine: chordOnlyClean } = extractSectionMarkers(chordOnlyLine);
-              const transposedChordOnly = transposeChordLine(chordOnlyClean, transposeSemitones);
+              const { prefix: p, suffix: s, cleanLine: chordOnlyClean } = extractSectionMarkers(chordOnlyLine, displayFont === 'manual');
+              const transposedChordOnly = transposeChordLine(chordOnlyClean, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
               const nextLine = lines[chordOnlyIdx + 1];
               const nextHasChord = nextLine && /\|[\s]*[A-G]/.test(nextLine);
               const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine)) && !nextHasChord;
@@ -2259,8 +2272,8 @@ const TabContent = ({
             
             const currentPrefix = pairIndex === 0 ? prefix : null;
             const currentSuffix = pairIndex === pairs.length - 1 ? suffix : null;
-            // 若和弦多過括號段，唔用 grid 對齊，改用預先排好嘅 chordLine（自然攤開）
-            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial' && result.alignedChords.length <= result.lyricSplit.segments.length;
+            // 一律用 grid 對齊（以歌詞為 spacer）；多出嘅和弦放喺最後加 10px 間距
+            const useGridAlignment = result.lyricSplit && result.alignedChords && displayFont !== 'arial' && (result.lyricSplit.segments?.length ?? 0) > 0;
             const chordFontFamily = displayFont === 'arial'
               ? "Arial, Helvetica, sans-serif"
               : "'Source Code Pro', monospace";
@@ -2394,7 +2407,7 @@ const TabContent = ({
                     style={{
                       fontSize: `${lineFontSize}px`,
                       whiteSpace: 'pre-wrap',
-                      marginBottom: '0.05em',
+                      marginBottom: '0.1em',
                       lineHeight: '1.2',
                       fontWeight: 300,
                     }}
@@ -2474,18 +2487,20 @@ const TabContent = ({
                       </span>
                     );
                     })}
-                    {res.alignedChords.length > res.lyricSplit.segments.length &&
-                      res.alignedChords.slice(res.lyricSplit.segments.length).map((chord, extraIdx) => (
-                        <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
-                          {chord.isBarStart && '|'}
-                          <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
-                          {chord.trailing && chord.trailing.length > 0 && chord.trailing.map((t, tIdx) => (
-                            <span key={tIdx}>{' '}{t.isBarStart && '|'}{t.name}</span>
-                          ))}
-                          {' '}
-                        </span>
-                      ))
-                    }
+                    {res.alignedChords.length > res.lyricSplit.segments.length && (
+                      <span style={{ marginLeft: '10px', display: 'inline' }}>
+                        {res.alignedChords.slice(res.lyricSplit.segments.length).map((chord, extraIdx) => (
+                          <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                            {chord.isBarStart && '|'}
+                            <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
+                            {chord.trailing && chord.trailing.length > 0 && chord.trailing.map((t, tIdx) => (
+                              <span key={tIdx}>{' '}{t.isBarStart && '|'}{t.name}</span>
+                            ))}
+                            {' '}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                     {currentSuffix && (
                       <span style={{ color: prefixSuffixColor, fontStyle: 'italic', fontSize: `${lineFontSize * 0.85}px` }}>
                         {currentSuffix}
@@ -2521,7 +2536,7 @@ const TabContent = ({
                 {/* 歌詞行 */}
                 <div
                   data-clean-text={res.lyricParts.map(p => p.text || '').join('').replace(/\r?\n/g, '')}
-                  style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0em' }}
+                  style={{ fontSize: `${lineFontSize}px`, whiteSpace: 'pre-wrap', lineHeight: '1.1', marginTop: '0.2em' }}
                 >
                   {useGridAlignment && res.lyricSplit?.segments?.length ? (
                     <>
@@ -2593,8 +2608,8 @@ const TabContent = ({
         } else if (notationLines.length > 0) {
           // 只有和弦 + 簡譜（如 intro (3) (2) (7,) (1)），冇歌詞行
           const chordLineForNotationOnly = lines[lastChordLineIndex] || line;
-          const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForNotationOnly);
-          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForNotationOnly, displayFont === 'manual');
+          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
           const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
           elements.push(
             <div key={`${i}-notation-only`} style={{ marginBottom: `${lineFontSize * 0.3}px` }}>
@@ -2651,8 +2666,8 @@ const TabContent = ({
           i = targetLyricIndex + 1;
         } else {
           // 冇歌詞行，單獨顯示和弦
-          const { prefix, suffix, cleanLine } = extractSectionMarkers(line);
-          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones);
+          const { prefix, suffix, cleanLine } = extractSectionMarkers(line, displayFont === 'manual');
+          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
           // 檢查下一行是否為歌詞行或簡譜行
           const nextLine = lines[i + 1];
           const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine));

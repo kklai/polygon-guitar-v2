@@ -3,7 +3,7 @@ import { pacificTime } from '@/lib/logTime'
 import { auth } from '@/lib/firebase'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount } from '@/lib/tabs'
+import { getTab, getTabCached, setTabCache, clearTabCache, deleteTab, incrementViewCount, getArtistByIdOrSlug, getTabArtistId, getTabArtistIds } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Layout from '@/components/Layout'
 import TabContent from '@/components/TabContent'
@@ -11,6 +11,7 @@ import TabComments from '@/components/TabComments'
 import SongActionSheet from '@/components/SongActionSheet'
 import RatingSystem from '@/components/RatingSystem'
 import GpSegmentPlayer from '@/components/GpSegmentPlayer'
+import { useArtistMap } from '@/lib/useArtistMap'
 import { recordSongView } from '@/lib/recentViews'
 import { recordPageView } from '@/lib/analytics'
 import { recordTabView } from '@/lib/libraryRecentViews'
@@ -36,6 +37,7 @@ import { generateTabTitle, generateTabDescription, generateTabSchema, generateBr
 import { siteConfig } from '@/lib/seo'
 import { calculateCapo, getKeyOptions } from '@/lib/keyUtils'
 import { extractChords, ChordDiagramModal } from '@/components/ChordDiagram'
+import { tabUploaderPenNameMatchesUser } from '@/lib/tabEditPermission'
 
 // 主題顏色配置
 const themeColors = {
@@ -71,15 +73,21 @@ function serializeTab(tab) {
 
 export default function TabDetail({ initialTab, artist }) {
   const router = useRouter()
-  const { id, key: queryKey, updated: queryUpdated } = router.query
-  // router.query 可能未就緒（localhost/ client nav），用 asPath + sessionStorage 確保捉到「剛保存」
+  const { artistMap, getArtistName } = useArtistMap()
+  const { id, key: queryKey, updated: queryUpdated, debug: queryDebug } = router.query
+  const showDebug = queryDebug === '1' || queryDebug === 'true'
+  // router.query 可能未就緒（client nav），用 asPath + location.search + sessionStorage 確保捉到「剛保存」
   const fromSaveRedirect = queryUpdated != null ||
-    (typeof window !== 'undefined' && id && (router.asPath.includes('updated=1') || sessionStorage.getItem('pg_tab_just_updated') === id))
+    (typeof window !== 'undefined' && id && (
+      router.asPath.includes('updated=1') ||
+      (window.location?.search?.includes('updated=1')) ||
+      sessionStorage.getItem('pg_tab_just_updated') === id
+    ))
   const { user, isAuthenticated, isAdmin } = useAuth()
   const [tab, setTab] = useState(initialTab || null)
   const [isLoading, setIsLoading] = useState(!initialTab)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [uploaderId, setUploaderId] = useState('')
+  const [uploaderId, setUploaderId] = useState('') // resolved from uploaderPenName (user doc id, real or placeholder)
   const [currentKey, setCurrentKey] = useState(null)
   const [showInfo, setShowInfo] = useState(false)
   const [chordStats, setChordStats] = useState(null)
@@ -114,6 +122,8 @@ export default function TabDetail({ initialTab, artist }) {
   const [infoStartTime, setInfoStartTime] = useState(0)
   const [infoAutoPlay, setInfoAutoPlay] = useState(false)
 
+  const [resolvedArtistName, setResolvedArtistName] = useState('')
+  const [resolvedArtistNamesById, setResolvedArtistNamesById] = useState({})
   const [prevId, setPrevId] = useState(null)
   const justRefetchedIdRef = useRef(null)
   const topBarRef = useRef(null)
@@ -164,7 +174,7 @@ export default function TabDetail({ initialTab, artist }) {
       justRefetchedIdRef.current = id
       try { sessionStorage.removeItem('pg_tab_just_updated') } catch (e) {}
       clearTabCache(id)
-      loadTab().then(() => {
+      loadTab({ skipCache: true }).then(() => {
         router.replace(`/tabs/${id}${queryKey ? `?key=${queryKey}` : ''}`, undefined, { shallow: true })
       })
       return
@@ -240,20 +250,28 @@ export default function TabDetail({ initialTab, artist }) {
     effects.push(
       recordPageView('tab', id, data.title, {
         pageName: data.title,
-        artistName: artist?.name || data.artist || '',
+        artistName: getArtistName(data) || '',
         originalKey: data.originalKey,
         thumbnail: data.thumbnail || data.albumImage || data.artistPhoto
       }, user?.uid || null)
     )
-    if (data.createdBy) setUploaderId(data.createdBy)
+    // Resolve uploaderPenName → profile id (user doc by penName, real or placeholder; else pen-* fallback)
+    setUploaderId('')
+    if (data.uploaderPenName) {
+      fetch(`/api/resolve-pen-name?penName=${encodeURIComponent(data.uploaderPenName)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(payload => setUploaderId(payload?.id ?? ''))
+        .catch(() => {})
+    }
     // Cover fallback: search-data API (1 cache read). Remove after backfill has run.
-    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && data.artistId
+    const mainArtistIdForData = getTabArtistId(data)
+    const needsArtistPhoto = !data.artistPhoto && !data.coverImage && !data.albumImage && !data.thumbnail && mainArtistIdForData
     if (needsArtistPhoto) {
       fetch('/api/search-data?only=artists')
         .then(r => r.ok ? r.json() : null)
         .then(payload => {
           const allArtists = payload?.artists || []
-          const matched = allArtists.find(a => a.id === data.artistId)
+          const matched = allArtists.find(a => a.id === mainArtistIdForData)
           if (matched?.photo) {
             setFallbackArtistPhoto(matched.photo)
             recordTabView(id, { ...data, artistPhoto: matched.photo })
@@ -264,10 +282,10 @@ export default function TabDetail({ initialTab, artist }) {
     Promise.all(effects).catch(err => console.error('Side-effect error:', err))
   }
 
-  const loadTab = async () => {
+  const loadTab = async (opts = {}) => {
     try {
       const startMs = Date.now()
-      const data = await getTab(id)
+      const data = await getTab(id, opts)
       console.log(`[tab/${id}] getTab in ${Date.now() - startMs}ms at ${pacificTime()}`)
       if (data) {
         if (!data.youtubeVideoId && data.youtubeUrl) {
@@ -299,8 +317,8 @@ export default function TabDetail({ initialTab, artist }) {
     if (!confirm('確定要刪除這個譜嗎？')) return
     setIsDeleting(true)
     try {
-      const deletedTab = tab ? { id, artistId: tab.artistId } : { id }
-      await deleteTab(id, user.uid, isAdmin)
+      const deletedTab = tab ? { id, artistId: getTabArtistId(tab) } : { id }
+      await deleteTab(id, user.uid, isAdmin, user?.penName || '')
       try {
         const token = await auth.currentUser?.getIdToken?.()
         if (token) {
@@ -318,6 +336,49 @@ export default function TabDetail({ initialTab, artist }) {
       setIsDeleting(false)
     }
   }
+
+  // 單一來源：artistId → 名；map 無時由 Firestore 取一次
+  useEffect(() => {
+    const mainId = tab ? getTabArtistId(tab) : ''
+    if (!mainId || (getTabArtistIds(tab).length > 1)) {
+      setResolvedArtistName('')
+      return
+    }
+    const fromMap = artistMap?.get(mainId) || artistMap?.get(mainId?.toLowerCase())
+    if (fromMap) {
+      setResolvedArtistName('')
+      return
+    }
+    let cancelled = false
+    getArtistByIdOrSlug(mainId).then((a) => {
+      if (!cancelled && a?.name) setResolvedArtistName(a.name)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [tab?.id, tab?.artists, tab?.artistIds, artistMap])
+
+  // 多歌手時：artistMap 冇嘅 id 用 getArtistByIdOrSlug 補名，避免顯示 id
+  useEffect(() => {
+    const ids = tab ? getTabArtistIds(tab) : []
+    if (ids.length <= 1) {
+      setResolvedArtistNamesById({})
+      return
+    }
+    let cancelled = false
+    const missing = ids.filter(id => !(artistMap?.get(id) || artistMap?.get(id?.toLowerCase())))
+    if (missing.length === 0) {
+      setResolvedArtistNamesById({})
+      return
+    }
+    Promise.all(missing.map(id => getArtistByIdOrSlug(id).then(a => ({ id, name: a?.name || '' }))))
+      .then(results => {
+        if (cancelled) return
+        const next = {}
+        results.forEach(({ id, name }) => { if (name) next[id] = name })
+        setResolvedArtistNamesById(prev => ({ ...prev, ...next }))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [tab?.id, tab?.artists, tab?.artistIds, artistMap])
 
   // 頂 bar 喜愛狀態：tab 載入時更新
   useEffect(() => {
@@ -607,9 +668,7 @@ export default function TabDetail({ initialTab, artist }) {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/tabs/${tab.id}`;
-    const shareArtistName = tab.collaborators?.length > 1
-      ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-      : (artist?.name || '');
+    const shareArtistName = getArtistName(tab) || '';
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -711,7 +770,10 @@ export default function TabDetail({ initialTab, artist }) {
     }
   };
 
-  const isOwner = tab && user && tab.createdBy === user.uid
+  const isOwner =
+    tab &&
+    user &&
+    (tab.createdBy === user.uid || tabUploaderPenNameMatchesUser(tab, user.penName))
   const canEdit = isOwner || isAdmin
 
   if (router.isFallback || isLoading) {
@@ -730,13 +792,23 @@ export default function TabDetail({ initialTab, artist }) {
 
   if (!tab) return null
 
+  /** Profile link only when a user (auth or placeholder) has this penName; otherwise no link. */
+  const uploaderProfileId = uploaderId || null
+
   const effectiveArtistPhoto = tab.artistPhoto || fallbackArtistPhoto
 
+  const mainArtistId = getTabArtistId(tab)
+  const tabArtistIds = getTabArtistIds(tab)
+  const resolvedSingleName = mainArtistId && (artistMap?.get(mainArtistId) || artistMap?.get(mainArtistId?.toLowerCase()))
+  const isFeat = tab.artists?.[1]?.role === 'feat' || tab.artists?.[1]?.relation === 'feat'
+  const getArtistNameById = (id) => resolvedArtistNamesById[id] || artistMap?.get(id) || artistMap?.get(id?.toLowerCase()) || id
   const artistDisplayName = tab.collaborators?.length > 1
-    ? (tab.collaborationType === 'feat' ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
-    : (artist?.name || '')
+    ? (isFeat ? tab.collaborators.join(' feat. ') : tab.collaborators.join(' / '))
+    : tabArtistIds.length > 1
+      ? tabArtistIds.map(getArtistNameById).join(isFeat ? ' feat. ' : ' / ')
+      : (resolvedSingleName || resolvedArtistName || '')
 
-  const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName || tab.arrangedBy
+  const hasSongInfo = tab.songYear || tab.composer || tab.lyricist || tab.arranger || tab.producer || tab.album || tab.uploaderPenName
   const tabChords = tab.content ? extractChords(tab.content) : []
 
   // SEO 配置
@@ -748,7 +820,7 @@ export default function TabDetail({ initialTab, artist }) {
   const tabSchema = generateTabSchema(tab, { name: artistDisplayName, photoURL: tab.thumbnail || effectiveArtistPhoto })
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: '首頁', url: siteConfig.url },
-    { name: artistDisplayName, url: `${siteConfig.url}/artists/${tab.artistId}` },
+    { name: artistDisplayName, url: `${siteConfig.url}/artists/${mainArtistId}` },
     { name: tab.title, url: seoUrl }
   ])
 
@@ -792,6 +864,15 @@ export default function TabDetail({ initialTab, artist }) {
       
       <Layout>
         <div ref={pageWrapRef} className="w-full">
+        {/* Firebase 原始資料：加 ?debug=1 到 URL 即可顯示 */}
+        {showDebug && tab && (
+          <details className="mx-4 mt-2 p-3 bg-[#1a1a1a] border border-neutral-700 rounded-lg text-left">
+            <summary className="cursor-pointer text-sm text-[#B3B3B3] hover:text-white">Firebase 原始資料 (tabs/{tab.id})</summary>
+            <pre className="mt-2 p-2 bg-black rounded text-xs text-neutral-300 overflow-x-auto whitespace-pre-wrap break-words max-h-80 overflow-y-auto">
+              {JSON.stringify(tab, (_, v) => (v && typeof v?.toDate === 'function' ? v.toDate().toISOString() : v), 2)}
+            </pre>
+          </details>
+        )}
         {/* 頂bar（固定，唔跟住滾動） */}
         <div ref={topBarRef} className="sticky top-0 z-20 bg-black pt-1.5 relative">
           <div className="px-4 pb-1.5 flex items-center justify-between gap-1 sm:gap-2 border-b border-[#1a1a1a]">
@@ -1011,30 +1092,57 @@ export default function TabDetail({ initialTab, artist }) {
                 )}
               </div>
               
-              {/* 歌手 */}
-              <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-2 min-w-0">
-                <Link 
-                  href={`/artists/${tab.artistId}`}
-                  className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
-                >
-                  {artistDisplayName}
-                </Link>
-                {tab.isCollaboration && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    tab.collaborationType === 'feat' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  }`}>
-                    {tab.collaborationType === 'feat' ? 'Feat.' : '合唱'}
-                  </span>
+              {/* 歌手：合唱/feat 時每個名獨立連結 */}
+              <div className="flex flex-wrap items-center gap-x-0 gap-y-1 mt-1 md:mt-2 min-w-0">
+                {(tab.collaborators?.length > 1 && Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length >= tab.collaborators.length) || tabArtistIds.length > 1 ? (
+                  <>
+                    {(tab.collaborators?.length >= tabArtistIds.length ? tab.collaborators : tabArtistIds.map(getArtistNameById)).map((name, i) => {
+                      const artistId = tabArtistIds[i] ?? tab.collaboratorIds?.[i] ?? mainArtistId
+                      const sep = i === 0 ? null : (
+                        <span key={`sep-${i}`} className="text-neutral-400 text-sm sm:text-base md:text-lg mx-1 flex-shrink-0">
+                          {isFeat ? ' feat. ' : ' / '}
+                        </span>
+                      )
+                      return (
+                        <span key={i} className="inline-flex items-center min-w-0">
+                          {sep}
+                          <Link
+                            href={`/artists/${encodeURIComponent(artistId)}`}
+                            className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0"
+                          >
+                            {name}
+                          </Link>
+                        </span>
+                      )
+                    })}
+                  </>
+                ) : (
+                  <Link
+                    href={`/artists/${encodeURIComponent(mainArtistId)}`}
+                    className="text-neutral-400 text-sm sm:text-base md:text-lg hover:text-white transition truncate min-w-0 flex-shrink"
+                  >
+                    {artistDisplayName}
+                  </Link>
                 )}
               </div>
-              {/* 出譜者 + 評分、喜愛數（同一行） */}
+              {/* 出譜者 + 評分、喜愛數（同一行）— 撳出譜者名稱進入出譜者主頁（uploaderPenName 對應 users.penName，真實或 placeholder） */}
               <div className="flex items-center justify-between gap-3 mt-1.5 min-w-0">
                 <div className="min-w-0">
-                  {(tab.uploaderPenName || tab.arrangedBy) && (
-                    <p className="text-[#FFD700] text-sm flex items-center gap-1">
-                      <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
-                      {tab.uploaderPenName || tab.arrangedBy}
-                    </p>
+                  {tab.uploaderPenName && (
+                    uploaderProfileId ? (
+                      <Link
+                        href={`/profile/${uploaderProfileId}`}
+                        className="text-[#FFD700] text-sm flex items-center gap-1 w-fit hover:underline"
+                      >
+                        <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                        {tab.uploaderPenName}
+                      </Link>
+                    ) : (
+                      <p className="text-[#FFD700] text-sm flex items-center gap-1">
+                        <PenLine className="w-3.5 h-3.5 flex-shrink-0" />
+                        {tab.uploaderPenName}
+                      </p>
+                    )
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1047,14 +1155,9 @@ export default function TabDetail({ initialTab, artist }) {
                   )}
                   <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
                     <Heart className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
-                    {likesCount}
+                    <Bookmark className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
+                    {(likesCount || 0) + (tab.playlistCount || 0)}
                   </span>
-                  {(tab.playlistCount > 0 || (isAdmin && tab.playlistCount != null)) && (
-                    <span className="flex items-center gap-0.5 text-neutral-500 text-sm">
-                      <Bookmark className="w-4 h-4 text-neutral-500 fill-neutral-500 flex-shrink-0" />
-                      {tab.playlistCount}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -1077,8 +1180,8 @@ export default function TabDetail({ initialTab, artist }) {
           theme={theme}
           setTheme={setTheme}
           youtubeVideoId={tab.youtubeVideoId}
-          arrangedBy={tab.uploaderPenName || tab.arrangedBy || '結他友'}
-          uploaderId={uploaderId}
+          arrangedBy={tab.uploaderPenName || '結他友'}
+          uploaderId={uploaderProfileId}
           displayFont={tab.displayFont || 'mono'}
           songInfo={{
             songYear: tab.songYear,
@@ -1146,7 +1249,7 @@ export default function TabDetail({ initialTab, artist }) {
           onAddToLiked={() => { handleAddToLiked(); setShowMoreMenu(false); }}
           onAddToPlaylist={() => { handleAddToPlaylistClick(); setShowMoreMenu(false); }}
           onEdit={canEdit ? () => { router.push(`/tabs/${tab.id}/edit`); setShowMoreMenu(false); } : undefined}
-          artistHref={`/artists/${tab.artistId}`}
+          artistHref={mainArtistId ? `/artists/${mainArtistId}` : undefined}
         />
 
         {/* 自動消失 Toast（複製連結等） */}
@@ -1428,16 +1531,19 @@ export async function getStaticProps({ params }) {
       if (m) data.youtubeVideoId = m[1]
     }
     let artist = null
-    if (data.artistId) {
+    const { getTabArtistId: getTabArtistIdStatic } = await import('@/lib/tabs')
+    const mainId = getTabArtistIdStatic(data)
+    if (mainId) {
       try {
-        const { getSearchData } = await import('@/lib/searchData')
-        const payload = await getSearchData()
+        const { getSearchDataCached } = await import('@/lib/searchData')
+        const payload = await getSearchDataCached()
         const allArtists = payload?.artists || []
-        let found = allArtists.find(a => a.id === data.artistId)
+        let found = allArtists.find(a => a.id === mainId)
         if (!found) {
           const searchTabs = payload?.tabs || []
           const resolved = searchTabs.find(t => t.id === id)
-          if (resolved?.artistId) found = allArtists.find(a => a.id === resolved.artistId)
+          const resolvedId = resolved && getTabArtistIdStatic(resolved)
+          if (resolvedId) found = allArtists.find(a => a.id === resolvedId)
         }
         if (found) {
           artist = { id: found.id, name: found.name }

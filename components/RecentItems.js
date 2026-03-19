@@ -1,12 +1,12 @@
 // components/RecentItems.js
 import Link from '@/components/Link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useArtistMap } from '@/lib/useArtistMap';
+import { useArtistMap, resolveHomeSongArtistLine } from '@/lib/useArtistMap';
 import { User, Music, BookmarkPlus, Heart } from 'lucide-react';
 
 function getItemHref(item) {
   if (item.type === 'tab') return `/tabs/${item.id}`;
-  if (item.type === 'artist') return `/artists/${item.slug || item.id}`;
+  if (item.type === 'artist') return `/artists/${item.id}`;
   if (item.type === 'playlist') return `/playlist/${item.id}`;
   if (item.type === 'liked-songs') return '/library/liked';
   return '#';
@@ -14,7 +14,7 @@ function getItemHref(item) {
 
 export default function RecentItems({ items = [], title = '最近瀏覽' }) {
   const { user } = useAuth();
-  const { getArtistName } = useArtistMap();
+  const { getArtistName, artistMap } = useArtistMap();
 
   // 過濾：如果用戶未登入，過濾掉 liked-songs
   const displayItems = user 
@@ -48,9 +48,9 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
                 relative overflow-hidden mb-2 bg-[#121212]
                 ${item.type === 'artist' ? 'rounded-full aspect-square' : 'rounded-[4px] aspect-square'}
               `}>
-                {item.image ? (
+                {(item.thumbnail || item.image) ? (
                   <img 
-                    src={item.image} 
+                    src={item.thumbnail || item.image} 
                     alt={item.title}
                     className="w-full h-full object-cover pointer-events-none"
                   />
@@ -89,10 +89,16 @@ export default function RecentItems({ items = [], title = '最近瀏覽' }) {
               {/* 文字資訊 */}
               <div className="text-left">
                 <div className="text-white font-medium truncate text-[0.95rem] md:text-[15px] leading-[1.3] md:leading-[1.33] mb-[1px] md:mb-0">
-                  {item.title}
+                  {item.type === 'artist'
+                    ? (getArtistName({ artistId: item.id }) || item.title || '')
+                    : item.title}
                 </div>
                 <div className="text-[#B3B3B3] truncate text-[0.8rem] md:text-[13px] leading-[1.3]">
-                  {item.subtitle || item.artistName || getArtistName(item) || ''}
+                  {item.type === 'tab'
+                    ? resolveHomeSongArtistLine(item, artistMap)
+                    : item.type === 'artist'
+                      ? '歌手'
+                      : (item.subtitle || item.artistName || '')}
                 </div>
               </div>
             </Link>

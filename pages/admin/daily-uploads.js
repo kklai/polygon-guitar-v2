@@ -142,7 +142,7 @@ export default function DailyUploads() {
                 <tr>
                   <th className="px-4 py-3 text-left text-neutral-400 font-medium">時間</th>
                   <th className="px-4 py-3 text-left text-neutral-400 font-medium">Google 帳戶</th>
-                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">上傳筆名</th>
+                  <th className="px-4 py-3 text-left text-neutral-400 font-medium">出譜者名稱</th>
                   <th className="px-4 py-3 text-left text-neutral-400 font-medium">歌曲</th>
                   <th className="px-4 py-3 text-left text-neutral-400 font-medium">歌手</th>
                   <th className="px-4 py-3 text-left text-neutral-400 font-medium">操作</th>

@@ -10,10 +10,11 @@ import {
   deleteDoc,
   where
 } from '@/lib/firestore-tracked'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Mic } from 'lucide-react'
 import { isArtistMatch, generateMergeSuggestions, parseBilingualNameImproved } from '@/lib/artistNameMatcher'
 
 export default function MergeArtistsPage() {
@@ -120,6 +121,19 @@ export default function MergeArtistsPage() {
 
       // 3. 刪除被合併的歌手
       await deleteDoc(doc(db, 'artists', mergeArtist.id))
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ artist: { id: mergeArtist.id }, action: 'delete-artist' })
+          })
+        }
+      } catch (e) {
+        console.warn('[patch-caches] delete-artist:', e)
+      }
+      clearArtistMapCache()
 
       showMessage(`✅ 合併成功！更新了 ${updatedTabs} 首樂譜`)
       
@@ -213,7 +227,7 @@ export default function MergeArtistsPage() {
                 disabled={loading}
                 className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {loading ? '載入中...' : '🔄 刷新'}
+                {loading ? '載入中...' : <><RefreshCw className="w-4 h-4 inline-block mr-1 align-middle" /> 刷新</>}
               </button>
             </div>
           </div>
@@ -356,7 +370,7 @@ export default function MergeArtistsPage() {
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
-                                    <span className="text-2xl">🎤</span>
+                                    <Mic className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
                                   )}
                                 </div>
                                 

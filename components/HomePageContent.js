@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from 'react'
 import { useRouter } from 'next/router'
-import { getTabsByIds } from '@/lib/tabs'
+import { getTabsByIds, getArtistSlug } from '@/lib/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from '@/components/Link'
 import Head from 'next/head'
@@ -9,7 +9,21 @@ import RecentItems from '@/components/RecentItems'
 import { SongCard, PlaylistCard, ArtistAvatar } from '@/components/LazyImage'
 import SectionViewportLoader from '@/components/SectionViewportLoader'
 import { HomeSectionImageContext } from '@/components/HomeSectionImageContext'
-import { useArtistMap } from '@/lib/useArtistMap'
+import { useArtistMap, resolveHomeSongArtistLine } from '@/lib/useArtistMap'
+import { Music } from 'lucide-react'
+
+/**
+ * SongCard `song` 輸入（首頁各區）— 歌手行一律經 resolveHomeSongArtistLine(song, artistMap)：
+ *
+ * 1) 熱門結他譜 hotTabs、最新上架 latestSongs、自訂歌單歌曲 customPlaylistSongs
+ *    來自 API / slimTabForHome：{ id, title, artistId, artist?, artistIds?, artists?,
+ *    coverImage?, artistPhoto?, thumbnail?, youtubeUrl? }
+ *    多歌手時有 artistIds + artists[].role（feat →「 feat. 」否則「 / 」）。
+ *
+ * 2) 最近瀏覽 tab 列（RecentItems，非 SongCard 但同一 resolver）
+ *    localStorage recentViews：{ type:'tab', id, title, artistIds, artists?, thumbnail? }
+ *    舊紀錄或可有 artistId / artist / artistName。
+ */
 
 // 1-hour local cache for home payload (cache/homePage snapshot) — reload reads from here
 const HOMEPAGE_LOCAL_CACHE_KEY = 'pg_home_cache_v2'
@@ -239,7 +253,7 @@ function CustomPlaylistSection({ title, songIds, onSongClick, preloadedSongs, ar
           songs.map((song) => (
             <SongCard
               key={song.id}
-              song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
+              song={{ ...song, artist: resolveHomeSongArtistLine(song, artistMap) }}
               artistPhoto={song.artistPhoto}
               href={`/tabs/${song.id}`}
               compact
@@ -337,14 +351,14 @@ function HomeCategoryCard({ category, hotArtists }) {
           <>
             <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl opacity-50">🎵</span>
+              <Music className="w-6 h-6 opacity-50 text-neutral-400" strokeWidth={1.5} />
             </div>
           </>
         ) : (
           <>
             <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl opacity-50">🎵</span>
+              <Music className="w-6 h-6 opacity-50 text-neutral-400" strokeWidth={1.5} />
             </div>
           </>
         )}
@@ -484,7 +498,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {hotTabs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
+                    song={{ ...song, artist: resolveHomeSongArtistLine(song, artistMap) }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact
@@ -520,7 +534,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                   <ArtistAvatar
                     key={artist.id}
                     artist={artist}
-                    href={`/artists/${artist.id}`}
+                    href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                     compact
                   />
                 ))}
@@ -588,7 +602,7 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
                 {latestSongs.map((song) => (
                   <SongCard
                     key={song.id}
-                    song={{ ...song, artist: artistMap.get(song.artistId) || song.artist || song.artistName || '' }}
+                    song={{ ...song, artist: resolveHomeSongArtistLine(song, artistMap) }}
                     artistPhoto={song.artistPhoto}
                     href={`/tabs/${song.id}`}
                     compact
@@ -829,9 +843,9 @@ export default function HomePageContent({ initialHomeSettings = {}, initialHomeD
     router.push(`/artists?category=${categoryId}`)
   }
 
-  // 處理歌手點擊（使用 artist.id 確保連結不變）
+  // 處理歌手點擊（使用 slug 以便改名後 URL 跟住名）
   const handleArtistClick = (artist) => {
-    router.push(`/artists/${artist.id}`)
+    router.push(`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`)
   }
 
   // 處理歌曲點擊

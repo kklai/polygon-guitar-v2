@@ -15,11 +15,13 @@ import Link from '@/components/Link'
 import { ROLES, ROLE_LABELS, ROLE_COLORS, getRoleLabel, getRoleColor } from '@/lib/roles'
 
 function RoleSettings() {
-  const { user, userRole } = useAuth()
+  const { user, userRole, realUser } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showRemoveSelfConfirm, setShowRemoveSelfConfirm] = useState(false)
+  const [removingSelf, setRemovingSelf] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -91,15 +93,40 @@ function RoleSettings() {
     }
   }
 
+  const removeMyAdminRole = async () => {
+    const uid = realUser?.uid || user?.uid
+    if (!uid) return
+    setRemovingSelf(true)
+    try {
+      const userRef = doc(db, 'users', uid)
+      await updateDoc(userRef, {
+        role: null,
+        isAdmin: false,
+        updatedAt: new Date().toISOString()
+      })
+      setShowRemoveSelfConfirm(false)
+      setUsers(prev => prev.map(u => u.id === uid ? { ...u, role: null, isAdmin: false } : u))
+      showMessage('已移除自己的管理員權限，即將跳轉')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1500)
+    } catch (error) {
+      console.error('Error removing own role:', error)
+      showMessage('移除失敗', 'error')
+    } finally {
+      setRemovingSelf(false)
+    }
+  }
+
   const filteredUsers = users.filter(u => 
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // 按角色分組
-  const superAdmins = filteredUsers.filter(u => u.email === 'kermit.tam@gmail.com' || u.role === ROLES.SUPER_ADMIN)
-  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN && u.email !== 'kermit.tam@gmail.com')
-  const usersWithoutRoles = filteredUsers.filter(u => !u.role && u.email !== 'kermit.tam@gmail.com')
+  const superAdmins = filteredUsers.filter(u => u.role === ROLES.SUPER_ADMIN)
+  const usersWithRoles = filteredUsers.filter(u => u.role && u.role !== ROLES.SUPER_ADMIN)
+  const usersWithoutRoles = filteredUsers.filter(u => !u.role)
 
   if (loading) {
     return (
@@ -119,7 +146,7 @@ function RoleSettings() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span>🎭</span> 角色權限設置
+                角色權限設置
               </h1>
               <p className="text-sm text-[#B3B3B3]">設置用戶角色權限</p>
             </div>
@@ -139,6 +166,48 @@ function RoleSettings() {
               : 'bg-green-900/30 border border-green-700 text-green-400'
           }`}>
             {message.text}
+          </div>
+        )}
+
+        {/* 移除自己的管理員權限 - 只對有角色嘅用戶顯示 */}
+        {userRole && (realUser?.uid || user?.uid) && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-700/50 bg-amber-950/20">
+            <h2 className="text-sm font-medium text-amber-200 mb-1">移除自己的管理員權限</h2>
+            <p className="text-sm text-neutral-400 mb-3">
+              移除後你將無法再進入後台，需由其他 Super Admin 重新為你設定角色。
+              {superAdmins.length <= 1 && superAdmins.some(a => a.id === (realUser?.uid || user?.uid)) && (
+                <span className="block mt-1 text-amber-400">你是目前唯一的 Super Admin，建議先為另一用戶設為 Super Admin 再移除自己。</span>
+              )}
+            </p>
+            {!showRemoveSelfConfirm ? (
+              <button
+                type="button"
+                onClick={() => setShowRemoveSelfConfirm(true)}
+                className="px-3 py-1.5 text-amber-400 border border-amber-600 rounded-lg text-sm hover:bg-amber-900/30 transition"
+              >
+                移除自己的管理員權限
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-400">確定要移除？</span>
+                <button
+                  type="button"
+                  onClick={removeMyAdminRole}
+                  disabled={removingSelf}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50"
+                >
+                  {removingSelf ? '處理中…' : '確定移除'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveSelfConfirm(false)}
+                  disabled={removingSelf}
+                  className="px-3 py-1.5 bg-neutral-700 text-white rounded-lg text-sm hover:bg-neutral-600"
+                >
+                  取消
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -184,7 +253,7 @@ function RoleSettings() {
         {/* Super Admin */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
           <div className="p-4 border-b border-neutral-800">
-            <h2 className="text-lg font-medium text-white">👑 超級管理員</h2>
+            <h2 className="text-lg font-medium text-white">超級管理員</h2>
           </div>
           <div className="divide-y divide-neutral-800">
             {superAdmins.map(admin => (
@@ -210,7 +279,7 @@ function RoleSettings() {
         {usersWithRoles.length > 0 && (
           <div className="bg-[#121212] rounded-xl border border-neutral-800 mb-6">
             <div className="p-4 border-b border-neutral-800">
-              <h2 className="text-lg font-medium text-white">🎭 已設置角色 ({usersWithRoles.length})</h2>
+              <h2 className="text-lg font-medium text-white">已設置角色 ({usersWithRoles.length})</h2>
             </div>
             <div className="divide-y divide-neutral-800">
               {usersWithRoles.map(u => (
@@ -257,7 +326,7 @@ function RoleSettings() {
         {/* Users without Roles */}
         <div className="bg-[#121212] rounded-xl border border-neutral-800">
           <div className="p-4 border-b border-neutral-800">
-            <h2 className="text-lg font-medium text-white">👥 普通用戶 ({usersWithoutRoles.length})</h2>
+            <h2 className="text-lg font-medium text-white">普通用戶 ({usersWithoutRoles.length})</h2>
           </div>
           
           {usersWithoutRoles.length === 0 ? (
@@ -304,7 +373,7 @@ function RoleSettings() {
 
         {/* Info */}
         <div className="mt-6 p-4 bg-neutral-900 rounded-lg text-sm text-neutral-400">
-          <p className="mb-2">💡 <span className="text-white">說明：</span></p>
+          <p className="mb-2"><span className="text-white">說明：</span></p>
           <ul className="space-y-1 list-disc list-inside">
             <li>設置角色後，用戶可以進入後台並根據角色獲得不同權限</li>
             <li>用戶需要重新登入權限才會完全生效</li>

@@ -1,6 +1,7 @@
 import Link from '@/components/Link'
 import { useState } from 'react'
 import Skeleton from './Skeleton'
+import { Music } from 'lucide-react'
 
 export default function TabCard({ tab, compact = false, artistPhoto = null }) {
   // 計算歌手的 normalizedName 用于链接
@@ -70,7 +71,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
               {!imageLoaded && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <Skeleton className="w-full h-full absolute inset-0" />
-                  <span className="text-4xl mb-2 relative z-10">🎵</span>
+                  <Music className="w-10 h-10 text-neutral-500 mb-2 relative z-10" strokeWidth={1.5} />
                   <span className="text-xs text-neutral-500 text-center px-4 relative z-10">{tab.artist}</span>
                 </div>
               )}
@@ -86,7 +87,7 @@ export default function TabCard({ tab, compact = false, artistPhoto = null }) {
             </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
-              <span className="text-4xl mb-2">🎵</span>
+              <Music className="w-10 h-10 text-neutral-500 mb-2" strokeWidth={1.5} />
               <span className="text-xs text-neutral-500 text-center px-4">{tab.artist}</span>
             </div>
           )}

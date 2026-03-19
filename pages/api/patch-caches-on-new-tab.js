@@ -12,15 +12,19 @@
  * Artist actions:
  *   { artist: { id, name, ... }, action: 'create-artist' | 'update-artist' }
  *   Patches: searchData (artists array). Deletes: artistPage_{id}.
+ *   { artist: { id }, action: 'delete-artist' }
+ *   Removes id from searchData.artists. Deletes: artistPage_{id}.
  *
  * Auth: Bearer <idToken> (any logged-in user)
- * Cost: 2-3 reads + 2-3 writes per call, fire-and-forget from client.
+ * Tab create/update also appends missing searchData.artists rows using artists/{id} (Firestore) for name/photo/etc.
+ * Cost: extra reads per new artist id + 2-3 writes per call typical.
  */
 
 import { getAdminDb } from '@/lib/admin-db'
 import { bustSearchDataApiCache } from '@/lib/searchData'
 import { bustHomeDataApiCache } from '@/lib/homeData'
 import { pacificTime } from '@/lib/logTime'
+import { getTabArtistId, getTabArtistIds } from '@/lib/tabs'
 
 function resolveTabCoverImage(tab) {
   if (tab?.coverImage) return tab.coverImage
@@ -35,12 +39,11 @@ function toSearchTabSlim(tab) {
   return stripUndefined({
     id: tab.id,
     title: tab.title || '',
-    artistId: tab.artistId || '',
+    artistId: getTabArtistId(tab) || tab.artistId || '',
     composer: tab.composer || '',
     lyricist: tab.lyricist || '',
     arranger: tab.arranger || '',
-    uploaderPenName: tab.uploaderPenName || '',
-    arrangedBy: tab.arrangedBy || ''
+    uploaderPenName: tab.uploaderPenName || ''
   })
 }
 
@@ -53,7 +56,7 @@ function toHomeSlim(tab) {
   return stripUndefined({
     id: tab.id,
     title: tab.title,
-    artistId: tab.artistId,
+    artistId: getTabArtistId(tab) || tab.artistId,
     ...(coverImage ? { coverImage } : {})
   })
 }
@@ -108,9 +111,18 @@ async function patchCacheDoc(adminDb, docId, patchFn) {
     console.log(`[patch-caches] cache/${docId} patched (1 read, 1 write, ${Math.round(size / 1024)}KB) in ${Date.now() - startMs}ms at ${pacificTime()}`)
     return true
   } catch (e) {
-    console.error(`[patch-caches] failed to patch cache/${docId}: ${e?.message} at ${pacificTime()}`)
+    if (e?.code === 8 || /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(e?.message || '')) {
+      console.warn(`[patch-caches] skipped patch cache/${docId} (quota exceeded) at ${pacificTime()}`)
+    } else {
+      console.error(`[patch-caches] failed to patch cache/${docId}: ${e?.message} at ${pacificTime()}`)
+    }
     return false
   }
+}
+
+function isQuotaError(e) {
+  const msg = e?.message || String(e)
+  return e?.code === 8 || /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(msg)
 }
 
 async function deleteArtistPageCache(adminDb, artistId) {
@@ -123,7 +135,11 @@ async function deleteArtistPageCache(adminDb, artistId) {
     console.log(`[patch-caches] deleted cache/artistPage_${artistId} (1 read, 1 delete) at ${pacificTime()}`)
     return true
   } catch (e) {
-    console.error(`[patch-caches] failed to delete artistPage_${artistId}: ${e?.message} at ${pacificTime()}`)
+    if (isQuotaError(e)) {
+      console.warn(`[patch-caches] skipped delete artistPage_${artistId} (quota exceeded) at ${pacificTime()}`)
+    } else {
+      console.error(`[patch-caches] failed to delete artistPage_${artistId}: ${e?.message} at ${pacificTime()}`)
+    }
     return false
   }
 }
@@ -182,38 +198,101 @@ async function handleTabAction(adminDb, tab, action) {
 
   // When creating or updating a tab, ensure all associated artists exist in the search cache's artists array
   if (action === 'create' || action === 'update') {
-    const artistIds = Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length > 0
-      ? tab.collaboratorIds
-      : tab.artistId ? [tab.artistId] : []
+    const artistIds = getTabArtistIds(tab).length > 0
+      ? getTabArtistIds(tab)
+      : Array.isArray(tab.collaboratorIds) && tab.collaboratorIds.length > 0
+        ? tab.collaboratorIds
+        : tab.artistId ? [tab.artistId] : []
     const artistNames = Array.isArray(tab.collaborators) && tab.collaborators.length > 0
       ? tab.collaborators
       : tab.artist ? [tab.artist] : []
 
     if (artistIds.length > 0) {
-      results.searchDataArtists = await patchCacheDoc(adminDb, 'searchData', (payload) => {
-        const artists = Array.isArray(payload.artists) ? payload.artists : []
-        const existingIds = new Set(artists.map(a => a.id))
-        const newArtists = []
+      let newArtistRows = []
+      let firestorePrefetchFailed = false
+      try {
+        const sdSnap = await adminDb.collection('cache').doc('searchData').get()
+        const sdPayload = sdSnap.exists ? sdSnap.data()?.data : null
+        const curArtists = Array.isArray(sdPayload?.artists) ? sdPayload.artists : []
+        const seen = new Set(curArtists.map((a) => a.id))
         for (let i = 0; i < artistIds.length; i++) {
-          if (existingIds.has(artistIds[i])) continue
-          newArtists.push(stripUndefined({
-            id: artistIds[i],
-            name: artistNames[i] || '',
-            photo: (i === 0 ? tab.artistPhoto : null) || null,
-            artistType: (i === 0 ? tab.artistType : '') || 'other',
-            regions: [],
-            displayOrder: null,
-            tier: 5,
-            tabCount: 1
-          }))
+          const aid = artistIds[i]
+          if (!aid || seen.has(aid)) continue
+          seen.add(aid)
+          let fs = null
+          try {
+            const adoc = await adminDb.collection('artists').doc(String(aid)).get()
+            if (adoc.exists) fs = adoc.data()
+          } catch (e) {
+            /* ignore */
+          }
+          const nameTab = (artistNames[i] || '').trim()
+          const nameFs = (fs?.name || '').trim()
+          const regions =
+            Array.isArray(fs?.regions) && fs.regions.length > 0
+              ? fs.regions
+              : fs?.region
+                ? [fs.region]
+                : []
+          newArtistRows.push(
+            stripUndefined({
+              id: aid,
+              name: nameFs || nameTab,
+              photo:
+                fs?.photoURL ||
+                fs?.wikiPhotoURL ||
+                fs?.photo ||
+                (i === 0 ? tab.artistPhoto : null) ||
+                null,
+              artistType: fs?.artistType || fs?.gender || (i === 0 ? tab.artistType : '') || 'other',
+              regions,
+              displayOrder: fs?.displayOrder ?? null,
+              tier: fs?.tier ?? 5,
+              tabCount: fs?.songCount ?? fs?.tabCount ?? 1
+            })
+          )
         }
-        if (newArtists.length === 0) return null
-        return { ...payload, artists: [...artists, ...newArtists] }
-      })
+      } catch (e) {
+        firestorePrefetchFailed = true
+        console.warn('[patch-caches] Firestore artist prefetch failed:', e?.message)
+      }
+      if (newArtistRows.length > 0) {
+        results.searchDataArtists = await patchCacheDoc(adminDb, 'searchData', (payload) => {
+          const artists = Array.isArray(payload.artists) ? payload.artists : []
+          const ids = new Set(artists.map((a) => a.id))
+          const toAppend = newArtistRows.filter((row) => row.id && !ids.has(row.id))
+          if (toAppend.length === 0) return null
+          return { ...payload, artists: [...artists, ...toAppend] }
+        })
+      } else if (firestorePrefetchFailed && artistIds.length > 0) {
+        results.searchDataArtists = await patchCacheDoc(adminDb, 'searchData', (payload) => {
+          const artists = Array.isArray(payload.artists) ? payload.artists : []
+          const existingIds = new Set(artists.map((a) => a.id))
+          const newArtists = []
+          for (let i = 0; i < artistIds.length; i++) {
+            if (existingIds.has(artistIds[i])) continue
+            existingIds.add(artistIds[i])
+            newArtists.push(
+              stripUndefined({
+                id: artistIds[i],
+                name: artistNames[i] || '',
+                photo: (i === 0 ? tab.artistPhoto : null) || null,
+                artistType: (i === 0 ? tab.artistType : '') || 'other',
+                regions: [],
+                displayOrder: null,
+                tier: 5,
+                tabCount: 1
+              })
+            )
+          }
+          if (newArtists.length === 0) return null
+          return { ...payload, artists: [...artists, ...newArtists] }
+        })
+      }
     }
   }
 
-  const artistId = tab.artistId
+  const artistId = getTabArtistId(tab) || tab.artistId
   if (artistId) {
     results.artistPageDeleted = await deleteArtistPageCache(adminDb, artistId)
   }
@@ -243,6 +322,22 @@ async function handleArtistAction(adminDb, artist, action) {
   return results
 }
 
+async function handleDeleteArtistAction(adminDb, artistId) {
+  const id = String(artistId || '').trim()
+  const results = {}
+  if (!id) return results
+
+  results.searchData = await patchCacheDoc(adminDb, 'searchData', (payload) => {
+    const artists = Array.isArray(payload.artists) ? payload.artists : []
+    const filtered = artists.filter((a) => a && String(a.id) !== id)
+    if (filtered.length === artists.length) return null
+    return { ...payload, artists: filtered }
+  })
+
+  results.artistPageDeleted = await deleteArtistPageCache(adminDb, id)
+  return results
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
@@ -255,7 +350,7 @@ export default async function handler(req, res) {
   }
 
   const { tab, artist, action } = req.body || {}
-  const validActions = ['create', 'update', 'delete', 'create-artist', 'update-artist']
+  const validActions = ['create', 'update', 'delete', 'create-artist', 'update-artist', 'delete-artist']
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` })
   }
@@ -263,27 +358,42 @@ export default async function handler(req, res) {
   const adminDb = getAdminDb()
   if (!adminDb) {
     console.warn('[patch-caches] Admin SDK not available')
-    return res.status(500).json({ error: 'Admin SDK not available' })
+    return res.status(200).json({ ok: false, skipped: 'Admin SDK not available' })
   }
 
   const startMs = Date.now()
   let results
-
-  if (action === 'create' || action === 'update' || action === 'delete') {
-    if (!tab?.id) {
-      return res.status(400).json({ error: 'Missing tab.id' })
+  try {
+    if (action === 'create' || action === 'update' || action === 'delete') {
+      if (!tab?.id) {
+        return res.status(400).json({ error: 'Missing tab.id' })
+      }
+      results = await handleTabAction(adminDb, tab, action)
+      console.log(`[patch-caches] ${action} tab ${tab.id} "${tab.title}" — searchData:${results.searchData}, homePage:${results.homePage}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
+    } else if (action === 'delete-artist') {
+      if (!artist?.id) {
+        return res.status(400).json({ error: 'Missing artist.id' })
+      }
+      results = await handleDeleteArtistAction(adminDb, artist.id)
+      console.log(`[patch-caches] delete-artist ${artist.id} — searchData:${results.searchData}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
+    } else {
+      if (!artist?.id || !artist?.name) {
+        return res.status(400).json({ error: 'Missing artist.id or artist.name' })
+      }
+      results = await handleArtistAction(adminDb, artist, action)
+      console.log(`[patch-caches] ${action} artist ${artist.id} "${artist.name}" — searchData:${results.searchData}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
     }
-    results = await handleTabAction(adminDb, tab, action)
-    console.log(`[patch-caches] ${action} tab ${tab.id} "${tab.title}" — searchData:${results.searchData}, homePage:${results.homePage}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
-  } else {
-    if (!artist?.id || !artist?.name) {
-      return res.status(400).json({ error: 'Missing artist.id or artist.name' })
+    bustSearchDataApiCache()
+    bustHomeDataApiCache()
+    return res.status(200).json({ ok: true, results })
+  } catch (e) {
+    const msg = e?.message || String(e)
+    const isQuota = /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(msg) || e?.code === 8
+    if (isQuota) {
+      console.warn('[patch-caches] quota exceeded, skipping patch:', msg)
+    } else {
+      console.error('[patch-caches]', msg)
     }
-    results = await handleArtistAction(adminDb, artist, action)
-    console.log(`[patch-caches] ${action} artist ${artist.id} "${artist.name}" — searchData:${results.searchData}, artistPage:${results.artistPageDeleted ?? '-'} in ${Date.now() - startMs}ms at ${pacificTime()}`)
+    return res.status(200).json({ ok: false, skipped: isQuota ? 'quota' : 'error', error: msg })
   }
-
-  bustSearchDataApiCache()
-  bustHomeDataApiCache()
-  return res.status(200).json({ ok: true, results })
 }

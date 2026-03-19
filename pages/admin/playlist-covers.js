@@ -6,6 +6,7 @@ import CoverGenerator from '@/components/CoverGenerator'
 import { getAllPlaylists, updatePlaylist } from '@/lib/playlists'
 import { getTabsByIds } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { BarChart2, Sparkles } from 'lucide-react'
 
 function PlaylistCovers() {
   const router = useRouter()
@@ -122,7 +123,7 @@ function PlaylistCovers() {
                         <img src={p.coverImage} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-neutral-500 text-lg">
-                          {p.source === 'auto' ? '📊' : '✨'}
+                          {p.source === 'auto' ? <BarChart2 className="w-5 h-5" strokeWidth={1.5} /> : <Sparkles className="w-5 h-5" strokeWidth={1.5} />}
                         </div>
                       )}
                     </div>

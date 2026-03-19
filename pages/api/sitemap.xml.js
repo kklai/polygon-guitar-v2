@@ -80,9 +80,10 @@ export default async function handler(req, res) {
     <priority>0.9</priority>
   </url>
   
-  <!-- 歌手頁面 -->
+  <!-- 歌手頁面（用 normalizedName 做 URL，改名後唔使改 doc id） -->
   ${artists.map(artist => {
-    const artistSlug = artist.normalizedName || artist.slug || artist.id
+    const nameToSlug = (n) => !n || typeof n !== 'string' ? '' : n.trim().replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
+    const artistSlug = artist.normalizedName || nameToSlug(artist.name) || artist.slug || artist.id
     const lastmod = artist.updatedAt?.toDate?.() || artist.updatedAt || new Date()
     return `
   <url>

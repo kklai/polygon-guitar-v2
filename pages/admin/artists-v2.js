@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from '@/components/Link'
-import { invalidateArtistCaches } from '../../lib/tabs'
+import { invalidateArtistCaches, getArtistSlug, nameToSlug } from '../../lib/tabs'
 import { 
   collection, 
   query, 
@@ -15,9 +15,10 @@ import {
   writeBatch
 } from '@/lib/firestore-tracked'
 import { db, auth } from '@/lib/firebase'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import AdminGuard from '@/components/AdminGuard'
 import Layout from '@/components/Layout'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Mic } from 'lucide-react'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 
 const GENDER_OPTIONS = [
@@ -324,11 +325,11 @@ export default function ArtistsV2Page() {
         }
       }
       
-      // 更新歌手資料（保留原有 normalizedName，確保舊連結繼續有效）
+      // 更新歌手資料（normalizedName 一律由 name 衍生，確保與 name 一致）
       console.log('Updating artist...')
       const updateData = {
         name: editForm.name,
-        // 保留原有 normalizedName 不變，確保舊連結繼續有效
+        normalizedName: nameToSlug(editForm.name) || selectedArtist.id,
         artistType: editForm.artistType || '',
         gender: editForm.artistType || '',
         bio: editForm.bio || '',
@@ -442,6 +443,19 @@ export default function ArtistsV2Page() {
 
     try {
       await deleteDoc(doc(db, 'artists', artist.id))
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ artist: { id: artist.id }, action: 'delete-artist' })
+          })
+        }
+      } catch (e) {
+        console.warn('[patch-caches] delete-artist:', e)
+      }
+      clearArtistMapCache()
       showMessage('刪除成功')
       fetchArtists()
     } catch (error) {
@@ -602,7 +616,7 @@ export default function ArtistsV2Page() {
                 onClick={fetchArtists}
                 className="bg-[#282828] hover:bg-[#3E3E3E] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                🔄 刷新
+                <RefreshCw className="w-4 h-4 inline-block mr-1 align-middle" /> 刷新
               </button>
             </div>
           </div>
@@ -650,7 +664,7 @@ export default function ArtistsV2Page() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-2xl">🎤</span>
+                        <Mic className="w-8 h-8 text-neutral-500" strokeWidth={1.5} />
                       )}
                     </div>
 
@@ -699,7 +713,7 @@ export default function ArtistsV2Page() {
                     {/* 操作 */}
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/artists/${artist.id}`}
+                        href={`/artists/${encodeURIComponent(getArtistSlug(artist) || artist.id)}`}
                         target="_blank"
                         className="text-[#B3B3B3] hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-[#282828] transition-colors"
                       >

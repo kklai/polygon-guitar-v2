@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { User, UserX, Shield } from 'lucide-react'
 
+// 頂欄高度與 Navbar 一致：4.4rem + safe area，Admin 掣放喺正下方
+const NAV_BAR_TOP = 'calc(4.4rem + env(safe-area-inset-top, 0px) + 4px)'
+
 export default function AdminViewAsButton() {
   const { realIsAdmin, viewAsMode, setViewAsMode } = useAuth()
   const [open, setOpen] = useState(false)
@@ -26,7 +29,7 @@ export default function AdminViewAsButton() {
   const current = options.find((o) => o.value === viewAsMode) || options[0]
 
   return (
-    <div ref={ref} className="fixed top-4 right-4 z-[9998]" style={{ top: 'max(1rem, env(safe-area-inset-top))' }}>
+    <div ref={ref} className="fixed right-4 z-[9998]" style={{ top: NAV_BAR_TOP }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

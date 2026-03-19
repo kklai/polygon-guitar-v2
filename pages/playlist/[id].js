@@ -13,12 +13,21 @@ import { recordPlaylistView } from '@/lib/recentViews'
 import { useArtistMap } from '@/lib/useArtistMap'
 import { useAuth } from '@/contexts/AuthContext'
 import { Share, Heart, Music, User, Plus, Copy, ArrowLeft, Bookmark, ListMusic, ArrowUpDown, Pencil, X, Search } from 'lucide-react'
-import { getTabsByIds } from '@/lib/tabs'
+import { getTabsByIds, getArtistSlug } from '@/lib/tabs'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { toggleLikeSong, checkIsLiked, getUserPlaylists, addSongToPlaylist, createPlaylist, savePlaylistToLibrary, removeSavedPlaylist, checkIsPlaylistSaved, removeSongFromPlaylist } from '@/lib/playlistApi'
 
 function serializePlaylistData(obj) {
-  return JSON.parse(JSON.stringify(obj, (_, v) => (v && typeof v.toDate === 'function' ? v.toDate().toISOString() : v)))
+  try {
+    return JSON.parse(JSON.stringify(obj, (_, v) => {
+      if (v && typeof v.toDate === 'function') return v.toDate().toISOString()
+      if (v && typeof v.toMillis === 'function') return new Date(v.toMillis()).toISOString()
+      return v
+    }))
+  } catch (e) {
+    console.error('[playlist] serializePlaylistData:', e?.message)
+    return Array.isArray(obj) ? [] : null
+  }
 }
 
 export default function PlaylistDetail({
@@ -917,7 +926,7 @@ export default function PlaylistDetail({
                         decoding="async"
                       />
                     ) : (
-                      <span className="w-full h-full flex items-center justify-center text-2xl">🎸</span>
+                      <span className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></span>
                     )}
                   </div>
                   <div className="flex-1 text-left min-w-0">
@@ -951,7 +960,7 @@ export default function PlaylistDetail({
         {/* Empty State */}
         {songs.length === 0 && (
           <div className="text-center py-16" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
-            <span className="text-6xl block mb-4">🎸</span>
+            <Music className="w-16 h-16 text-neutral-500 block mb-4 mx-auto" strokeWidth={1.5} />
             <h3 className="text-xl text-white mb-2">暫時冇歌曲</h3>
             <p className="text-neutral-500 mb-6">呢個歌單暫時未有歌曲</p>
             <Link
@@ -972,7 +981,7 @@ export default function PlaylistDetail({
                 item.type === 'artist' ? (
                   <Link
                     key={`artist-${item.data.id}`}
-                    href={`/artists/${item.data.id}`}
+                    href={`/artists/${encodeURIComponent(getArtistSlug(item.data) || item.data.id)}`}
                     className="flex-shrink-0 w-[32vw] md:w-36 flex flex-col group"
                   >
                     <div className="w-[32vw] h-[32vw] md:w-36 md:h-36 rounded-full overflow-hidden bg-[#282828] mb-2 transition-transform duration-300 group-hover:scale-105">
@@ -1008,7 +1017,7 @@ export default function PlaylistDetail({
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">🎵</div>
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-10 h-10" strokeWidth={1.5} /></div>
                       )}
                     </div>
                     <h3 className="text-[0.95rem] md:text-[1rem] font-medium text-white truncate group-hover:text-[#FFD700] transition mb-[1px] md:mb-0">
@@ -1085,7 +1094,7 @@ export default function PlaylistDetail({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="w-full h-full flex items-center justify-center text-2xl">🎵</span>
+                        <span className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></span>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1244,7 +1253,7 @@ export default function PlaylistDetail({
                             <svg className="w-5 h-5" viewBox="0 0 9.5 9.5" fill="none" stroke="#9B2D2D" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.8}><circle cx="4.8" cy="4.8" r="4" /><line x1="2.6" y1="4.8" x2="6.9" y2="4.8" /></svg>
                           </button>
                           <div className="w-10 h-10 rounded-lg bg-[#282828] flex-shrink-0 overflow-hidden">
-                            {thumb ? <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-xl">🎸</div>}
+                            {thumb ? <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-5 h-5" strokeWidth={1.5} /></div>}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{song.title}</p>
@@ -1299,7 +1308,7 @@ export default function PlaylistDetail({
                 <div className="flex items-center gap-2 py-1.5 rounded-2xl bg-[#282828] shadow-lg border border-[#444] opacity-95">
                   <div className="w-10 flex-shrink-0" />
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1a] flex-shrink-0 overflow-hidden">
-                    {(() => { const dragThumb = getSongThumbnail(orderedSongsForAdminEdit[adminTouchDragIndex]); return dragThumb ? <img src={dragThumb} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl">🎸</div> })()}
+                    {(() => { const dragThumb = getSongThumbnail(orderedSongsForAdminEdit[adminTouchDragIndex]); return dragThumb ? <img src={dragThumb} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-5 h-5" strokeWidth={1.5} /></div> })()}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className="text-white font-medium truncate leading-tight" style={{ fontSize: 15, lineHeight: '20px' }}>{orderedSongsForAdminEdit[adminTouchDragIndex].title}</p>
@@ -1345,7 +1354,7 @@ export default function PlaylistDetail({
                       {adminEditCoverImage ? (
                         <img src={adminEditCoverImage} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">🎵</div>
+                        <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></div>
                       )}
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                         <Pencil className="w-4 h-4 text-white" />
@@ -1585,12 +1594,19 @@ export async function getStaticProps({ params }) {
       otherPlaylists: { auto: otherPlaylists.auto, manual: otherPlaylists.manual }
     }
     await setPlaylistPageCache(id, payload)
+    const initialPlaylist = serializePlaylistData(playlistData)
+    const initialSongs = serializePlaylistData(slimSongs)
+    const initialUniqueArtists = serializePlaylistData(uniqueArtists)
+    const serializedOther = serializePlaylistData(initialOtherPlaylists)
+    if (initialPlaylist === null && playlistData != null) {
+      console.error('[playlist/[id]] getStaticProps: serialization failed for playlist')
+    }
     return {
       props: {
-        initialPlaylist: serializePlaylistData(playlistData),
-        initialSongs: serializePlaylistData(slimSongs),
-        initialUniqueArtists: serializePlaylistData(uniqueArtists),
-        initialOtherPlaylists: serializePlaylistData(initialOtherPlaylists)
+        initialPlaylist: initialPlaylist ?? null,
+        initialSongs: Array.isArray(initialSongs) ? initialSongs : [],
+        initialUniqueArtists: Array.isArray(initialUniqueArtists) ? initialUniqueArtists : [],
+        initialOtherPlaylists: Array.isArray(serializedOther) ? serializedOther : []
       },
       revalidate: 300
     }

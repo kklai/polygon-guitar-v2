@@ -552,7 +552,8 @@ async function main() {
             playKey: post.playKey || null,  // 樂譜實際彈奏嘅調（Capo 格式用）
             composer: post.composer || '',
             lyricist: post.lyricist || '',
-            arrangedBy: post.arrangedBy || '',  // 編譜者
+            uploaderPenName: post.arrangedBy || '',  // 出譜者名稱（統一用 uploaderPenName）
+            arrangedBy: post.arrangedBy || '',  // 保留供舊腳本兼容，顯示一律用 uploaderPenName
             youtubeUrl: post.youtubeUrl,
             bloggerId: post.id, // 記錄 blogger ID
             createdAt: new Date(post.published),

@@ -9,7 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from '@/components/Link';
-import { Copy, Heart, User, Pencil } from 'lucide-react';
+import { Copy, Heart, User, Pencil, Music } from 'lucide-react';
 
 const InstagramIcon = ({ className }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -105,7 +105,7 @@ export default function SongActionSheet({
               {thumbnailUrl ? (
                 <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-2xl">🎸</div>
+                <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-6 h-6" strokeWidth={1.5} /></div>
               )}
             </div>
             <div className="min-w-0 flex-1">

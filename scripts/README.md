@@ -1,5 +1,26 @@
 # Firebase Service Account 設置
 
+---
+
+## 出譜者名稱 Backfill（uploaderPenName）
+
+將舊譜嘅 `arrangedBy` 抄入 `uploaderPenName`，令全站出譜者名稱統一。
+
+**前置**：已設好 Firebase Service Account（見下面步驟 1–3）。
+
+```bash
+# 1. 先 dry-run 睇有幾多份會更新（唔會寫入）
+node scripts/backfill-uploader-pen-name.js --dry-run
+
+# 2. 正式執行（全部）
+node scripts/backfill-uploader-pen-name.js
+
+# 或分批（例如每次 500 份）
+node scripts/backfill-uploader-pen-name.js --limit=500
+```
+
+---
+
 ## 步驟 1：下載 Service Account Key
 1. 去 https://console.firebase.google.com/
 2. 選擇你的項目

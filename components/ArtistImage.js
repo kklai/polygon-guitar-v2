@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Mic } from 'lucide-react'
 
 /**
  * ArtistImage 組件 - 統一歌手圖片顯示邏輯
@@ -71,7 +72,7 @@ export default function ArtistImage({
           ${className}
         `}
       >
-        <span className="text-2xl">🎤</span>
+        <Mic className="w-8 h-8 text-white" strokeWidth={1.5} />
       </div>
     )
   }
@@ -126,7 +127,7 @@ export function ArtistHeroImage({ artist, className = '' }) {
           ${className}
         `}
       >
-        <span className="text-6xl md:text-8xl">🎤</span>
+        <Mic className="w-16 h-16 md:w-20 md:h-20 text-white" strokeWidth={1.5} />
       </div>
     )
   }

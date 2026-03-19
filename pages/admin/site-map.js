@@ -4,6 +4,7 @@
 import Layout from '@/components/Layout'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
+import { List, Home, User, Mic, Music, BookOpen, MessageCircle, Settings, Database, Lock, MapPin, RefreshCw, FileText, Heart, Target, LayoutGrid, Users, Palette, Shield, Camera, AlertTriangle, Crown } from 'lucide-react'
 
 export default function SiteMap() {
   const router = useRouter()
@@ -11,17 +12,17 @@ export default function SiteMap() {
 
   // 導航項目
   const navItems = [
-    { id: 'overview', label: '📋 網站概覽', icon: '📋' },
-    { id: 'homepage', label: '🏠 主頁結構', icon: '🏠' },
-    { id: 'users', label: '👤 用戶相關', icon: '👤' },
-    { id: 'artists', label: '🎤 歌手管理', icon: '🎤' },
-    { id: 'tabs', label: '🎸 樂譜系統', icon: '🎸' },
-    { id: 'library', label: '📚 收藏功能', icon: '📚' },
-    { id: 'social', label: '💬 社交功能', icon: '💬' },
-    { id: 'admin', label: '⚙️ 後台管理', icon: '⚙️' },
-    { id: 'database', label: '🗄️ 資料庫結構', icon: '🗄️' },
-    { id: 'security', label: '🔒 安全規則', icon: '🔒' },
-    { id: 'glossary', label: '📖 術語表', icon: '📖' },
+    { id: 'overview', label: '網站概覽', Icon: List },
+    { id: 'homepage', label: '主頁結構', Icon: Home },
+    { id: 'users', label: '用戶相關', Icon: User },
+    { id: 'artists', label: '歌手管理', Icon: Mic },
+    { id: 'tabs', label: '樂譜系統', Icon: Music },
+    { id: 'library', label: '收藏功能', Icon: BookOpen },
+    { id: 'social', label: '社交功能', Icon: MessageCircle },
+    { id: 'admin', label: '後台管理', Icon: Settings },
+    { id: 'database', label: '資料庫結構', Icon: Database },
+    { id: 'security', label: '安全規則', Icon: Lock },
+    { id: 'glossary', label: '術語表', Icon: BookOpen },
   ]
 
   return (
@@ -29,7 +30,7 @@ export default function SiteMap() {
       <div className="min-h-screen bg-black pb-24">
         {/* Header */}
         <div className="bg-[#121212] border-b border-neutral-800 px-4 py-4">
-          <h1 className="text-2xl font-bold text-white">🗺️ 網站地圖 & 說明書</h1>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2"><MapPin className="w-7 h-7" /> 網站地圖 & 說明書</h1>
           <p className="text-neutral-400 text-sm mt-1">給管理者的完整網站結構指南（含資料庫與安全規則）</p>
         </div>
 
@@ -46,7 +47,7 @@ export default function SiteMap() {
                     : 'bg-[#1a1a1a] text-neutral-300 hover:bg-[#282828]'
                 }`}
               >
-                <span className="block text-xl mb-1">{item.icon}</span>
+                {item.Icon && <item.Icon className="w-5 h-5 mb-1" />}
                 {item.label}
               </button>
             ))}
@@ -76,14 +77,14 @@ export default function SiteMap() {
 function OverviewSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="🎯 網站定位" icon="🎯">
+      <SectionCard title="網站定位" icon={<Target className="w-6 h-6" />}>
         <p className="text-neutral-300 leading-relaxed">
           <strong className="text-[#FFD700]">Polygon Guitar</strong> 是一個專門給香港廣東歌結他譜的平台。
           用戶可以上傳、瀏覽、收藏結他譜，並追蹤喜歡的編譜者。
         </p>
       </SectionCard>
 
-      <SectionCard title="🏗️ 整體結構圖" icon="🏗️">
+      <SectionCard title="整體結構圖" icon={<LayoutGrid className="w-6 h-6" />}>
         <div className="bg-[#1a1a1a] p-4 rounded-lg overflow-x-auto">
           <pre className="text-neutral-300 text-sm whitespace-pre">
 {`
@@ -91,7 +92,7 @@ function OverviewSection() {
 │                    Polygon Guitar 網站架構                     │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  🏠 前台 (用戶看到的頁面)                                      │
+│  前台 (用戶看到的頁面)                                      │
 │  ├── 首頁 (/) - 熱門歌手、最新樂譜、歌單推薦                     │
 │  ├── 搜尋 (/search) - 搜尋歌手、歌曲、樂譜                     │
 │  ├── 歌手列表 (/artists) - 所有歌手分類瀏覽                    │
@@ -102,7 +103,7 @@ function OverviewSection() {
 │  ├── 求譜 (/tab-requests) - 用戶求譜 + 投票                    │
 │  └── 個人主頁 (/profile/[id]) - 用戶資料 + 出譜列表             │
 │                                                             │
-│  ⚙️ 後台 (管理者專用)                                          │
+│  後台 (管理者專用)                                          │
 │  └── /admin/... - 各種管理工具 (見下方詳細說明)                  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -111,7 +112,7 @@ function OverviewSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="👥 用戶類型" icon="👥">
+      <SectionCard title="用戶類型" icon={<Users className="w-6 h-6" />}>
         <div className="grid md:grid-cols-3 gap-4">
           <UserTypeCard 
             title="訪客"
@@ -142,46 +143,46 @@ function OverviewSection() {
 function HomepageSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="🏠 首頁結構詳解" icon="🏠">
+      <SectionCard title="首頁結構詳解" icon={<Home className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           首頁是用戶進入網站的第一印象，由多個區域組成，每個區域都可以獨立配置。
         </p>
 
         <div className="space-y-4">
           <HomepageZone 
-            title="1️⃣ 頂部黃色 Header"
+            title="1. 頂部黃色 Header"
             desc="顯示 POLYGON Logo 和副標題『香港廣東歌結他譜網』"
             editable="顏色固定為黃色 #FFD700，暫不支援修改"
           />
           <HomepageZone 
-            title="2️⃣ 搜尋 Bar"
+            title="2. 搜尋 Bar"
             desc="全局搜尋功能，可以搜尋歌手、歌曲"
             editable="位置固定，功能自動運作"
           />
           <HomepageZone 
-            title="3️⃣ 歌手分類區"
+            title="3. 歌手分類區"
             desc="正方形卡片顯示：男歌手（藍色標籤）、女歌手（粉紅色標籤）、組合（黃色標籤）"
             editable="卡片封面可在『分類封面管理』設置"
           />
           <HomepageZone 
-            title="4️⃣ 熱門歌手區"
+            title="4. 熱門歌手區"
             desc="圓形大頭顯示，按瀏覽量/譜數/評分排序"
             editable="在『歌手排序』頁面設置顯示哪些歌手"
           />
           <HomepageZone 
-            title="5️⃣ Playlist 推薦區"
+            title="5. Playlist 推薦區"
             desc="顯示手動精選歌單（如『本週熱門』、『編輯推薦』）"
             editable="在『歌單管理』創建和設置顯示"
           />
           <HomepageZone 
-            title="6️⃣ 最新上架"
+            title="6. 最新上架"
             desc="最近上傳的樂譜列表"
             editable="自動顯示，按上傳時間排序"
           />
         </div>
       </SectionCard>
 
-      <SectionCard title="⚙️ 首頁設置方式" icon="⚙️">
+      <SectionCard title="首頁設置方式" icon={<Settings className="w-6 h-6" />}>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">歌手分類封面設置</h4>
@@ -237,7 +238,7 @@ function HomepageSection() {
 function UsersSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="👤 用戶系統說明" icon="👤">
+      <SectionCard title="用戶系統說明" icon={<User className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           用戶透過 Google 帳號登入。每個用戶有以下資料：
         </p>
@@ -245,8 +246,8 @@ function UsersSection() {
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <h4 className="text-[#FFD700] font-medium mb-3">用戶資料欄位</h4>
           <ul className="space-y-2 text-neutral-300 text-sm">
-            <li><strong className="text-white">顯示名稱</strong> - 用戶自訂的名字（預設是 Google 名字）</li>
-            <li><strong className="text-white">編譜筆名</strong> - 出譜時顯示的名稱（例如：結他小王子）</li>
+            <li><strong className="text-white">個人主頁名稱</strong> - 用戶自訂的名字（預設是 Google 名字）</li>
+            <li><strong className="text-white">出譜者名稱</strong> - 出譜時顯示的名稱（例如：結他小王子）</li>
             <li><strong className="text-white">頭像</strong> - 用戶上傳的照片或 Google 頭像</li>
             <li><strong className="text-white">個人簡介</strong> - 用戶自填的介紹文字</li>
 
@@ -256,11 +257,11 @@ function UsersSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="📍 個人主頁 (/profile/[id])" icon="📍">
+      <SectionCard title="個人主頁 (/profile/[id])" icon={<MapPin className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">每個用戶都有自己的公開主頁，顯示：</p>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-white font-medium mb-2">📊 統計數據</h4>
+            <h4 className="text-white font-medium mb-2">統計數據</h4>
             <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 出譜數目 - 用戶上傳了多少份譜</li>
               <li>• 總瀏覽量 - 所有譜的瀏覽次數總和</li>
@@ -268,7 +269,7 @@ function UsersSection() {
             </ul>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-white font-medium mb-2">🎵 內容顯示</h4>
+            <h4 className="text-white font-medium mb-2">內容顯示</h4>
             <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 熱門歌曲 - 瀏覽量最高的 5 首（有縮圖）</li>
               <li>• 所有歌曲 - 第 6 首起的列表（無縮圖）</li>
@@ -279,7 +280,7 @@ function UsersSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="🔄 用戶流程圖" icon="🔄">
+      <SectionCard title="用戶流程圖" icon={<RefreshCw className="w-6 h-6" />}>
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <FlowStep>訪客瀏覽</FlowStep>
@@ -304,7 +305,7 @@ function UsersSection() {
 function ArtistsSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="🎤 歌手系統說明" icon="🎤">
+      <SectionCard title="歌手系統說明" icon={<Mic className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           歌手是網站的核心分類。每首歌都必須屬於一個歌手。
         </p>
@@ -339,7 +340,7 @@ function ArtistsSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="📄 歌手分類系統" icon="📄">
+      <SectionCard title="歌手分類系統" icon={<FileText className="w-6 h-6" />}>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">性別/類型分類</h4>
@@ -369,7 +370,7 @@ function ArtistsSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="🎨 歌手頁面結構" icon="🎨">
+      <SectionCard title="歌手頁面結構" icon={<Palette className="w-6 h-6" />}>
         <div className="space-y-4">
           <div className="bg-gradient-to-r from-[#1a1a1a] to-[#282828] p-4 rounded-lg">
             <h4 className="text-[#FFD700] font-medium mb-2">Hero 區域</h4>
@@ -392,7 +393,7 @@ function ArtistsSection() {
         </div>
       </SectionCard>
 
-      <InfoBox type="tip" title="💡 小貼士">
+      <InfoBox type="tip" title="小貼士">
         歌手頁面係網站最重要嘅流量入口之一。建議為每個歌手補齊相片同簡介，
         可以提升 SEO（搜尋引擎排名）。
       </InfoBox>
@@ -404,7 +405,7 @@ function ArtistsSection() {
 function TabsSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="🎸 樂譜 (Tab) 系統說明" icon="🎸">
+      <SectionCard title="樂譜 (Tab) 系統說明" icon={<Music className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           樂譜是網站的核心內容。一份樂譜包含歌詞、和弦、可能還有六線譜。
         </p>
@@ -438,7 +439,7 @@ function TabsSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="📝 樂譜內容格式" icon="📝">
+      <SectionCard title="樂譜內容格式" icon={<FileText className="w-6 h-6" />}>
         <div className="bg-[#1a1a1a] p-4 rounded-lg font-mono text-sm">
           <p className="text-neutral-500 mb-2"># 簡譜格式範例</p>
           <div className="text-neutral-300 space-y-1">
@@ -468,7 +469,7 @@ function TabsSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="⚙️ 樂譜頁功能" icon="⚙️">
+      <SectionCard title="樂譜頁功能" icon={<Settings className="w-6 h-6" />}>
         <div className="grid md:grid-cols-2 gap-4">
           <FeatureCard 
             title="轉調功能"
@@ -496,14 +497,14 @@ function TabsSection() {
 function LibrarySection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="📚 收藏系統說明" icon="📚">
+      <SectionCard title="收藏系統說明" icon={<BookOpen className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           用戶可以收藏喜歡的樂譜，並建立自己的歌單。
         </p>
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-[#FFD700] font-medium mb-2">❤️ 喜愛歌曲</h4>
+            <h4 className="text-[#FFD700] font-medium mb-2 flex items-center gap-1"><Heart className="w-4 h-4" /> 喜愛歌曲</h4>
             <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 點擊心形圖標收藏</li>
               <li>• 所有喜愛的歌曲會集中在這裡</li>
@@ -517,7 +518,7 @@ function LibrarySection() {
             </div>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-[#FFD700] font-medium mb-2">🎵 個人歌單</h4>
+            <h4 className="text-[#FFD700] font-medium mb-2 flex items-center gap-1"><Music className="w-4 h-4" /> 個人歌單</h4>
             <ul className="text-neutral-400 text-sm space-y-1">
               <li>• 用戶可以創建多個歌單</li>
               <li>• 例如：「練習中」、「表演用」、「初學者」</li>
@@ -533,7 +534,7 @@ function LibrarySection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="🎵 精選歌單 (Playlists)" icon="🎵">
+      <SectionCard title="精選歌單 (Playlists)" icon={<Music className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           除了用戶自建歌單，網站還有系統精選歌單，由管理員創建，顯示在首頁。
         </p>
@@ -568,7 +569,7 @@ function LibrarySection() {
         </div>
       </SectionCard>
 
-      <InfoBox type="note" title="📝 注意">
+      <InfoBox type="note" title="注意">
         喜愛歌曲和個人歌單係兩個獨立嘅系統。喜愛歌曲係「讚好」功能，
         歌單係「分類整理」功能。
       </InfoBox>
@@ -580,10 +581,10 @@ function LibrarySection() {
 function SocialSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="💬 社交功能說明" icon="💬">
+      <SectionCard title="社交功能說明" icon={<MessageCircle className="w-6 h-6" />}>
         <div className="grid md:grid-cols-3 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-[#FFD700] font-medium mb-2">👥 追蹤系統</h4>
+            <h4 className="text-[#FFD700] font-medium mb-2">追蹤系統</h4>
             <p className="text-neutral-400 text-sm">
               用戶可以追蹤喜歡的編譜者，被追蹤者會增加粉絲數。
               追蹤後可以在自己主頁看到對方的動態。
@@ -593,7 +594,7 @@ function SocialSection() {
             </p>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-[#FFD700] font-medium mb-2">✋ 求譜功能</h4>
+            <h4 className="text-[#FFD700] font-medium mb-2">求譜功能</h4>
             <p className="text-neutral-400 text-sm">
               用戶可以要求某首歌的結他譜，其他人可以投票支持。
               投票數愈高的求譜會優先顯示，吸引編譜者製作。
@@ -603,7 +604,7 @@ function SocialSection() {
             </p>
           </div>
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
-            <h4 className="text-[#FFD700] font-medium mb-2">💬 留言系統</h4>
+            <h4 className="text-[#FFD700] font-medium mb-2">留言系統</h4>
             <p className="text-neutral-400 text-sm">
               用戶可以在樂譜頁面留言討論，分享彈奏心得或問問題。
               這需要登入後才能使用。
@@ -615,7 +616,7 @@ function SocialSection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="🔄 求譜流程" icon="🔄">
+      <SectionCard title="求譜流程" icon={<RefreshCw className="w-6 h-6" />}>
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <FlowStep>用戶提交求譜</FlowStep>
@@ -640,14 +641,14 @@ function SocialSection() {
 function AdminSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="⚙️ 後台管理說明" icon="⚙️">
+      <SectionCard title="後台管理說明" icon={<Settings className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           後台係畀你（管理員）管理整個網站嘅地方。所有後台頁面都以 <code className="bg-[#282828] px-2 py-1 rounded">/admin/</code> 開頭。
         </p>
 
         <div className="grid md:grid-cols-2 gap-4">
           <AdminToolCard 
-            title="🎤 歌手管理"
+            title="歌手管理"
             tools={[
               { name: "歌手管理 V2", path: "/admin/artists-v2", desc: "查看所有歌手，批量設置類型" },
               { name: "合併重複歌手", path: "/admin/merge-artists", desc: "合併中英文重複的歌手" },
@@ -656,33 +657,33 @@ function AdminSection() {
             ]}
           />
           <AdminToolCard 
-            title="🎸 樂譜管理"
+            title="樂譜管理"
             tools={[
             ]}
           />
           <AdminToolCard 
-            title="📊 數據統計"
+            title="數據統計"
             tools={[
               { name: "瀏覽統計", path: "/admin/analytics", desc: "全站瀏覽數據（類似 Google Analytics）" },
               { name: "歌手地區", path: "/admin/artists-region", desc: "設置歌手地區（香港/台灣/中國/國際）" },
             ]}
           />
           <AdminToolCard 
-            title="⚙️ 網站設置"
+            title="網站設置"
             tools={[
               { name: "首頁設置", path: "/admin/home-settings", desc: "設置首頁顯示內容" },
               { name: "管理員設置", path: "/admin/admins", desc: "添加/移除管理員" },
             ]}
           />
           <AdminToolCard 
-            title="🎵 Spotify 整合"
+            title="Spotify 整合"
             tools={[
               { name: "Spotify 管理", path: "/admin/spotify-manager", desc: "批量更新歌手 Spotify 資料" },
               { name: "更新曲目", path: "/admin/update-track-info", desc: "更新歌曲 Spotify 資料" },
             ]}
           />
           <AdminToolCard 
-            title="🛠️ 其他工具"
+            title="其他工具"
             tools={[
               { name: "歌單管理", path: "/admin/playlists", desc: "管理精選歌單" },
             ]}
@@ -690,7 +691,7 @@ function AdminSection() {
         </div>
       </SectionCard>
 
-      <InfoBox type="warning" title="⚠️ 重要提醒">
+      <InfoBox type="warning" title="重要提醒">
         後台功能非常強大，可以修改或刪除任何資料。請小心使用，
         特別係「合併歌手」同「刪除」功能，操作後無法自動復原。
       </InfoBox>
@@ -702,7 +703,7 @@ function AdminSection() {
 function DatabaseSection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="🗄️ Firestore 資料庫結構" icon="🗄️">
+      <SectionCard title="Firestore 資料庫結構" icon={<Database className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           網站使用 <strong className="text-[#FFD700]">Firebase Firestore</strong> 作為資料庫。
           以下係所有 Collection（資料集合）的結構說明：
@@ -723,7 +724,7 @@ function DatabaseSection() {
               { name: "thumbnail", type: "string", desc: "YouTube 縮圖 URL" },
               { name: "youtubeUrl", type: "string", desc: "YouTube 影片連結" },
               { name: "uploaderId", type: "string", desc: "上傳者 ID" },
-              { name: "uploaderPenName", type: "string", desc: "上傳者筆名" },
+              { name: "uploaderPenName", type: "string", desc: "出譜者名稱" },
               { name: "viewCount", type: "number", desc: "瀏覽次數" },
               { name: "likes", type: "number", desc: "讚好數" },
               { name: "createdAt", type: "timestamp", desc: "創建時間" },
@@ -756,8 +757,8 @@ function DatabaseSection() {
             name="users"
             desc="儲存用戶資料"
             fields={[
-              { name: "displayName", type: "string", desc: "顯示名稱" },
-              { name: "penName", type: "string", desc: "編譜筆名" },
+              { name: "displayName", type: "string", desc: "個人主頁名稱" },
+              { name: "penName", type: "string", desc: "出譜者名稱" },
               { name: "email", type: "string", desc: "電郵地址" },
               { name: "photoURL", type: "string", desc: "頭像 URL" },
               { name: "bio", type: "string", desc: "個人簡介" },
@@ -854,7 +855,7 @@ function DatabaseSection() {
         </div>
       </SectionCard>
 
-      <InfoBox type="tip" title="💡 查看資料庫">
+      <InfoBox type="tip" title="查看資料庫">
         你可以登入 Firebase Console（console.firebase.google.com）→ Firestore Database
         直接查看和編輯所有資料。請小心操作，誤刪無法復原。
       </InfoBox>
@@ -866,7 +867,7 @@ function DatabaseSection() {
 function SecuritySection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="🔒 Firebase 安全規則說明" icon="🔒">
+      <SectionCard title="Firebase 安全規則說明" icon={<Lock className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           安全規則控制「誰可以讀寫什麼資料」。這是防止未授權訪問的重要保護。
         </p>
@@ -933,14 +934,13 @@ function SecuritySection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="👑 管理員權限" icon="👑">
+      <SectionCard title="管理員權限" icon={<Crown className="w-6 h-6" />}>
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <p className="text-neutral-300 mb-3">
             目前管理員由電郵地址識別：
           </p>
           <ul className="text-neutral-400 text-sm space-y-1">
-            <li>• kermit.tam@gmail.com</li>
-            <li>• showroomchan@gmail.com</li>
+            <li>• 由 Firestore users 的 role = super_admin 決定（見 /admin/admins）</li>
           </ul>
           <p className="text-neutral-500 text-xs mt-3">
             管理員擁有所有資料的讀寫權限，可以修改或刪除任何內容。
@@ -948,7 +948,7 @@ function SecuritySection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="⚠️ 常見安全問題" icon="⚠️">
+      <SectionCard title="常見安全問題" icon={<AlertTriangle className="w-6 h-6" />}>
         <div className="space-y-3">
           <div className="bg-red-900/20 border border-red-700/50 p-4 rounded-lg">
             <h4 className="text-red-400 font-medium mb-2">Q: 為什麼 viewCount 允許任何人更新？</h4>
@@ -986,7 +986,7 @@ function SecuritySection() {
 function GlossarySection() {
   return (
     <div className="space-y-6">
-      <SectionCard title="📖 常用術語表" icon="📖">
+      <SectionCard title="常用術語表" icon={<BookOpen className="w-6 h-6" />}>
         <p className="text-neutral-300 mb-4">
           以下係網站開發同管理時常用嘅術語，方便你同 IT 人溝通：
         </p>
@@ -1081,7 +1081,7 @@ function GlossarySection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="💬 溝通用語建議" icon="💬">
+      <SectionCard title="溝通用語建議" icon={<MessageCircle className="w-6 h-6" />}>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-[#1a1a1a] p-4 rounded-lg">
             <h4 className="text-green-400 font-medium mb-2">✅ 建議的說法</h4>
@@ -1106,15 +1106,15 @@ function GlossarySection() {
         </div>
       </SectionCard>
 
-      <SectionCard title="📸 報告問題時請提供" icon="📸">
+      <SectionCard title="報告問題時請提供" icon={<Camera className="w-6 h-6" />}>
         <div className="bg-[#1a1a1a] p-4 rounded-lg">
           <ul className="text-neutral-300 space-y-2">
-            <li>1️⃣ <strong>截圖</strong> - 顯示問題的畫面（用手機影都得）</li>
-            <li>2️⃣ <strong>網址</strong> - 完整的網址，例如 <code className="bg-[#282828] px-2 py-1 rounded">https://polygon.guitars/tabs/abc123</code></li>
-            <li>3️⃣ <strong>操作步驟</strong> - 你做了什麼導致問題出現</li>
-            <li>4️⃣ <strong>預期結果</strong> - 你期望看到什麼</li>
-            <li>5️⃣ <strong>實際結果</strong> - 實際看到什麼</li>
-            <li>6️⃣ <strong>裝置資訊</strong> - 手機還是電腦？什麼瀏覽器？</li>
+            <li>1. <strong>截圖</strong> - 顯示問題的畫面（用手機影都得）</li>
+            <li>2. <strong>網址</strong> - 完整的網址，例如 <code className="bg-[#282828] px-2 py-1 rounded">https://polygon.guitars/tabs/abc123</code></li>
+            <li>3. <strong>操作步驟</strong> - 你做了什麼導致問題出現</li>
+            <li>4. <strong>預期結果</strong> - 你期望看到什麼</li>
+            <li>5. <strong>實際結果</strong> - 實際看到什麼</li>
+            <li>6. <strong>裝置資訊</strong> - 手機還是電腦？什麼瀏覽器？</li>
           </ul>
         </div>
       </SectionCard>
@@ -1128,7 +1128,7 @@ function SectionCard({ title, icon, children }) {
   return (
     <div className="bg-[#121212] rounded-xl border border-neutral-800 p-6">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <span>{icon}</span>
+        {icon}
         {title}
       </h2>
       {children}

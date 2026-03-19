@@ -47,20 +47,21 @@ export default async function handler(req, res) {
     const startMs = Date.now()
     console.log('[rebuild-home-and-search-cache] single fetch started', pacificTime())
 
-    const [tabsSnap, artistsSnap, playlistsSnap, settingsDoc, categoryImagesDoc] = await Promise.all([
+    const [tabsSnap, artistsSnap, playlistsSnap, usersSnap, settingsDoc, categoryImagesDoc] = await Promise.all([
       getDocs(query(collection(db, 'tabs'), orderBy('createdAt', 'desc'))),
       getDocs(query(collection(db, 'artists'), orderBy('name'))),
       getDocs(collection(db, 'playlists')),
+      getDocs(collection(db, 'users')),
       getDoc(doc(db, 'settings', 'home')),
       getDoc(doc(db, 'settings', 'categoryImages'))
     ])
 
     const totalReads =
-      tabsSnap.docs.length + artistsSnap.docs.length + playlistsSnap.docs.length +
+      tabsSnap.docs.length + artistsSnap.docs.length + playlistsSnap.docs.length + usersSnap.docs.length +
       (settingsDoc?.exists ? 1 : 0) + (categoryImagesDoc?.exists ? 1 : 0)
-    console.log(`[rebuild-home-and-search-cache] Firestore fetch done in ${Date.now() - startMs}ms — ${tabsSnap.docs.length} tabs, ${artistsSnap.docs.length} artists, ${playlistsSnap.docs.length} playlists (total reads: ${totalReads}) at ${pacificTime()}`)
+    console.log(`[rebuild-home-and-search-cache] Firestore fetch done in ${Date.now() - startMs}ms — ${tabsSnap.docs.length} tabs, ${artistsSnap.docs.length} artists, ${playlistsSnap.docs.length} playlists, ${usersSnap.docs.length} users (total reads: ${totalReads}) at ${pacificTime()}`)
 
-    const searchPayload = buildSearchDataPayloadFromSnapshots(tabsSnap, artistsSnap, playlistsSnap)
+    const searchPayload = buildSearchDataPayloadFromSnapshots(tabsSnap, artistsSnap, playlistsSnap, usersSnap)
     const homePayload = buildHomeDataPayloadFromRaw({
       tabsSnap,
       artistsSnap,

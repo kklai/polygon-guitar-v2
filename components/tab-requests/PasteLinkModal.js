@@ -61,7 +61,7 @@ export default function PasteLinkModal({ request, user, onClose, setRequests, re
       const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore')
       const { db } = await import('@/lib/firebase')
 
-      const fulfilledByName = (tab.uploaderPenName || tab.arrangedBy || '').trim() || '結他友'
+      const fulfilledByName = (tab.uploaderPenName || '').trim() || '結他友'
       const albumImage = getSongThumbnail(tab) || null
       const requestId = request.id
 

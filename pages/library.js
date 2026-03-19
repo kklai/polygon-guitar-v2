@@ -10,6 +10,13 @@ import { getSongThumbnail } from '../lib/getSongThumbnail';
 import Layout from '../components/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserLibrary, patchCacheAddPlaylist, isLibraryCacheStale } from '../lib/userLibraryCache';
+import { getPlaylist } from '../lib/playlistApi';
+import { getTabsByIds, getArtistSlug } from '../lib/tabs';
+
+function resolveCover(tab) {
+  if (!tab) return null;
+  return { id: tab.id, thumbnail: getSongThumbnail(tab) || null };
+}
 
 export default function Library() {
   const router = useRouter();
@@ -24,6 +31,7 @@ export default function Library() {
   const [sortRefreshKey, setSortRefreshKey] = useState(0) // 返回頁面時強制重讀「最近瀏覽」
   const [recentTabsCount, setRecentTabsCount] = useState(0) // 最近瀏覽結他譜數量（localStorage）
   const [recentCoverTab, setRecentCoverTab] = useState(null) // 第一份用於封面
+  const [fetchedPlaylistCovers, setFetchedPlaylistCovers] = useState({}); // playlistId -> [{ id, thumbnail }]，cache 無 cover 時 client 補拉
 
   const libraryKey = user ? `library-${user.uid}` : null;
   const { data, error, isLoading: swrLoading, isValidating, mutate } = useSWR(
@@ -107,6 +115,29 @@ export default function Library() {
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [user?.uid]);
+
+  // 歌單有歌但 cache 無 cover 時，client 補拉頭 4 首做封面
+  useEffect(() => {
+    if (!user?.uid || !playlists.length) return;
+    const needCover = playlists.filter(
+      (pl) => (pl.songCount || 0) > 0 && (!pl.coverSongs?.length || pl.coverSongs.every((s) => !s?.thumbnail))
+    );
+    if (!needCover.length) return;
+    let cancelled = false;
+    needCover.forEach(async (pl) => {
+      try {
+        const full = await getPlaylist(pl.id);
+        if (cancelled || !full?.songIds?.length) return;
+        const ids = full.songIds.slice(0, 4);
+        const tabs = await getTabsByIds(ids);
+        const coverSongs = ids.map((id) => tabs.find((t) => t.id === id)).filter(Boolean).map(resolveCover);
+        if (!cancelled && coverSongs.length) {
+          setFetchedPlaylistCovers((prev) => ({ ...prev, [pl.id]: coverSongs }));
+        }
+      } catch (_) {}
+    });
+    return () => { cancelled = true; };
+  }, [user?.uid, data]);
 
   const createPlaylist = async () => {
     if (!newPlaylistName.trim() || !user) return;
@@ -314,7 +345,7 @@ export default function Library() {
                 ) : getSongThumbnail(recentCoverTab) ? (
                   <img src={getSongThumbnail(recentCoverTab)} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E] text-lg">🎸</div>
+                  <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E]"><Music className="w-8 h-8" strokeWidth={1.5} /></div>
                 )}
               </div>
               <div className="text-white font-medium truncate" style={{ fontSize: 15, lineHeight: '20px' }}>最近瀏覽</div>
@@ -328,7 +359,7 @@ export default function Library() {
                 return (
                   <div
                     key={`artist-${ar.id}`}
-                    onClick={() => router.push(`/artists/${ar.id}`)}
+                    onClick={() => router.push(`/artists/${encodeURIComponent(getArtistSlug(ar) || ar.id)}`)}
                     className="cursor-pointer group"
                   >
                     <div className="aspect-square rounded-full overflow-hidden mb-2 bg-[#282828] shadow-lg relative max-w-full">
@@ -379,9 +410,9 @@ export default function Library() {
                   </div>
                 );
               }
-              // userPlaylist（2x2 封面：頭四首歌）
+              // userPlaylist（2x2 封面：頭四首歌；cache 無 cover 時用 client 補拉嘅 fetchedPlaylistCovers）
               const playlist = tile.data;
-              const coverSongs = playlist.coverSongs || [];
+              const coverSongs = (fetchedPlaylistCovers[playlist.id] ?? playlist.coverSongs) || [];
               return (
                 <div key={`user-${playlist.id}`} className="relative group">
                   <div 
@@ -402,7 +433,7 @@ export default function Library() {
                               {song.thumbnail ? (
                                 <img src={song.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E] text-lg">🎸</div>
+                                <div className="w-full h-full flex items-center justify-center bg-[#282828] text-[#3E3E3E]"><Music className="w-8 h-8" strokeWidth={1.5} /></div>
                               )}
                             </div>
                           );

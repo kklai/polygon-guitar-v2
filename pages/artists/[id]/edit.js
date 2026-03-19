@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
-import { doc, getDoc, updateDoc, deleteDoc, deleteField, collection, query, where, getDocs, writeBatch } from '@/lib/firestore-tracked'
+import { doc, getDoc, updateDoc, deleteDoc, deleteField, collection, query, where, or, getDocs, writeBatch } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import Layout from '@/components/Layout'
 import AdminGuard from '@/components/AdminGuard'
 import { searchArtistFromWikipedia } from '@/lib/wikipedia'
 import { uploadToCloudinary, validateImageFile, formatFileSize } from '@/lib/cloudinary'
-import { nameToSlug, getArtistBySlug, invalidateArtistCaches } from '@/lib/tabs'
+import { nameToSlug, getArtistByIdOrSlug, invalidateArtistCaches } from '@/lib/tabs'
+import { clearArtistMapCache } from '@/lib/useArtistMap'
 import { auth } from '@/lib/firebase'
 import { X, MapPin, ArrowLeft } from 'lucide-react'
 
@@ -48,6 +49,8 @@ function EditArtist() {
   const [isFixingSongs, setIsFixingSongs] = useState(false)
   const [fixMessage, setFixMessage] = useState(null)
   const [relatedSongsCount, setRelatedSongsCount] = useState(0)
+  const [isBustingCache, setIsBustingCache] = useState(false)
+  const [bustCacheMessage, setBustCacheMessage] = useState(null)
   const [actualDocId, setActualDocId] = useState(null) // 儲存實際嘅 document ID（處理簡繁體）
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
@@ -70,35 +73,19 @@ function EditArtist() {
 
   const loadArtist = async () => {
     try {
-      let artistRef = doc(db, 'artists', id)
-      let artistSnap = await getDoc(artistRef)
-      
-      // 如果搵唔到，嘗試用繁體版 ID
-      if (!artistSnap.exists()) {
-        const traditionalId = toTraditional(id);
-        if (traditionalId !== id) {
-          artistRef = doc(db, 'artists', traditionalId);
-          artistSnap = await getDoc(artistRef);
-        }
+      let artistData = await getArtistByIdOrSlug(id)
+      if (!artistData) {
+        const traditionalId = toTraditional(id)
+        if (traditionalId !== id) artistData = await getArtistByIdOrSlug(traditionalId)
       }
-      
-      // 再搵唔到就試用 normalizedName（slug）查，例如改名後用新 URL 入編輯頁
-      if (!artistSnap.exists()) {
-        const bySlug = await getArtistBySlug(id);
-        if (bySlug) {
-          artistRef = doc(db, 'artists', bySlug.id);
-          artistSnap = await getDoc(artistRef);
-        }
-      }
-      
-      if (!artistSnap.exists()) {
+      if (!artistData) {
         alert('搵唔到歌手')
         router.push('/artists')
         return
       }
 
-      const data = artistSnap.data()
-      setActualDocId(artistSnap.id) // 儲存實際嘅 document ID
+      const data = artistData
+      setActualDocId(artistData.id) // 儲存實際嘅 document ID
       setOriginalName(data.name || '')
       // 支援舊版單一地區轉陣列
       const artistRegions = data.regions || (data.region ? [data.region] : [])
@@ -151,6 +138,7 @@ function EditArtist() {
     setIsSubmitting(true)
     try {
       // 由新歌手名生成網站 ID（slug），例如 "陳奕迅 Eason Chan" → "陳奕迅-Eason-Chan"
+      // 每次保存都更新 normalizedName，確保 /artists/[slug] 用改名後嘅 URL 搵到（唔會再用舊 doc id）
       const newSlug = nameToSlug(formData.name) || id
       
       // If name changed, clean up stale denormalized fields on tabs (artistId stays unchanged — it's the doc ID)
@@ -175,30 +163,30 @@ function EditArtist() {
         year: formData.birthYear || formData.debutYear || formData.year,  // 兼容舊欄位
         artistType: formData.artistType || 'other',
         regions: formData.regions || [],
-        region: formData.regions?.[0] || null, // 保留第一地區向後兼容
         updatedAt: new Date().toISOString()
       })
 
-      // 清除 cache，等歌手列表／搜尋即時反映改動
+      // 即時反映：只做 client 同 redirect，唔等 server cache
       if (typeof window !== 'undefined') {
         invalidateArtistCaches()
+        clearArtistMapCache() // 最近瀏覽 用 artist map 顯示歌名底下歌手名，清快取先會拎到新名
         fetch('/api/search-data?bust=1').catch(() => {})
-        try {
-          const token = await auth.currentUser?.getIdToken?.()
-          if (token) {
-            await fetch('/api/patch-caches-on-new-tab', {
+        const token = auth.currentUser?.getIdToken?.()
+        token.then((t) => {
+          if (t) {
+            fetch('/api/patch-caches-on-new-tab', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
               body: JSON.stringify({
                 artist: { id: docId, name: formData.name, normalizedName: newSlug, photoURL: formData.photoURL, wikiPhotoURL: formData.wikiPhotoURL, artistType: formData.artistType, regions: formData.regions },
                 action: 'update-artist'
               })
-            })
+            }).catch(() => {})
           }
-        } catch (_) {}
+        }).catch(() => {})
       }
 
-      // 跳去新嘅歌手 URL（用新 slug）
+      // 立刻跳轉，唔等 patch-caches（避免 quota 時等 10s 仲失敗）
       router.push(`/artists/${encodeURIComponent(newSlug)}`)
     } catch (error) {
       console.error('Update artist error:', error)
@@ -294,13 +282,16 @@ function EditArtist() {
     setIsSearching(false)
   }
 
-  // 檢查相關歌曲 (by stable doc ID)
+  // 檢查相關歌曲 (by stable doc ID; support artistId and artistIds)
   const checkRelatedSongs = async () => {
     try {
       const docId = actualDocId || id
       const snapshot = await getDocs(query(
         collection(db, 'tabs'),
-        where('artistId', '==', docId)
+        or(
+          where('artistId', '==', docId),
+          where('artistIds', 'array-contains', docId)
+        )
       ))
       setRelatedSongsCount(snapshot.size)
     } catch (e) {
@@ -331,10 +322,13 @@ function EditArtist() {
     try {
       const docId = actualDocId || id
       
-      // Find all tabs by the stable doc ID
+      // Find all tabs by the stable doc ID (support artistId and artistIds)
       const snapshot = await getDocs(query(
         collection(db, 'tabs'),
-        where('artistId', '==', docId)
+        or(
+          where('artistId', '==', docId),
+          where('artistIds', 'array-contains', docId)
+        )
       ))
       
       let updatedCount = 0
@@ -361,7 +355,7 @@ function EditArtist() {
           text: `✅ 成功清理 ${updatedCount} 首歌曲的舊歌手名欄位`
         })
       } else {
-        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料` + (newSlug ? '及網站 ID' : ''))
+        console.log(`已自動更新 ${updatedCount} 首歌曲的歌手資料`)
       }
       
       await checkRelatedSongs()
@@ -376,6 +370,35 @@ function EditArtist() {
       }
     } finally {
       setIsFixingSongs(false)
+    }
+  }
+
+  // 手動清除歌手頁 Firestore 快取（用 client SDK 直接 delete，與 API 分開的 quota 路徑）
+  const handleBustArtistCache = async () => {
+    const artistId = actualDocId || id
+    if (!artistId) return
+    setIsBustingCache(true)
+    setBustCacheMessage(null)
+    try {
+      const ref = doc(db, 'cache', `artistPage_${artistId}`)
+      const snap = await getDoc(ref)
+      const hadCache = snap.exists()
+      await deleteDoc(ref)
+      invalidateArtistCaches()
+      setBustCacheMessage({
+        type: 'success',
+        text: hadCache
+          ? '已清除歌手頁快取，重新載入歌手頁即可看到最新資料。若首頁仍顯示舊名，請到「首頁設置」重建首頁快取。'
+          : '歌手頁快取本來就無（或已過期），下次載入歌手頁會用最新資料。'
+      })
+    } catch (e) {
+      const isQuota = e?.code === 8 || /quota|resource exhausted|RESOURCE_EXHAUSTED/i.test(e?.message || '')
+      setBustCacheMessage({
+        type: 'error',
+        text: isQuota ? '配額已滿，請稍後再試。' : (e?.message || '清除失敗')
+      })
+    } finally {
+      setIsBustingCache(false)
     }
   }
 
@@ -411,6 +434,19 @@ function EditArtist() {
     try {
       const docId = actualDocId || id
       await deleteDoc(doc(db, 'artists', docId))
+      try {
+        const token = await auth.currentUser?.getIdToken?.()
+        if (token) {
+          await fetch('/api/patch-caches-on-new-tab', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ artist: { id: docId }, action: 'delete-artist' })
+          })
+        }
+      } catch (e) {
+        console.warn('[patch-caches] delete-artist:', e)
+      }
+      clearArtistMapCache()
       alert('✅ 歌手已刪除')
       router.push('/artists')
     } catch (error) {
@@ -555,9 +591,9 @@ function EditArtist() {
                 className="w-full px-4 py-2 bg-black border border-neutral-800 rounded-lg text-white"
               >
                 <option value="">請選擇...</option>
-                <option value="male">👨‍🎤 男歌手</option>
-                <option value="female">👩‍🎤 女歌手</option>
-                <option value="group">🎸 組合</option>
+                <option value="male">男歌手</option>
+                <option value="female">女歌手</option>
+                <option value="group">組合</option>
               </select>
             </div>
 
@@ -896,6 +932,33 @@ function EditArtist() {
                 )}
               </div>
             )}
+
+            {/* 手動清除歌手頁快取（改名後 quota 導致無法自動 patch 時用） */}
+            <div className="p-4 bg-amber-900/20 border border-amber-800 rounded-lg">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 className="text-amber-400 font-medium text-sm">歌手頁快取</h4>
+                  <p className="text-amber-200/70 text-sm mt-1">
+                    改名後若歌手頁仍顯示舊名或無歌單，可手動清除快取讓下次載入時重建
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBustArtistCache}
+                  disabled={isBustingCache}
+                  className="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-600 transition disabled:opacity-50 text-sm"
+                >
+                  {isBustingCache ? '清除中...' : '清除歌手頁快取'}
+                </button>
+              </div>
+              {bustCacheMessage && (
+                <div className={`mt-3 p-3 rounded text-sm ${
+                  bustCacheMessage.type === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                }`}>
+                  {bustCacheMessage.text}
+                </div>
+              )}
+            </div>
 
             {/* Bio */}
             <div>

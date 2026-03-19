@@ -5,10 +5,9 @@
  * Used by client-side navigation to artist page to avoid 1 + 6×N reads.
  */
 
-import { doc, getDoc } from '@/lib/firestore-tracked'
 import { db } from '@/lib/firebase'
 import { pacificTime } from '@/lib/logTime'
-import { getArtistBySlug, getTabsByArtist, slimTabForArtistPage } from '@/lib/tabs'
+import { getArtistByIdOrSlug, getTabsByArtist, slimTabForArtistPage } from '@/lib/tabs'
 import { getArtistPageCache, setArtistPageCache } from '@/lib/artistPageCache'
 
 function serializePayload(obj) {
@@ -35,15 +34,10 @@ export default async function handler(req, res) {
       return res.json(cached)
     }
 
-    let artistDoc = await getDoc(doc(db, 'artists', id))
-    if (!artistDoc.exists()) {
-      const bySlug = await getArtistBySlug(id)
-      if (!bySlug) {
-        return res.status(404).json({ error: 'Artist not found' })
-      }
-      artistDoc = { exists: () => true, id: bySlug.id, data: () => ({ ...bySlug }) }
+    const artistData = await getArtistByIdOrSlug(id)
+    if (!artistData) {
+      return res.status(404).json({ error: 'Artist not found' })
     }
-    const artistData = { id: artistDoc.id, ...artistDoc.data() }
     const artistId = artistData.id
 
     cached = await getArtistPageCache(artistId)
@@ -53,7 +47,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`[artist-page API] cache miss for ${id}, building... at ${pacificTime()}`)
-    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId)
+    const tabs = await getTabsByArtist(artistData.name, artistData.normalizedName || artistId, artistData.id)
     tabs.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     const slimTabs = tabs.map(slimTabForArtistPage)
     const payload = {

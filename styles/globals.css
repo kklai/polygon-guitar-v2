@@ -94,6 +94,34 @@ body {
   animation: fade-in 0.25s ease-out forwards;
 }
 
+/* 底部彈出 Menu（SongActionSheet、Profile 更多 等）*/
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+/* 未填寫輸入欄提示：晃動 + 紅框（用於 Spotify 擷取後空欄位） */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(6px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+.animate-spotify-empty-flash {
+  border-color: rgb(239, 68, 68) !important;
+  animation: shake 0.55s ease-in-out;
+}
+/* 「或手動輸入歌曲資訊」：晃動 + 紅字 */
+.animate-spotify-empty-flash-text {
+  color: rgb(239, 68, 68);
+  animation: shake 0.55s ease-in-out;
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
@@ -147,4 +175,31 @@ img {
 }
 img::selection {
   background: transparent;
+}
+
+/* 譜內容輸入欄字體：跟隨等寬／Arial 選擇，優先於全局字體 */
+.tab-content-input--mono {
+  font-family: 'Source Code Pro', 'Noto Sans Mono CJK TC', Consolas, 'Courier New', monospace !important;
+}
+.tab-content-input--arial {
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+/* 譜內容輸入欄：頁面 width > 400 時，輸入內容 14px、placeholder 提示 13px（三種 mode） */
+@media screen and (min-width: 401px) {
+  .tab-content-input {
+    font-size: 14px !important;
+  }
+  .tab-content-input::placeholder {
+    font-size: 13px !important;
+  }
+}
+
+/* iPhone Safari：輸入框字體 < 16px 時聚焦會自動放大頁面，改為 16px 避免放大 */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
