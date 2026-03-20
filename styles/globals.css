@@ -203,3 +203,13 @@ img::selection {
     font-size: 16px !important;
   }
 }
+
+/* Notation editor — alphaTab playback cursor (moving vertical line + bar highlight) */
+.notation-alphatab-preview .at-cursor-beat {
+  background-color: #ffd700 !important;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.75);
+  border-radius: 1px;
+}
+.notation-alphatab-preview .at-cursor-bar {
+  background-color: rgba(255, 215, 0, 0.16) !important;
+}

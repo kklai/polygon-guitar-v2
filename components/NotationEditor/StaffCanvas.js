@@ -5,12 +5,18 @@
  * Closing double bar, then add slot. New subdivisions go between last subdivision and closing double bar.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react'
 
-const STAFF_HEIGHT = 80
+/** No useLayoutEffect on server (avoids React SSR warning); full useLayoutEffect on client for toolbar sync order. */
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 const NUM_STRINGS = 6
+const STAFF_LINE_THICKNESS = 1
+/** Vertical distance between adjacent string lines (between 1px staff lines). */
+const FRET_LINE_GAP = 13
+const STAFF_HEIGHT = NUM_STRINGS * STAFF_LINE_THICKNESS + (NUM_STRINGS - 1) * FRET_LINE_GAP
 const BEAT_COLUMN_WIDTH = 40  // time signature column
-const NOTE_COLUMN_WIDTH = 40  // rest symbol / beat column width
+const NOTE_COLUMN_WIDTH = 25  // rest symbol / beat column width
 const THICK_BAR = 8
 const THIN_BAR = 1
 const BAR_WIDTH = THICK_BAR + 2 + THIN_BAR  // gap 2px between thick and thin
@@ -66,13 +72,29 @@ const STEM_HEIGHT_QUARTER = 40
 const STEM_HEIGHT_HALF = 20
 const STEM_WIDTH = 1
 const FLAG_SPACING = 4
-const FLAG_EXTEND = 40
+/** When beaming, extend each stem only halfway to the next column center (stems are NOTE_COLUMN_WIDTH apart). Fixed 40px caused huge overlap into neighbor columns → fake “flags” on first/last notes. */
+const BEAM_HALF_GAP = NOTE_COLUMN_WIDTH / 2
 const FLAG_MIN_STANDALONE = 10  // minimum beam width when not connected to adjacent notes
 
 const FLAGGED_DURATIONS = ['eighth', 'sixteenth', 'thirtySecond']
 
+/**
+ * Beam flags for eighth / sixteenth / thirty-second stems (DurationStem).
+ * - Within each beam group: first note has no left beam; last has no right beam; inner notes have both.
+ * - Eighths: beam up to 2 per group; sixteenths & thirty-seconds: up to 4 per group.
+ * - If any beat in this row is dotted (0.5), skip all joining — every stem uses standalone flags.
+ */
 function getStemFlags(beats) {
   const result = beats.map(() => ({ left: false, right: false }))
+  if (!beats.length) return result
+  if (beats.some((b) => b.dotted)) return result
+
+  const maxNotesPerBeam = (duration) => {
+    if (duration === 'eighth') return 2
+    if (duration === 'sixteenth' || duration === 'thirtySecond') return 4
+    return 1
+  }
+
   let i = 0
   while (i < beats.length) {
     const d = beats[i].duration
@@ -80,22 +102,27 @@ function getStemFlags(beats) {
       i++
       continue
     }
-    let j = i
-    while (j < beats.length && beats[j].duration === d) j++
-    const maxGroupSize = d === 'eighth' ? 2 : d === 'sixteenth' ? 4 : Infinity
-    for (let k = i; k < j; k++) {
-      const posInRun = k - i
-      const posInGroup = maxGroupSize === Infinity ? posInRun : posInRun % maxGroupSize
-      const hasNextInGroup = posInGroup < maxGroupSize - 1 && k + 1 < j
-      const hasPrevInGroup = posInGroup > 0
-      const prevBeatHasNote = k > 0 && (beats[k - 1].notes?.length ?? 0) > 0
-      const beatDotted = beats[k].dotted
-      const prevDotted = k > 0 && beats[k - 1].dotted
-      const nextDotted = k + 1 < beats.length && beats[k + 1].dotted
-      const noDottedNearby = !beatDotted && !prevDotted && !nextDotted
-      result[k].right = hasNextInGroup && noDottedNearby
-      result[k].left = hasPrevInGroup && prevBeatHasNote && noDottedNearby
+
+    let j = i + 1
+    while (j < beats.length && beats[j].duration === d && !beats[j].dotted) j++
+
+    const runLen = j - i
+    if (runLen < 2) {
+      i = j
+      continue
     }
+
+    const m = maxNotesPerBeam(d)
+    let g = i
+    while (g < j) {
+      const ge = Math.min(g + m - 1, j - 1)
+      for (let k = g; k <= ge; k++) {
+        result[k].left = k > g
+        result[k].right = k < ge
+      }
+      g = ge + 1
+    }
+
     i = j
   }
   return result
@@ -121,10 +148,10 @@ function DurationStem({ duration, flagLeft, flagRight, hasNote, dotted }) {
   const flagCount = duration === 'eighth' ? 1 : duration === 'sixteenth' ? 2 : duration === 'thirtySecond' ? 3 : 0
   const beamWidth =
     flagLeft || flagRight
-      ? (flagLeft ? FLAG_EXTEND : 0) + STEM_WIDTH + (flagRight ? FLAG_EXTEND : 0)
+      ? (flagLeft ? BEAM_HALF_GAP : 0) + STEM_WIDTH + (flagRight ? BEAM_HALF_GAP : 0)
       : Math.max(FLAG_MIN_STANDALONE, STEM_WIDTH)
   const beamMarginLeft =
-    !flagLeft && flagRight ? 0 : flagLeft ? -FLAG_EXTEND : 0
+    !flagLeft && flagRight ? 0 : flagLeft ? -BEAM_HALF_GAP : 0
   const flagBlockHeight = isFlagged && flagCount > 0 ? flagCount * FLAG_SPACING : 0
   return (
     <div className="relative flex flex-col items-center justify-end" style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }}>
@@ -176,12 +203,25 @@ function DurationStem({ duration, flagLeft, flagRight, hasNote, dotted }) {
   )
 }
 
-// 6 horizontal lines, evenly spaced over STAFF_HEIGHT, 1px thick
+/** Y center of string `stringIndex` (0 = top / high e) for a staff of height `cellHeight`. */
+function getStringLineCenterYPx(stringIndex, cellHeight = STAFF_HEIGHT) {
+  const scale = cellHeight / STAFF_HEIGHT
+  return scale * (stringIndex * (STAFF_LINE_THICKNESS + FRET_LINE_GAP) + STAFF_LINE_THICKNESS / 2)
+}
+
+// 6 horizontal lines, 1px thick, FRET_LINE_GAP between each
 function StaffLinesBackground({ lineColor = '#000' }) {
   return (
-    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ paddingTop: 0, paddingBottom: 0 }}>
+    <div
+      className="absolute inset-0 flex flex-col justify-start pointer-events-none"
+      style={{ gap: FRET_LINE_GAP }}
+    >
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="w-full flex-shrink-0" style={{ height: 1, backgroundColor: lineColor }} />
+        <div
+          key={i}
+          className="w-full flex-shrink-0"
+          style={{ height: STAFF_LINE_THICKNESS, backgroundColor: lineColor }}
+        />
       ))}
     </div>
   )
@@ -253,28 +293,43 @@ function ChordCell({ value, onChange, onFocus, onBlur, isFocused }) {
   }, [isFocused])
 
   if (showInput) {
+    const hasChord = !isEmpty
     return (
-      <input
-        ref={inputRef}
-        type="text"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        className="text-center outline-none"
+      <div
+        className="relative flex-shrink-0"
         style={{
           width: NOTE_COLUMN_WIDTH,
-          flexShrink: 0,
           height: CHORD_ROW_HEIGHT,
-          fontSize: 11,
-          padding: '2px 4px',
-          boxSizing: 'border-box',
-          color: '#000',
-          backgroundColor: 'transparent',
-          border: 'none',
+          overflow: 'visible',
+          zIndex: isFocused ? 40 : hasChord ? 15 : 1,
         }}
-        aria-label="Chord"
-      />
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          className="absolute left-0 top-0 rounded px-1 outline-none text-center"
+          style={{
+            minWidth: NOTE_COLUMN_WIDTH,
+            width: 'max-content',
+            maxWidth: 'none',
+            height: CHORD_ROW_HEIGHT,
+            fontSize: 11,
+            padding: '2px 4px',
+            boxSizing: 'border-box',
+            color: '#000',
+            backgroundColor: 'transparent',
+            border: 'none',
+            textAlign: 'center',
+            fieldSizing: 'content',
+          }}
+          size={Math.max(4, (value ?? '').length + 2)}
+          aria-label="Chord"
+        />
+      </div>
     )
   }
 
@@ -317,7 +372,13 @@ function BeatCell({
     if (n.tiedFromPrevious) acc[n.stringIndex] = true
     return acc
   }, {})
-  const tieIconStyle = { fontFamily: '"Noto Music", sans-serif', fontSize: 14, marginTop: 10, marginLeft: -35, transform: 'scale(2.1, -1.5)' }
+  const tieIconStyle = {
+    fontFamily: '"Noto Music", sans-serif',
+    fontSize: 14,
+    marginTop: 14,
+    marginLeft: -13,
+    transform: 'scale(2, -1.2)',
+  }
 
   const commitFret = useCallback((stringIndex, n) => {
     if (n >= 0 && n <= 24) onAddNote(stringIndex, n)
@@ -348,13 +409,17 @@ function BeatCell({
   const showRest = !hasNotes
   const showBoxOnLine = (i) => (isHovered && hoveredLine === i) || (isFocused && selectedLine === i)
 
-  const LINE_TOP_PERCENT = [0, 20, 38, 60, 81, 100]
+  const lineCentersPx = [0, 1, 2, 3, 4, 5].map((i) => getStringLineCenterYPx(i, cellHeight))
+  /** Fret digits sit slightly above staff line centers for optical alignment */
+  const fretNumberTopPx = lineCentersPx.map((y) => y - 2)
   const lineFromClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const pct = ((e.clientY - rect.top) / rect.height) * 100
-    const boundaries = [0, 10, 29, 49, 70.5, 90.5, 100]
+    const y = e.clientY - rect.top
+    const c = lineCentersPx
     for (let i = 0; i < 6; i++) {
-      if (pct < boundaries[i + 1]) return i
+      const low = i === 0 ? -Infinity : (c[i - 1] + c[i]) / 2
+      const high = i === 5 ? Infinity : (c[i] + c[i + 1]) / 2
+      if (y >= low && y < high) return i
     }
     return 5
   }
@@ -404,10 +469,11 @@ function BeatCell({
                   (tiedByString[i] || notesByString[i] != null) && !showBoxOnLine(i) && (
                     <span
                       key={i}
-                      className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-semibold flex items-center justify-center gap-0.5"
+                      className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-neutral-100 text-black font-semibold flex items-center justify-center gap-0.5"
                       style={{
-                        top: `${LINE_TOP_PERCENT[i]}%`,
+                        top: `${fretNumberTopPx[i]}px`,
                         fontSize: 12,
+                        borderRadius: 2,
                       }}
                     >
                       {tiedByString[i] && <span className="text-black font-normal" style={tieIconStyle} aria-label="Tied from previous">⁀</span>}
@@ -424,8 +490,8 @@ function BeatCell({
                   key={i}
                   className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
                   style={{
-                    top: `${LINE_TOP_PERCENT[i]}%`,
-                    width: 20,
+                    top: `${fretNumberTopPx[i]}px`,
+                    width: NOTE_COLUMN_WIDTH,
                     height: 20,
                   }}
                   onMouseEnter={() => {
@@ -441,8 +507,8 @@ function BeatCell({
                 >
                   {showBoxOnLine(i) ? (
                     <div
-                      className="w-full h-full flex items-center justify-center gap-0.5"
-                      style={{ border: '1px solid #000', backgroundColor: 'transparent', fontSize: 12, color: '#000' }}
+                      className="w-full h-full flex items-center justify-center gap-0.5 font-semibold"
+                      style={{ border: '1px solid #000', fontSize: 12, color: '#000' }}
                     >
                       {tiedByString[i] && <span style={tieIconStyle}>⁀</span>}
                       {!tiedByString[i] && (notesByString[i] != null ? notesByString[i] : '')}
@@ -457,9 +523,33 @@ function BeatCell({
   )
 }
 
-export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', selectedDuration = 'quarter', selectedDivision, onTieApplied, onDivisionClear }) {
-  const [firstBeats, setFirstBeats] = useState([{ duration: 'quarter' }])
-  const [subdivisions, setSubdivisions] = useState([])
+const StaffCanvas = forwardRef(function StaffCanvas(
+  {
+    onAddNotation,
+    timeSignatureId = '4/4',
+    selectedDuration = 'quarter',
+    selectedDivision,
+    onTieApplied,
+    /** When focus moves to a beat, parent should mirror its duration / dotted / tuplet (keeps toolbar in sync; avoids clearing dotted on click). */
+    onBeatFocus,
+    /** Called when beats / subdivisions change (for debounced localStorage). */
+    onStaffStructureChange,
+    /** Initial staff snapshot (e.g. from localStorage); remount parent with new key to re-apply. */
+    initialStaffSnapshot = null,
+  },
+  ref
+) {
+  const [firstBeats, setFirstBeats] = useState(() => {
+    const snap = initialStaffSnapshot
+    if (snap?.firstBeats?.length) return JSON.parse(JSON.stringify(snap.firstBeats))
+    return [{ duration: 'quarter' }]
+  })
+  const [subdivisions, setSubdivisions] = useState(() => {
+    const snap = initialStaffSnapshot
+    if (snap?.subdivisions?.length || (snap && Array.isArray(snap.subdivisions)))
+      return JSON.parse(JSON.stringify(snap.subdivisions))
+    return []
+  })
   const [focus, setFocus] = useState({ subdivIndex: null, beatIndex: null })
   const [hoveredBeat, setHoveredBeat] = useState({ subdivIndex: null, beatIndex: null })
   const [focusedChordInput, setFocusedChordInput] = useState({ subdivIndex: null, beatIndex: null })
@@ -469,8 +559,23 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
   const prevFocusRef = useRef({ subdivIndex: null, beatIndex: null })
   const justAddedBeatRef = useRef(false)
 
-  // When user focuses a *different* beat (not re-clicking same beat or a fret), clear division so it doesn't apply to the new beat. Skip when focus moved because we just added a beat (so the new beat keeps dotted/tuplet etc).
+  useImperativeHandle(
+    ref,
+    () => ({
+      getSnapshot: () => ({
+        firstBeats: JSON.parse(JSON.stringify(firstBeats)),
+        subdivisions: JSON.parse(JSON.stringify(subdivisions)),
+      }),
+    }),
+    [firstBeats, subdivisions]
+  )
+
   useEffect(() => {
+    onStaffStructureChange?.()
+  }, [firstBeats, subdivisions, onStaffStructureChange])
+
+  // When focus moves to another beat, sync toolbar to that beat (layout on client so parent updates before passive effects).
+  useIsomorphicLayoutEffect(() => {
     const prev = prevFocusRef.current
     const beatChanged = prev.subdivIndex !== focus.subdivIndex || prev.beatIndex !== focus.beatIndex
     prevFocusRef.current = { subdivIndex: focus.subdivIndex, beatIndex: focus.beatIndex }
@@ -478,10 +583,21 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
       justAddedBeatRef.current = false
       return
     }
-    if (beatChanged && focus.subdivIndex != null && focus.beatIndex != null) {
-      onDivisionClear?.()
-    }
-  }, [focus.subdivIndex, focus.beatIndex, onDivisionClear])
+    if (!beatChanged || focus.subdivIndex == null || focus.beatIndex == null) return
+
+    const { subdivIndex, beatIndex } = focus
+    const beat =
+      subdivIndex === 0
+        ? firstBeats[beatIndex]
+        : (subdivisions[subdivIndex - 1]?.beats ?? [subdivisions[subdivIndex - 1]])?.[beatIndex]
+    if (!beat) return
+
+    onBeatFocus?.({
+      duration: beat.duration ?? 'quarter',
+      dotted: !!beat.dotted,
+      tuplet: !!beat.tuplet,
+    })
+  }, [focus.subdivIndex, focus.beatIndex, firstBeats, subdivisions, onBeatFocus])
 
   // When toolbar duration, dotted, or tuplet changes and a beat is focused, update that beat (deferred to avoid setState during render)
   useEffect(() => {
@@ -508,7 +624,18 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
   }, [selectedDuration, selectedDivision, focus.subdivIndex, focus.beatIndex])
 
   const handleAddSlotClick = () => {
-    setSubdivisions((prev) => [...prev, { beats: [{ duration: selectedDuration, dotted: selectedDivision === 'dotted', tuplet: selectedDivision === 'tuplet' }] }])
+    let newSubdivIndex = 1
+    setSubdivisions((prev) => {
+      const next = [
+        ...prev,
+        { beats: [{ duration: selectedDuration, dotted: selectedDivision === 'dotted', tuplet: selectedDivision === 'tuplet' }] },
+      ]
+      // subdivisions[i] uses subdivIndex i + 1 (first segment is subdivIndex 0 = firstBeats)
+      newSubdivIndex = next.length
+      return next
+    })
+    setFocusedBeatClickedLine(null)
+    setFocus({ subdivIndex: newSubdivIndex, beatIndex: 0 })
     onAddNotation?.()
   }
 
@@ -745,24 +872,35 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
   return (
     <div className="bg-neutral-100 min-h-[200px] overflow-x-auto" style={{ padding: '1rem', paddingBottom: '3rem' }}>
       <div className="flex flex-wrap items-start" style={{ rowGap: '2rem' }}>
-        {/* First subdivision: opening double bar, beats (20), then one cell per beat + small + ; single line at end if more subdivisions */}
+        {/* First subdivision: opening double bar, beat columns (NOTE_COLUMN_WIDTH), + ; single line at end if more subdivisions */}
         <div
-          className="relative flex-shrink-0"
+          className="relative flex-shrink-0 overflow-visible"
           style={{
             width: BAR_WIDTH + BEAT_COLUMN_WIDTH + firstBeats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (subdivisions.length > 0 ? SINGLE_LINE_WIDTH : 0),
             backgroundColor: firstSubdivOver ? 'rgba(255, 100, 100, 0.25)' : undefined,
           }}
         >
-          {/* Chord row — segment number on same row as chord inputs */}
+          {/* Chord row — segment 1 left of first beat (absolute, no extra staff/duration spacer) */}
           <div
-            className="flex flex-shrink-0 items-center"
+            className="relative flex flex-shrink-0 items-center overflow-visible"
             style={{
               width: BAR_WIDTH + BEAT_COLUMN_WIDTH + firstBeats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (subdivisions.length > 0 ? SINGLE_LINE_WIDTH : 0),
               marginBottom: 6,
             }}
           >
-            <div className="flex items-center justify-center text-red-600 shrink-0" style={{ width: SEGMENT_NUM_WIDTH, height: CHORD_ROW_HEIGHT, fontWeight: 500, fontSize: 12 }}>1</div>
-            <div style={{ width: BAR_WIDTH + BEAT_COLUMN_WIDTH - SEGMENT_NUM_WIDTH, flexShrink: 0 }} />
+            <div style={{ width: BAR_WIDTH + BEAT_COLUMN_WIDTH, flexShrink: 0 }} aria-hidden />
+            <div
+              className="pointer-events-none absolute top-0 flex items-center justify-center text-red-600"
+              style={{
+                left: 45,
+                width: SEGMENT_NUM_WIDTH,
+                height: CHORD_ROW_HEIGHT,
+                fontWeight: 500,
+                fontSize: 12,
+              }}
+            >
+              1
+            </div>
             {firstBeats.map((beat, beatIdx) => (
               <ChordCell
                 key={beatIdx}
@@ -847,8 +985,8 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
               <div key={i} className="relative flex-shrink-0" style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }}>
                 <DurationStem
                   duration={beat.duration}
-                  flagLeft={selectedDivision === 'dotted' ? false : firstStemFlags[i].left}
-                  flagRight={selectedDivision === 'dotted' ? false : firstStemFlags[i].right}
+                  flagLeft={firstStemFlags[i].left}
+                  flagRight={firstStemFlags[i].right}
                   hasNote={beat.notes?.length > 0}
                   dotted={beat.dotted}
                 />
@@ -871,7 +1009,7 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
           return (
             <div
               key={i}
-              className="relative flex-shrink-0"
+              className="relative flex-shrink-0 overflow-visible"
               style={{
                 width: SEGMENT_NUM_WIDTH + beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
                 backgroundColor: subdivOver ? 'rgba(255, 100, 100, 0.25)' : undefined,
@@ -879,7 +1017,7 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
             >
               {/* Chord row — segment number on same row as chord inputs */}
               <div
-                className="flex flex-shrink-0 items-center"
+                className="flex flex-shrink-0 items-center overflow-visible"
                 style={{
                   width: SEGMENT_NUM_WIDTH + beats.length * NOTE_COLUMN_WIDTH + SUBDIV_ADD_BUTTON_WIDTH + (isLast ? 0 : SINGLE_LINE_WIDTH),
                   marginBottom: 6,
@@ -966,8 +1104,8 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
                   <div key={idx} className="relative flex-shrink-0" style={{ width: NOTE_COLUMN_WIDTH, height: STEM_HEIGHT_QUARTER }}>
                     <DurationStem
                       duration={beat.duration}
-                      flagLeft={selectedDivision === 'dotted' ? false : subdivStemFlags[idx].left}
-                      flagRight={selectedDivision === 'dotted' ? false : subdivStemFlags[idx].right}
+                      flagLeft={subdivStemFlags[idx].left}
+                      flagRight={subdivStemFlags[idx].right}
                       hasNote={beat.notes?.length > 0}
                       dotted={beat.dotted}
                     />
@@ -992,4 +1130,6 @@ export default function StaffCanvas({ onAddNotation, timeSignatureId = '4/4', se
       </div>
     </div>
   )
-}
+})
+
+export default StaffCanvas

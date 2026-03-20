@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import { getTab, updateTab, deleteTab, parseCollaborators, normalizeArtistId, clearTabCache, invalidateArtistCaches, invalidateArtistTabsCache, getTabArtistId } from '@/lib/tabs'
@@ -17,6 +18,12 @@ import { auth, db } from '@/lib/firebase'
 import { clearArtistMapCache } from '@/lib/useArtistMap'
 import { doc, getDoc, updateDoc } from '@/lib/firestore-tracked'
 import { ArrowLeft, Music, Moon, Sun, Loader2 } from 'lucide-react'
+import { setNotationEditorReturnPath, peekPendingNotationTex, clearPendingNotationTex } from '@/lib/notationEditorBridge'
+
+const NotationAlphaTabPreview = dynamic(
+  () => import('@/components/NotationEditor/NotationAlphaTabPreview'),
+  { ssr: false }
+)
 
 // Key 對應的 semitone 位置 (C = 0)
 const KEY_TO_SEMITONE = {
@@ -156,7 +163,8 @@ export default function EditTab() {
     spotifyTrackId: null,
     spotifyAlbumId: null,
     spotifyArtistId: null,
-    spotifyUrl: null
+    spotifyUrl: null,
+    notationAlphaTex: ''
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -187,6 +195,7 @@ export default function EditTab() {
   // 撳「獲取歌曲資訊」後，未成功獲取資料嘅輸入欄閃紅框
   const [spotifyFlashRedFields, setSpotifyFlashRedFields] = useState(new Set())
   const spotifyJustAppliedRef = useRef(false)
+  const [showNotationCard, setShowNotationCard] = useState(false)
 
   // Spotify 歌曲搜尋狀態
   const [isSpotifyModalOpen, setIsSpotifyModalOpen] = useState(false)
@@ -458,8 +467,15 @@ export default function EditTab() {
         spotifyArtistId: data.spotifyArtistId || null,
         spotifyUrl: data.spotifyUrl || null,
         spotifyFilledSongYear: data.spotifyTrackId ? (data.songYear ?? '') : '',
-        spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : ''
+        spotifyFilledAlbum: data.spotifyTrackId ? (data.album ?? '') : '',
+        notationAlphaTex: data.notationAlphaTex || ''
       })
+      const pendingTex = peekPendingNotationTex()
+      if (pendingTex) {
+        setFormData((prev) => ({ ...prev, notationAlphaTex: pendingTex }))
+        setShowNotationCard(true)
+      }
+      setTimeout(() => clearPendingNotationTex(), 5000)
       if (data.spotifyTrackId) {
         const artist = (data.artist || '').trim()
         const title = (data.title || '').trim()
@@ -524,8 +540,10 @@ export default function EditTab() {
     if (!artistName) {
       newErrors.artist = '請輸入歌手名'
     }
-    if (!formData.content.trim()) {
-      newErrors.content = '請輸入譜內容'
+    const hasText = !!formData.content.trim()
+    const hasNotation = !!(formData.notationAlphaTex || '').trim()
+    if (!hasText && !hasNotation) {
+      newErrors.content = '請輸入譜內容或加入六線譜'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -1827,6 +1845,84 @@ E|----------------------------------------------------------------|
                     )}
                   </div>
                 </div>
+
+                {!showNotationCard && !(formData.notationAlphaTex || '').trim() && (
+                  <div className="flex justify-end w-full">
+                    <button
+                      type="button"
+                      onClick={() => setShowNotationCard(true)}
+                      className="text-xs text-[#FFD700] hover:text-yellow-300"
+                    >
+                      加入六線譜
+                    </button>
+                  </div>
+                )}
+
+                {(showNotationCard || (formData.notationAlphaTex || '').trim()) && id && (
+                  <div className="w-full rounded-lg border border-neutral-700 bg-black shadow-lg overflow-hidden">
+                    {(formData.notationAlphaTex || '').trim() ? (
+                      <>
+                        <div className="bg-[#1a1a1a] border-b border-neutral-800">
+                          <NotationAlphaTabPreview alphaTex={formData.notationAlphaTex} />
+                        </div>
+                        <div className="flex flex-wrap gap-2 justify-end p-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNotationEditorReturnPath(`/tabs/${id}/edit`)
+                              router.push('/notation-editor')
+                            }}
+                            className="px-4 py-2 rounded-lg bg-[#FFD700] text-black text-sm font-semibold hover:bg-yellow-400 shadow-md"
+                          >
+                            編輯
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, notationAlphaTex: '' }))
+                              setShowNotationCard(false)
+                            }}
+                            className="px-4 py-2 rounded-lg bg-[#282828] text-white text-sm font-medium border border-neutral-600 hover:bg-[#3E3E3E]"
+                          >
+                            移除
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-3 p-2">
+                        <img
+                          src="/notation-editor.png"
+                          alt=""
+                          className="h-[80px] w-auto object-contain block shrink-0"
+                          draggable={false}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNotationEditorReturnPath(`/tabs/${id}/edit`)
+                              router.push('/notation-editor')
+                            }}
+                            className="px-4 py-2 rounded-lg bg-[#FFD700] text-black text-sm font-semibold hover:bg-yellow-400 shadow-md"
+                          >
+                            編輯
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, notationAlphaTex: '' }))
+                              setShowNotationCard(false)
+                            }}
+                            className="px-4 py-2 rounded-lg bg-[#282828] text-white text-sm font-medium border border-neutral-600 hover:bg-[#3E3E3E]"
+                          >
+                            移除
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <textarea
                     id="content"

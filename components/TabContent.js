@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { extractChords, ChordDiagramModal, SingleChordDiagram, ChordWithHover, ChordLineWithHover } from './ChordDiagram';
 import GpSegmentPlayer from './GpSegmentPlayer';
+
+const NotationAlphaTabPreview = dynamic(
+  () => import('@/components/NotationEditor/NotationAlphaTabPreview'),
+  { ssr: false }
+);
 
 // ============ 智能字體大小計算 ============
 // 根據內容長度計算合適的字體大小
@@ -1499,6 +1505,8 @@ const TabContent = ({
   gpSegments = [],
   // GP 顯示主題
   gpTheme = 'dark',
+  // 記譜編輯器匯出之六線譜（alphaTex）
+  notationAlphaTex = '',
   // 外部控制的 showInfo（由父組件傳入，確保轉調時 YouTube 唔會閂）
   showInfo: externalShowInfo,
   setShowInfo: externalSetShowInfo,
@@ -1990,14 +1998,6 @@ const TabContent = ({
             border: `1px solid ${theme === 'dark' ? '#333' : '#ddd'}`,
             overflowX: 'auto'
           }}>
-            <div style={{ 
-              fontSize: '12px', 
-              color: colors.comment,
-              marginBottom: '8px',
-              fontStyle: 'italic'
-            }}>
-              六線譜
-            </div>
             {renderGuitarTab(tabSectionCheck.lines)}
           </div>
         );
@@ -2958,6 +2958,13 @@ const TabContent = ({
               {songInfo.remark.trim()}
             </div>
           )}
+          {(notationAlphaTex || '').trim() ? (
+            <div
+              className={`mb-4 rounded-lg border overflow-hidden ${theme === 'day' ? 'border-neutral-300 bg-neutral-100' : 'border-neutral-700 bg-[#1a1a1a]'}`}
+            >
+              <NotationAlphaTabPreview alphaTex={notationAlphaTex} />
+            </div>
+          ) : null}
           {renderContent()}
         </div>
       </div>

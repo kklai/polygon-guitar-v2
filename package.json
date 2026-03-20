@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "next dev --webpack",
     "dev:lan": "next dev --hostname 0.0.0.0 --webpack",
     "build": "next build --webpack",
@@ -32,7 +33,9 @@
     "tone": "^15.1.22"
   },
   "devDependencies": {
+    "@coderline/alphatab-webpack": "^1.8.1",
     "autoprefixer": "^10.4.17",
+    "patch-package": "^8.0.1",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1"
   }

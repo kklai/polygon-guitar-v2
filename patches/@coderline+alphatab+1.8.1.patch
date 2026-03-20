@@ -1,0 +1,28 @@
+diff --git a/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs b/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs
+index 4b08efc..75ccf76 100644
+--- a/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs
++++ b/node_modules/@coderline/alphatab/dist/alphaTab.core.mjs
+@@ -147,7 +147,8 @@ class IntersectionObserverPolyfill {
+     if (typeof Symbol.dispose === 'undefined') {
+         Symbol.dispose = Symbol('Symbol.dispose');
+     }
+-    if (typeof window !== 'undefined') {
++    // Webpack-bundled workers may define `window` without document/Element (alphaSynth worker) — skip DOM polyfills there.
++    if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof Element !== 'undefined') {
+         // ResizeObserver API does not yet exist so long on Safari (only start 2020 with iOS Safari 13.7 and Desktop 13.1)
+         // so we better add a polyfill for it
+         if (!('ResizeObserver' in globalThis)) {
+diff --git a/node_modules/@coderline/alphatab/dist/alphaTab.js b/node_modules/@coderline/alphatab/dist/alphaTab.js
+index 637cbd0..724c6d9 100644
+--- a/node_modules/@coderline/alphatab/dist/alphaTab.js
++++ b/node_modules/@coderline/alphatab/dist/alphaTab.js
+@@ -153,7 +153,8 @@
+         if (typeof Symbol.dispose === 'undefined') {
+             Symbol.dispose = Symbol('Symbol.dispose');
+         }
+-        if (typeof window !== 'undefined') {
++        // Webpack-bundled workers may define `window` without document/Element (alphaSynth worker) — skip DOM polyfills there.
++        if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof Element !== 'undefined') {
+             // ResizeObserver API does not yet exist so long on Safari (only start 2020 with iOS Safari 13.7 and Desktop 13.1)
+             // so we better add a polyfill for it
+             if (!('ResizeObserver' in globalThis)) {
