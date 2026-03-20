@@ -56,7 +56,7 @@ const themeColors = {
     text: '#000000',
     lyricNormal: '#333333',
     lyricInside: '#000000',
-    chord: '#8B5CF6',
+    chord: '#7C3AED',
     sectionMarker: '#000000',
     numericNotation: '#555555',
     prefixSuffix: '#666666'
@@ -110,7 +110,6 @@ export default function TabDetail({ initialTab, artist }) {
   const [tabPageIsAutoScroll, setTabPageIsAutoScroll] = useState(false)
   const [tabPageScrollSpeed, setTabPageScrollSpeed] = useState(2)
   const [tabPageHideNotation, setTabPageHideNotation] = useState(true)
-  const [tabPageHideBrackets, setTabPageHideBrackets] = useState(false)
   const [showChordDiagram, setShowChordDiagram] = useState(false)
   const [showFloatingControls, setShowFloatingControls] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
@@ -1004,7 +1003,7 @@ export default function TabDetail({ initialTab, artist }) {
           )}
         </div>
 
-        {/* Key 選擇器（跟住頁面滾動）；只對波波行 full-bleed */}
+        {/* Key 選擇器：日間／夜間模式都保持同一套深色樣式（唔跟譜面日間換白底） */}
         {tab && (
           <div className="bg-black pt-2 pb-3">
             <div className="px-4 mb-1.5">
@@ -1166,7 +1165,7 @@ export default function TabDetail({ initialTab, artist }) {
 
         {/* 歌id section 與 譜section 之間分隔線 */}
         <div className="px-4">
-          <div className="border-b border-[#1a1a1a]" />
+          <div className={theme === 'night' ? 'border-b border-[#1a1a1a]' : 'border-b border-neutral-200'} />
         </div>
 
         {/* 譜section */}
@@ -1204,9 +1203,7 @@ export default function TabDetail({ initialTab, artist }) {
           externalScrollSpeed={tabPageScrollSpeed}
           onScrollSpeedChange={setTabPageScrollSpeed}
           externalHideNotation={tabPageHideNotation}
-          externalHideBrackets={tabPageHideBrackets}
           onHideNotationChange={setTabPageHideNotation}
-          onHideBracketsChange={setTabPageHideBrackets}
           scrollSmoothRef={pageWrapRef}
         />
 
@@ -1430,29 +1427,20 @@ export default function TabDetail({ initialTab, artist }) {
               {/* 分隔線 */}
               <div className="border-b border-neutral-600" />
 
-              {/* 底部 4 個圓形按鈕 */}
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setShowChordDiagram(true)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white"
-                  title="本曲使用和弦"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                </button>
+              {/* 底部 3 個圓形按鈕：模式 → 隱藏簡譜 → 本曲和弦（固定 gap，唔用 justify-between 拉散） */}
+              <div className="flex items-center justify-center gap-4">
                 <button
                   onClick={() => setTheme(theme === 'night' ? 'day' : 'night')}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${theme === 'night' ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${theme === 'night' ? 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white' : 'bg-[#FFD700] text-black'}`}
                   title={theme === 'night' ? '日間模式' : '夜間模式'}
                 >
                   {theme === 'night' ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   )}
                 </button>
@@ -1461,16 +1449,42 @@ export default function TabDetail({ initialTab, artist }) {
                   className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideNotation ? 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600' : 'bg-[#FFD700] text-black'}`}
                   title={tabPageHideNotation ? '顯示簡譜' : '隱藏簡譜'}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabPageHideNotation ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"} />
-                  </svg>
+                  {tabPageHideNotation ? (
+                    <svg className="w-9 h-9 shrink-0" viewBox="0 0 35.54 35.54" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                      <path fill="currentColor" d="M11.87,14.35l-.73-.73h-.58c0,.41-.07.76-.2,1.06-.14.29-.31.53-.53.73-.21.19-.46.34-.73.43-.27.1-.55.15-.84.15v1.31c.27,0,.52-.03.78-.08.25-.06.48-.14.68-.25.21-.11.38-.24.53-.41.15-.16.25-.34.31-.55v4.71h-1.34v1.18h3.98v-1.18h-1.33v-6.37Z" />
+                      <polygon fill="currentColor" points="16.62 20.72 17.45 19.93 16.58 19.06 14.91 20.67 14.91 21.9 19.42 21.9 18.24 20.72 16.62 20.72" />
+                      <path fill="currentColor" d="M17.69,14.66c.16,0,.33.02.49.07.17.04.31.11.44.21.13.1.24.23.32.39.08.15.12.34.12.56,0,.18-.03.37-.12.57l.94.94c.07-.11.13-.21.19-.32.21-.41.31-.81.31-1.19s-.07-.74-.22-1.05c-.14-.3-.34-.55-.59-.75s-.53-.35-.86-.45c-.32-.11-.66-.16-1.02-.16-.56,0-1.04.09-1.44.29l.95.95c.15-.04.31-.06.49-.06Z" />
+                      <path fill="currentColor" d="M27.15,18.92c-.07-.23-.19-.44-.34-.63-.15-.19-.34-.34-.56-.46-.22-.13-.47-.2-.76-.22.25-.02.48-.08.68-.18.21-.1.38-.23.52-.39.13-.16.24-.35.31-.55.08-.21.11-.43.11-.66,0-.37-.06-.7-.19-.98-.13-.29-.31-.54-.54-.74-.23-.2-.5-.36-.81-.47-.3-.11-.63-.16-.99-.16-.43,0-.82.06-1.17.19-.35.12-.65.31-.9.56-.25.24-.44.55-.58.92s-.21.79-.21,1.28h1.25c0-.62.14-1.07.41-1.35.28-.28.68-.42,1.2-.42.4,0,.7.11.91.32.21.22.31.5.31.84,0,.21-.05.39-.16.55-.1.15-.24.29-.42.4-.19.11-.4.19-.64.25-.25.05-.51.08-.79.08v1.18c.8,0,1.36.1,1.69.32.32.21.48.56.48,1.06,0,.36-.13.66-.38.88-.25.22-.58.33-1,.33-.49,0-.9-.16-1.21-.47-.31-.32-.49-.75-.54-1.3l-1.07.18 2.77 2.77h.05c.36,0,.7-.06,1.02-.17.32-.12.61-.28.86-.48.24-.21.44-.46.59-.75.15-.3.22-.63.22-.99,0-.25-.04-.5-.12-.74Z" />
+                      <path fill="currentColor" d="M19.18,18.26l-.87-.87-2.04-2.04-.9-.9-3.71-3.71c-.25-.25-.67-.25-.92,0s-.25.66,0,.92l4.1,4.1.71.71,1.83,1.83.86.86.81.81,1.19,1.19,3.63,3.63c.13.13.29.19.46.19s.33-.06.46-.19c.25-.26.25-.67,0-.92l-5.61-5.61Z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-9 h-9 shrink-0" viewBox="0 0 35.54 35.54" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                      <path fill="currentColor" d="M13.2,21.91h-3.97v-1.18h1.33v-4.71c-.06.21-.16.39-.31.55-.15.16-.32.3-.53.4-.21.11-.43.19-.69.25-.25.06-.51.09-.78.09v-1.31c.29,0,.57-.05.84-.14.27-.1.52-.24.73-.44s.39-.44.52-.73c.13-.29.2-.65.2-1.06h1.31v7.1h1.33v1.18Z" />
+                      <path fill="currentColor" d="M20.38,15.89c0,.39-.1.79-.31,1.19s-.49.79-.86,1.16l-2.59,2.49h2.43v-1.14h1.19v2.32h-5.33v-1.24l3.33-3.19c.29-.3.5-.57.62-.83.13-.26.19-.51.19-.75,0-.22-.04-.4-.12-.56s-.19-.28-.32-.38c-.13-.1-.28-.17-.44-.22-.17-.04-.33-.07-.49-.07-.52,0-.93.15-1.23.46s-.45.76-.45,1.35h-1.23c0-.94.25-1.67.75-2.2s1.22-.79,2.16-.79c.36,0,.7.05,1.02.16.33.1.61.25.86.45.25.2.44.45.59.76.15.3.22.65.22,1.04Z" />
+                      <path fill="currentColor" d="M27.27,19.66c0,.36-.07.69-.22.99-.15.29-.35.54-.59.75-.25.21-.53.37-.86.48-.32.11-.66.17-1.02.17-.4,0-.78-.05-1.12-.16s-.65-.27-.91-.49c-.26-.22-.48-.5-.64-.85s-.26-.76-.3-1.24l1.23-.2c.04.55.22.98.53,1.29.31.32.72.47,1.21.47.42,0,.75-.11,1-.33.25-.22.38-.51.38-.88,0-.5-.16-.85-.48-1.06-.32-.21-.88-.32-1.69-.32v-1.18c.28,0,.55-.03.79-.08s.46-.14.64-.25c.18-.11.33-.24.43-.4s.16-.34.16-.54c0-.35-.1-.63-.31-.84-.21-.21-.51-.32-.91-.32-.52,0-.92.14-1.2.42-.28.28-.42.73-.42,1.35h-1.25c0-.49.07-.91.21-1.28s.33-.68.58-.92c.25-.25.55-.43.9-.56.35-.12.74-.19,1.17-.19.36,0,.69.05.99.16.31.11.58.26.81.47s.41.45.54.74c.13.29.19.61.19.98,0,.23-.04.45-.11.66-.07.21-.18.39-.32.55s-.31.29-.51.39-.43.16-.68.17c.29.03.54.1.76.22.22.12.41.28.56.46s.27.4.35.63.12.48.12.74Z" />
+                    </svg>
+                  )}
                 </button>
                 <button
-                  onClick={() => setTabPageHideBrackets(!tabPageHideBrackets)}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${tabPageHideBrackets ? 'bg-[#FFD700] text-black' : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'}`}
-                  title={tabPageHideBrackets ? '顯示括號' : '隱藏括號'}
+                  onClick={() => setShowChordDiagram(true)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-white"
+                  title="本曲使用和弦"
                 >
-                  <span className="text-xs font-mono font-bold">( )</span>
+                  <svg className="w-9 h-9 shrink-0" viewBox="0 0 35.54 35.54" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <g>
+                      <rect x="11.28" y="9.78" width="12.97" height="16.08" fill="none" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <rect x="11.28" y="9.78" width="12.97" height="1.21" fill="currentColor" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <line x1="11.28" y1="16" x2="24.26" y2="16" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <line x1="21.66" y1="9.52" x2="21.66" y2="26.02" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <line x1="19.07" y1="9.52" x2="19.07" y2="26.02" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <line x1="16.47" y1="9.52" x2="16.47" y2="26.02" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <line x1="13.88" y1="9.52" x2="13.88" y2="26.02" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                      <line x1="11.28" y1="21.02" x2="24.26" y2="21.02" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                    </g>
+                    <circle cx="21.66" cy="13.68" r="0.52" fill="currentColor" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                    <circle cx="16.47" cy="18.53" r="0.52" fill="currentColor" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                    <circle cx="13.88" cy="23.45" r="0.52" fill="currentColor" stroke="currentColor" strokeWidth={0.7} strokeMiterlimit={10} />
+                  </svg>
                 </button>
               </div>
             </div>

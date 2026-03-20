@@ -405,7 +405,7 @@ function detectGuitarTabSection(lines, startIndex) {
 }
 
 // 渲染六線譜為視覺化格式
-function renderGuitarTab(tabLines) {
+function renderGuitarTab(tabLines, chordColor = '#FFD700') {
   // 確保最多 6 行
   const lines = tabLines.slice(0, 6);
   
@@ -414,7 +414,7 @@ function renderGuitarTab(tabLines) {
     const stringName = stringNames[index] || '?';
     
     return (
-      <div key={index} className="font-mono text-sm whitespace-pre text-[#FFD700] leading-tight">
+      <div key={index} className="font-mono text-sm whitespace-pre leading-tight" style={{ color: chordColor }}>
         <span className="text-neutral-500 w-4 inline-block">{stringName}</span>
         <span className="text-neutral-500">|</span>
         <span>{line.replace(/^[eEbBgGdDaA]\|/, '').replace(/^\d+\|/, '')}</span>
@@ -1618,7 +1618,7 @@ const TabContent = ({
       text: '#000000',
       lyricNormal: '#000000',
       lyricInside: '#000000',
-      chord: '#8B5CF6', // 紫色
+      chord: '#7C3AED', // 紫色（日間模式，比 violet-500 深一級）
       sectionMarker: '#000000',
       numericNotation: '#CCCCCC', // 淺灰色
       prefixSuffix: '#666666',
@@ -2030,9 +2030,9 @@ const TabContent = ({
           <div key={`${i}-tab`} style={{ 
             marginBottom: `${lineFontSize * 0.8}px`,
             padding: '12px 16px',
-            backgroundColor: theme === 'dark' ? '#1a1a1a' : '#f5f5f5',
+            backgroundColor: theme === 'night' ? '#1a1a1a' : '#f5f5f5',
             borderRadius: '8px',
-            border: `1px solid ${theme === 'dark' ? '#333' : '#ddd'}`,
+            border: `1px solid ${theme === 'night' ? '#333' : '#ddd'}`,
             overflowX: 'auto'
           }}>
             <div style={{ 
@@ -2043,7 +2043,7 @@ const TabContent = ({
             }}>
               六線譜
             </div>
-            {renderGuitarTab(tabSectionCheck.lines)}
+            {renderGuitarTab(tabSectionCheck.lines, colors.chord)}
           </div>
         );
         i = tabSectionCheck.endIndex;
@@ -2327,7 +2327,7 @@ const TabContent = ({
             const chordFontFamily = displayFont === 'arial'
               ? "Arial, Helvetica, sans-serif"
               : "'Source Code Pro', monospace";
-            const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
+            const prefixSuffixColor = colors.prefixSuffix;
             // 簡譜內容：顯示在和弦行下方、歌詞行上方（chord → notation → lyric）
             const notationContent = pairIndex === 0 && !hideNotation && notationLines.length > 0 ? notationLines.map(({ index, line: notationLine }) => {
               const notationFontSize = getLineFontSize(notationLine);
@@ -2498,12 +2498,12 @@ const TabContent = ({
                               gridRow: 1, gridColumn: 1,
                               justifySelf: seg.mode === 'fit' ? 'center' : 'start',
                               fontFamily: chordFontFamily,
-                              color: '#FFD700',
+                              color: colors.chord,
                               whiteSpace: 'nowrap',
                               ...(seg.mode === 'overflow' ? { width: 0, overflow: 'visible', display: 'flex', justifyContent: 'flex-start' } : {}),
                             }}>
                               {seg.chord.isBarStart && <span>|</span>}
-                              <ChordWithHover chord={seg.chord.displayName} theme={theme} displayFont={displayFont} />
+                              <ChordWithHover chord={seg.chord.displayName} theme={theme} displayFont={displayFont} chordColor={colors.chord} />
                             </span>
                           )}
                         </span>
@@ -2518,7 +2518,7 @@ const TabContent = ({
                             {seg.chord && seg.chord.trailing && seg.chord.trailing.length > 0 && (
                               <span style={{ gridRow: 1, gridColumn: 1, justifySelf: 'stretch', display: 'flex', justifyContent: 'space-evenly' }}>
                                 {seg.chord.trailing.map((t, tIdx) => (
-                                  <span key={tIdx} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                                  <span key={tIdx} style={{ fontFamily: chordFontFamily, color: colors.chord, whiteSpace: 'nowrap' }}>
                                     {t.isBarStart && '|'}{t.name}
                                   </span>
                                 ))}
@@ -2526,7 +2526,7 @@ const TabContent = ({
                             )}
                           </span>
                         ) : seg.chord && seg.chord.trailing && seg.chord.trailing.length > 0 ? (
-                          <span style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontFamily: chordFontFamily, color: colors.chord, whiteSpace: 'nowrap' }}>
                             {seg.chord.trailing.map((t, tIdx) => (
                               <span key={tIdx}>
                                 {t.isBarStart && '|'}{t.name}
@@ -2540,9 +2540,9 @@ const TabContent = ({
                     {res.alignedChords.length > res.lyricSplit.segments.length && (
                       <span style={{ marginLeft: '10px', display: 'inline' }}>
                         {res.alignedChords.slice(res.lyricSplit.segments.length).map((chord, extraIdx) => (
-                          <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: '#FFD700', whiteSpace: 'nowrap' }}>
+                          <span key={`extra-${extraIdx}`} style={{ fontFamily: chordFontFamily, color: colors.chord, whiteSpace: 'nowrap' }}>
                             {chord.isBarStart && '|'}
-                            <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} />
+                            <ChordWithHover chord={chord.displayName} theme={theme} displayFont={displayFont} chordColor={colors.chord} />
                             {chord.trailing && chord.trailing.length > 0 && chord.trailing.map((t, tIdx) => (
                               <span key={tIdx}>{' '}{t.isBarStart && '|'}{t.name}</span>
                             ))}
@@ -2567,6 +2567,8 @@ const TabContent = ({
                       fontSize={lineFontSize}
                       theme={theme}
                       displayFont={displayFont}
+                      chordColor={colors.chord}
+                      prefixSuffixColor={colors.prefixSuffix}
                     />
                   </div>
                 ) : (
@@ -2577,6 +2579,8 @@ const TabContent = ({
                     fontSize={lineFontSize}
                     theme={theme}
                     displayFont={displayFont}
+                    chordColor={colors.chord}
+                    prefixSuffixColor={colors.prefixSuffix}
                   />
                 ))}
 
@@ -2597,7 +2601,7 @@ const TabContent = ({
                       )}
                       {res.lyricSplit.segments.map((segment, segIdx) => {
                         const { bracketPart, remainder } = splitSegmentAtBracketClose(segment);
-                        const insideWeight = theme === 'day' ? 'bold' : 400;
+                        const insideWeight = 400;
                         const bracketOpen = bracketPart[0] || '';
                         const bracketClose = bracketPart[bracketPart.length - 1] || '';
                         const bracketInside = bracketPart.substring(1, bracketPart.length - 1);
@@ -2638,8 +2642,8 @@ const TabContent = ({
                       return (
                         <span key={idx} style={{
                           color: partColor,
-                          fontWeight: theme === 'day' ? ((part.isInside || part.type === 'inside' || isBracketChar) ? 'bold' : 'normal') : (isBracketChar ? 100 : 400),
-                          opacity: isBracketChar && theme !== 'day' ? 0.7 : 1
+                          fontWeight: isBracketChar ? 100 : 400,
+                          opacity: isBracketChar ? 0.7 : 1
                         }}>
                           {cleanText}
                         </span>
@@ -2660,7 +2664,7 @@ const TabContent = ({
           const chordLineForNotationOnly = lines[lastChordLineIndex] || line;
           const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForNotationOnly, displayFont === 'manual');
           const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual', preferFlats);
-          const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
+          const prefixSuffixColor = colors.prefixSuffix;
           elements.push(
             <div key={`${i}-notation-only`} style={{ marginBottom: `${lineFontSize * 0.3}px` }}>
               <div style={{

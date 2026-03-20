@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+/** TabContent 用 'night' | 'day'；舊碼用 'dark' */
+export function isChordUiDark(theme) {
+  return theme === 'dark' || theme === 'night';
+}
+
 // 常見和弦指法數據庫
 // 標準結他指法數據庫
 // 格式: fingers: [[弦, 格], [弦, 格], ...] (1=高音E弦, 6=低音E弦)
@@ -326,9 +331,10 @@ export function extractChords(content) {
 }
 
 // 單個和弦圖組件
-export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
+export function SingleChordDiagram({ chord, size = 80, theme = 'dark', accentColor }) {
   const shape = getChordShape(chord);
-  const isDark = theme === 'dark';
+  const isDark = isChordUiDark(theme);
+  const fingerAccent = accentColor ?? (isDark ? '#FFD700' : '#7C3AED');
   
   if (!shape) {
     return (
@@ -353,8 +359,8 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
     bg: isDark ? '#1a1a1a' : '#ffffff',
     grid: isDark ? '#444' : '#ddd',
     text: isDark ? '#fff' : '#333',
-    finger: '#FFD700',
-    barre: '#FFD700',
+    finger: fingerAccent,
+    barre: fingerAccent,
   };
   
   // 計算基準品位（如果和弦使用高品位，需要顯示相對位置）
@@ -497,7 +503,7 @@ export function SingleChordDiagram({ chord, size = 80, theme = 'dark' }) {
 export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
   if (!isOpen) return null;
   
-  const isDark = theme === 'dark';
+  const isDark = isChordUiDark(theme);
   const uniqueChords = [...new Set(chords)];
   
   return (
@@ -554,10 +560,11 @@ export function ChordDiagramModal({ chords, isOpen, onClose, theme = 'dark' }) {
 }
 
 // Hover 顯示和弦圖的組件
-export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) {
+export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono', chordColor }) {
   const [showDiagram, setShowDiagram] = useState(false);
   const shape = getChordShape(chord);
-  const isDark = theme === 'dark';
+  const isDark = isChordUiDark(theme);
+  const accent = chordColor ?? (isDark ? '#FFD700' : '#7C3AED');
   
   // 根據 displayFont 決定字體
   const fontFamily = displayFont === 'arial' 
@@ -565,7 +572,7 @@ export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) 
     : "'Source Code Pro', monospace";
   
   if (!shape) {
-    return <span className="text-[#FFD700] font-light" style={{ fontFamily }}>{chord}</span>;
+    return <span className="font-light" style={{ fontFamily, color: accent }}>{chord}</span>;
   }
   
   return (
@@ -574,13 +581,13 @@ export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) 
       onMouseEnter={() => setShowDiagram(true)}
       onMouseLeave={() => setShowDiagram(false)}
     >
-      <span className="text-[#FFD700] font-light hover:underline" style={{ fontFamily }}>{chord}</span>
+      <span className="font-light hover:underline" style={{ fontFamily, color: accent }}>{chord}</span>
       
       {/* Hover 彈出框 */}
       {showDiagram && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
           <div className={`p-2 rounded-lg shadow-xl ${isDark ? 'bg-neutral-800' : 'bg-white'} border border-neutral-600`}>
-            <SingleChordDiagram chord={chord} size={100} theme={theme} />
+            <SingleChordDiagram chord={chord} size={100} theme={theme} accentColor={accent} />
           </div>
           {/* 箭頭 */}
           <div className={`absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent ${isDark ? 'border-t-neutral-800' : 'border-t-white'}`} />
@@ -591,11 +598,11 @@ export function ChordWithHover({ chord, theme = 'dark', displayFont = 'mono' }) 
 }
 
 // 可 hover 的和弦行組件
-export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme = 'dark', displayFont = 'mono' }) {
-  const isDark = theme === 'dark';
+export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme = 'dark', displayFont = 'mono', chordColor, prefixSuffixColor }) {
+  const isDark = isChordUiDark(theme);
   const colors = {
-    chord: '#FFD700',
-    prefixSuffix: isDark ? '#B3B3B3' : '#666',
+    chord: chordColor ?? (isDark ? '#FFD700' : '#7C3AED'),
+    prefixSuffix: prefixSuffixColor ?? (isDark ? '#B3B3B3' : '#666'),
   };
   
   // 根據 displayFont 決定字體
@@ -656,7 +663,7 @@ export function ChordLineWithHover({ chordLine, prefix, suffix, fontSize, theme 
       
       {parts.map((part, index) => (
         part.type === 'chord' ? (
-          <ChordWithHover key={index} chord={part.content} theme={theme} displayFont={displayFont} />
+          <ChordWithHover key={index} chord={part.content} theme={theme} displayFont={displayFont} chordColor={colors.chord} />
         ) : (
           <span key={index} style={{ color: colors.chord }}>{part.content}</span>
         )
