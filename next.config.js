@@ -1,6 +1,17 @@
+const { AlphaTabWebPackPlugin } = require('@coderline/alphatab-webpack')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // alphaTab ships web workers / worklets; Webpack must bundle them (fixes file://…alphaTab.worker.mjs errors)
+  transpilePackages: ['@coderline/alphatab'],
+
+  webpack: (config) => {
+    // Apply on both client and server compilations — alphaTab is pulled into some server/SSG chunks and logs the warning otherwise.
+    config.plugins.push(new AlphaTabWebPackPlugin())
+    return config
+  },
 
   // 圖片優化設定
   images: {

@@ -1193,6 +1193,7 @@ export default function TabDetail({ initialTab, artist }) {
           }}
           gpSegments={tab.gpSegments || []}
           gpTheme={tab.gpTheme || 'dark'}
+          notationAlphaTex={tab.notationAlphaTex || ''}
           showInfo={showInfo}
           setShowInfo={toggleShowInfo}
           hideKeyRowAndBottomBar

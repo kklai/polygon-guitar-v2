@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 import Link from '@/components/Link'
 import { createTab, parseCollaborators } from '@/lib/tabs'
@@ -17,6 +18,12 @@ import { db, auth } from '@/lib/firebase'
 import { clearArtistMapCache } from '@/lib/useArtistMap'
 import { uploadToCloudinary, validateImageFile } from '@/lib/cloudinary'
 import { ArrowLeft, Music, Loader2 } from 'lucide-react'
+import { setNotationEditorReturnPath, peekPendingNotationTex, clearPendingNotationTex } from '@/lib/notationEditorBridge'
+
+const NotationAlphaTabPreview = dynamic(
+  () => import('@/components/NotationEditor/NotationAlphaTabPreview'),
+  { ssr: false }
+)
 
 const REGIONS = [
   { value: '', label: '請選擇...' },
@@ -149,7 +156,8 @@ export default function NewTab() {
     displayFont: 'mono', // 預設等寬字體，傳統結他譜格式
     gpSegments: [], // GP 段落陣列
     gpTheme: 'dark', // GP 顯示主題：dark (黑底黃字) / light (白底黑字)
-    region: '' // 地區（與設計圖一致）
+    region: '', // 地區（與設計圖一致）
+    notationAlphaTex: '' // 六線譜編輯器匯出之 alphaTex
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
@@ -180,13 +188,14 @@ export default function NewTab() {
   // 撳「獲取歌曲資訊」後，未成功獲取資料嘅輸入欄閃紅框
   const [spotifyFlashRedFields, setSpotifyFlashRedFields] = useState(new Set())
   const spotifyJustAppliedRef = useRef(false)
+  const [showNotationCard, setShowNotationCard] = useState(false)
 
   // 對齊參數（從 localStorage 讀取或預設 1.1）
   const [alignFactor, setAlignFactor] = useState(1.1)
   
   formDataRef.current = formData
 
-  // 在客戶端載入後讀取 localStorage（對齊參數 + 出譜草稿）；返回頁面時類型、地區會一併還原
+  // 在客戶端載入後讀取 localStorage（對齊參數 + 出譜草稿）；記譜編輯器返回嘅 alphaTex 最後合併（優先於草稿）
   useEffect(() => {
     if (typeof window === 'undefined') return
     const savedFactor = localStorage.getItem('tabAlignFactor')
@@ -206,6 +215,15 @@ export default function NewTab() {
         console.warn('[tab-new] draft parse error', e)
       }
     }
+    // peek (don't remove immediately): React Strict Mode double-mount would otherwise consume
+    // sessionStorage on the first effect and leave remounted state without notationAlphaTex.
+    const tex = peekPendingNotationTex()
+    if (tex) {
+      setFormData((prev) => ({ ...prev, notationAlphaTex: tex }))
+      setShowNotationCard(true)
+    }
+    const clearLater = setTimeout(() => clearPendingNotationTex(), 5000)
+    return () => clearTimeout(clearLater)
   }, [])
 
   // 離開頁面時保存草稿（除非按了出譜或取消）
@@ -445,7 +463,9 @@ export default function NewTab() {
     const newErrors = {}
     if (!formData.title.trim()) newErrors.title = '請輸入歌名'
     if (!formData.artist.trim()) newErrors.artist = '請輸入歌手名'
-    if (!formData.content.trim()) newErrors.content = '請輸入譜內容'
+    const hasText = !!formData.content.trim()
+    const hasNotation = !!(formData.notationAlphaTex || '').trim()
+    if (!hasText && !hasNotation) newErrors.content = '請輸入譜內容或加入六線譜'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -554,7 +574,7 @@ export default function NewTab() {
       router.push(`/tabs/${newTab.id}`)
     } catch (error) {
       console.error('Create tab error:', error)
-      alert('上傳失敗，請重試')
+      alert(`上傳失敗：${error?.message || error?.code || '請重試'}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -1271,6 +1291,83 @@ E|----------------------------------------------------------------|
               )}
             </div>
           </div>
+
+          {!showNotationCard && !(formData.notationAlphaTex || '').trim() && (
+            <div className="flex justify-end w-full">
+              <button
+                type="button"
+                onClick={() => setShowNotationCard(true)}
+                className="text-xs text-[#FFD700] hover:text-yellow-300"
+              >
+                加入六線譜
+              </button>
+            </div>
+          )}
+
+          {(showNotationCard || (formData.notationAlphaTex || '').trim()) && (
+            <div className="w-full rounded-lg border border-neutral-700 bg-black shadow-lg overflow-hidden">
+              {(formData.notationAlphaTex || '').trim() ? (
+                <>
+                  <div className="bg-[#1a1a1a] border-b border-neutral-800">
+                    <NotationAlphaTabPreview alphaTex={formData.notationAlphaTex} />
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-end p-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotationEditorReturnPath('/tabs/new')
+                        router.push('/notation-editor')
+                      }}
+                      className="px-4 py-2 rounded-lg bg-[#FFD700] text-black text-sm font-semibold hover:bg-yellow-400 shadow-md"
+                    >
+                      編輯
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, notationAlphaTex: '' }))
+                        setShowNotationCard(false)
+                      }}
+                      className="px-4 py-2 rounded-lg bg-[#282828] text-white text-sm font-medium border border-neutral-600 hover:bg-[#3E3E3E]"
+                    >
+                      移除
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3 p-2">
+                  <img
+                    src="/notation-editor.png"
+                    alt=""
+                    className="h-[80px] w-auto object-contain block shrink-0"
+                    draggable={false}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotationEditorReturnPath('/tabs/new')
+                        router.push('/notation-editor')
+                      }}
+                      className="px-4 py-2 rounded-lg bg-[#FFD700] text-black text-sm font-semibold hover:bg-yellow-400 shadow-md"
+                    >
+                      編輯
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, notationAlphaTex: '' }))
+                        setShowNotationCard(false)
+                      }}
+                      className="px-4 py-2 rounded-lg bg-[#282828] text-white text-sm font-medium border border-neutral-600 hover:bg-[#3E3E3E]"
+                    >
+                      移除
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <textarea name="content" value={formData.content} onChange={handleChange}

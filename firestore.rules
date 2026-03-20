@@ -47,12 +47,19 @@ service cloud.firestore {
       );
     }
 
+    // 只改 tabCount（上傳/刪除樂譜時 increment）：舊歌手冇 createdBy 時仍要允許，否則會 permission-denied
+    function artistTabCountOnlyUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tabCount']);
+    }
+
     // ==================== Artists ====================
     match /artists/{artistId} {
       allow read: if true;
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (
-        isSuperAdmin() || resource.data.createdBy == request.auth.uid
+        isSuperAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        artistTabCountOnlyUpdate()
       );
       allow delete: if isSuperAdmin();
     }
