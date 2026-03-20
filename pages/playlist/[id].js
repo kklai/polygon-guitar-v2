@@ -77,6 +77,8 @@ export default function PlaylistDetail({
   const adminArtistMap = useRef(new Map())
   const [adminAddSongLoading, setAdminAddSongLoading] = useState(false)
   const [adminAddingSongId, setAdminAddingSongId] = useState(null)
+  const [adminRemovingSongId, setAdminRemovingSongId] = useState(null)
+  const [adminReordering, setAdminReordering] = useState(false)
   const [adminAddSongDragY, setAdminAddSongDragY] = useState(0)
   const adminAddSongTouchStartY = useRef(0)
 
@@ -425,10 +427,10 @@ export default function PlaylistDetail({
     try {
       const newSongIds = [...(playlist?.songIds || []), songId]
       await updateSitePlaylist(id, { songIds: newSongIds })
-      await bustPlaylistPageCache()
       const [added] = await getTabsByIds([songId])
       if (added) setSongs((prev) => [...prev, added])
       setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
+      bustPlaylistPageCache().catch(() => {})
     } catch (e) {
       console.error(e)
       alert('加入失敗，請重試')
@@ -440,15 +442,18 @@ export default function PlaylistDetail({
   const orderedSongsForAdminEdit = (playlist?.songIds || []).map((sid) => songs.find((s) => s.id === sid)).filter(Boolean)
 
   const handleAdminRemoveSong = async (songId) => {
+    setAdminRemovingSongId(songId)
     try {
       const newSongIds = (playlist?.songIds || []).filter((sid) => sid !== songId)
       await updateSitePlaylist(id, { songIds: newSongIds })
-      await bustPlaylistPageCache()
       setSongs((prev) => prev.filter((s) => s.id !== songId))
       setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
+      bustPlaylistPageCache().catch(() => {})
     } catch (e) {
       console.error(e)
       alert('移除失敗，請重試')
+    } finally {
+      setAdminRemovingSongId(null)
     }
   }
 
@@ -458,17 +463,21 @@ export default function PlaylistDetail({
     const [removed] = reordered.splice(fromIndex, 1)
     reordered.splice(toIndex, 0, removed)
     const newSongIds = reordered.map((s) => s.id)
+    setAdminReordering(true)
     try {
       await updateSitePlaylist(id, { songIds: newSongIds })
-      await bustPlaylistPageCache()
       setPlaylist((p) => p ? { ...p, songIds: newSongIds } : p)
+      bustPlaylistPageCache().catch(() => {})
     } catch (e) {
       console.error(e)
       alert('更新次序失敗，請重試')
+    } finally {
+      setAdminReordering(false)
     }
   }
 
   const handleAdminEditHandleTouchStart = (e, index) => {
+    if (adminReordering) return
     const clientY = e.touches[0].clientY
     adminTouchDragStartYRef.current = clientY
     const row = e.currentTarget.closest('li')
@@ -1264,10 +1273,10 @@ export default function PlaylistDetail({
                           key={song.id}
                           className={`flex items-center gap-2 py-1.5 rounded-2xl md:hover:bg-white/5 transition-opacity ${isDragging ? 'opacity-0' : ''}`}
                           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
-                          onDrop={(e) => { e.preventDefault(); try { const { index: fromIndex } = JSON.parse(e.dataTransfer.getData('application/json') || '{}'); if (typeof fromIndex === 'number') handleAdminReorder(fromIndex, index) } catch (_) {} }}
+                          onDrop={(e) => { e.preventDefault(); if (adminReordering) return; try { const { index: fromIndex } = JSON.parse(e.dataTransfer.getData('application/json') || '{}'); if (typeof fromIndex === 'number') handleAdminReorder(fromIndex, index) } catch (_) {} }}
                         >
-                          <button type="button" onClick={(e) => { e.stopPropagation(); handleAdminRemoveSong(song.id) }} className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-lg md:hover:opacity-90 transition -ml-1" aria-label="從歌單移除">
-                            <svg className="w-5 h-5" viewBox="0 0 9.5 9.5" fill="none" stroke="#9B2D2D" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.8}><circle cx="4.8" cy="4.8" r="4" /><line x1="2.6" y1="4.8" x2="6.9" y2="4.8" /></svg>
+                          <button type="button" disabled={!!adminRemovingSongId} onClick={(e) => { e.stopPropagation(); handleAdminRemoveSong(song.id) }} className="w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-lg md:hover:opacity-90 transition -ml-1 disabled:opacity-50 disabled:cursor-wait" aria-label="從歌單移除">
+                            {adminRemovingSongId === song.id ? <Loader2 className="w-5 h-5 text-[#9B2D2D] animate-spin" /> : <svg className="w-5 h-5" viewBox="0 0 9.5 9.5" fill="none" stroke="#9B2D2D" strokeLinecap="round" strokeMiterlimit={10} strokeWidth={0.8}><circle cx="4.8" cy="4.8" r="4" /><line x1="2.6" y1="4.8" x2="6.9" y2="4.8" /></svg>}
                           </button>
                           <div className="w-10 h-10 rounded-lg bg-[#282828] flex-shrink-0 overflow-hidden">
                             {thumb ? <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-neutral-500"><Music className="w-5 h-5" strokeWidth={1.5} /></div>}
@@ -1279,7 +1288,7 @@ export default function PlaylistDetail({
                           <span
                             className="cursor-grab active:cursor-grabbing p-1.5 -mr-1.5 text-[#666] md:hover:text-[#B3B3B3] flex-shrink-0 select-none touch-none"
                             style={{ touchAction: 'none', WebkitTouchCallout: 'none' }}
-                            draggable={!isTouchDevice}
+                            draggable={!isTouchDevice && !adminReordering}
                             onTouchStart={(e) => handleAdminEditHandleTouchStart(e, index)}
                             onContextMenu={(e) => e.preventDefault()}
                             onDragStart={(e) => {

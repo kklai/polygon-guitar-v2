@@ -56,6 +56,17 @@ const KEY_TO_SEMITONE = {
   'Fm': 5, 'F#m': 6, 'Gm': 7, 'G#m': 8, 'Am': 9, 'Bbm': 10, 'Bm': 11
 };
 
+/** 用戶揀嘅顯示調係「降號調」時，轉調後和弦名用 Bb/Eb 等（唔用 A#/D#） */
+function preferFlatsForDisplayKey(key) {
+  if (key == null || key === '') return false;
+  const k = String(key).trim();
+  if (!k) return false;
+  const flatMajors = new Set(['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb']);
+  const flatMinors = new Set(['Dm', 'Gm', 'Cm', 'Fm', 'Bbm', 'Ebm', 'Abm']);
+  if (/m$/i.test(k)) return flatMinors.has(k);
+  return flatMajors.has(k);
+}
+
 // Semitone 對應的 Key (優先使用 flat)
 const SEMITONE_TO_KEY = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
@@ -64,7 +75,8 @@ const CHORDS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const CHORDS_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 // 轉調單個和弦（支援 slash chord，如 C/E）
-function transposeChord(chord, semitones) {
+function transposeChord(chord, semitones, preferFlats = false) {
+  const names = preferFlats ? CHORDS_FLAT : CHORDS;
   // 處理 slash chord，例如 C/E, D7/F#
   const slashMatch = chord.match(/^([A-G][#b]?[^\/]*)(?:\/([A-G][#b]?))?$/);
   if (!slashMatch) return chord;
@@ -81,7 +93,7 @@ function transposeChord(chord, semitones) {
   if (index === -1) return chord;
   
   const newIndex = (index + semitones + 12) % 12;
-  const newRoot = CHORDS[newIndex];
+  const newRoot = names[newIndex];
   
   // 轉調 bass note（如果有）
   let newBass = '';
@@ -90,14 +102,40 @@ function transposeChord(chord, semitones) {
     if (bassIndex === -1) bassIndex = CHORDS_FLAT.indexOf(bassNote);
     if (bassIndex !== -1) {
       const newBassIndex = (bassIndex + semitones + 12) % 12;
-      newBass = '/' + CHORDS[newBassIndex];
+      newBass = '/' + names[newBassIndex];
     }
   }
   
   return newRoot + suffix + newBass;
 }
 
-function transposeChordLine(line, semitones, preserveBarSpacing = false) {
+/** 延續低音寫法：空格後嘅「/B」「/G」等同 slash chord 嘅低音部，單獨出現時只轉低音 */
+function transposeSlashBassOnly(token, semitones, preferFlats = false) {
+  if (!semitones || semitones === 0) return token
+  const names = preferFlats ? CHORDS_FLAT : CHORDS
+  const m = token.match(/^\/([A-G][#b]?)$/)
+  if (!m) return token
+  const bassNote = m[1]
+  let bassIndex = CHORDS.indexOf(bassNote)
+  if (bassIndex === -1) bassIndex = CHORDS_FLAT.indexOf(bassNote)
+  if (bassIndex === -1) return token
+  const newBassIndex = (bassIndex + semitones + 12) % 12
+  return '/' + names[newBassIndex]
+}
+
+/** 是否為「延續低音」token：/ 後跟根音，常見於「C /B」表示 C over B */
+function isSlashBassContinuationToken(tokenName) {
+  return /^\/[A-G][#b]?$/.test(tokenName || '')
+}
+
+/** 行內有和弦標記：| 後根音，或（行首/空白/小節線後）嘅 /根音（唔會誤判 E7/G#） */
+function lineHasChordMarker(line) {
+  if (!line) return false
+  if (/[\|｜\u2502][\s]*[A-G]/.test(line)) return true
+  return /(?:^|[\s|｜\u2502])\/[A-G][#b]?(?=[\s|｜\u2502]|$)/.test(line)
+}
+
+function transposeChordLine(line, semitones, preserveBarSpacing = false, preferFlats = false) {
   if (!semitones || semitones === 0) {
     if (preserveBarSpacing) {
       return line.replace(/｜/g, '|').replace(/\u2502/g, '|');
@@ -107,7 +145,7 @@ function transposeChordLine(line, semitones, preserveBarSpacing = false) {
   
   const normalizedLine = normalizeChordSpacing(line, preserveBarSpacing);
   const barOut = preserveBarSpacing ? '|' : ' |';
-  return normalizedLine.replace(/([\|｜]\s*|\s+)([A-G][#b]?[^\s|｜]*|-)|([\|｜])/g, (match, separator, chord, barOnly) => {
+  let out = normalizedLine.replace(/([\|｜]\s*|\s+)([A-G][#b]?[^\s|｜]*|-)|([\|｜])/g, (match, separator, chord, barOnly) => {
     if (barOnly === '|' || barOnly === '｜') return barOut;
     const hasBar = separator && (/[\|｜]/.test(separator));
     const leadingSpace = separator && separator.match(/\s*$/)?.[0] || '';
@@ -116,10 +154,13 @@ function transposeChordLine(line, semitones, preserveBarSpacing = false) {
     }
     const hasDash = chord.endsWith('-');
     const cleanChord = hasDash ? chord.slice(0, -1) : chord;
-    const transposed = transposeChord(cleanChord, semitones);
+    const transposed = transposeChord(cleanChord, semitones, preferFlats);
     const result = hasDash ? transposed + '-' : transposed;
     return (hasBar ? barOut : leadingSpace || ' ') + result;
-  });
+  })
+  // 「C /B」「Am /G」：空格或 | 後嘅 /根音（唔係 E7/G# 嗰種，因前面唔係空白）
+  out = out.replace(/(^|[\s|])(\/[A-G][#b]?)(?=[\s|]|$)/g, (m, pre, slashBass) => pre + transposeSlashBassOnly(slashBass, semitones, preferFlats))
+  return out
 }
 
 // 確保和弦之間至少有一個空格
@@ -901,9 +942,9 @@ function isMixedLine(line) {
     return /\|/.test(rest) && (/\(/.test(rest) || /\（/.test(rest));
   }
   
-  // 沒有 Section Marker，檢查是否包含 | 開頭的和弦 + 括號歌詞
+  // 沒有 Section Marker，檢查是否包含 | 開頭的和弦 + 括號歌詞（含延續低音 /B）
   // 但排除純歌詞行（只有中文字和括號）
-  const hasChordBar = /\|[\s]*[A-G][#b]?/.test(line);
+  const hasChordBar = lineHasChordMarker(line);
   const hasLyricBracket = /[\(（][^A-G]/.test(line); // 括號內不是和弦（避免誤判）
   
   // 如果中文字比例高，視為歌詞行而非混合行
@@ -972,7 +1013,7 @@ function extractChordPart(segment) {
 }
 
 // 處理混合行 - 將交替出現的和弦與歌詞分開
-function processMixedLine(line, transposeSemitones = 0) {
+function processMixedLine(line, transposeSemitones = 0, preferFlats = false) {
   // 先確保和弦之間有空格
   const lineWithSpacing = normalizeChordSpacing(line);
   const normalizedLine = normalizeInput(lineWithSpacing);
@@ -1012,7 +1053,7 @@ function processMixedLine(line, transposeSemitones = 0) {
   
   // 處理轉調
   if (transposeSemitones !== 0) {
-    chordLine = transposeChordLine(chordLine, transposeSemitones);
+    chordLine = transposeChordLine(chordLine, transposeSemitones, false, preferFlats);
   }
   
   // 組合所有歌詞段落
@@ -1053,11 +1094,11 @@ function processMixedLine(line, transposeSemitones = 0) {
   };
 }
 
-function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets = false, displayFont = 'mono') {
+function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets = false, displayFont = 'mono', preferFlats = false) {
   // Arial 模式下，唔好做複雜對齊，直接返回原始行
   if (displayFont === 'arial') {
     return {
-      chordLine: transposeSemitones !== 0 ? transposeChordLine(chordLine, transposeSemitones) : chordLine,
+      chordLine: transposeSemitones !== 0 ? transposeChordLine(chordLine, transposeSemitones, false, preferFlats) : chordLine,
       lyricParts: [{ text: lyricLine, isInside: false, type: 'text' }],
       error: false
     };
@@ -1066,7 +1107,7 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
   if (displayFont === 'manual') {
     const barOnly = chordLine.replace(/｜/g, '|').replace(/\u2502/g, '|');
     return {
-      chordLine: transposeSemitones !== 0 ? transposeChordLine(barOnly, transposeSemitones, true) : barOnly,
+      chordLine: transposeSemitones !== 0 ? transposeChordLine(barOnly, transposeSemitones, true, preferFlats) : barOnly,
       lyricParts: [{ text: lyricLine, isInside: false, type: 'text' }],
       error: false
     };
@@ -1101,15 +1142,18 @@ function processPair(chordLine, lyricLine, transposeSemitones = 0, hideBrackets 
       i++;
     }
     
-    // 處理和弦（A-G 開頭）、NC（No Chord）、或延長符號/節奏記號（-、*、2/4 等）
+    // 處理和弦（A-G 開頭）、延續低音 /B /G、NC（No Chord）、或延長符號/節奏記號（-、*、2/4 等）
     if (tokenName) {
       let displayName = tokenName;
-      let isChord = /^[A-G]/.test(tokenName) || /^N\.?C\.?$/i.test(tokenName);
+      const isSlashBassOnly = isSlashBassContinuationToken(tokenName)
+      let isChord = /^[A-G]/.test(tokenName) || /^N\.?C\.?$/i.test(tokenName) || isSlashBassOnly;
       let isDash = tokenName === '-' || tokenName === '*' || /^\d+\/\d+$/.test(tokenName);
       
       // 如果是和弦，處理轉調
       if (isChord && transposeSemitones !== 0) {
-        displayName = transposeChord(tokenName, transposeSemitones);
+        displayName = isSlashBassOnly
+          ? transposeSlashBassOnly(tokenName, transposeSemitones, preferFlats)
+          : transposeChord(tokenName, transposeSemitones, preferFlats);
       }
       
       tokens.push({
@@ -1586,6 +1630,7 @@ const TabContent = ({
 
   // 轉調計算：內容轉調以 baseKey 為準
   const transposeSemitones = calculateTransposeSemitones(baseKey, currentKey);
+  const preferFlats = preferFlatsForDisplayKey(currentKey);
   // 但 Capo 顯示要以原調計算（顯示實際要夾幾多格）
   const displayCapo = calculateCapo(originalKey, currentKey);
   const capoSuggestion = getCapoSuggestion(displayCapo);
@@ -1828,7 +1873,7 @@ const TabContent = ({
             // 如果是和弦行且有轉調，處理轉調
             let displayLine = line;
             if (isChordLine && transposeSemitones !== 0) {
-              displayLine = transposeChordLine(line, transposeSemitones);
+              displayLine = transposeChordLine(line, transposeSemitones, false, preferFlats);
             }
             
             // 如果是簡譜行，顯示為粉紅色
@@ -1938,7 +1983,7 @@ const TabContent = ({
         
         const restLine = sectionCheck.rest.trim();
         if (restLine) {
-          const transposedRest = transposeChordLine(restLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
+          const transposedRest = transposeChordLine(restLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual', preferFlats);
           elements.push(
             <div key={i} style={{
               color: colors.chord,
@@ -2009,7 +2054,7 @@ const TabContent = ({
       const chineseChars = line.match(/[\u4e00-\u9fff]/g) || [];
       const englishWords = line.match(/[a-zA-Z]+/g) || [];
       // 檢查是否有 | 開頭的和弦標記
-      const hasChordBar = /[\|｜\u2502][\s]*[A-G]/.test(line);
+      const hasChordBar = lineHasChordMarker(line);
       
       // 檢查是否為和弦行（支持組合後綴如 madd9, maj7, add9、以及 b5/b9/#9 等延伸）
       // 和弦格式：[根音][升降]([m/maj/min/sus/dim/aug])([add/7/9/11/13]數字)?((b|#)數字)?(斜線根音)?
@@ -2023,6 +2068,8 @@ const TabContent = ({
         if (!part || part === '|' || part === '｜' || part === '\u2502') return true;
         // NC = No Chord（常見音樂標記）
         if (NC_PATTERN.test(part)) return true;
+        // 延續低音：/B、/G（等同 G/B 寫法嘅低音部）
+        if (isSlashBassContinuationToken(part)) return true;
         // 支援 D/F#、Bm7b5、E7b9 等（含 (b|#)數字 延伸）
         const chordWithSlash = part.match(/^[A-G][#b]?(maj|mj|m|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*((b|#)\d*)?(\/[A-G][#b]?)?$/);
         if (chordWithSlash) return true;
@@ -2030,7 +2077,10 @@ const TabContent = ({
         const cleanPart = part.replace(/[\|｜\u2502\/\s]/g, '');
         return !cleanPart || cleanPart.match(/^[A-G](#|b)?(maj|mj|m|min|sus|dim|aug)?(add|m7|maj7|7|9|11|13)?\d*((b|#)\d*)?$/);
       });
-      const hasChordPattern = hasBarLineStart ? validChordMatches.length >= 1 : (validChordMatches.length >= 2 || isChordOnlyLine);
+      const hasSlashBassInLine = /(?:^|[\s|｜\u2502])\/[A-G][#b]?(?=[\s|｜\u2502]|$)/.test(line);
+      const hasChordPattern = hasBarLineStart
+        ? (validChordMatches.length >= 1 || hasSlashBassInLine)
+        : (validChordMatches.length >= 2 || isChordOnlyLine);
       // 排除元數據行：包含 Key/Capo/制譜/編譜/原調/調性 關鍵詞的行
       const isMetadataLine = /\b(Key|Capo|制譜|編譜|原調|調性|調)\b/i.test(line);
       const isChord = hasChordPattern && chineseChars.length < 3 && !isMetadataLine;
@@ -2164,7 +2214,7 @@ const TabContent = ({
           
           const targetChinese = (targetLine.match(/[\u4e00-\u9fff]/g) || []).length;
           // 支援 ASCII |、全角｜、Unicode 豎線 │ (U+2502)
-          const targetHasChord = /[\|｜\u2502][\s]*[A-G]/.test(targetLine);
+          const targetHasChord = lineHasChordMarker(targetLine);
           const targetDigits = (targetLine.match(/\d/g) || []).length;
           const targetHasBrackets = /[\(（]/.test(targetLine);
           // 簡譜可含 b/#（如 3b 降3、5# 升5），只計「非 b/#」嘅英文字母
@@ -2223,7 +2273,7 @@ const TabContent = ({
             ? splitLongPair(cleanLine, lyricLine, 24, isMobile) // 手機屏幕約24個中文字
             : [{ chordLine: cleanLine, lyricLine }];
           // 取第一段歌詞嘅 preBracket，令「只有和弦冇歌詞」嘅行同歌詞行左邊對齊
-          const firstPairResult = processPair(pairs[0].chordLine, pairs[0].lyricLine, transposeSemitones, hideBrackets, displayFont);
+          const firstPairResult = processPair(pairs[0].chordLine, pairs[0].lyricLine, transposeSemitones, hideBrackets, displayFont, preferFlats);
           const preBracketForChordOnly = firstPairResult?.lyricSplit?.preBracket || '';
           
           // 若有多行和弦（e.g. intro 行 + 本段和弦行），先單獨顯示前面嘅和弦行（與歌詞行同 margin）
@@ -2231,9 +2281,9 @@ const TabContent = ({
           if (lastChordLineIndex > firstChordLineIndex) {
             for (let chordOnlyIdx = firstChordLineIndex; chordOnlyIdx < lastChordLineIndex; chordOnlyIdx++) {
               const chordOnlyLine = lines[chordOnlyIdx];
-              if (!chordOnlyLine || !/[\|｜\u2502][\s]*[A-G]/.test(chordOnlyLine)) continue; // 只顯示和弦行，跳過中間嘅簡譜行
+              if (!chordOnlyLine || !lineHasChordMarker(chordOnlyLine)) continue; // 只顯示和弦行，跳過中間嘅簡譜行
               const { prefix: p, suffix: s, cleanLine: chordOnlyClean } = extractSectionMarkers(chordOnlyLine, displayFont === 'manual');
-              const transposedChordOnly = transposeChordLine(chordOnlyClean, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
+              const transposedChordOnly = transposeChordLine(chordOnlyClean, transposeSemitones, displayFont === 'mono' || displayFont === 'manual', preferFlats);
               const nextLine = lines[chordOnlyIdx + 1];
               const nextHasChord = nextLine && /\|[\s]*[A-G]/.test(nextLine);
               const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine)) && !nextHasChord;
@@ -2264,7 +2314,7 @@ const TabContent = ({
           }
           
           pairs.forEach((pair, pairIndex) => {
-            const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets, displayFont);
+            const result = processPair(pair.chordLine, pair.lyricLine, transposeSemitones, hideBrackets, displayFont, preferFlats);
             
             // 和弦-歌詞配對緊貼，多行拆分時先保持間距
             const isLastPair = pairIndex === pairs.length - 1;
@@ -2369,7 +2419,7 @@ const TabContent = ({
                 <ChordLyricBlockWithWrap
                   pair={pair}
                   result={result}
-                  processPair={(p) => processPair(p.chordLine, p.lyricLine, transposeSemitones, hideBrackets, displayFont)}
+                  processPair={(p) => processPair(p.chordLine, p.lyricLine, transposeSemitones, hideBrackets, displayFont, preferFlats)}
                   pairMarginBottom={pairMarginBottom}
                   notationContent={notationContent}
                   renderBlock={(res, refs, notationContentBetween) => (
@@ -2609,7 +2659,7 @@ const TabContent = ({
           // 只有和弦 + 簡譜（如 intro (3) (2) (7,) (1)），冇歌詞行
           const chordLineForNotationOnly = lines[lastChordLineIndex] || line;
           const { prefix, suffix, cleanLine } = extractSectionMarkers(chordLineForNotationOnly, displayFont === 'manual');
-          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
+          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual', preferFlats);
           const prefixSuffixColor = theme === 'dark' ? '#B3B3B3' : '#666';
           elements.push(
             <div key={`${i}-notation-only`} style={{ marginBottom: `${lineFontSize * 0.3}px` }}>
@@ -2667,7 +2717,7 @@ const TabContent = ({
         } else {
           // 冇歌詞行，單獨顯示和弦
           const { prefix, suffix, cleanLine } = extractSectionMarkers(line, displayFont === 'manual');
-          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual');
+          const transposedChordLine = transposeChordLine(cleanLine, transposeSemitones, displayFont === 'mono' || displayFont === 'manual', preferFlats);
           // 檢查下一行是否為歌詞行或簡譜行
           const nextLine = lines[i + 1];
           const nextHasLyric = nextLine && (/[\u4e00-\u9fff]/.test(nextLine) || /[a-zA-Z]+/.test(nextLine));
